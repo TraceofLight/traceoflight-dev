@@ -15,6 +15,10 @@ class PostStatus(str, enum.Enum):
     ARCHIVED = 'archived'
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = 'posts'
 
@@ -23,5 +27,9 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     excerpt: Mapped[str | None] = mapped_column(String(400), nullable=True)
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
     cover_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    status: Mapped[PostStatus] = mapped_column(Enum(PostStatus, name='post_status'), index=True, default=PostStatus.DRAFT)
+    status: Mapped[PostStatus] = mapped_column(
+        Enum(PostStatus, name='post_status', values_callable=_enum_values),
+        index=True,
+        default=PostStatus.DRAFT,
+    )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

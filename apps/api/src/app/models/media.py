@@ -15,10 +15,18 @@ class AssetKind(str, enum.Enum):
     FILE = 'file'
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class MediaAsset(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = 'media_assets'
 
-    kind: Mapped[AssetKind] = mapped_column(Enum(AssetKind, name='asset_kind'), index=True, nullable=False)
+    kind: Mapped[AssetKind] = mapped_column(
+        Enum(AssetKind, name='asset_kind', values_callable=_enum_values),
+        index=True,
+        nullable=False,
+    )
     bucket: Mapped[str] = mapped_column(String(100), nullable=False)
     object_key: Mapped[str] = mapped_column(String(512), unique=True, index=True, nullable=False)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
