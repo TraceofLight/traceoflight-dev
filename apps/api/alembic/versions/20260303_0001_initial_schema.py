@@ -17,8 +17,10 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-post_status = sa.Enum("draft", "published", "archived", name="post_status")
-asset_kind = sa.Enum("image", "video", "file", name="asset_kind")
+# Explicit create/drop is handled in this migration with checkfirst=True.
+# Avoid auto create/drop during table DDL to prevent duplicate type errors.
+post_status = postgresql.ENUM("draft", "published", "archived", name="post_status", create_type=False)
+asset_kind = postgresql.ENUM("image", "video", "file", name="asset_kind", create_type=False)
 
 
 def upgrade() -> None:
