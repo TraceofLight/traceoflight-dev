@@ -64,7 +64,11 @@ services:
       - "${MINIO_API_PORT}"
       - "${MINIO_CONSOLE_PORT}"
     networks:
-      - api_internal
+      api_internal:
+      edge:
+        aliases:
+          - traceoflight-minio
+          - minio
 
   minio-init:
     image: minio/mc:latest

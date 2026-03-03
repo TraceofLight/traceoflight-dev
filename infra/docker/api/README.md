@@ -12,7 +12,8 @@ docker compose up -d --build
 ## Networking
 
 - `api` joins `traceoflight-edge` for reverse proxy (Nginx Proxy Manager)
-- `postgres` and `minio` stay on `api_internal` only
+- `postgres` stays on `api_internal` only
+- `minio` joins both `api_internal` and `traceoflight-edge` (for `/media/` reverse proxy)
 
 NPM upstream for API:
 - Host: `traceoflight-api`
