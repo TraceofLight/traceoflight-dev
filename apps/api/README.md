@@ -2,6 +2,13 @@
 
 FastAPI backend for posts and media metadata.
 
+## API notes
+
+- `GET /api/v1/posts?status=published` for public blog feed
+- `GET /api/v1/posts/{slug}?status=published` for public post detail
+- `POST /api/v1/posts` for admin post creation
+- `POST /api/v1/media/upload-url` + `POST /api/v1/media` for media uploads
+
 ## Local run
 
 ```bash
@@ -22,3 +29,4 @@ pytest -q
 ## Docker Stack
 
 Use `infra/docker/api/docker-compose.yml` to run API + PostgreSQL + MinIO.
+API runtime container runs as non-root user (`app`).

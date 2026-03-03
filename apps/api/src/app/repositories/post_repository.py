@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.post import Post
+from app.models.post import Post, PostStatus
 from app.schemas.post import PostCreate
 
 
@@ -11,12 +13,25 @@ class PostRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, limit: int = 20, offset: int = 0) -> list[Post]:
-        stmt = select(Post).order_by(Post.created_at.desc()).limit(limit).offset(offset)
+    def list(self, limit: int = 20, offset: int = 0, status: PostStatus | None = None) -> list[Post]:
+        stmt = select(Post).order_by(Post.created_at.desc())
+        if status is not None:
+            stmt = stmt.where(Post.status == status)
+        stmt = stmt.limit(limit).offset(offset)
         return list(self.db.scalars(stmt))
 
+    def get_by_slug(self, slug: str, status: PostStatus | None = None) -> Post | None:
+        stmt = select(Post).where(Post.slug == slug)
+        if status is not None:
+            stmt = stmt.where(Post.status == status)
+        return self.db.scalar(stmt)
+
     def create(self, payload: PostCreate) -> Post:
-        post = Post(**payload.model_dump())
+        post_data = payload.model_dump()
+        if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
+            post_data["published_at"] = datetime.now(timezone.utc)
+
+        post = Post(**post_data)
         self.db.add(post)
         self.db.commit()
         self.db.refresh(post)

@@ -17,12 +17,13 @@ const { post, imageWidth = 1200, imageHeight = 630 } = Astro.props;
   {
     post.heroImage && (
       <a class="thumb" href={`/blog/${post.slug}/`}>
-        <Image
-          src={post.heroImage}
-          alt={post.title}
-          width={imageWidth}
-          height={imageHeight}
-        />
+        {
+          typeof post.heroImage === 'string' ? (
+            <img src={post.heroImage} alt={post.title} loading="lazy" />
+          ) : (
+            <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+          )
+        }
       </a>
     )
   }

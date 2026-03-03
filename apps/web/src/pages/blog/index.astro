@@ -2,9 +2,29 @@
 import PostCard from '../../components/PostCard.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getBlogSource, toPostCard } from '../../lib/content-source';
+import { listPublishedDbPosts } from '../../lib/blog-db';
+import { getBlogSource, getContentProvider, toPostCard, type PostCard as PostCardData } from '../../lib/content-source';
 
-const posts = (await getBlogSource().listPosts()).map(toPostCard);
+const provider = getContentProvider();
+let posts: PostCardData[] = [];
+
+if (provider === 'db') {
+  try {
+    const dbPosts = await listPublishedDbPosts();
+    posts = dbPosts.map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      description: post.description,
+      pubDate: post.publishedAt,
+      updatedDate: post.updatedAt,
+      heroImage: post.coverImageUrl,
+    }));
+  } catch {
+    posts = [];
+  }
+} else {
+  posts = (await getBlogSource().listPosts()).map(toPostCard);
+}
 ---
 
 <BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>

@@ -4,6 +4,10 @@
 
 Provide a production-ready frontend baseline for a personal site covering landing, blog, and project pages.
 
+## Related Docs
+
+- Writer/auth implementation details: `docs/architecture/frontend-writer.md`
+
 ## Current Scope
 
 - Framework: Astro SSR (`output: server`)

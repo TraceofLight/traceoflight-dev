@@ -15,6 +15,7 @@ class PostCreate(BaseModel):
     body_markdown: str
     cover_image_url: str | None = None
     status: PostStatus = PostStatus.DRAFT
+    published_at: datetime | None = None
 
 
 class PostRead(BaseModel):

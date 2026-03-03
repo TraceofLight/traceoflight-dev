@@ -11,6 +11,9 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 6543
+      SITE_URL: https://traceoflight.dev
+      CONTENT_PROVIDER: db
+      API_BASE_URL: http://traceoflight-api:6654/api/v1
     expose:
       - "6543"
     networks:

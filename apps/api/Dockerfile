@@ -19,7 +19,12 @@ COPY scripts ./scripts
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir .
 
-RUN chmod +x ./scripts/entrypoint.sh
+RUN addgroup --system app \
+    && adduser --system --ingroup app --home /app --shell /usr/sbin/nologin app \
+    && chown -R app:app /app \
+    && chmod +x ./scripts/entrypoint.sh
+
+USER app
 
 EXPOSE 8000
 

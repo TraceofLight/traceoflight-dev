@@ -3,24 +3,48 @@ import { render } from 'astro:content';
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogPost from '../../layouts/BlogPost.astro';
-import { getBlogSource } from '../../lib/content-source';
+import { getPublishedDbPostBySlug, renderDbMarkdown } from '../../lib/blog-db';
+import { getBlogSource, getContentProvider } from '../../lib/content-source';
 
 const slug = Astro.params.slug ?? '';
-const post = await getBlogSource().getPostBySlug(slug);
+const provider = getContentProvider();
+const markdownPost = provider === 'file' ? await getBlogSource().getPostBySlug(slug) : null;
+let dbPost: Awaited<ReturnType<typeof getPublishedDbPostBySlug>> = null;
+
+if (provider === 'db') {
+  try {
+    dbPost = await getPublishedDbPostBySlug(slug);
+  } catch {
+    dbPost = null;
+  }
+}
 
 let Content: Awaited<ReturnType<typeof render>>['Content'] | null = null;
+let dbPostHtml: string | null = null;
 
-if (post) {
-  ({ Content } = await render(post));
+if (markdownPost) {
+  ({ Content } = await render(markdownPost));
+} else if (dbPost) {
+  dbPostHtml = renderDbMarkdown(dbPost.bodyMarkdown);
 } else {
   Astro.response.status = 404;
 }
 ---
 
 {
-  post && Content ? (
-    <BlogPost {...post.data}>
+  markdownPost && Content ? (
+    <BlogPost {...markdownPost.data}>
       <Content />
+    </BlogPost>
+  ) : dbPost && dbPostHtml ? (
+    <BlogPost
+      title={dbPost.title}
+      description={dbPost.description}
+      pubDate={dbPost.publishedAt}
+      updatedDate={dbPost.updatedAt}
+      heroImage={dbPost.coverImageUrl}
+    >
+      <div set:html={dbPostHtml} />
     </BlogPost>
   ) : (
     <BaseLayout title="Lorem ipsum" description="Lorem ipsum dolor sit amet, consectetur adipiscing elit.">

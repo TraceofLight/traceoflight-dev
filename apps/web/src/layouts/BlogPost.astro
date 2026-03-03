@@ -1,18 +1,36 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import type { ImageMetadata } from 'astro';
 
 import FormattedDate from '../components/FormattedDate.astro';
 import BaseLayout from './BaseLayout.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+type MarkdownPostData = CollectionEntry<'blog'>['data'];
+
+interface DbPostData {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  heroImage?: string;
+}
+
+type Props = MarkdownPostData | DbPostData;
 
 const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description} image={heroImage}>
+<BaseLayout title={title} description={description} image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}>
   <article class="post-shell">
-    {heroImage && <Image class="post-hero" src={heroImage} alt={title} width={1200} height={630} />}
+    {
+      heroImage &&
+        (typeof heroImage === 'string' ? (
+          <img class="post-hero" src={heroImage} alt={title} loading="lazy" />
+        ) : (
+          <Image class="post-hero" src={heroImage} alt={title} width={1200} height={630} />
+        ))
+    }
 
     <header class="post-header">
       <p class="post-meta">

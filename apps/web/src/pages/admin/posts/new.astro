@@ -1,20 +1,86 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const siteUrl = import.meta.env.SITE_URL?.trim() ?? '';
+const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '';
 ---
 
-<BaseLayout title="Admin | Writer" description="Admin writer placeholder">
+<BaseLayout title="Admin Writer" description="Admin writer for TraceofLight">
   <section class="hero">
-    <p class="kicker">ADMIN</p>
+    <p class="kicker">ADMIN WRITER</p>
     <h1>Lorem ipsum writer</h1>
-    <p class="lead">
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit.  
-      이 페이지는 현재 인증 선행 적용 이후에 실제 Milkdown 에디터를 연결할 예정입니다.
-    </p>
+    <p class="lead">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
   </section>
 
-  <section class="section auth-shell">
-    <div class="auth-panel">
-      <a class="button button-ghost" href="/admin">Back to Dashboard</a>
-    </div>
+  <section class="section admin-panel">
+    <form id="admin-post-form" class="admin-form">
+      <div class="admin-grid">
+        <label>
+          <span>Title</span>
+          <input id="post-title" name="title" type="text" required />
+        </label>
+        <label>
+          <span>Slug</span>
+          <input id="post-slug" name="slug" type="text" required />
+        </label>
+      </div>
+
+      <label>
+        <span>Excerpt</span>
+        <textarea id="post-excerpt" name="excerpt"></textarea>
+      </label>
+
+      <div class="admin-grid">
+        <label>
+          <span>Cover Image URL</span>
+          <input id="post-cover" name="cover_image_url" type="url" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select id="post-status" name="status">
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="admin-media-shell">
+        <p class="admin-label">Media Upload</p>
+        <div class="admin-media-grid">
+          <label>
+            <span>File</span>
+            <input id="media-file" name="media" type="file" />
+          </label>
+          <label>
+            <span>Media Base URL</span>
+            <input
+              id="media-base-url"
+              name="media_base_url"
+              type="url"
+              value={defaultMediaBaseUrl}
+              placeholder="https://traceoflight.dev/media"
+            />
+          </label>
+          <button id="upload-media-button" class="button button-ghost" type="button">Upload</button>
+        </div>
+      </div>
+
+      <div class="admin-editor-shell">
+        <p class="admin-label">Body Markdown</p>
+        <div id="milkdown-editor" class="milkdown-editor"></div>
+      </div>
+
+      <div class="admin-actions">
+        <button class="button" type="submit">Save Post</button>
+        <a class="button button-ghost" href="/admin">Back</a>
+      </div>
+      <p id="admin-feedback" class="admin-feedback" data-state="info">Lorem ipsum dolor sit amet.</p>
+    </form>
   </section>
 </BaseLayout>
+
+<script type="module">
+  import { initNewPostAdminPage } from '../../../lib/admin/new-post-page';
+
+  void initNewPostAdminPage();
+</script>

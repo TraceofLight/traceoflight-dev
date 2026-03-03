@@ -9,7 +9,7 @@ export interface PostCard {
     description: string;
     pubDate: Date;
     updatedDate?: Date;
-    heroImage?: ImageMetadata;
+    heroImage?: ImageMetadata | string;
 }
 
 export interface BlogContentSource {
@@ -53,6 +53,11 @@ const blogSource = createBlogSource();
 
 export function getBlogSource(): BlogContentSource {
     return blogSource;
+}
+
+export function getContentProvider(): 'file' | 'db' {
+    const provider = (import.meta.env.CONTENT_PROVIDER ?? 'file').toLowerCase();
+    return provider === 'db' ? 'db' : 'file';
 }
 
 export function toPostCard(post: BlogEntry): PostCard {
