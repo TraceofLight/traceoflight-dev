@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+
+from fastapi import APIRouter, Depends, HTTPException, Request as FastAPIRequest
 
 from app.api.deps import get_media_service
 from app.schemas.media import MediaCreate, MediaRead, MediaUploadRequest, MediaUploadResponse
@@ -23,3 +27,49 @@ def register_media(
     service: MediaService = Depends(get_media_service),
 ) -> MediaRead:
     return service.register_media(payload)
+
+
+@router.post('/upload-proxy')
+async def upload_media_proxy(request: FastAPIRequest) -> dict[str, bool]:
+    upload_url = str(request.headers.get('x-upload-url', '')).strip()
+    content_type = str(
+        request.headers.get('x-upload-content-type')
+        or request.headers.get('content-type')
+        or 'application/octet-stream'
+    ).strip()
+    body = await request.body()
+
+    if not upload_url:
+        raise HTTPException(status_code=400, detail='x-upload-url header is required')
+    if not body:
+        raise HTTPException(status_code=400, detail='request body is empty')
+
+    parsed = urlparse(upload_url)
+    if parsed.scheme not in ('http', 'https'):
+        raise HTTPException(status_code=400, detail='upload_url protocol is not supported')
+
+    proxy_request = Request(
+        upload_url,
+        data=body,
+        method='PUT',
+        headers={'Content-Type': content_type or 'application/octet-stream'},
+    )
+
+    try:
+        with urlopen(proxy_request, timeout=30) as response:
+            status_code = response.getcode()
+            if status_code < 200 or status_code >= 300:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f'object storage upload failed with status {status_code}',
+                )
+    except HTTPError as exc:
+        message = exc.read().decode('utf-8', errors='ignore').strip()
+        raise HTTPException(
+            status_code=502,
+            detail=message or f'object storage upload failed with status {exc.code}',
+        ) from exc
+    except URLError as exc:
+        raise HTTPException(status_code=502, detail=f'object storage upload request failed: {exc.reason}') from exc
+
+    return {'ok': True}

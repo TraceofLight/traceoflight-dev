@@ -9,5 +9,5 @@ test('media upload proxy supports binary body upload headers', async () => {
   assert.match(source, /x-upload-url/);
   assert.match(source, /x-upload-content-type/);
   assert.match(source, /request\.arrayBuffer\(\)/);
+  assert.match(source, /requestBackend\('\/media\/upload-proxy'/);
 });
-

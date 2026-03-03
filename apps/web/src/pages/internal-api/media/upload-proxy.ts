@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 
+import { requestBackend } from '../../../lib/backend-api';
+
 export const prerender = false;
 
 function json(detail: string, status: number): Response {
@@ -9,41 +11,14 @@ function json(detail: string, status: number): Response {
   });
 }
 
-interface ProxyUploadPayload {
-  uploadUrl: string;
-  contentType: string;
-  body: BodyInit;
-}
-
-async function parseProxyUploadPayload(request: Request): Promise<ProxyUploadPayload | Response> {
-  const requestContentType = request.headers.get('content-type') ?? '';
-  const isMultipart = requestContentType.toLowerCase().includes('multipart/form-data');
-
-  if (isMultipart) {
-    const form = await request.formData();
-    const uploadUrl = String(form.get('upload_url') ?? '').trim();
-    const contentType = String(form.get('content_type') ?? 'application/octet-stream').trim();
-    const file = form.get('file');
-
-    if (!uploadUrl) {
-      return json('upload_url is required', 400);
-    }
-    if (!(file instanceof File)) {
-      return json('file is required', 400);
-    }
-
-    return {
-      uploadUrl,
-      contentType: contentType || file.type || 'application/octet-stream',
-      body: file,
-    };
-  }
-
+async function parseProxyUploadPayload(
+  request: Request,
+): Promise<{ uploadUrl: string; contentType: string; body: ArrayBuffer } | Response> {
   const uploadUrl = String(request.headers.get('x-upload-url') ?? '').trim();
   const contentType = String(
-    request.headers.get('x-upload-content-type') ??
-      requestContentType ??
-      'application/octet-stream',
+    request.headers.get('x-upload-content-type')
+      ?? request.headers.get('content-type')
+      ?? 'application/octet-stream',
   ).trim();
   const binaryBody = await request.arrayBuffer();
 
@@ -67,35 +42,21 @@ export const POST: APIRoute = async ({ request }) => {
     return payload;
   }
 
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(payload.uploadUrl);
-  } catch {
-    return json('upload_url is invalid', 400);
-  }
-
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    return json('upload_url protocol is not supported', 400);
-  }
-
-  const uploadResponse = await fetch(parsedUrl.toString(), {
-    method: 'PUT',
+  const upstreamResponse = await requestBackend('/media/upload-proxy', {
+    method: 'POST',
     headers: {
       'content-type': payload.contentType || 'application/octet-stream',
+      'x-upload-url': payload.uploadUrl,
+      'x-upload-content-type': payload.contentType || 'application/octet-stream',
     },
     body: payload.body,
   });
+  const upstreamBody = await upstreamResponse.text();
 
-  if (!uploadResponse.ok) {
-    const backendMessage = await uploadResponse.text().catch(() => '');
-    return json(
-      backendMessage || `object storage upload failed with status ${uploadResponse.status}`,
-      502,
-    );
-  }
-
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { 'content-type': 'application/json' },
+  return new Response(upstreamBody, {
+    status: upstreamResponse.status,
+    headers: {
+      'content-type': upstreamResponse.headers.get('content-type') ?? 'application/json',
+    },
   });
 };
