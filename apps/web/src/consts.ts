@@ -1,5 +1,13 @@
-// Place any global data in this file.
-// You can import this data from anywhere in your site by using the `import` keyword.
+export const SITE_TITLE = 'TraceofLight';
+export const SITE_DESCRIPTION =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.';
+export const SITE_URL = 'https://traceoflight.dev';
 
-export const SITE_TITLE = 'Astro Blog';
-export const SITE_DESCRIPTION = 'Welcome to my website!';
+export const NAV_LINKS = [
+  { href: '/', label: 'Home' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/about', label: 'About' },
+] as const;
+
+export const GITHUB_URL = 'https://github.com/TraceofLight';

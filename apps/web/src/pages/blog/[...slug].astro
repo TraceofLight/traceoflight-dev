@@ -1,20 +1,35 @@
 ---
-import { type CollectionEntry, getCollection, render } from 'astro:content';
+import { render } from 'astro:content';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogPost from '../../layouts/BlogPost.astro';
+import { getBlogSource } from '../../lib/content-source';
 
-export async function getStaticPaths() {
-	const posts = await getCollection('blog');
-	return posts.map((post) => ({
-		params: { slug: post.id },
-		props: post,
-	}));
+const slug = Astro.params.slug ?? '';
+const post = await getBlogSource().getPostBySlug(slug);
+
+let Content: Awaited<ReturnType<typeof render>>['Content'] | null = null;
+
+if (post) {
+  ({ Content } = await render(post));
+} else {
+  Astro.response.status = 404;
 }
-type Props = CollectionEntry<'blog'>;
-
-const post = Astro.props;
-const { Content } = await render(post);
 ---
 
-<BlogPost {...post.data}>
-	<Content />
-</BlogPost>
+{
+  post && Content ? (
+    <BlogPost {...post.data}>
+      <Content />
+    </BlogPost>
+  ) : (
+    <BaseLayout title="Lorem ipsum" description="Lorem ipsum dolor sit amet, consectetur adipiscing elit.">
+      <section class="section">
+        <div class="empty-state">
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          <a class="button" href="/blog">Lorem ipsum</a>
+        </div>
+      </section>
+    </BaseLayout>
+  )
+}

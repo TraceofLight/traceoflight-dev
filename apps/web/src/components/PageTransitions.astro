@@ -1,0 +1,14 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+
+import { createPageTransitionStyles } from '../lib/page-transition';
+
+const transitionStyles = createPageTransitionStyles({
+  rootName: 'root',
+  durationMs: 260,
+  distancePx: 12,
+});
+---
+
+<ViewTransitions fallback="swap" />
+<style is:global set:html={transitionStyles} />

@@ -1,0 +1,36 @@
+---
+import { Image } from "astro:assets";
+
+import FormattedDate from "./FormattedDate.astro";
+import type { PostCard as PostCardData } from "../lib/content-source";
+
+interface Props {
+  post: PostCardData;
+  imageWidth?: number;
+  imageHeight?: number;
+}
+
+const { post, imageWidth = 1200, imageHeight = 630 } = Astro.props;
+---
+
+<article class="post-card">
+  {
+    post.heroImage && (
+      <a class="thumb" href={`/blog/${post.slug}/`}>
+        <Image
+          src={post.heroImage}
+          alt={post.title}
+          width={imageWidth}
+          height={imageHeight}
+        />
+      </a>
+    )
+  }
+  <p class="post-meta">
+    <FormattedDate date={post.pubDate} />
+  </p>
+  <h3>
+    <a href={`/blog/${post.slug}/`}>{post.title}</a>
+  </h3>
+  <p>{post.description}</p>
+</article>

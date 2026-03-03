@@ -1,0 +1,42 @@
+---
+import { Image } from "astro:assets";
+
+import type { ProjectItem } from "../lib/projects";
+
+interface Props {
+  project: ProjectItem;
+  imageWidth?: number;
+  imageHeight?: number;
+  stackLimit?: number;
+}
+
+const {
+  project,
+  imageWidth = 1200,
+  imageHeight = 630,
+  stackLimit,
+} = Astro.props;
+const visibleStack =
+  typeof stackLimit === "number"
+    ? project.stack.slice(0, stackLimit)
+    : project.stack;
+---
+
+<article class="surface-card">
+  <a class="thumb" href={`/projects/${project.slug}`}>
+    <Image
+      src={project.coverImage}
+      alt={project.title}
+      width={imageWidth}
+      height={imageHeight}
+    />
+  </a>
+  <p class="meta">{project.period}</p>
+  <h3>
+    <a href={`/projects/${project.slug}`}>{project.title}</a>
+  </h3>
+  <p>{project.summary}</p>
+  <div class="card-tags">
+    {visibleStack.map((skill) => <span>{skill}</span>)}
+  </div>
+</article>

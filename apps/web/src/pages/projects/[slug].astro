@@ -1,0 +1,70 @@
+---
+import { Image } from 'astro:assets';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProjectBySlug } from '../../lib/projects';
+
+const slug = Astro.params.slug ?? '';
+const project = getProjectBySlug(slug);
+
+if (!project) {
+  Astro.response.status = 404;
+}
+---
+
+{
+  project ? (
+    <BaseLayout title={project.title} description={project.summary} image={project.coverImage}>
+      <section class="hero">
+        <p class="kicker">PROJECT DETAIL</p>
+        <h1>{project.title}</h1>
+        <p class="lead">{project.summary}</p>
+      </section>
+
+      <section class="section">
+        <article class="surface-card">
+          <Image src={project.coverImage} alt={project.title} width={1400} height={780} />
+          <p>{project.description}</p>
+          <div class="card-tags">
+            {project.stack.map((skill) => <span>{skill}</span>)}
+          </div>
+        </article>
+      </section>
+
+      <section class="section card-grid">
+        <article class="surface-card">
+          <h3>Lorem ipsum</h3>
+          <p>{project.role}</p>
+          <p class="meta">{project.period}</p>
+        </article>
+
+        <article class="surface-card">
+          <h3>Dolor sit amet</h3>
+          <ul>
+            {project.highlights.map((item) => <li>{item}</li>)}
+          </ul>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="hero-actions">
+          {project.links.map((link) => (
+            <a class="button button-ghost" href={link.href} target="_blank" rel="noreferrer">
+              {link.label}
+            </a>
+          ))}
+          <a class="button" href="/projects">Lorem back</a>
+        </div>
+      </section>
+    </BaseLayout>
+  ) : (
+    <BaseLayout title="Project not found" description="Requested project was not found.">
+      <section class="section">
+        <div class="empty-state">
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          <a class="button" href="/projects">Lorem ipsum</a>
+        </div>
+      </section>
+    </BaseLayout>
+  )
+}

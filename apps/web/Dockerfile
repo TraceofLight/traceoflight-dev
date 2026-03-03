@@ -17,11 +17,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=4321
+ENV PORT=6543
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 
-EXPOSE 4321
+EXPOSE 6543
 
 CMD ["node", "./dist/server/entry.mjs"]

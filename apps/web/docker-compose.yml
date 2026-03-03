@@ -1,17 +1,17 @@
 services:
-  blog:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: traceoflight-blog
+    container_name: traceoflight-frontend
     restart: unless-stopped
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
-      PORT: 4321
+      PORT: 6543
       SITE_URL: https://traceoflight.dev
     expose:
-      - "4321"
+      - "6543"
     networks:
       - edge
 

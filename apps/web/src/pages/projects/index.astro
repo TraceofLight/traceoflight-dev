@@ -1,0 +1,28 @@
+---
+import ProjectCard from '../../components/ProjectCard.astro';
+import { SITE_TITLE } from '../../consts';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProjects } from '../../lib/projects';
+
+const projects = getProjects();
+---
+
+<BaseLayout
+  title={`Projects | ${SITE_TITLE}`}
+  description="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+>
+  <section class="hero">
+    <p class="kicker">PROJECTS</p>
+    <h1>Lorem ipsum dolor sit amet</h1>
+    <p class="lead">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+      labore et dolore magna aliqua.
+    </p>
+  </section>
+
+  <section class="section card-grid">
+    {
+      projects.map((project) => <ProjectCard project={project} />)
+    }
+  </section>
+</BaseLayout>

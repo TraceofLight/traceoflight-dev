@@ -1,0 +1,213 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.68rem 1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--brand);
+  color: #061017;
+  font-weight: 700;
+}
+
+.button:hover {
+  background: var(--brand-strong);
+  color: #061017;
+}
+
+.button.button-ghost {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.button.button-ghost:hover {
+  border-color: rgba(54, 210, 147, 0.5);
+  color: var(--brand);
+}
+
+.card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.thumb {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.surface-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(24, 36, 54, 0.82), rgba(18, 27, 40, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.surface-card:hover .thumb img,
+.post-card:hover .thumb img {
+  transform: scale(1.03);
+}
+
+.surface-card h3,
+.surface-card h4 {
+  margin: 0;
+  line-height: 1.3;
+}
+
+.surface-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.surface-card ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text-secondary);
+}
+
+.surface-card li + li {
+  margin-top: 0.45rem;
+}
+
+.surface-card .meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.card-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(155, 174, 196, 0.35);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+}
+
+.post-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.post-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(18, 27, 40, 0.92);
+}
+
+.post-card .thumb {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.post-card .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-card h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.post-card p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.post-meta {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.post-shell {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.post-hero {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  margin-bottom: 1.6rem;
+}
+
+.post-header {
+  margin-bottom: 2rem;
+}
+
+.post-header h1 {
+  margin: 0.4rem 0 0.8rem;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 1.2;
+}
+
+.post-description {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.post-content {
+  color: #dbe6f4;
+  font-size: 1.06rem;
+}
+
+.post-content h2,
+.post-content h3,
+.post-content h4 {
+  margin-top: 2.1rem;
+  margin-bottom: 0.8rem;
+}
+
+.post-content p,
+.post-content ul,
+.post-content ol,
+.post-content blockquote {
+  margin: 0 0 1.2rem;
+}
+
+.post-content blockquote {
+  border-left: 4px solid var(--brand);
+  padding: 0.35rem 0 0.35rem 0.9rem;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  padding: 2rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,27 @@
+:root {
+  --bg-app: #0b111a;
+  --bg-surface: #121b28;
+  --bg-surface-strong: #182436;
+  --bg-soft: #1f2c41;
+  --text-primary: #ebf2fb;
+  --text-secondary: #9baec4;
+  --text-muted: #7287a1;
+  --border: rgba(155, 174, 196, 0.24);
+  --brand: #36d293;
+  --brand-strong: #24ad78;
+  --brand-soft: rgba(54, 210, 147, 0.16);
+  --shadow: 0 18px 48px rgba(4, 8, 15, 0.48);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --max-width: 1120px;
+}
+
+@font-face {
+  font-family: 'Pretendard Variable';
+  src: url('../assets/fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}

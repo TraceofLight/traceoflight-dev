@@ -1,49 +1,70 @@
 ---
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import PostCard from "../components/PostCard.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getBlogSource, toPostCard } from "../lib/content-source";
+import { getProjects } from "../lib/projects";
+
+const posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
+const projects = getProjects().slice(0, 2);
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This template
-				serves as a lightweight, minimally-styled starting point for anyone looking to build a personal
-				website, blog, or portfolio with Astro.
-			</p>
-			<p>
-				This template comes with a few integrations already configured in your
-				<code>astro.config.mjs</code> file. You can customize your setup with
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to
-				<a href="https://docs.astro.build/">read the docs</a>
-				or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out
-				<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>
-				by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
-		</main>
-		<Footer />
-	</body>
-</html>
+<BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+  <section class="hero">
+    <p class="kicker">TRACEOFLIGHT</p>
+    <h1>
+      Lorem ipsum dolor sit amet,
+      <span> consectetur adipiscing elit.</span>
+    </h1>
+    <p class="lead">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua.
+    </p>
+    <div class="hero-actions">
+      <a class="button" href="/blog">Lorem ipsum</a>
+      <a class="button button-ghost" href="/projects">Dolor sit</a>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="featured-projects">
+    <div class="section-head">
+      <h2 id="featured-projects">Lorem Ipsum</h2>
+      <a href="/projects">Dolor Sit Amet</a>
+    </div>
+
+    <div class="card-grid">
+      {
+        projects.map((project) => (
+          <ProjectCard
+            project={project}
+            imageWidth={960}
+            imageHeight={540}
+            stackLimit={3}
+          />
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="latest-posts">
+    <div class="section-head">
+      <h2 id="latest-posts">Lorem Dolor</h2>
+      <a href="/blog">Ipsum Archive</a>
+    </div>
+
+    {
+      posts.length > 0 ? (
+        <div class="post-list">
+          {posts.map((post) => (
+            <PostCard post={post} imageWidth={960} imageHeight={540} />
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        </div>
+      )
+    }
+  </section>
+</BaseLayout>
