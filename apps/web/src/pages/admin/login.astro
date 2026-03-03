@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sanitizeNextPath } from '../../lib/admin-redirect';
+
+const safeNextPath = sanitizeNextPath(Astro.url.searchParams.get('next'));
 ---
 
 <BaseLayout title="Admin Login" description="Admin login for TraceofLight dashboard">
@@ -10,7 +13,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   </section>
 
   <section class="section auth-shell">
-    <form id="admin-login-form" class="auth-form">
+    <form id="admin-login-form" class="auth-form" data-next={safeNextPath}>
       <label>
         <span>Username</span>
         <input id="admin-username" name="username" type="text" autocomplete="username" required />
@@ -26,16 +29,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script type="module">
-  import { sanitizeNextPath } from '../../lib/admin-redirect';
-
   const form = document.querySelector('#admin-login-form');
   const feedback = document.querySelector('#auth-feedback');
   const usernameInput = document.querySelector('#admin-username');
   const passwordInput = document.querySelector('#admin-password');
-
-  const searchParams = new URL(window.location.href).searchParams;
-  const rawNext = searchParams.get('next');
-  const nextUrl = sanitizeNextPath(rawNext);
+  const nextUrl = form instanceof HTMLFormElement ? form.dataset.next || '/admin' : '/admin';
 
   function setFeedback(message, state) {
     if (!feedback) return;
