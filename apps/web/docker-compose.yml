@@ -1,0 +1,21 @@
+services:
+  blog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: traceoflight-blog
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4321
+      SITE_URL: https://traceoflight.dev
+    expose:
+      - "4321"
+    networks:
+      - edge
+
+networks:
+  edge:
+    external: true
+    name: traceoflight-edge
