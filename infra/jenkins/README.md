@@ -20,3 +20,19 @@ Backend pipeline deploys only the `api` service (`--no-deps api`) to avoid unint
 Note:
 - For Compose safety, avoid `$` characters in secret values inside the Jenkins env file used by backend pipeline.
 - Required keys in Jenkins env file: `API_PORT`, `POSTGRES_PORT`, `MINIO_API_PORT`, `MINIO_CONSOLE_PORT`, DB and MinIO credentials.
+
+## Frontend Credential
+
+`Jenkinsfile.frontend` expects a Jenkins `Secret file` credential:
+
+- Credential ID: `traceoflight-web-env`
+- File content: frontend runtime env (based on `apps/web/.env.example`)
+- Jenkins copies this file to `apps/web/.env` at deploy time, then runs:
+  - `docker compose --env-file .env up -d --build --remove-orphans`
+- Required keys:
+  - `SITE_URL`
+  - `ADMIN_LOGIN_ID`
+  - `ADMIN_LOGIN_PASSWORD`
+  - `ADMIN_SESSION_SECRET`
+  - `ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS`
+  - `ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS`

@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Admin" description="Admin dashboard">
+  <section class="hero">
+    <p class="kicker">ADMIN</p>
+    <h1>Lorem ipsum dashboard</h1>
+    <p class="lead">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit.  
+      글쓰기 페이지는 다음 단계에서 연결하고, 현재는 인증/접근 제어를 먼저 적용한 상태입니다.
+    </p>
+  </section>
+
+  <section class="section auth-shell">
+    <div class="auth-panel">
+      <a class="button" href="/admin/posts/new">Go to Writer</a>
+      <button id="admin-logout-button" class="button button-ghost" type="button">Logout</button>
+      <p id="logout-feedback" class="auth-feedback" data-state="info"></p>
+    </div>
+  </section>
+</BaseLayout>
+
+<script type="module">
+  const logoutButton = document.querySelector('#admin-logout-button');
+  const feedback = document.querySelector('#logout-feedback');
+
+  function setFeedback(message, state) {
+    if (!feedback) return;
+    feedback.textContent = message;
+    feedback.dataset.state = state;
+  }
+
+  if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
+      setFeedback('로그아웃 처리 중...', 'info');
+      try {
+        const response = await fetch('/internal-api/auth/logout', { method: 'POST' });
+        if (!response.ok) {
+          setFeedback('로그아웃에 실패했습니다.', 'error');
+          return;
+        }
+        window.location.href = '/admin/login';
+      } catch {
+        setFeedback('네트워크 오류가 발생했습니다.', 'error');
+      }
+    });
+  }
+</script>

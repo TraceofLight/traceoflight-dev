@@ -5,11 +5,12 @@ services:
       dockerfile: Dockerfile
     container_name: traceoflight-frontend
     restart: unless-stopped
+    env_file:
+      - ./.env
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 6543
-      SITE_URL: https://traceoflight.dev
     expose:
       - "6543"
     networks:

@@ -17,12 +17,35 @@ pipeline {
       }
     }
 
+    stage('Prepare Frontend Env') {
+      steps {
+        withCredentials([file(credentialsId: 'traceoflight-web-env', variable: 'WEB_ENV_FILE')]) {
+          sh '''
+            cp "$WEB_ENV_FILE" apps/web/.env
+
+            for key in SITE_URL ADMIN_LOGIN_ID ADMIN_LOGIN_PASSWORD ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS; do
+              if ! grep -Eq "^${key}=.+" apps/web/.env; then
+                echo "ERROR: required env key is missing or empty: ${key}"
+                exit 1
+              fi
+            done
+          '''
+        }
+      }
+    }
+
     stage('Deploy Frontend') {
       steps {
         dir('apps/web') {
-          sh 'docker compose up -d --build --remove-orphans'
+          sh 'docker compose --env-file .env up -d --build --remove-orphans'
         }
       }
+    }
+  }
+
+  post {
+    always {
+      sh 'rm -f apps/web/.env || true'
     }
   }
 }
