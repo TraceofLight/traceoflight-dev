@@ -170,15 +170,17 @@ function extractFileFromClipboard(event: ClipboardEvent): File | null {
 }
 
 async function uploadBinaryToStorage(uploadUrl: string, file: File): Promise<void> {
-  if (shouldProxyUpload(uploadUrl)) {
-    const formData = new FormData();
-    formData.set('upload_url', uploadUrl);
-    formData.set('content_type', file.type || 'application/octet-stream');
-    formData.set('file', file, file.name);
+  const binaryContentType = file.type || 'application/octet-stream';
 
+  if (shouldProxyUpload(uploadUrl)) {
     const response = await fetch('/internal-api/media/upload-proxy', {
       method: 'POST',
-      body: formData,
+      headers: {
+        'content-type': binaryContentType,
+        'x-upload-url': uploadUrl,
+        'x-upload-content-type': binaryContentType,
+      },
+      body: file,
     });
     if (!response.ok) {
       const errorPayload = (await response.json().catch(() => null)) as unknown;
@@ -189,7 +191,7 @@ async function uploadBinaryToStorage(uploadUrl: string, file: File): Promise<voi
 
   const uploadResult = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'content-type': file.type || 'application/octet-stream' },
+    headers: { 'content-type': binaryContentType },
     body: file,
   });
   if (!uploadResult.ok) {
@@ -554,21 +556,31 @@ export async function initNewPostAdminPage(): Promise<void> {
     queuePreviewRefresh();
   });
 
-  const isFileDrag = (event: DragEvent) => {
+  const isMediaFileDrag = (event: DragEvent) => {
+    const items = event.dataTransfer?.items;
+    if (items && items.length > 0) {
+      return Array.from(items).some((item) => {
+        if (item.kind !== 'file') return false;
+        const mime = item.type.toLowerCase();
+        if (!mime) return true;
+        return mime.startsWith('image/') || mime.startsWith('video/');
+      });
+    }
+
     const types = event.dataTransfer?.types;
     if (!types) return false;
     return Array.from(types).includes('Files');
   };
 
   const onWindowDragEnter = (event: DragEvent) => {
-    if (!isFileDrag(event)) return;
+    if (!isMediaFileDrag(event)) return;
     event.preventDefault();
     dragDepth += 1;
     showDropOverlay();
   };
 
   const onWindowDragOver = (event: DragEvent) => {
-    if (!isFileDrag(event)) return;
+    if (!isMediaFileDrag(event)) return;
     event.preventDefault();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'copy';
@@ -577,7 +589,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   };
 
   const onWindowDragLeave = (event: DragEvent) => {
-    if (!isFileDrag(event)) return;
+    if (!isMediaFileDrag(event)) return;
     event.preventDefault();
     dragDepth = Math.max(0, dragDepth - 1);
     if (dragDepth === 0) {
@@ -586,7 +598,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   };
 
   const onWindowDrop = async (event: DragEvent) => {
-    if (!isFileDrag(event)) return;
+    if (!isMediaFileDrag(event)) return;
     const alreadyHandled = event.defaultPrevented;
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];

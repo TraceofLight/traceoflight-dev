@@ -674,6 +674,10 @@
   background: rgba(10, 18, 28, 0.44);
 }
 
+.writer-drop-overlay[hidden] {
+  display: none;
+}
+
 .writer-drop-overlay-panel {
   width: min(560px, calc(100% - 2rem));
   border-radius: 1rem;

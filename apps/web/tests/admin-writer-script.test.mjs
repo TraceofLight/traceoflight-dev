@@ -25,8 +25,11 @@ test('writer script has fallback text editor for init failure', async () => {
 test('writer script includes global drag overlay and upload proxy fallback', async () => {
   const source = await readFile(scriptPath, 'utf8');
   assert.match(source, /writer-drop-overlay/);
+  assert.match(source, /isMediaFileDrag/);
   assert.match(source, /shouldProxyUpload/);
   assert.match(source, /\/internal-api\/media\/upload-proxy/);
+  assert.match(source, /x-upload-url/);
+  assert.match(source, /x-upload-content-type/);
 });
 
 test('writer script normalizes cover and markdown links', async () => {

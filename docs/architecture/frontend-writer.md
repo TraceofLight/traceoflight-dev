@@ -142,6 +142,8 @@ Writer page: `/admin/posts/new`
    - Upload binary:
      - direct `PUT` to presigned URL (default)
      - fallback `POST /internal-api/media/upload-proxy` when presigned URL is not browser-safe (for example mixed-content `http://` on `https://` page)
+       - browser sends raw binary body with `x-upload-url`/`x-upload-content-type` headers
+       - avoids Astro form-origin check conflicts from `multipart/form-data` behind reverse proxy
    - `POST /internal-api/media/register`
    - Insert markdown snippet into editor:
      - image: `![name](url)`

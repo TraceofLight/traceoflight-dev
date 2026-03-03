@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 const pagePath = new URL('../src/pages/admin/posts/new.astro', import.meta.url);
+const stylePath = new URL('../src/styles/components.css', import.meta.url);
 
 test('admin writer page renders post form shell', async () => {
   const source = await readFile(pagePath, 'utf8');
@@ -25,4 +26,9 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /id="writer-preview-slug"/);
   assert.match(source, /id="writer-preview-cover"/);
   assert.match(source, /id="writer-drop-overlay"/);
+});
+
+test('admin writer drop overlay stays hidden by default', async () => {
+  const source = await readFile(stylePath, 'utf8');
+  assert.match(source, /\.writer-drop-overlay\[hidden\]/);
 });

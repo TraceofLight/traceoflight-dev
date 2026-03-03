@@ -4,11 +4,10 @@ import { test } from 'node:test';
 
 const apiPath = new URL('../src/pages/internal-api/media/upload-proxy.ts', import.meta.url);
 
-test('upload proxy endpoint validates request and forwards PUT upload', async () => {
+test('media upload proxy supports binary body upload headers', async () => {
   const source = await readFile(apiPath, 'utf8');
-
-  assert.match(source, /request\.formData\(\)/);
-  assert.match(source, /upload_url is required/);
-  assert.match(source, /upload_url protocol is not supported/);
-  assert.match(source, /method: 'PUT'/);
+  assert.match(source, /x-upload-url/);
+  assert.match(source, /x-upload-content-type/);
+  assert.match(source, /request\.arrayBuffer\(\)/);
 });
+
