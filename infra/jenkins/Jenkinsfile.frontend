@@ -23,12 +23,17 @@ pipeline {
           sh '''
             cp "$WEB_ENV_FILE" apps/web/.env
 
-            for key in SITE_URL ADMIN_LOGIN_ID ADMIN_LOGIN_PASSWORD ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS; do
+            for key in SITE_URL ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS; do
               if ! grep -Eq "^${key}=.+" apps/web/.env; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
             done
+
+            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' apps/web/.env && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' apps/web/.env; then
+              echo "ERROR: at least one of ADMIN_LOGIN_PASSWORD_HASH or ADMIN_LOGIN_PASSWORD is required"
+              exit 1
+            fi
           '''
         }
       }

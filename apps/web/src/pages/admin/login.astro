@@ -26,13 +26,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script type="module">
+  import { sanitizeNextPath } from '../../lib/admin-redirect';
+
   const form = document.querySelector('#admin-login-form');
   const feedback = document.querySelector('#auth-feedback');
   const usernameInput = document.querySelector('#admin-username');
   const passwordInput = document.querySelector('#admin-password');
 
   const searchParams = new URL(window.location.href).searchParams;
-  const nextUrl = searchParams.get('next') || '/admin';
+  const rawNext = searchParams.get('next');
+  const nextUrl = sanitizeNextPath(rawNext);
 
   function setFeedback(message, state) {
     if (!feedback) return;

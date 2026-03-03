@@ -7,7 +7,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "node --test tests/**/*.test.mjs",
+    "test:guards": "node --test tests/**/*.test.mjs",
+    "test:auth": "node --import tsx --test tests/admin-auth/**/*.test.ts",
+    "test": "npm run test:guards && npm run test:auth",
     "format": "prettier . --write",
     "format:check": "prettier . --check"
   },
@@ -16,12 +18,14 @@
     "@astrojs/node": "^9.5.4",
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
+    "@node-rs/argon2": "^2.0.2",
     "astro": "5.18.0",
     "sharp": "^0.34.3"
   },
   "private": true,
   "devDependencies": {
     "prettier": "^3.8.1",
-    "prettier-plugin-astro": "^0.14.1"
+    "prettier-plugin-astro": "^0.14.1",
+    "tsx": "^4.21.0"
   }
 }

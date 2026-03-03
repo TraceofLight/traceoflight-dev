@@ -39,12 +39,15 @@ export const onRequest = defineMiddleware((context, next) => {
   const refreshToken = context.cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? '';
   if (refreshToken) {
     const rotation = rotateRefreshToken(refreshToken);
-    if (rotation.pair) {
+    if (rotation.kind === 'rotated' && rotation.pair) {
       const secure = process.env.NODE_ENV === 'production' || context.url.protocol === 'https:';
       setAdminAuthCookies(context.cookies, rotation.pair, secure);
       return next();
     }
-    clearAdminAuthCookies(context.cookies);
+
+    if (rotation.kind === 'reuse_detected' || rotation.kind === 'invalid' || rotation.kind === 'expired') {
+      clearAdminAuthCookies(context.cookies);
+    }
   }
 
   if (pathname.startsWith('/internal-api')) {

@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const username = payload.username?.trim() ?? '';
   const password = payload.password ?? '';
-  if (!verifyAdminCredentials(username, password)) {
+  if (!(await verifyAdminCredentials(username, password))) {
     return new Response(JSON.stringify({ detail: 'Invalid username or password' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },

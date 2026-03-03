@@ -8,6 +8,8 @@ Astro frontend for landing, blog, and projects.
 - Protected pages: `/admin/*`
 - Auth APIs: `/internal-api/auth/login`, `/internal-api/auth/refresh`, `/internal-api/auth/logout`
 - Auth model: `Access Token + Refresh Token Rotation (RTR)` with `httpOnly` cookies
+- Rotation outcomes: `rotated`, `stale`, `reuse_detected`, `invalid`, `expired`
+- Password policy: `ADMIN_LOGIN_PASSWORD_HASH` 우선, `ADMIN_LOGIN_PASSWORD`는 fallback
 - Required env vars are documented in `.env.example`
 
 ## Commands

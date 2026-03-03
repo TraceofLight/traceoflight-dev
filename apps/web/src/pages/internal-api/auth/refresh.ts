@@ -19,18 +19,42 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   const rotation = rotateRefreshToken(refreshToken);
-  if (!rotation.pair) {
+  if (rotation.kind === 'rotated' && rotation.pair) {
+    const secure = process.env.NODE_ENV === 'production' || request.url.startsWith('https://');
+    setAdminAuthCookies(cookies, rotation.pair, secure);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  if (rotation.kind === 'reuse_detected' || rotation.kind === 'invalid' || rotation.kind === 'expired') {
     clearAdminAuthCookies(cookies);
-    return new Response(JSON.stringify({ detail: 'Refresh token is invalid' }), {
+  }
+
+  if (rotation.kind === 'stale') {
+    return new Response(JSON.stringify({ detail: 'Refresh token is stale', code: 'RTR_STALE' }), {
+      status: 409,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  if (rotation.kind === 'expired') {
+    return new Response(JSON.stringify({ detail: 'Refresh token is expired', code: 'RTR_EXPIRED' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
     });
   }
 
-  const secure = process.env.NODE_ENV === 'production' || request.url.startsWith('https://');
-  setAdminAuthCookies(cookies, rotation.pair, secure);
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
+  if (rotation.kind === 'reuse_detected') {
+    return new Response(JSON.stringify({ detail: 'Refresh token reuse detected', code: 'RTR_REUSE' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  return new Response(JSON.stringify({ detail: 'Refresh token is invalid', code: 'RTR_INVALID' }), {
+    status: 401,
     headers: { 'content-type': 'application/json' },
   });
 };
