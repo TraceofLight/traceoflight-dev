@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(case_sensitive=False, env_file='.env', extra='ignore')
+
+    app_name: str = Field(default='traceoflight-api', alias='APP_NAME')
+    app_env: str = Field(default='development', alias='APP_ENV')
+    log_level: str = Field(default='INFO', alias='LOG_LEVEL')
+    api_prefix: str = Field(default='/api/v1', alias='API_PREFIX')
+    cors_allow_origins: str = Field(
+        default='https://traceoflight.dev,https://www.traceoflight.dev,http://localhost:6543',
+        alias='CORS_ALLOW_ORIGINS',
+    )
+
+    postgres_user: str = Field(default='traceoflight', alias='POSTGRES_USER')
+    postgres_password: str = Field(default='traceoflight', alias='POSTGRES_PASSWORD')
+    postgres_db: str = Field(default='traceoflight', alias='POSTGRES_DB')
+    postgres_host: str = Field(default='localhost', alias='POSTGRES_HOST')
+    postgres_port: int = Field(default=5432, alias='POSTGRES_PORT')
+
+    minio_endpoint: str = Field(default='localhost:9000', alias='MINIO_ENDPOINT')
+    minio_access_key: str = Field(default='traceoflight', alias='MINIO_ACCESS_KEY')
+    minio_secret_key: str = Field(default='traceoflight', alias='MINIO_SECRET_KEY')
+    minio_bucket: str = Field(default='traceoflight-media', alias='MINIO_BUCKET')
+    minio_secure: bool = Field(default=False, alias='MINIO_SECURE')
+    minio_presigned_expire_seconds: int = Field(default=900, alias='MINIO_PRESIGNED_EXPIRE_SECONDS')
+
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allow_origins.split(',') if origin.strip()]
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

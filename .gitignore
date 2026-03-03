@@ -1,12 +1,20 @@
 # Dependencies
 node_modules/
 **/node_modules/
+.venv/
+**/.venv/
 
 # Build outputs
 **/dist/
 **/.astro/
 **/.cache/
 **/coverage/
+**/.pytest_cache/
+**/.ruff_cache/
+
+# Python caches
+**/__pycache__/
+*.pyc
 
 # Environment files
 .env

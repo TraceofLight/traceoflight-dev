@@ -1,0 +1,28 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  triggers {
+    githubPush()
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Deploy Frontend') {
+      steps {
+        dir('apps/web') {
+          sh 'docker compose up -d --build --remove-orphans'
+        }
+      }
+    }
+  }
+}

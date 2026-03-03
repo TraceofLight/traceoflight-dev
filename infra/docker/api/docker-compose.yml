@@ -1,0 +1,104 @@
+name: traceoflight-api-stack
+
+services:
+  api:
+    build:
+      context: ../../../apps/api
+      dockerfile: Dockerfile
+    container_name: traceoflight-api
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      MINIO_ENDPOINT: minio:${MINIO_API_PORT}
+      API_PORT: ${API_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    expose:
+      - "${API_PORT}"
+    networks:
+      - edge
+      - api_internal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: traceoflight-postgres
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-traceoflight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+      POSTGRES_DB: ${POSTGRES_DB:-traceoflight}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    command: ["postgres", "-p", "${POSTGRES_PORT}"]
+    volumes:
+      - traceoflight-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p ${POSTGRES_PORT} -U ${POSTGRES_USER:-traceoflight} -d ${POSTGRES_DB:-traceoflight}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - api_internal
+
+  minio:
+    image: minio/minio:latest
+    container_name: traceoflight-minio
+    restart: unless-stopped
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    env_file:
+      - ./.env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-traceoflight}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-this-minio-password}
+    volumes:
+      - traceoflight-minio-data:/data
+    expose:
+      - "${MINIO_API_PORT}"
+      - "${MINIO_CONSOLE_PORT}"
+    networks:
+      - api_internal
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: traceoflight-minio-init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_started
+    env_file:
+      - ./.env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-traceoflight}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-this-minio-password}
+      MINIO_BUCKET: ${MINIO_BUCKET:-traceoflight-media}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:${MINIO_API_PORT} "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          echo "waiting for minio..."
+          sleep 2
+        done
+        mc mb -p "local/$$MINIO_BUCKET" || true
+        exit 0
+    networks:
+      - api_internal
+
+volumes:
+  traceoflight-postgres-data:
+  traceoflight-minio-data:
+
+networks:
+  edge:
+    external: true
+    name: traceoflight-edge
+  api_internal:
+    driver: bridge

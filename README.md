@@ -5,12 +5,17 @@ portfolio, personal blog, misc
 ## Apps
 
 - `apps/web`: Astro frontend (landing, blog, projects)
+- `apps/api`: FastAPI backend (posts + media metadata API)
+
+## Infra
+
+- `infra/docker/api`: `api + postgres + minio` stack for single-instance deployment
 
 ## Font License
 
 This repository bundles `PretendardVariable.woff2` at:
 
-- `apps/web/src/assets/fonts/PretendardVariable.woff2`
+- `apps/web/public/fonts/PretendardVariable.woff2`
 
 License:
 
@@ -25,4 +30,4 @@ Compliance notes:
 
 Full license text:
 
-- `apps/web/src/assets/fonts/LICENSE.Pretendard.OFL-1.1.txt`
+- `apps/web/public/fonts/LICENSE.Pretendard.OFL-1.1.txt`
