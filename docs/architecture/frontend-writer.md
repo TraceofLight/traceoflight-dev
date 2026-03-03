@@ -188,3 +188,59 @@ Run from `apps/web`:
 2. Multi-instance deployment needs shared store (for example Redis) for token family state.
 3. Auth endpoints currently do not include rate-limit or lockout policy.
 4. CSRF defense is currently based on `sameSite=lax`; if cross-site requirements change, add explicit CSRF tokens.
+
+## UX Benchmark (Velog + Cruz Lab)
+
+### Sources
+
+- `velog-client` (`src/components/write/*`, `src/containers/write/*`)
+- `cruz-lab` (`src/pages/admin/posts/new.astro`, `src/components/editor/*`)
+
+### What Velog Does Well
+
+1. Writer is a dedicated workspace page, not a generic site page.
+2. Desktop keeps a fixed 2-pane composition:
+   - left: editing + meta controls
+   - right: live preview
+3. Bottom/top actions are explicit and always reachable:
+   - draft save
+   - publish
+   - exit/back
+4. Upload entry is close to writing flow, not hidden in deep settings.
+
+### What Cruz Lab Adds
+
+1. Modernized Milkdown-based editing stack with rich plugin extension.
+2. Practical UX around media:
+   - drag and drop
+   - upload progress and feedback
+3. Theming and ergonomic helper controls for editor-only context.
+
+### Decision for TraceofLight
+
+Keep current Astro + Crepe stack but align writer UX to Velog mental model:
+
+1. Dedicated full-screen writer layout (`AdminWriterLayout`) without public header/footer.
+2. 2-pane editor/preview workspace on desktop.
+3. Responsive collapse to 1-column at smaller widths.
+4. Upload UX simplified to:
+   - top action upload button
+   - drag/drop in editor
+   - clipboard paste upload
+5. Real-time preview rendering from current markdown content.
+
+## Applied Changes (Current Implementation)
+
+1. Page structure:
+   - `/admin/posts/new` migrated from card-form style to workspace style.
+2. Layout:
+   - Added `src/layouts/AdminWriterLayout.astro`.
+3. Writer client module:
+   - `src/lib/admin/new-post-page.ts` now handles:
+     - live preview rendering
+     - submitter-aware draft/publish action
+     - upload button + drag/drop + paste upload
+4. Styling:
+   - `src/styles/components.css` includes `writer-*` namespace styles for split layout and responsive behavior.
+5. Verification:
+   - Writer structure tests updated (`tests/admin-writer-page.test.mjs`) for split layout and upload trigger.

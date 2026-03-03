@@ -1,83 +1,91 @@
 ---
-import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AdminWriterLayout from '../../../layouts/AdminWriterLayout.astro';
 
 const siteUrl = import.meta.env.SITE_URL?.trim() ?? '';
-const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '';
+const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '/media';
 ---
 
-<BaseLayout title="Admin Writer" description="Admin writer for TraceofLight">
-  <section class="hero">
-    <p class="kicker">ADMIN WRITER</p>
-    <h1>Lorem ipsum writer</h1>
-    <p class="lead">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-  </section>
-
-  <section class="section admin-panel">
-    <form id="admin-post-form" class="admin-form">
-      <div class="admin-grid">
-        <label>
-          <span>Title</span>
-          <input id="post-title" name="title" type="text" required />
-        </label>
-        <label>
-          <span>Slug</span>
-          <input id="post-slug" name="slug" type="text" required />
-        </label>
+<AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
+  <form id="admin-post-form" class="writer-form" data-media-base-url={defaultMediaBaseUrl}>
+    <header class="writer-topbar">
+      <div class="writer-topbar-left">
+        <a class="writer-back-link" href="/admin">Back</a>
+        <p class="writer-kicker">Admin Writer</p>
       </div>
-
-      <label>
-        <span>Excerpt</span>
-        <textarea id="post-excerpt" name="excerpt"></textarea>
-      </label>
-
-      <div class="admin-grid">
-        <label>
-          <span>Cover Image URL</span>
-          <input id="post-cover" name="cover_image_url" type="url" />
-        </label>
-        <label>
-          <span>Status</span>
-          <select id="post-status" name="status">
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
-        </label>
+      <div class="writer-topbar-right">
+        <button id="writer-upload-trigger" class="writer-action writer-action-muted" type="button">
+          Upload
+        </button>
+        <button id="writer-save-draft" class="writer-action writer-action-muted" type="submit" data-submit-status="draft">
+          Draft
+        </button>
+        <button
+          id="writer-save-published"
+          class="writer-action writer-action-primary"
+          type="submit"
+          data-submit-status="published"
+        >
+          Publish
+        </button>
       </div>
+      <input id="writer-upload-input" type="file" hidden />
+    </header>
 
-      <div class="admin-media-shell">
-        <p class="admin-label">Media Upload</p>
-        <div class="admin-media-grid">
-          <label>
-            <span>File</span>
-            <input id="media-file" name="media" type="file" />
+    <div class="writer-shell">
+      <section class="writer-pane writer-pane-editor">
+        <div class="writer-meta">
+          <label class="writer-field writer-field-title">
+            <span>Title</span>
+            <input id="post-title" name="title" type="text" required placeholder="Write your title" />
           </label>
-          <label>
-            <span>Media Base URL</span>
-            <input
-              id="media-base-url"
-              name="media_base_url"
-              type="url"
-              value={defaultMediaBaseUrl}
-              placeholder="https://traceoflight.dev/media"
-            />
+          <div class="writer-meta-grid">
+            <label class="writer-field">
+              <span>Slug</span>
+              <input id="post-slug" name="slug" type="text" required placeholder="traceoflight-writer-post" />
+            </label>
+            <label class="writer-field">
+              <span>Status</span>
+              <select id="post-status" name="status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </label>
+          </div>
+          <label class="writer-field">
+            <span>Excerpt</span>
+            <textarea id="post-excerpt" name="excerpt" rows="2" placeholder="A short summary for cards and SEO snippets." />
           </label>
-          <button id="upload-media-button" class="button button-ghost" type="button">Upload</button>
+          <label class="writer-field">
+            <span>Cover Image URL</span>
+            <input id="post-cover" name="cover_image_url" type="url" placeholder="https://..." />
+          </label>
+          <p class="writer-helper">
+            Drag and drop image/video into editor, or paste from clipboard.
+          </p>
         </div>
-      </div>
 
-      <div class="admin-editor-shell">
-        <p class="admin-label">Body Markdown</p>
-        <div id="milkdown-editor" class="milkdown-editor"></div>
-      </div>
+        <div class="writer-editor-shell">
+          <div id="milkdown-editor" class="milkdown-editor"></div>
+        </div>
+      </section>
 
-      <div class="admin-actions">
-        <button class="button" type="submit">Save Post</button>
-        <a class="button button-ghost" href="/admin">Back</a>
-      </div>
-      <p id="admin-feedback" class="admin-feedback" data-state="info">Lorem ipsum dolor sit amet.</p>
-    </form>
-  </section>
-</BaseLayout>
+      <section class="writer-pane writer-pane-preview">
+        <div class="writer-preview-head">
+          <p class="writer-preview-kicker">Live Preview</p>
+          <h1 id="writer-preview-title">Lorem ipsum title</h1>
+          <p id="writer-preview-excerpt" class="writer-preview-excerpt">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+          </p>
+        </div>
+        <article id="writer-preview-content" class="writer-preview-content"></article>
+      </section>
+    </div>
+
+    <footer class="writer-footer">
+      <p id="admin-feedback" class="writer-feedback" data-state="info">Start writing your post.</p>
+    </footer>
+  </form>
+</AdminWriterLayout>
 
 <script type="module">
   import { initNewPostAdminPage } from '../../../lib/admin/new-post-page';
