@@ -73,10 +73,12 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
         <div class="writer-preview-head">
           <p class="writer-preview-kicker">Live Preview</p>
           <h1 id="writer-preview-title">Lorem ipsum title</h1>
+          <p id="writer-preview-slug" class="writer-preview-slug">/blog/lorem-ipsum-title</p>
           <p id="writer-preview-excerpt" class="writer-preview-excerpt">
             Lorem ipsum dolor sit amet, consectetur adipiscing elit.
           </p>
         </div>
+        <img id="writer-preview-cover" class="writer-preview-cover" hidden alt="Cover preview" />
         <article id="writer-preview-content" class="writer-preview-content"></article>
       </section>
     </div>
@@ -87,7 +89,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
   </form>
 </AdminWriterLayout>
 
-<script type="module">
+<script>
   import { initNewPostAdminPage } from '../../../lib/admin/new-post-page';
 
   void initNewPostAdminPage();

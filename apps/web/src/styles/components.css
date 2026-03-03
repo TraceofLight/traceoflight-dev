@@ -551,6 +551,20 @@
   background: #fcfdff;
 }
 
+.writer-fallback-textarea {
+  width: 100%;
+  min-height: 460px;
+  border: 1px solid #d9e1eb;
+  border-radius: 0.8rem;
+  background: #fcfdff;
+  color: #1f2937;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.75;
+  padding: 1rem;
+  resize: vertical;
+}
+
 .writer-preview-head {
   padding: 1.15rem 1.3rem 0.75rem;
   border-bottom: 1px solid #e1e7ef;
@@ -573,10 +587,27 @@
   line-height: 1.2;
 }
 
+.writer-preview-slug {
+  margin: 0 0 0.45rem;
+  color: #10b17f;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .writer-preview-excerpt {
   margin: 0;
   color: #5b6675;
   font-size: 0.96rem;
+}
+
+.writer-preview-cover {
+  display: block;
+  width: calc(100% - 2.6rem);
+  margin: 1rem 1.3rem 0.25rem;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  border: 1px solid #d4dde8;
 }
 
 .writer-preview-content {

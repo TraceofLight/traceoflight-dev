@@ -18,6 +18,14 @@ interface UploadBundle {
   snippet: string;
 }
 
+interface EditorBridge {
+  mode: 'crepe' | 'fallback';
+  initError?: string;
+  getMarkdown: () => Promise<string>;
+  setMarkdown: (markdown: string) => Promise<void>;
+  observeChanges: (onChange: () => void) => () => void;
+}
+
 const markdownPreview = new MarkdownIt({
   html: true,
   linkify: true,
@@ -49,16 +57,6 @@ function buildMarkdownSnippet(kind: AssetKind, fileName: string, mediaUrl: strin
   if (kind === 'image') return `![${fileName}](${mediaUrl})`;
   if (kind === 'video') return `<video controls src="${mediaUrl}"></video>`;
   return `[${fileName}](${mediaUrl})`;
-}
-
-async function getEditorMarkdown(editor: Crepe): Promise<string> {
-  const markdown = editor.getMarkdown();
-  if (typeof markdown === 'string') return markdown;
-  return await markdown;
-}
-
-async function setEditorMarkdown(editor: Crepe, markdown: string): Promise<void> {
-  await editor.setMarkdown(markdown);
 }
 
 function setFeedback(target: HTMLElement, message: string, type: 'error' | 'ok' | 'info'): void {
@@ -114,7 +112,6 @@ async function createUploadBundle(file: File, mediaBaseUrl: string): Promise<Upl
     headers: { 'content-type': file.type || 'application/octet-stream' },
     body: file,
   });
-
   if (!uploadResult.ok) {
     throw new Error('failed to upload file to object storage');
   }
@@ -130,7 +127,6 @@ async function createUploadBundle(file: File, mediaBaseUrl: string): Promise<Upl
       size_bytes: file.size,
     }),
   });
-
   if (!registerResponse.ok) {
     const errorPayload = (await registerResponse.json().catch(() => null)) as unknown;
     throw new Error(normalizeJsonError(errorPayload));
@@ -141,6 +137,62 @@ async function createUploadBundle(file: File, mediaBaseUrl: string): Promise<Upl
     mediaUrl,
     snippet: buildMarkdownSnippet(kind, file.name, mediaUrl),
   };
+}
+
+async function createEditorBridge(editorRoot: HTMLElement, initialValue: string): Promise<EditorBridge> {
+  try {
+    const editor = new Crepe({
+      root: editorRoot,
+      defaultValue: initialValue,
+    });
+    await editor.create();
+
+    return {
+      mode: 'crepe',
+      getMarkdown: async () => {
+        const markdown = editor.getMarkdown();
+        if (typeof markdown === 'string') return markdown;
+        return await markdown;
+      },
+      setMarkdown: async (markdown: string) => {
+        await editor.setMarkdown(markdown);
+      },
+      observeChanges: (onChange: () => void) => {
+        const observer = new MutationObserver(() => onChange());
+        observer.observe(editorRoot, { childList: true, subtree: true, characterData: true });
+        editorRoot.addEventListener('input', onChange);
+        editorRoot.addEventListener('keyup', onChange);
+        return () => {
+          observer.disconnect();
+          editorRoot.removeEventListener('input', onChange);
+          editorRoot.removeEventListener('keyup', onChange);
+        };
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown init error';
+    console.error('[writer] crepe init failed:', error);
+
+    const textarea = document.createElement('textarea');
+    textarea.id = 'writer-fallback-textarea';
+    textarea.className = 'writer-fallback-textarea';
+    textarea.value = initialValue;
+    textarea.placeholder = 'Write your story here...';
+    editorRoot.replaceChildren(textarea);
+
+    return {
+      mode: 'fallback',
+      initError: message,
+      getMarkdown: async () => textarea.value,
+      setMarkdown: async (markdown: string) => {
+        textarea.value = markdown;
+      },
+      observeChanges: (onChange: () => void) => {
+        textarea.addEventListener('input', onChange);
+        return () => textarea.removeEventListener('input', onChange);
+      },
+    };
+  }
 }
 
 export async function initNewPostAdminPage(): Promise<void> {
@@ -155,7 +207,9 @@ export async function initNewPostAdminPage(): Promise<void> {
   const coverInput = document.querySelector<HTMLInputElement>('#post-cover');
   const statusInput = document.querySelector<HTMLSelectElement>('#post-status');
   const previewTitle = document.querySelector<HTMLElement>('#writer-preview-title');
+  const previewSlug = document.querySelector<HTMLElement>('#writer-preview-slug');
   const previewExcerpt = document.querySelector<HTMLElement>('#writer-preview-excerpt');
+  const previewCover = document.querySelector<HTMLImageElement>('#writer-preview-cover');
   const previewContent = document.querySelector<HTMLElement>('#writer-preview-content');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
@@ -169,7 +223,9 @@ export async function initNewPostAdminPage(): Promise<void> {
     !coverInput ||
     !statusInput ||
     !previewTitle ||
+    !previewSlug ||
     !previewExcerpt ||
+    !previewCover ||
     !previewContent ||
     !uploadTrigger ||
     !uploadInput
@@ -178,22 +234,41 @@ export async function initNewPostAdminPage(): Promise<void> {
   }
 
   const mediaBaseUrl = normalizeMediaBaseUrl(form.dataset.mediaBaseUrl ?? '', window.location.origin);
-
-  const editor = new Crepe({
-    root: editorRoot,
-    defaultValue: '# Lorem ipsum heading\n\nWrite your story here.\n',
-  });
-  await editor.create();
+  const editorBridge = await createEditorBridge(editorRoot, '# Lorem ipsum heading\n\nWrite your story here.\n');
+  if (editorBridge.mode === 'fallback') {
+    setFeedback(
+      feedback,
+      `Editor initialization failed, switched to fallback textarea: ${editorBridge.initError ?? 'unknown'}`,
+      'error',
+    );
+  }
 
   let isUploading = false;
   let previewJobQueued = false;
 
   const refreshPreview = async () => {
-    const markdown = await getEditorMarkdown(editor);
+    const markdown = await editorBridge.getMarkdown();
     previewContent.innerHTML = markdownPreview.render(markdown);
-    previewTitle.textContent = titleInput.value.trim() || 'Lorem ipsum title';
-    previewExcerpt.textContent =
+
+    const nextTitle = titleInput.value.trim() || 'Lorem ipsum title';
+    const nextSlug = slugInput.value.trim() || 'lorem-ipsum-title';
+    const nextExcerpt =
       excerptInput.value.trim() || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
+    const nextCover = coverInput.value.trim();
+
+    previewTitle.textContent = nextTitle;
+    previewSlug.textContent = `/blog/${nextSlug}`;
+    previewExcerpt.textContent = nextExcerpt;
+
+    if (nextCover) {
+      previewCover.hidden = false;
+      previewCover.src = nextCover;
+      previewCover.alt = `${nextTitle} cover`;
+    } else {
+      previewCover.hidden = true;
+      previewCover.removeAttribute('src');
+      previewCover.alt = 'Cover preview';
+    }
   };
 
   const queuePreviewRefresh = () => {
@@ -206,12 +281,12 @@ export async function initNewPostAdminPage(): Promise<void> {
   };
 
   const insertSnippet = async (snippet: string) => {
-    const currentMarkdown = await getEditorMarkdown(editor);
-    await setEditorMarkdown(editor, `${currentMarkdown.trimEnd()}\n\n${snippet}\n`);
+    const currentMarkdown = await editorBridge.getMarkdown();
+    await editorBridge.setMarkdown(`${currentMarkdown.trimEnd()}\n\n${snippet}\n`);
     queuePreviewRefresh();
   };
 
-  const uploadOneFile = async (file: File) => {
+  const uploadOneFileToBody = async (file: File) => {
     if (isUploading) {
       setFeedback(feedback, '이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.', 'info');
       return;
@@ -235,6 +310,33 @@ export async function initNewPostAdminPage(): Promise<void> {
     }
   };
 
+  const uploadOneFileToCover = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setFeedback(feedback, '커버 이미지는 이미지 파일만 지원합니다.', 'error');
+      return;
+    }
+
+    if (isUploading) {
+      setFeedback(feedback, '이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.', 'info');
+      return;
+    }
+
+    isUploading = true;
+    setFeedback(feedback, '커버 이미지 업로드 중...', 'info');
+
+    try {
+      const bundle = await createUploadBundle(file, mediaBaseUrl);
+      coverInput.value = bundle.mediaUrl;
+      queuePreviewRefresh();
+      setFeedback(feedback, '커버 이미지 업로드 완료.', 'ok');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '커버 이미지 업로드 중 오류가 발생했습니다.';
+      setFeedback(feedback, message, 'error');
+    } finally {
+      isUploading = false;
+    }
+  };
+
   titleInput.addEventListener('input', () => {
     if (!slugInput.dataset.touched || slugInput.value.trim().length === 0) {
       slugInput.value = slugify(titleInput.value);
@@ -244,16 +346,13 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   slugInput.addEventListener('input', () => {
     slugInput.dataset.touched = 'true';
+    queuePreviewRefresh();
   });
 
   excerptInput.addEventListener('input', queuePreviewRefresh);
-  editorRoot.addEventListener('input', queuePreviewRefresh);
-  editorRoot.addEventListener('keyup', queuePreviewRefresh);
+  coverInput.addEventListener('input', queuePreviewRefresh);
 
-  const observer = new MutationObserver(() => {
-    queuePreviewRefresh();
-  });
-  observer.observe(editorRoot, { childList: true, subtree: true, characterData: true });
+  const unobserveEditor = editorBridge.observeChanges(queuePreviewRefresh);
 
   uploadTrigger.addEventListener('click', () => {
     uploadInput.click();
@@ -262,7 +361,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   uploadInput.addEventListener('change', async () => {
     const file = uploadInput.files?.[0];
     if (!file) return;
-    await uploadOneFile(file);
+    await uploadOneFileToBody(file);
   });
 
   editorRoot.addEventListener('dragover', (event) => {
@@ -273,14 +372,32 @@ export async function initNewPostAdminPage(): Promise<void> {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (!file) return;
-    await uploadOneFile(file);
+    await uploadOneFileToBody(file);
   });
 
   editorRoot.addEventListener('paste', async (event) => {
     const file = extractFileFromClipboard(event as ClipboardEvent);
     if (!file) return;
     event.preventDefault();
-    await uploadOneFile(file);
+    await uploadOneFileToBody(file);
+  });
+
+  coverInput.addEventListener('dragover', (event) => {
+    event.preventDefault();
+  });
+
+  coverInput.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    await uploadOneFileToCover(file);
+  });
+
+  coverInput.addEventListener('paste', async (event) => {
+    const file = extractFileFromClipboard(event as ClipboardEvent);
+    if (!file) return;
+    event.preventDefault();
+    await uploadOneFileToCover(file);
   });
 
   form.addEventListener('submit', async (event) => {
@@ -295,7 +412,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     const slug = slugInput.value.trim();
     const title = titleInput.value.trim();
     const status = statusInput.value as PostStatus;
-    const bodyMarkdown = (await getEditorMarkdown(editor)).trim();
+    const bodyMarkdown = (await editorBridge.getMarkdown()).trim();
 
     if (!slug || !title || !bodyMarkdown) {
       setFeedback(feedback, 'slug, title, body는 필수입니다.', 'error');
@@ -320,14 +437,16 @@ export async function initNewPostAdminPage(): Promise<void> {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
       if (!response.ok) {
         const errorPayload = (await response.json().catch(() => null)) as unknown;
         throw new Error(normalizeJsonError(errorPayload));
       }
 
       const created = (await response.json()) as { slug: string; status: string };
-      if (created.slug) slugInput.value = created.slug;
+      if (created.slug) {
+        slugInput.value = created.slug;
+        queuePreviewRefresh();
+      }
       const publicPath = created.status === 'published' ? `/blog/${created.slug}/` : '/blog/';
       setFeedback(feedback, `저장 완료: ${publicPath}`, 'ok');
     } catch (error) {
@@ -335,6 +454,14 @@ export async function initNewPostAdminPage(): Promise<void> {
       setFeedback(feedback, message, 'error');
     }
   });
+
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      unobserveEditor();
+    },
+    { once: true },
+  );
 
   await refreshPreview();
 }
