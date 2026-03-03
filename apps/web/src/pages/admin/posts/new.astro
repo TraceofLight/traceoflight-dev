@@ -87,6 +87,12 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
       <p id="admin-feedback" class="writer-feedback" data-state="info">Start writing your post.</p>
     </footer>
   </form>
+  <div id="writer-drop-overlay" class="writer-drop-overlay" hidden aria-hidden="true">
+    <div class="writer-drop-overlay-panel">
+      <p class="writer-drop-overlay-title">Drop media to upload</p>
+      <p class="writer-drop-overlay-caption">Images and videos will be inserted into body markdown.</p>
+    </div>
+  </div>
 </AdminWriterLayout>
 
 <script>

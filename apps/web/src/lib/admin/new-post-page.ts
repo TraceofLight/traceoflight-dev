@@ -32,6 +32,8 @@ const markdownPreview = new MarkdownIt({
   breaks: false,
 });
 
+const PRIVATE_UPLOAD_HOSTS = new Set(['localhost', '127.0.0.1', 'traceoflight-minio', 'minio']);
+
 function slugify(input: string): string {
   return input
     .toLowerCase()
@@ -71,6 +73,85 @@ function normalizeJsonError(payload: unknown): string {
   return 'request failed';
 }
 
+function tryDecodeUrlParam(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeGoogleRedirectUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (!parsed.hostname.endsWith('google.com') || parsed.pathname !== '/url') {
+      return value;
+    }
+    const target = parsed.searchParams.get('url');
+    if (!target) return value;
+    return tryDecodeUrlParam(target);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeHttpForHttpsPage(value: string, pageProtocol: string): { value: string; upgraded: boolean } {
+  try {
+    const parsed = new URL(value);
+    if (pageProtocol === 'https:' && parsed.protocol === 'http:') {
+      parsed.protocol = 'https:';
+      return { value: parsed.toString(), upgraded: true };
+    }
+    return { value: parsed.toString(), upgraded: false };
+  } catch {
+    return { value, upgraded: false };
+  }
+}
+
+function normalizeCoverUrl(rawValue: string, pageProtocol: string): { value: string; message?: string } {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return { value: '' };
+
+  const redirected = normalizeGoogleRedirectUrl(trimmed);
+  const upgraded = normalizeHttpForHttpsPage(redirected, pageProtocol);
+
+  if (redirected !== trimmed) {
+    return {
+      value: upgraded.value,
+      message: 'Google redirect URL was converted to the original source URL.',
+    };
+  }
+
+  if (upgraded.upgraded) {
+    return {
+      value: upgraded.value,
+      message: 'HTTP URL was upgraded to HTTPS to avoid mixed-content blocking.',
+    };
+  }
+
+  return { value: upgraded.value };
+}
+
+function normalizeMarkdownLinks(markdown: string, pageProtocol: string): string {
+  return markdown.replace(/(!?\[[^\]]*]\()([\s\S]*?)(\))/g, (full, prefix, rawUrl, suffix) => {
+    const compactUrl = rawUrl.replace(/\s+/g, '');
+    if (!/^https?:\/\//i.test(compactUrl)) return full;
+    const normalized = normalizeCoverUrl(compactUrl, pageProtocol).value;
+    return `${prefix}${normalized}${suffix}`;
+  });
+}
+
+function shouldProxyUpload(uploadUrl: string): boolean {
+  try {
+    const parsed = new URL(uploadUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return true;
+    if (window.location.protocol === 'https:' && parsed.protocol === 'http:') return true;
+    return PRIVATE_UPLOAD_HOSTS.has(parsed.hostname);
+  } catch {
+    return true;
+  }
+}
+
 function normalizeMediaBaseUrl(rawValue: string, origin: string): string {
   const trimmed = rawValue.trim();
   if (trimmed.length > 0) return trimmed.replace(/\/+$/, '');
@@ -86,6 +167,34 @@ function extractFileFromClipboard(event: ClipboardEvent): File | null {
     if (file) return file;
   }
   return null;
+}
+
+async function uploadBinaryToStorage(uploadUrl: string, file: File): Promise<void> {
+  if (shouldProxyUpload(uploadUrl)) {
+    const formData = new FormData();
+    formData.set('upload_url', uploadUrl);
+    formData.set('content_type', file.type || 'application/octet-stream');
+    formData.set('file', file, file.name);
+
+    const response = await fetch('/internal-api/media/upload-proxy', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorPayload = (await response.json().catch(() => null)) as unknown;
+      throw new Error(normalizeJsonError(errorPayload));
+    }
+    return;
+  }
+
+  const uploadResult = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'content-type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+  if (!uploadResult.ok) {
+    throw new Error('failed to upload file to object storage');
+  }
 }
 
 async function createUploadBundle(file: File, mediaBaseUrl: string): Promise<UploadBundle> {
@@ -107,14 +216,7 @@ async function createUploadBundle(file: File, mediaBaseUrl: string): Promise<Upl
   }
 
   const uploadInfo = (await uploadUrlResponse.json()) as UploadUrlResponse;
-  const uploadResult = await fetch(uploadInfo.upload_url, {
-    method: 'PUT',
-    headers: { 'content-type': file.type || 'application/octet-stream' },
-    body: file,
-  });
-  if (!uploadResult.ok) {
-    throw new Error('failed to upload file to object storage');
-  }
+  await uploadBinaryToStorage(uploadInfo.upload_url, file);
 
   const registerResponse = await fetch('/internal-api/media/register', {
     method: 'POST',
@@ -213,6 +315,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const previewContent = document.querySelector<HTMLElement>('#writer-preview-content');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
+  const dropOverlay = document.querySelector<HTMLElement>('#writer-drop-overlay');
 
   if (
     !feedback ||
@@ -245,16 +348,42 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   let isUploading = false;
   let previewJobQueued = false;
+  let dragDepth = 0;
+
+  const showDropOverlay = () => {
+    if (!dropOverlay) return;
+    dropOverlay.hidden = false;
+    dropOverlay.setAttribute('aria-hidden', 'false');
+  };
+
+  const hideDropOverlay = () => {
+    if (!dropOverlay) return;
+    dropOverlay.hidden = true;
+    dropOverlay.setAttribute('aria-hidden', 'true');
+  };
+
+  const normalizeCoverInputValue = (withMessage: boolean) => {
+    const normalized = normalizeCoverUrl(coverInput.value, window.location.protocol);
+    const changed = normalized.value !== coverInput.value.trim();
+    if (changed) {
+      coverInput.value = normalized.value;
+    }
+    if (withMessage && normalized.message) {
+      setFeedback(feedback, normalized.message, 'info');
+    }
+    return normalized.value;
+  };
 
   const refreshPreview = async () => {
     const markdown = await editorBridge.getMarkdown();
-    previewContent.innerHTML = markdownPreview.render(markdown);
+    const normalizedMarkdown = normalizeMarkdownLinks(markdown, window.location.protocol);
+    previewContent.innerHTML = markdownPreview.render(normalizedMarkdown);
 
     const nextTitle = titleInput.value.trim() || 'Lorem ipsum title';
     const nextSlug = slugInput.value.trim() || 'lorem-ipsum-title';
     const nextExcerpt =
       excerptInput.value.trim() || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
-    const nextCover = coverInput.value.trim();
+    const nextCover = normalizeCoverInputValue(false);
 
     previewTitle.textContent = nextTitle;
     previewSlug.textContent = `/blog/${nextSlug}`;
@@ -351,6 +480,21 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   excerptInput.addEventListener('input', queuePreviewRefresh);
   coverInput.addEventListener('input', queuePreviewRefresh);
+  coverInput.addEventListener('blur', () => {
+    normalizeCoverInputValue(true);
+    queuePreviewRefresh();
+  });
+
+  previewCover.addEventListener('error', () => {
+    previewCover.hidden = true;
+    previewCover.removeAttribute('src');
+    previewCover.alt = 'Cover preview';
+    setFeedback(
+      feedback,
+      'Cover image could not be loaded. Use a direct HTTPS image URL or upload an image file.',
+      'error',
+    );
+  });
 
   const unobserveEditor = editorBridge.observeChanges(queuePreviewRefresh);
 
@@ -395,10 +539,67 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   coverInput.addEventListener('paste', async (event) => {
     const file = extractFileFromClipboard(event as ClipboardEvent);
-    if (!file) return;
+    if (file) {
+      event.preventDefault();
+      await uploadOneFileToCover(file);
+      return;
+    }
+
+    const pastedText = event.clipboardData?.getData('text/plain')?.trim() ?? '';
+    if (!pastedText) return;
+
     event.preventDefault();
-    await uploadOneFileToCover(file);
+    coverInput.value = pastedText;
+    normalizeCoverInputValue(true);
+    queuePreviewRefresh();
   });
+
+  const isFileDrag = (event: DragEvent) => {
+    const types = event.dataTransfer?.types;
+    if (!types) return false;
+    return Array.from(types).includes('Files');
+  };
+
+  const onWindowDragEnter = (event: DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth += 1;
+    showDropOverlay();
+  };
+
+  const onWindowDragOver = (event: DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    showDropOverlay();
+  };
+
+  const onWindowDragLeave = (event: DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) {
+      hideDropOverlay();
+    }
+  };
+
+  const onWindowDrop = async (event: DragEvent) => {
+    if (!isFileDrag(event)) return;
+    const alreadyHandled = event.defaultPrevented;
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    dragDepth = 0;
+    hideDropOverlay();
+    if (!file || alreadyHandled) return;
+    await uploadOneFileToBody(file);
+  };
+
+  window.addEventListener('dragenter', onWindowDragEnter);
+  window.addEventListener('dragover', onWindowDragOver);
+  window.addEventListener('dragleave', onWindowDragLeave);
+  window.addEventListener('drop', onWindowDrop);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -412,7 +613,11 @@ export async function initNewPostAdminPage(): Promise<void> {
     const slug = slugInput.value.trim();
     const title = titleInput.value.trim();
     const status = statusInput.value as PostStatus;
-    const bodyMarkdown = (await editorBridge.getMarkdown()).trim();
+    const bodyMarkdown = normalizeMarkdownLinks(
+      (await editorBridge.getMarkdown()).trim(),
+      window.location.protocol,
+    );
+    normalizeCoverInputValue(false);
 
     if (!slug || !title || !bodyMarkdown) {
       setFeedback(feedback, 'slug, title, body는 필수입니다.', 'error');
@@ -455,13 +660,17 @@ export async function initNewPostAdminPage(): Promise<void> {
     }
   });
 
-  window.addEventListener(
-    'beforeunload',
-    () => {
-      unobserveEditor();
-    },
-    { once: true },
-  );
+  const teardown = () => {
+    unobserveEditor();
+    window.removeEventListener('dragenter', onWindowDragEnter);
+    window.removeEventListener('dragover', onWindowDragOver);
+    window.removeEventListener('dragleave', onWindowDragLeave);
+    window.removeEventListener('drop', onWindowDrop);
+    hideDropOverlay();
+  };
+
+  window.addEventListener('beforeunload', teardown, { once: true });
+  window.addEventListener('pagehide', teardown, { once: true });
 
   await refreshPreview();
 }

@@ -24,4 +24,5 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /id="writer-preview-content"/);
   assert.match(source, /id="writer-preview-slug"/);
   assert.match(source, /id="writer-preview-cover"/);
+  assert.match(source, /id="writer-drop-overlay"/);
 });

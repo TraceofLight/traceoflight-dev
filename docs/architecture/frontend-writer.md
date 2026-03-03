@@ -36,6 +36,7 @@ Document the current frontend writer implementation that is shipped in this comm
   - `GET /internal-api/posts/[slug]`
   - `POST /internal-api/media/upload-url`
   - `POST /internal-api/media/register`
+  - `POST /internal-api/media/upload-proxy`
 
 ## Directory Structure
 
@@ -138,12 +139,26 @@ Writer page: `/admin/posts/new`
    - `POST /internal-api/posts`
 4. On media upload:
    - `POST /internal-api/media/upload-url`
-   - Upload binary to returned presigned URL (`PUT`)
+   - Upload binary:
+     - direct `PUT` to presigned URL (default)
+     - fallback `POST /internal-api/media/upload-proxy` when presigned URL is not browser-safe (for example mixed-content `http://` on `https://` page)
    - `POST /internal-api/media/register`
    - Insert markdown snippet into editor:
      - image: `![name](url)`
      - video: `<video controls src="..."></video>`
      - file: `[name](url)`
+
+## Writer UX Hardening
+
+1. Global drag-and-drop overlay was added to reduce editor-specific drop event misses.
+2. Cover URL normalization:
+   - Google redirect links (`google.com/url?...`) are converted to original source URL.
+   - On HTTPS page, HTTP cover URL is upgraded to HTTPS when possible.
+3. Cover preview error handling:
+   - Invalid/mixed-content/broken image now hides preview image and reports feedback instead of showing broken alt text.
+4. Markdown link normalization before preview/render/save:
+   - removes accidental whitespace/newline breaks inside markdown URL segment
+   - normalizes URL protocol/redirect where possible.
 
 ## Backend Proxy Contract
 
