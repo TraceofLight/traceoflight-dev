@@ -83,12 +83,13 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             </label>
           </div>
           <div class="writer-publish-column writer-publish-column-side">
-            <div id="writer-cover-preview" class="writer-cover-preview" data-empty="true">
+            <div id="writer-cover-preview" class="writer-cover-preview" data-empty="true" data-drop-state="idle">
               <img id="writer-cover-preview-image" class="writer-cover-preview-image" alt="Cover preview" hidden />
               <p id="writer-cover-preview-empty" class="writer-cover-preview-empty">
                 커버 이미지를 설정하면 여기에 미리보기가 표시됩니다.
               </p>
             </div>
+            <input id="writer-cover-upload-input" type="file" accept="image/*" hidden />
             <label class="writer-field">
               <span>Status</span>
               <select id="post-status" name="status">

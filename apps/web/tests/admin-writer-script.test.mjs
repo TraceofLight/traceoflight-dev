@@ -6,8 +6,12 @@ const scriptPath = new URL('../src/lib/admin/new-post-page.ts', import.meta.url)
 
 test('writer script supports cover image drag-and-drop upload', async () => {
   const source = await readFile(scriptPath, 'utf8');
+  assert.match(source, /#writer-cover-upload-input/);
   assert.match(source, /coverDropZone\.addEventListener\('dragover'/);
   assert.match(source, /coverDropZone\.addEventListener\('drop'/);
+  assert.match(source, /coverPreview\.addEventListener\('dragover'/);
+  assert.match(source, /coverPreview\.addEventListener\('drop'/);
+  assert.match(source, /coverPreview\.addEventListener\('click'/);
 });
 
 test('writer script updates title in preview and syncs cover preview', async () => {
@@ -56,6 +60,7 @@ test('writer script uses milkdown replaceAll action for markdown injection', asy
 test('writer script includes target-aware drag handling and upload proxy fallback', async () => {
   const source = await readFile(scriptPath, 'utf8');
   assert.match(source, /resolveDropTarget/);
+  assert.match(source, /writer-cover-preview/);
   assert.match(source, /data-drop-state/);
   assert.match(source, /isMediaFileDrag/);
   assert.match(source, /shouldProxyUpload/);
@@ -68,6 +73,9 @@ test('writer script normalizes cover and markdown links', async () => {
   const source = await readFile(scriptPath, 'utf8');
   assert.match(source, /normalizeCoverUrl/);
   assert.match(source, /normalizeMarkdownLinks/);
+  assert.match(source, /splitMarkdownDestinationAndTitle/);
+  assert.match(source, /normalizeMarkdownLinkRawTarget/);
+  assert.match(source, /rebuildMarkdownLinkTarget/);
   assert.match(source, /sanitizeEditorMarkdown/);
   assert.match(source, /isLikelyImageScaleLine/);
   assert.match(source, /\\uFFFC/);

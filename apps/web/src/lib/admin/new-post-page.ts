@@ -2,7 +2,8 @@ import { Crepe } from '@milkdown/crepe';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/nord.css';
 import { replaceAll } from '@milkdown/utils';
-import MarkdownIt from 'markdown-it';
+
+import { createMarkdownRenderer } from './markdown-renderer';
 
 type PostStatus = 'draft' | 'published';
 type AssetKind = 'image' | 'video' | 'file';
@@ -29,11 +30,7 @@ interface EditorBridge {
 
 type DropTarget = 'body' | 'cover' | null;
 
-const markdownPreview = new MarkdownIt({
-  html: true,
-  linkify: true,
-  breaks: false,
-});
+const markdownPreview = createMarkdownRenderer();
 
 const PRIVATE_UPLOAD_HOSTS = new Set(['localhost', '127.0.0.1', 'traceoflight-minio', 'minio']);
 
@@ -219,9 +216,42 @@ function normalizeMarkdownLinkTarget(rawUrl: string, pageProtocol: string): stri
   return compactUrl;
 }
 
+function splitMarkdownDestinationAndTitle(rawTarget: string): { destination: string; titlePart: string } {
+  const trimmed = rawTarget.trim();
+  if (!trimmed) return { destination: '', titlePart: '' };
+
+  if (trimmed.startsWith('<')) {
+    const closingIndex = trimmed.indexOf('>');
+    if (closingIndex > 0) {
+      const destination = trimmed.slice(1, closingIndex).trim();
+      const titlePart = trimmed.slice(closingIndex + 1).trim();
+      return { destination, titlePart };
+    }
+  }
+
+  const titleMatch = trimmed.match(/^(.*?)(?:\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\((?:[^()\\]|\\.)*\)))\s*$/);
+  if (!titleMatch) return { destination: trimmed, titlePart: '' };
+
+  const destination = titleMatch[1].trim();
+  const titlePart = titleMatch[2].trim();
+  return { destination, titlePart };
+}
+
+function rebuildMarkdownLinkTarget(destination: string, titlePart: string): string {
+  if (!titlePart) return destination;
+  return `${destination} ${titlePart}`.trim();
+}
+
+function normalizeMarkdownLinkRawTarget(rawTarget: string, pageProtocol: string): string {
+  const { destination, titlePart } = splitMarkdownDestinationAndTitle(rawTarget);
+  if (!destination) return rawTarget.trim();
+  const normalizedDestination = normalizeMarkdownLinkTarget(destination, pageProtocol);
+  return rebuildMarkdownLinkTarget(normalizedDestination, titlePart);
+}
+
 function normalizeEscapedMarkdownLinks(markdown: string, pageProtocol: string): string {
   return markdown.replace(/\\(!?\[(?:\\.|[^\]])*\\?\])\\?\(([\s\S]*?)\\?\)/g, (full, rawLabel, rawUrl) => {
-    const normalizedUrl = normalizeMarkdownLinkTarget(rawUrl, pageProtocol);
+    const normalizedUrl = normalizeMarkdownLinkRawTarget(rawUrl, pageProtocol);
     if (!normalizedUrl) return full;
     const label = rawLabel.replace(/\\\[/g, '[').replace(/\\\]/g, ']');
     return `${label}(${normalizedUrl})`;
@@ -231,7 +261,7 @@ function normalizeEscapedMarkdownLinks(markdown: string, pageProtocol: string): 
 function normalizeMarkdownLinks(markdown: string, pageProtocol: string): string {
   const normalizedEscaped = normalizeEscapedMarkdownLinks(markdown, pageProtocol);
   return normalizedEscaped.replace(/(!?\[[^\]]*]\()([\s\S]*?)(\))/g, (full, prefix, rawUrl, suffix) => {
-    const normalized = normalizeMarkdownLinkTarget(rawUrl, pageProtocol);
+    const normalized = normalizeMarkdownLinkRawTarget(rawUrl, pageProtocol);
     return `${prefix}${normalized}${suffix}`;
   });
 }
@@ -450,6 +480,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const coverPreview = document.querySelector<HTMLElement>('#writer-cover-preview');
   const coverPreviewImage = document.querySelector<HTMLImageElement>('#writer-cover-preview-image');
   const coverPreviewEmpty = document.querySelector<HTMLElement>('#writer-cover-preview-empty');
+  const coverUploadInput = document.querySelector<HTMLInputElement>('#writer-cover-upload-input');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
   const openPublishButton = document.querySelector<HTMLButtonElement>('#writer-open-publish');
@@ -473,6 +504,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     !coverPreview ||
     !coverPreviewImage ||
     !coverPreviewEmpty ||
+    !coverUploadInput ||
     !uploadTrigger ||
     !uploadInput ||
     !openPublishButton ||
@@ -511,6 +543,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     activeDropTarget = target;
     editorDropZone.setAttribute('data-drop-state', target === 'body' ? 'active' : 'idle');
     coverDropZone.setAttribute('data-drop-state', target === 'cover' ? 'active' : 'idle');
+    coverPreview.setAttribute('data-drop-state', target === 'cover' ? 'active' : 'idle');
   };
 
   const clearDropTargetState = () => {
@@ -538,6 +571,7 @@ export async function initNewPostAdminPage(): Promise<void> {
           : null;
     if (!element) return null;
     if (element.closest('#writer-cover-drop-zone')) return 'cover';
+    if (element.closest('#writer-cover-preview')) return 'cover';
     if (element.closest('#writer-editor-drop-zone') || element.closest('#milkdown-editor')) return 'body';
     return null;
   };
@@ -758,6 +792,39 @@ export async function initNewPostAdminPage(): Promise<void> {
       await uploadOneFileToCover(file);
     } finally {
       clearDropTargetState();
+    }
+  });
+
+  coverPreview.addEventListener('click', () => {
+    if (isUploading) return;
+    coverUploadInput.click();
+  });
+
+  coverPreview.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDropTargetState('cover');
+  });
+
+  coverPreview.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    try {
+      await uploadOneFileToCover(file);
+    } finally {
+      clearDropTargetState();
+    }
+  });
+
+  coverUploadInput.addEventListener('change', async () => {
+    const file = coverUploadInput.files?.[0];
+    if (!file) return;
+    try {
+      await uploadOneFileToCover(file);
+    } finally {
+      coverUploadInput.value = '';
     }
   });
 

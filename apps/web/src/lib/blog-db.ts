@@ -1,6 +1,5 @@
-import MarkdownIt from 'markdown-it';
-
 import { requestBackend } from './backend-api';
+import { createMarkdownRenderer } from './markdown-renderer';
 
 export interface DbPost {
   id: string;
@@ -26,11 +25,7 @@ export interface DbBlogPost {
   updatedAt?: Date;
 }
 
-const markdown = new MarkdownIt({
-  html: true,
-  linkify: true,
-  breaks: false,
-});
+const markdown = createMarkdownRenderer();
 
 function toDbBlogPost(post: DbPost): DbBlogPost {
   const publishedDate = post.published_at ?? post.created_at;

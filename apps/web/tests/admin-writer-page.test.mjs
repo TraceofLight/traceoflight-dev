@@ -43,6 +43,7 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /id="writer-cover-preview"/);
   assert.match(source, /id="writer-cover-preview-image"/);
   assert.match(source, /id="writer-cover-preview-empty"/);
+  assert.match(source, /id="writer-cover-upload-input"/);
   assert.match(source, /class="writer-publish-body"/);
   assert.match(source, /class="writer-publish-column writer-publish-column-main"/);
   assert.match(source, /class="writer-publish-column writer-publish-column-side"/);
