@@ -22,8 +22,10 @@ pipeline {
         withCredentials([file(credentialsId: 'traceoflight-web-env', variable: 'WEB_ENV_FILE')]) {
           sh '''
             cp "$WEB_ENV_FILE" apps/web/.env
+            # Normalize Windows CRLF credentials to LF for safe shell parsing.
+            sed -i 's/\r$//' apps/web/.env
 
-            for key in SITE_URL ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS; do
+            for key in SITE_URL ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
               if ! grep -Eq "^${key}=.+" apps/web/.env; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1

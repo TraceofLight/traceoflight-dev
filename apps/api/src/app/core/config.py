@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     minio_bucket: str = Field(default='traceoflight-media', alias='MINIO_BUCKET')
     minio_secure: bool = Field(default=False, alias='MINIO_SECURE')
     minio_presigned_expire_seconds: int = Field(default=900, alias='MINIO_PRESIGNED_EXPIRE_SECONDS')
+    internal_api_secret: str = Field(default='', alias='INTERNAL_API_SECRET')
     draft_retention_days: int = Field(default=7, alias='DRAFT_RETENTION_DAYS')
     draft_cleanup_start_hour: int = Field(default=0, alias='DRAFT_CLEANUP_START_HOUR')
     draft_cleanup_end_hour: int = Field(default=5, alias='DRAFT_CLEANUP_END_HOUR')
