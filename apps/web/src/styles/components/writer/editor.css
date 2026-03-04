@@ -1,0 +1,89 @@
+.writer-editor-shell {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 0.55rem 1.2rem 5rem;
+}
+
+.writer-editor-drop-indicator {
+  position: absolute;
+  inset: 0.55rem 1.2rem 1.2rem;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 0.8rem;
+  border: 2px dashed #35c99a;
+  background: rgba(245, 252, 248, 0.86);
+  color: #0f8a64;
+  transition: opacity 0.16s ease;
+}
+
+.writer-editor-drop-title {
+  margin: 0;
+  font-size: 1.06rem;
+  font-weight: 800;
+}
+
+.writer-editor-drop-caption {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #4f7f70;
+}
+
+.writer-editor-shell[data-drop-state="active"] .writer-editor-drop-indicator {
+  opacity: 1;
+}
+
+.writer-editor-shell .milkdown-editor {
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.writer-editor-shell .milkdown .editor {
+  max-width: none;
+  margin: 0;
+  padding: 0.95rem 1.3rem 1.8rem;
+}
+
+.writer-editor-shell .milkdown .editor > * {
+  max-width: none;
+}
+
+.writer-editor-shell[data-drop-state="active"] .milkdown-editor {
+  background: #f6fcf9;
+}
+
+.writer-editor-shell .milkdown .milkdown-link-edit > .link-edit > .button,
+.writer-editor-shell
+  .milkdown
+  .milkdown-link-preview
+  > .link-preview
+  > .button {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 400;
+}
+
+.writer-fallback-textarea {
+  width: 100%;
+  min-height: 460px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1f2937;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.75;
+  padding: 1rem;
+  resize: vertical;
+}

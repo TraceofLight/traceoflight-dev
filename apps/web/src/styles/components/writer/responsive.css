@@ -1,0 +1,121 @@
+@media (max-width: 1200px) {
+  .writer-shell {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+
+  .writer-pane.writer-pane-editor {
+    border-right: 0;
+  }
+
+  .writer-compact-toggle {
+    display: inline-flex;
+  }
+
+  .writer-pane.writer-pane-preview {
+    position: absolute;
+    inset: 0 0 64px 0;
+    z-index: 10;
+    border-left: 0;
+  }
+
+  .writer-shell[data-compact-view="editor"] .writer-pane.writer-pane-preview {
+    display: none;
+  }
+
+  .writer-shell[data-compact-view="preview"] .writer-pane.writer-pane-preview {
+    display: flex;
+  }
+
+  .writer-shell[data-compact-view="preview"]
+    .writer-pane.writer-pane-editor
+    > .writer-title-area,
+  .writer-shell[data-compact-view="preview"]
+    .writer-pane.writer-pane-editor
+    > .writer-editor-shell {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .writer-title-area,
+  .writer-editor-shell,
+  .writer-preview-head,
+  .writer-preview-content {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .writer-title-input {
+    font-size: clamp(1.65rem, 8vw, 2.1rem);
+  }
+
+  .writer-draft-panel {
+    width: min(96vw, 680px);
+    max-height: 90vh;
+    border-radius: 1rem;
+  }
+
+  .writer-draft-item {
+    padding: 0.62rem;
+  }
+
+  .writer-publish-panel {
+    width: min(96vw, 700px);
+    max-height: 92vh;
+    border-radius: 1rem;
+  }
+
+  .writer-publish-head {
+    padding: 0.9rem;
+  }
+
+  .writer-publish-body {
+    padding: 0.9rem;
+    grid-template-columns: 1fr;
+  }
+
+  .writer-publish-column.writer-publish-column-side {
+    padding: 0.75rem;
+  }
+
+  .writer-publish-actions {
+    padding: 0.8rem 0.9rem 0.9rem;
+  }
+
+  .writer-bottom-bar {
+    padding: 0.45rem 0.75rem;
+    min-height: 64px;
+    height: auto;
+  }
+
+  .writer-bottom-actions {
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .writer-bottom-left {
+    gap: 0.35rem;
+  }
+
+  .writer-bottom-back {
+    font-size: 0.8rem;
+  }
+
+  .writer-action {
+    min-height: 34px;
+    padding: 0 0.72rem;
+    font-size: 0.8rem;
+  }
+
+  .writer-editor-drop-indicator {
+    inset: 0.9rem;
+  }
+
+  .writer-toast {
+    right: 0.9rem;
+    bottom: 0.9rem;
+  }
+}

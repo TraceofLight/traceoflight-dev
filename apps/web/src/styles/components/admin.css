@@ -1,0 +1,147 @@
+.auth-shell {
+  max-width: 520px;
+}
+
+.auth-form,
+.auth-panel {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(18, 27, 40, 0.92);
+}
+
+.auth-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.auth-form span {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.auth-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.62rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(8, 14, 22, 0.8);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.auth-feedback {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.auth-feedback[data-state="ok"] {
+  color: #43e3aa;
+}
+
+.auth-feedback[data-state="error"] {
+  color: #f18e8e;
+}
+
+.admin-panel {
+  margin-top: 2rem;
+}
+
+.admin-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-media-grid {
+  display: grid;
+  gap: 0.8rem;
+  align-items: end;
+  grid-template-columns: 2fr 1fr auto;
+}
+
+.admin-form label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.admin-form span,
+.admin-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(8, 14, 22, 0.8);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.admin-form textarea {
+  min-height: 108px;
+}
+
+.admin-editor-shell,
+.admin-media-shell {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(14, 22, 34, 0.85);
+}
+
+.milkdown-editor {
+  min-height: 360px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.admin-feedback {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.admin-feedback[data-state="ok"] {
+  color: #43e3aa;
+}
+
+.admin-feedback[data-state="error"] {
+  color: #f18e8e;
+}
+
+@media (max-width: 900px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-media-grid {
+    grid-template-columns: 1fr;
+  }
+}
