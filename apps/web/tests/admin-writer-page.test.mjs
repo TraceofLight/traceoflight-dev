@@ -37,7 +37,8 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /class="writer-pane writer-pane-editor"[\s\S]*id="writer-bottom-bar"/);
   assert.match(source, /data-has-content="false"/);
   assert.match(source, /id="writer-preview-content"/);
-  assert.match(source, /id="writer-preview-title">제목 없음</);
+  assert.match(source, /id="writer-preview-title"><\/h1>/);
+  assert.doesNotMatch(source, /id="writer-preview-title">제목 없음</);
   assert.doesNotMatch(source, /id="writer-preview-excerpt"/);
   assert.doesNotMatch(source, /요약을 입력하면 여기에 표시됩니다/);
   assert.doesNotMatch(source, /id="writer-preview-slug"/);
@@ -58,7 +59,10 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /id="writer-slug-feedback"/);
   assert.match(source, /id="post-excerpt"[\s\S]*rows="7"/);
   assert.match(source, /<span>요약<\/span>/);
+  assert.match(source, /id="post-visibility"/);
+  assert.match(source, /<span>공개 범위<\/span>/);
   assert.doesNotMatch(source, /<span>Excerpt<\/span>/);
+  assert.doesNotMatch(source, /<span>Status<\/span>/);
 });
 
 test('admin writer has target-aware drop indicator styles', async () => {
@@ -78,6 +82,7 @@ test('admin writer style prevents milkdown link tooltip clipping and button blee
   assert.match(source, /\.writer-cover-preview[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
   assert.match(source, /\.writer-cover-preview-image[\s\S]*object-fit:\s*cover/);
   assert.match(source, /\.writer-field-feedback\[data-state='error'][\s\S]*color:\s*#b43a3a/);
+  assert.match(source, /\.writer-preview-head h1:empty[\s\S]*display:\s*none/);
 });
 
 test('admin writer has editor-side bottom bar and publish layer style', async () => {

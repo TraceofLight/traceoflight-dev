@@ -3,17 +3,20 @@ import { render } from 'astro:content';
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogPost from '../../layouts/BlogPost.astro';
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from '../../lib/admin-auth';
 import { getPublishedDbPostBySlug, renderDbMarkdown } from '../../lib/blog-db';
 import { getBlogSource, getContentProvider } from '../../lib/content-source';
 
 const slug = Astro.params.slug ?? '';
 const provider = getContentProvider();
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? '';
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 const markdownPost = provider === 'file' ? await getBlogSource().getPostBySlug(slug) : null;
 let dbPost: Awaited<ReturnType<typeof getPublishedDbPostBySlug>> = null;
 
 if (provider === 'db') {
   try {
-    dbPost = await getPublishedDbPostBySlug(slug);
+    dbPost = await getPublishedDbPostBySlug(slug, { includePrivate: isAdminViewer });
   } catch {
     dbPost = null;
   }

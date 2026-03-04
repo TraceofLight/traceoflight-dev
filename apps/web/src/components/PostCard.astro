@@ -29,6 +29,9 @@ const { post, imageWidth = 1200, imageHeight = 630 } = Astro.props;
   }
   <p class="post-meta">
     <FormattedDate date={post.pubDate} />
+    {
+      post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
+    }
   </p>
   <h3>
     <a href={`/blog/${post.slug}/`}>{post.title}</a>

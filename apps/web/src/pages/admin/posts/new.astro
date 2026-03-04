@@ -6,7 +6,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
 ---
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
-  <form id="admin-post-form" class="writer-form" data-media-base-url={defaultMediaBaseUrl}>
+  <form id="admin-post-form" class="writer-form" data-media-base-url={defaultMediaBaseUrl} novalidate>
     <div class="writer-shell" data-compact-view="editor">
       <section class="writer-pane writer-pane-editor">
         <div class="writer-title-area">
@@ -15,7 +15,6 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             name="title"
             class="writer-title-input"
             type="text"
-            required
             placeholder="제목을 입력하세요"
           />
         </div>
@@ -30,8 +29,8 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
 
         <div id="writer-bottom-bar" class="writer-bottom-bar">
           <div class="writer-bottom-left">
-            <a class="writer-bottom-back" href="/admin">Back</a>
-            <button id="writer-open-drafts" class="writer-action writer-action-muted" type="button">임시저장</button>
+            <a class="writer-bottom-back" href="/admin">뒤로가기</a>
+            <button id="writer-open-drafts" class="writer-bottom-back writer-bottom-drafts" type="button">임시저장</button>
           </div>
           <div class="writer-bottom-actions">
             <button
@@ -42,17 +41,17 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             >
               미리보기
             </button>
-            <button id="writer-upload-trigger" class="writer-action writer-action-muted" type="button">Upload</button>
+            <button id="writer-upload-trigger" class="writer-action writer-action-muted" type="button">업로드</button>
             <button
               id="writer-save-draft"
               class="writer-action writer-action-muted"
               type="submit"
               data-submit-status="draft"
             >
-              Draft
+              저장
             </button>
             <button id="writer-open-publish" class="writer-action writer-action-primary" type="button">
-              Publish
+              출간
             </button>
           </div>
           <input id="writer-upload-input" type="file" hidden />
@@ -62,7 +61,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
       <section class="writer-pane writer-pane-preview">
         <div class="writer-preview-head">
           <p class="writer-preview-kicker">Live Preview</p>
-          <h1 id="writer-preview-title">제목 없음</h1>
+          <h1 id="writer-preview-title"></h1>
         </div>
         <article id="writer-preview-content" class="writer-preview-content"></article>
       </section>
@@ -76,7 +75,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             <p class="writer-draft-kicker">Drafts</p>
             <h2 id="writer-draft-title">임시저장 글</h2>
           </div>
-          <button id="writer-close-drafts" class="writer-action writer-action-muted" type="button">Close</button>
+          <button id="writer-close-drafts" class="writer-action writer-action-muted" type="button">닫기</button>
         </header>
         <p id="writer-draft-feedback" class="writer-draft-feedback" data-state="info"></p>
         <ul id="writer-draft-list" class="writer-draft-list" aria-live="polite">
@@ -102,7 +101,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
               <span>Post URL</span>
               <div class="writer-slug-input-wrap">
                 <span class="writer-slug-prefix">/blog/</span>
-                <input id="post-slug" name="slug" type="text" required placeholder="your-post-slug" />
+                <input id="post-slug" name="slug" type="text" placeholder="your-post-slug" />
               </div>
             </label>
             <p id="writer-slug-feedback" class="writer-field-feedback" data-state="idle" aria-live="polite"></p>
@@ -120,10 +119,10 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             </div>
             <input id="writer-cover-upload-input" type="file" accept="image/*" hidden />
             <label class="writer-field">
-              <span>Status</span>
-              <select id="post-status" name="status">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
+              <span>공개 범위</span>
+              <select id="post-visibility" name="visibility">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
               </select>
             </label>
             <label id="writer-cover-drop-zone" class="writer-field writer-field-cover-drop" data-drop-state="idle">
@@ -139,9 +138,9 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
           </div>
         </div>
         <div class="writer-publish-actions">
-          <button id="writer-cancel-publish" class="writer-action writer-action-muted" type="button">Cancel</button>
+          <button id="writer-cancel-publish" class="writer-action writer-action-muted" type="button">취소</button>
           <button id="writer-confirm-publish" class="writer-action writer-action-primary" type="submit" data-submit-status="published">
-            Publish now
+            지금 출간
           </button>
         </div>
       </section>

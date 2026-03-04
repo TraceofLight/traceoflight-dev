@@ -45,10 +45,15 @@ test('writer script supports publish-layer open and confirm submit flow', async 
   assert.match(source, /#writer-open-publish/);
   assert.match(source, /#writer-publish-layer/);
   assert.match(source, /#writer-confirm-publish/);
+  assert.match(source, /#post-visibility/);
   assert.match(source, /setPublishLayerOpen/);
+  assert.match(source, /ensureTitleExists/);
+  assert.match(source, /제목을 입력한 뒤 출간 설정을 열어 주세요/);
   assert.match(source, /data-submit-status/);
   assert.match(source, /post slug already exists/);
   assert.match(source, /suggestAvailableSlug/);
+  assert.match(source, /const visibility:\s*PostVisibility\s*=\s*visibilityInput\.value\s*===\s*'private'/);
+  assert.match(source, /visibility,\s*/);
   assert.match(source, /window\.location\.assign\(/);
 });
 

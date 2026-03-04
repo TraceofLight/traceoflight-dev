@@ -10,6 +10,7 @@ export interface PostCard {
     pubDate: Date;
     updatedDate?: Date;
     heroImage?: ImageMetadata | string;
+    visibility?: 'public' | 'private';
 }
 
 export interface BlogContentSource {
@@ -64,5 +65,6 @@ export function toPostCard(post: BlogEntry): PostCard {
         pubDate: post.data.pubDate,
         updatedDate: post.data.updatedDate,
         heroImage: post.data.heroImage,
+        visibility: 'public',
     };
 }

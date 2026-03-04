@@ -7,7 +7,7 @@ from fastapi import Query
 from fastapi import Response
 
 from app.api.deps import get_post_service
-from app.models.post import PostStatus
+from app.models.post import PostStatus, PostVisibility
 from app.schemas.post import PostCreate, PostRead
 from app.services.post_service import PostService
 
@@ -19,18 +19,20 @@ def list_posts(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     status: PostStatus | None = Query(default=None),
+    visibility: PostVisibility | None = Query(default=None),
     service: PostService = Depends(get_post_service),
 ) -> list[PostRead]:
-    return service.list_posts(limit=limit, offset=offset, status=status)
+    return service.list_posts(limit=limit, offset=offset, status=status, visibility=visibility)
 
 
 @router.get('/{slug}', response_model=PostRead)
 def get_post_by_slug(
     slug: str,
     status: PostStatus | None = Query(default=None),
+    visibility: PostVisibility | None = Query(default=None),
     service: PostService = Depends(get_post_service),
 ) -> PostRead:
-    post = service.get_post_by_slug(slug=slug, status=status)
+    post = service.get_post_by_slug(slug=slug, status=status, visibility=visibility)
     if post is None:
         raise HTTPException(status_code=404, detail='post not found')
     return post
@@ -66,9 +68,10 @@ def update_post_by_slug(
 def delete_post_by_slug(
     slug: str,
     status: PostStatus | None = Query(default=None),
+    visibility: PostVisibility | None = Query(default=None),
     service: PostService = Depends(get_post_service),
 ) -> Response:
-    deleted = service.delete_post_by_slug(slug=slug, status=status)
+    deleted = service.delete_post_by_slug(slug=slug, status=status, visibility=visibility)
     if not deleted:
         raise HTTPException(status_code=404, detail='post not found')
     return Response(status_code=204)

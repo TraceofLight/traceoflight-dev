@@ -6,6 +6,7 @@ import { replaceAll } from '@milkdown/utils';
 import { createMarkdownRenderer } from '../markdown-renderer';
 
 type PostStatus = 'draft' | 'published';
+type PostVisibility = 'public' | 'private';
 type AssetKind = 'image' | 'video' | 'file';
 
 interface UploadUrlResponse {
@@ -27,12 +28,14 @@ interface AdminPostPayload {
   body_markdown: string;
   cover_image_url: string | null;
   status: PostStatus;
+  visibility: PostVisibility;
 }
 
 interface AdminDraftListItem {
   slug: string;
   title?: string | null;
   status?: string;
+  visibility?: PostVisibility;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -496,7 +499,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const slugFeedback = document.querySelector<HTMLElement>('#writer-slug-feedback');
   const excerptInput = document.querySelector<HTMLTextAreaElement>('#post-excerpt');
   const coverInput = document.querySelector<HTMLInputElement>('#post-cover');
-  const statusInput = document.querySelector<HTMLSelectElement>('#post-status');
+  const visibilityInput = document.querySelector<HTMLSelectElement>('#post-visibility');
   const previewTitle = document.querySelector<HTMLElement>('#writer-preview-title');
   const previewContent = document.querySelector<HTMLElement>('#writer-preview-content');
   const coverPreview = document.querySelector<HTMLElement>('#writer-cover-preview');
@@ -529,7 +532,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     !slugFeedback ||
     !excerptInput ||
     !coverInput ||
-    !statusInput ||
+    !visibilityInput ||
     !previewTitle ||
     !previewContent ||
     !coverPreview ||
@@ -671,9 +674,6 @@ export async function initNewPostAdminPage(): Promise<void> {
     publishLayer.hidden = !nextOpen;
     publishLayer.setAttribute('data-open', nextOpen ? 'true' : 'false');
     confirmPublishButton.disabled = false;
-    if (nextOpen) {
-      statusInput.value = 'published';
-    }
   };
 
   const isPublishLayerOpen = () => publishLayer.getAttribute('data-open') === 'true';
@@ -703,6 +703,13 @@ export async function initNewPostAdminPage(): Promise<void> {
       showFeedback(normalized.message, 'info');
     }
     return normalized.value;
+  };
+
+  const ensureTitleExists = (message: string): boolean => {
+    if (titleInput.value.trim().length > 0) return true;
+    showFeedback(message, 'error');
+    titleInput.focus();
+    return false;
   };
 
   const renderCoverPreviewEmpty = (message: string) => {
@@ -748,8 +755,7 @@ export async function initNewPostAdminPage(): Promise<void> {
       previewContent.innerHTML = '<p class="writer-preview-empty">본문을 입력하면 여기에 미리보기가 표시됩니다.</p>';
     }
 
-    const nextTitle = titleInput.value.trim() || '제목 없음';
-
+    const nextTitle = titleInput.value.trim();
     previewTitle.textContent = nextTitle;
     renderCoverPreview(coverInput.value.trim());
   };
@@ -808,7 +814,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     slugInput.dataset.touched = 'true';
     excerptInput.value = loaded.excerpt ?? '';
     coverInput.value = loaded.cover_image_url ?? '';
-    statusInput.value = loaded.status === 'published' ? 'published' : 'draft';
+    visibilityInput.value = loaded.visibility === 'private' ? 'private' : 'public';
     await editorBridge.setMarkdown(loaded.body_markdown ?? '');
     setSlugValidationState('idle');
     queueSlugAvailabilityCheck();
@@ -1083,6 +1089,9 @@ export async function initNewPostAdminPage(): Promise<void> {
   });
 
   openPublishButton.addEventListener('click', () => {
+    if (!ensureTitleExists('제목을 입력한 뒤 출간 설정을 열어 주세요.')) {
+      return;
+    }
     setDraftLayerOpen(false);
     setPublishLayerOpen(true);
     queueSlugAvailabilityCheck();
@@ -1273,24 +1282,31 @@ export async function initNewPostAdminPage(): Promise<void> {
 
     const submitter = (event as SubmitEvent).submitter as HTMLElement | null;
     const desiredStatus = submitter?.getAttribute('data-submit-status');
-    if (desiredStatus === 'draft' || desiredStatus === 'published') {
-      statusInput.value = desiredStatus;
-    }
+    const status: PostStatus =
+      desiredStatus === 'published' || (submitter === null && isPublishLayerOpen()) ? 'published' : 'draft';
     if (desiredStatus === 'draft') {
       setPublishLayerOpen(false);
     }
 
     const slug = slugInput.value.trim();
     const title = titleInput.value.trim();
-    const status = statusInput.value as PostStatus;
+    const visibility: PostVisibility = visibilityInput.value === 'private' ? 'private' : 'public';
     const bodyMarkdown = normalizeMarkdownLinks(
       sanitizeEditorMarkdown((await editorBridge.getMarkdown()).trim()),
       window.location.protocol,
     );
     normalizeCoverInputValue(false);
 
-    if (!slug || !title || !bodyMarkdown) {
-      showFeedback('slug, title, body는 필수입니다.', 'error');
+    if (!ensureTitleExists('제목을 입력해 주세요.')) {
+      return;
+    }
+
+    if (!slug) {
+      showFeedback('Post URL을 입력해 주세요.', 'error');
+      slugInput.focus();
+      if (desiredStatus === 'published' && !isPublishLayerOpen()) {
+        setPublishLayerOpen(true);
+      }
       return;
     }
 
@@ -1310,6 +1326,7 @@ export async function initNewPostAdminPage(): Promise<void> {
       body_markdown: bodyMarkdown,
       cover_image_url: coverInput.value.trim() || null,
       status,
+      visibility,
       published_at: status === 'published' ? new Date().toISOString() : null,
     };
     const submitPath = editingPostSlug

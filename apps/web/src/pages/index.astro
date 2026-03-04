@@ -4,14 +4,17 @@ import ProjectCard from "../components/ProjectCard.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { listPublishedDbPosts } from "../lib/blog-db";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { getBlogSource, getContentProvider, toPostCard, type PostCard as PostCardData } from "../lib/content-source";
 import { getProjects } from "../lib/projects";
 
 const provider = getContentProvider();
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? '';
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 let posts: PostCardData[] = [];
 if (provider === "db") {
   try {
-    const dbPosts = await listPublishedDbPosts(3);
+    const dbPosts = await listPublishedDbPosts(3, { includePrivate: isAdminViewer });
     posts = dbPosts.map((post) => ({
       slug: post.slug,
       title: post.title,
@@ -19,6 +22,7 @@ if (provider === "db") {
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
       heroImage: post.coverImageUrl,
+      visibility: post.visibility,
     }));
   } catch {
     posts = [];

@@ -9,3 +9,6 @@ def test_media_asset_kind_enum_uses_value_literals() -> None:
 def test_post_status_enum_uses_value_literals() -> None:
     assert Post.__table__.c.status.type.enums == ["draft", "published", "archived"]
 
+
+def test_post_visibility_enum_uses_value_literals() -> None:
+    assert Post.__table__.c.visibility.type.enums == ["public", "private"]

@@ -9,6 +9,7 @@ export interface DbPost {
   body_markdown: string;
   cover_image_url: string | null;
   status: 'draft' | 'published' | 'archived';
+  visibility?: 'public' | 'private';
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -21,11 +22,16 @@ export interface DbBlogPost {
   description: string;
   bodyMarkdown: string;
   coverImageUrl?: string;
+  visibility: 'public' | 'private';
   publishedAt: Date;
   updatedAt?: Date;
 }
 
 const markdown = createMarkdownRenderer();
+
+interface PublishedQueryOptions {
+  includePrivate?: boolean;
+}
 
 function toDbBlogPost(post: DbPost): DbBlogPost {
   const publishedDate = post.published_at ?? post.created_at;
@@ -36,13 +42,28 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     description: post.excerpt ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     bodyMarkdown: post.body_markdown,
     coverImageUrl: post.cover_image_url ?? undefined,
+    visibility: post.visibility === 'private' ? 'private' : 'public',
     publishedAt: new Date(publishedDate),
     updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
   };
 }
 
-export async function listPublishedDbPosts(limit = 50): Promise<DbBlogPost[]> {
-  const response = await requestBackend(`/posts?status=published&limit=${limit}&offset=0`);
+function buildPublishedPostsQuery(limit: number, options: PublishedQueryOptions = {}): string {
+  const params = new URLSearchParams({
+    status: 'published',
+    limit: String(limit),
+    offset: '0',
+  });
+
+  if (!options.includePrivate) {
+    params.set('visibility', 'public');
+  }
+
+  return `/posts?${params.toString()}`;
+}
+
+export async function listPublishedDbPosts(limit = 50, options: PublishedQueryOptions = {}): Promise<DbBlogPost[]> {
+  const response = await requestBackend(buildPublishedPostsQuery(limit, options));
   if (!response.ok) {
     throw new Error(`failed to fetch posts: ${response.status}`);
   }
@@ -51,8 +72,16 @@ export async function listPublishedDbPosts(limit = 50): Promise<DbBlogPost[]> {
   return posts.map(toDbBlogPost);
 }
 
-export async function getPublishedDbPostBySlug(slug: string): Promise<DbBlogPost | null> {
-  const response = await requestBackend(`/posts/${slug}?status=published`);
+export async function getPublishedDbPostBySlug(
+  slug: string,
+  options: PublishedQueryOptions = {},
+): Promise<DbBlogPost | null> {
+  const params = new URLSearchParams({ status: 'published' });
+  if (!options.includePrivate) {
+    params.set('visibility', 'public');
+  }
+
+  const response = await requestBackend(`/posts/${encodeURIComponent(slug)}?${params.toString()}`);
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`failed to fetch post: ${response.status}`);

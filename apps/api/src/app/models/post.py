@@ -15,6 +15,11 @@ class PostStatus(str, enum.Enum):
     ARCHIVED = 'archived'
 
 
+class PostVisibility(str, enum.Enum):
+    PUBLIC = 'public'
+    PRIVATE = 'private'
+
+
 def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
     return [member.value for member in enum_cls]
 
@@ -31,5 +36,10 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Enum(PostStatus, name='post_status', values_callable=_enum_values),
         index=True,
         default=PostStatus.DRAFT,
+    )
+    visibility: Mapped[PostVisibility] = mapped_column(
+        Enum(PostVisibility, name='post_visibility', values_callable=_enum_values),
+        index=True,
+        default=PostVisibility.PUBLIC,
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
