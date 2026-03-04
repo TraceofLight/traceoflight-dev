@@ -33,141 +33,146 @@ export interface WriterDomElements {
   coverDropZone: HTMLElement;
 }
 
+const WRITER_SELECTORS = {
+  form: "#admin-post-form",
+  writerShell: ".writer-shell",
+  feedback: "#writer-toast",
+  editorRoot: "#milkdown-editor",
+  titleInput: "#post-title",
+  slugInput: "#post-slug",
+  slugFeedback: "#writer-slug-feedback",
+  excerptInput: "#post-excerpt",
+  coverInput: "#post-cover",
+  visibilityInput: "#post-visibility",
+  previewTitle: "#writer-preview-title",
+  previewContent: "#writer-preview-content",
+  coverPreview: "#writer-cover-preview",
+  coverPreviewImage: "#writer-cover-preview-image",
+  coverPreviewEmpty: "#writer-cover-preview-empty",
+  coverUploadInput: "#writer-cover-upload-input",
+  compactToggleButton: "#writer-toggle-compact-view",
+  uploadTrigger: "#writer-upload-trigger",
+  uploadInput: "#writer-upload-input",
+  openDraftsButton: "#writer-open-drafts",
+  draftLayer: "#writer-draft-layer",
+  draftBackdrop: "#writer-draft-backdrop",
+  closeDraftsButton: "#writer-close-drafts",
+  draftList: "#writer-draft-list",
+  draftFeedback: "#writer-draft-feedback",
+  openPublishButton: "#writer-open-publish",
+  publishLayer: "#writer-publish-layer",
+  publishBackdrop: "#writer-publish-backdrop",
+  closePublishButton: "#writer-cancel-publish",
+  confirmPublishButton: "#writer-confirm-publish",
+  editorDropZone: "#writer-editor-drop-zone",
+  coverDropZone: "#writer-cover-drop-zone",
+} as const;
+
+type QueriedWriterDomElements = {
+  [K in Exclude<keyof WriterDomElements, "form">]: WriterDomElements[K] | null;
+};
+
+function queryElement<T extends Element>(
+  root: Document,
+  selector: string,
+): T | null {
+  return root.querySelector<T>(selector);
+}
+
 export function queryWriterDomElements(
   root: Document = document,
 ): WriterDomElements | null {
-  const form = root.querySelector<HTMLFormElement>("#admin-post-form");
+  const form = queryElement<HTMLFormElement>(root, WRITER_SELECTORS.form);
   if (!form) return null;
 
-  const writerShell = root.querySelector<HTMLElement>(".writer-shell");
-  const feedback = root.querySelector<HTMLElement>("#writer-toast");
-  const editorRoot = root.querySelector<HTMLElement>("#milkdown-editor");
-  const titleInput = root.querySelector<HTMLInputElement>("#post-title");
-  const slugInput = root.querySelector<HTMLInputElement>("#post-slug");
-  const slugFeedback = root.querySelector<HTMLElement>("#writer-slug-feedback");
-  const excerptInput = root.querySelector<HTMLTextAreaElement>("#post-excerpt");
-  const coverInput = root.querySelector<HTMLInputElement>("#post-cover");
-  const visibilityInput =
-    root.querySelector<HTMLSelectElement>("#post-visibility");
-  const previewTitle = root.querySelector<HTMLElement>("#writer-preview-title");
-  const previewContent = root.querySelector<HTMLElement>(
-    "#writer-preview-content",
-  );
-  const coverPreview = root.querySelector<HTMLElement>("#writer-cover-preview");
-  const coverPreviewImage = root.querySelector<HTMLImageElement>(
-    "#writer-cover-preview-image",
-  );
-  const coverPreviewEmpty = root.querySelector<HTMLElement>(
-    "#writer-cover-preview-empty",
-  );
-  const coverUploadInput = root.querySelector<HTMLInputElement>(
-    "#writer-cover-upload-input",
-  );
-  const compactToggleButton = root.querySelector<HTMLButtonElement>(
-    "#writer-toggle-compact-view",
-  );
-  const uploadTrigger = root.querySelector<HTMLButtonElement>(
-    "#writer-upload-trigger",
-  );
-  const uploadInput = root.querySelector<HTMLInputElement>("#writer-upload-input");
-  const openDraftsButton = root.querySelector<HTMLButtonElement>(
-    "#writer-open-drafts",
-  );
-  const draftLayer = root.querySelector<HTMLElement>("#writer-draft-layer");
-  const draftBackdrop = root.querySelector<HTMLButtonElement>(
-    "#writer-draft-backdrop",
-  );
-  const closeDraftsButton = root.querySelector<HTMLButtonElement>(
-    "#writer-close-drafts",
-  );
-  const draftList = root.querySelector<HTMLElement>("#writer-draft-list");
-  const draftFeedback = root.querySelector<HTMLElement>("#writer-draft-feedback");
-  const openPublishButton = root.querySelector<HTMLButtonElement>(
-    "#writer-open-publish",
-  );
-  const publishLayer = root.querySelector<HTMLElement>("#writer-publish-layer");
-  const publishBackdrop = root.querySelector<HTMLButtonElement>(
-    "#writer-publish-backdrop",
-  );
-  const closePublishButton = root.querySelector<HTMLButtonElement>(
-    "#writer-cancel-publish",
-  );
-  const confirmPublishButton = root.querySelector<HTMLButtonElement>(
-    "#writer-confirm-publish",
-  );
-  const editorDropZone = root.querySelector<HTMLElement>(
-    "#writer-editor-drop-zone",
-  );
-  const coverDropZone = root.querySelector<HTMLElement>("#writer-cover-drop-zone");
+  const queried: QueriedWriterDomElements = {
+    writerShell: queryElement<HTMLElement>(root, WRITER_SELECTORS.writerShell),
+    feedback: queryElement<HTMLElement>(root, WRITER_SELECTORS.feedback),
+    editorRoot: queryElement<HTMLElement>(root, WRITER_SELECTORS.editorRoot),
+    titleInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.titleInput),
+    slugInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.slugInput),
+    slugFeedback: queryElement<HTMLElement>(root, WRITER_SELECTORS.slugFeedback),
+    excerptInput: queryElement<HTMLTextAreaElement>(
+      root,
+      WRITER_SELECTORS.excerptInput,
+    ),
+    coverInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.coverInput),
+    visibilityInput: queryElement<HTMLSelectElement>(
+      root,
+      WRITER_SELECTORS.visibilityInput,
+    ),
+    previewTitle: queryElement<HTMLElement>(root, WRITER_SELECTORS.previewTitle),
+    previewContent: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewContent,
+    ),
+    coverPreview: queryElement<HTMLElement>(root, WRITER_SELECTORS.coverPreview),
+    coverPreviewImage: queryElement<HTMLImageElement>(
+      root,
+      WRITER_SELECTORS.coverPreviewImage,
+    ),
+    coverPreviewEmpty: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.coverPreviewEmpty,
+    ),
+    coverUploadInput: queryElement<HTMLInputElement>(
+      root,
+      WRITER_SELECTORS.coverUploadInput,
+    ),
+    compactToggleButton: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.compactToggleButton,
+    ),
+    uploadTrigger: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.uploadTrigger,
+    ),
+    uploadInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.uploadInput),
+    openDraftsButton: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.openDraftsButton,
+    ),
+    draftLayer: queryElement<HTMLElement>(root, WRITER_SELECTORS.draftLayer),
+    draftBackdrop: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.draftBackdrop,
+    ),
+    closeDraftsButton: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.closeDraftsButton,
+    ),
+    draftList: queryElement<HTMLElement>(root, WRITER_SELECTORS.draftList),
+    draftFeedback: queryElement<HTMLElement>(root, WRITER_SELECTORS.draftFeedback),
+    openPublishButton: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.openPublishButton,
+    ),
+    publishLayer: queryElement<HTMLElement>(root, WRITER_SELECTORS.publishLayer),
+    publishBackdrop: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.publishBackdrop,
+    ),
+    closePublishButton: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.closePublishButton,
+    ),
+    confirmPublishButton: queryElement<HTMLButtonElement>(
+      root,
+      WRITER_SELECTORS.confirmPublishButton,
+    ),
+    editorDropZone: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.editorDropZone,
+    ),
+    coverDropZone: queryElement<HTMLElement>(root, WRITER_SELECTORS.coverDropZone),
+  };
 
-  if (
-    !writerShell ||
-    !feedback ||
-    !editorRoot ||
-    !titleInput ||
-    !slugInput ||
-    !slugFeedback ||
-    !excerptInput ||
-    !coverInput ||
-    !visibilityInput ||
-    !previewTitle ||
-    !previewContent ||
-    !coverPreview ||
-    !coverPreviewImage ||
-    !coverPreviewEmpty ||
-    !coverUploadInput ||
-    !compactToggleButton ||
-    !uploadTrigger ||
-    !uploadInput ||
-    !openDraftsButton ||
-    !draftLayer ||
-    !draftBackdrop ||
-    !closeDraftsButton ||
-    !draftList ||
-    !draftFeedback ||
-    !openPublishButton ||
-    !publishLayer ||
-    !publishBackdrop ||
-    !closePublishButton ||
-    !confirmPublishButton ||
-    !editorDropZone ||
-    !coverDropZone
-  ) {
+  if (Object.values(queried).some((element) => element === null)) {
     return null;
   }
 
   return {
     form,
-    writerShell,
-    feedback,
-    editorRoot,
-    titleInput,
-    slugInput,
-    slugFeedback,
-    excerptInput,
-    coverInput,
-    visibilityInput,
-    previewTitle,
-    previewContent,
-    coverPreview,
-    coverPreviewImage,
-    coverPreviewEmpty,
-    coverUploadInput,
-    compactToggleButton,
-    uploadTrigger,
-    uploadInput,
-    openDraftsButton,
-    draftLayer,
-    draftBackdrop,
-    closeDraftsButton,
-    draftList,
-    draftFeedback,
-    openPublishButton,
-    publishLayer,
-    publishBackdrop,
-    closePublishButton,
-    confirmPublishButton,
-    editorDropZone,
-    coverDropZone,
+    ...(queried as Omit<WriterDomElements, "form">),
   };
 }

@@ -23,6 +23,14 @@ const submitPath = new URL(
   "../src/lib/admin/new-post-page/submit.ts",
   import.meta.url,
 );
+const submitEventsPath = new URL(
+  "../src/lib/admin/new-post-page/submit-events.ts",
+  import.meta.url,
+);
+const draftLayerEventsPath = new URL(
+  "../src/lib/admin/new-post-page/draft-layer-events.ts",
+  import.meta.url,
+);
 const dragDropPath = new URL(
   "../src/lib/admin/new-post-page/drag-drop.ts",
   import.meta.url,
@@ -41,6 +49,10 @@ const markdownPath = new URL(
 );
 const feedbackPath = new URL(
   "../src/lib/admin/new-post-page/feedback.ts",
+  import.meta.url,
+);
+const postsApiPath = new URL(
+  "../src/lib/admin/new-post-page/posts-api.ts",
   import.meta.url,
 );
 
@@ -98,32 +110,46 @@ test("writer script has fallback text editor for init failure", async () => {
 });
 
 test("writer script supports publish-layer open and confirm submit flow", async () => {
-  const [source, feedbackSource, domSource, submitSource] = await Promise.all([
+  const [
+    source,
+    feedbackSource,
+    domSource,
+    submitSource,
+    submitEventsSource,
+    postsApiSource,
+  ] = await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(feedbackPath, "utf8"),
     readFile(domPath, "utf8"),
     readFile(submitPath, "utf8"),
+    readFile(submitEventsPath, "utf8"),
+    readFile(postsApiPath, "utf8"),
   ]);
   assert.match(domSource, /#writer-open-publish/);
   assert.match(domSource, /#writer-publish-layer/);
   assert.match(domSource, /#writer-confirm-publish/);
   assert.match(domSource, /#post-visibility/);
+  assert.match(source, /from ["']\.\/new-post-page\/submit-events["']/);
   assert.match(source, /setPublishLayerOpen/);
   assert.match(source, /ensureTitleExists/);
   assert.match(source, /제목을 입력한 뒤 출간 설정을 열어 주세요/);
-  assert.match(source, /data-submit-status/);
-  assert.match(source, /resolveSubmitStatus/);
-  assert.match(source, /buildSubmitPayload/);
-  assert.match(source, /resolveSubmitRequest/);
+  assert.match(submitEventsSource, /data-submit-status/);
+  assert.match(submitEventsSource, /resolveSubmitStatus/);
+  assert.match(submitEventsSource, /buildSubmitPayload/);
+  assert.match(submitEventsSource, /resolveSubmitRequest/);
+  assert.match(submitEventsSource, /requestPostSubmit/);
   assert.match(submitSource, /resolveSubmitStatus/);
+  assert.match(submitSource, /buildSubmitPayload/);
+  assert.match(postsApiSource, /requestPostSubmit/);
+  assert.match(postsApiSource, /content-type/);
   assert.match(feedbackSource, /post slug already exists/);
-  assert.match(source, /suggestAvailableSlug/);
+  assert.match(submitEventsSource, /suggestAvailableSlug/);
   assert.match(
-    source,
+    submitEventsSource,
     /const visibility:\s*PostVisibility\s*=\s*visibilityInput\.value\s*===\s*["']private["']/,
   );
-  assert.match(source, /visibility,\s*/);
-  assert.match(source, /window\.location\.assign\(/);
+  assert.match(submitEventsSource, /visibility,\s*/);
+  assert.match(submitEventsSource, /window\.location\.assign\(/);
 });
 
 test("writer script validates duplicate slug with inline feedback and debounce", async () => {
@@ -152,23 +178,45 @@ test("writer script can load draft by slug query", async () => {
 });
 
 test("writer script supports draft modal list and delete actions", async () => {
-  const [source, domSource, draftsSource] = await Promise.all([
+  const [source, domSource, draftsSource, draftLayerEventsSource, postsApiSource] =
+    await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(domPath, "utf8"),
     readFile(draftsPath, "utf8"),
+    readFile(draftLayerEventsPath, "utf8"),
+    readFile(postsApiPath, "utf8"),
   ]);
   assert.match(domSource, /#writer-open-drafts/);
   assert.match(domSource, /#writer-draft-layer/);
   assert.match(domSource, /#writer-draft-list/);
+  assert.match(source, /from ["']\.\/new-post-page\/draft-layer-events["']/);
+  assert.match(source, /bindDraftLayerEvents/);
   assert.match(source, /loadDraftList/);
+  assert.match(source, /requestDraftList/);
+  assert.match(source, /requestDraftDelete/);
   assert.match(source, /setDraftLayerOpen/);
-  assert.match(
-    source,
-    /\/internal-api\/posts\?status=draft&limit=100&offset=0/,
-  );
+  assert.match(draftLayerEventsSource, /writer-draft-delete/);
+  assert.match(postsApiSource, /\/internal-api\/posts\?status=draft&limit=100&offset=0/);
   assert.match(draftsSource, /writer-draft-delete/);
-  assert.match(source, /method:\s*["']DELETE["']/);
+  assert.match(postsApiSource, /method:\s*["']DELETE["']/);
   assert.match(source, /updateDraftQueryParam/);
+});
+
+test("writer script delegates post network requests to posts-api module", async () => {
+  const [source, submitEventsSource, postsApiSource] = await Promise.all([
+    readFile(scriptPath, "utf8"),
+    readFile(submitEventsPath, "utf8"),
+    readFile(postsApiPath, "utf8"),
+  ]);
+
+  assert.match(source, /from ["']\.\/new-post-page\/posts-api["']/);
+  assert.match(source, /requestDraftBySlug/);
+  assert.match(source, /requestDraftList/);
+  assert.match(source, /requestDraftDelete/);
+  assert.doesNotMatch(source, /requestPostSubmit/);
+  assert.match(submitEventsSource, /requestPostSubmit/);
+  assert.doesNotMatch(source, /fetch\(/);
+  assert.match(postsApiSource, /fetch\(/);
 });
 
 test("writer script uses milkdown replaceAll action for markdown injection", async () => {

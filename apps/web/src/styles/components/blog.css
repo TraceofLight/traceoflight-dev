@@ -384,30 +384,20 @@
   border-radius: var(--radius-md);
 }
 
-.post-content figure,
-.writer-preview-content figure {
+.post-content figure {
   margin: 0 0 1.2rem;
 }
 
-.post-content figure > img,
-.writer-preview-content figure > img {
+.post-content figure > img {
   display: block;
 }
 
-.post-content figcaption,
-.writer-preview-content figcaption {
+.post-content figcaption {
   margin-top: 0.5rem;
   font-size: 0.9rem;
   line-height: 1.5;
   text-align: center;
-}
-
-.post-content figcaption {
   color: var(--text-muted);
-}
-
-.writer-preview-content figcaption {
-  color: #6d7b8e;
 }
 
 .post-content video {

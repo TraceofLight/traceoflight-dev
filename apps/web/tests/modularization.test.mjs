@@ -93,13 +93,19 @@ test("admin writer script delegates helper concerns to sub-modules", async () =>
   await exists("src/lib/admin/new-post-page/drafts.ts");
   await exists("src/lib/admin/new-post-page/preview.ts");
   await exists("src/lib/admin/new-post-page/submit.ts");
+  await exists("src/lib/admin/new-post-page/submit-events.ts");
+  await exists("src/lib/admin/new-post-page/draft-layer-events.ts");
   await exists("src/lib/admin/new-post-page/drag-drop.ts");
+  await exists("src/lib/admin/new-post-page/posts-api.ts");
   await exists("src/lib/admin/new-post-page/link-normalization.ts");
   await exists("src/lib/admin/new-post-page/editor-markdown.ts");
   await exists("src/lib/admin/new-post-page/upload.ts");
   await exists("src/lib/admin/new-post-page/editor-bridge.ts");
 
-  const writerScript = await read("src/lib/admin/new-post-page.ts");
+  const [writerScript, submitEventsScript] = await Promise.all([
+    read("src/lib/admin/new-post-page.ts"),
+    read("src/lib/admin/new-post-page/submit-events.ts"),
+  ]);
   const writerLineCount = writerScript.split(/\r?\n/).length;
   assert.ok(
     writerLineCount < 1000,
@@ -111,12 +117,15 @@ test("admin writer script delegates helper concerns to sub-modules", async () =>
   assert.match(writerScript, /from ["']\.\/new-post-page\/slug["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/drafts["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/preview["']/);
-  assert.match(writerScript, /from ["']\.\/new-post-page\/submit["']/);
+  assert.match(writerScript, /from ["']\.\/new-post-page\/submit-events["']/);
+  assert.match(writerScript, /from ["']\.\/new-post-page\/draft-layer-events["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/drag-drop["']/);
+  assert.match(writerScript, /from ["']\.\/new-post-page\/posts-api["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/link-normalization["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/editor-markdown["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/upload["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/editor-bridge["']/);
+  assert.match(submitEventsScript, /from ["']\.\/submit["']/);
   assert.doesNotMatch(writerScript, /function slugify\(/);
   assert.doesNotMatch(writerScript, /function normalizeMarkdownLinks\(/);
   assert.doesNotMatch(writerScript, /async function createUploadBundle\(/);

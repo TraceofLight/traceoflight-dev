@@ -3,6 +3,7 @@ import { createMarkdownRenderer } from "../markdown-renderer";
 import { createEditorBridge } from "./new-post-page/editor-bridge";
 import { sanitizeEditorMarkdown } from "./new-post-page/editor-markdown";
 import { queryWriterDomElements } from "./new-post-page/dom";
+import { bindDraftLayerEvents } from "./new-post-page/draft-layer-events";
 import {
   buildDraftQueryPath,
   createDraftListItem,
@@ -11,11 +12,12 @@ import {
   renderDraftListEmpty,
 } from "./new-post-page/drafts";
 import { isMediaFileDrag, resolveDropTarget } from "./new-post-page/drag-drop";
+import { setFeedback } from "./new-post-page/feedback";
 import {
-  isSlugAlreadyExistsError,
-  normalizeJsonError,
-  setFeedback,
-} from "./new-post-page/feedback";
+  requestDraftBySlug,
+  requestDraftDelete,
+  requestDraftList,
+} from "./new-post-page/posts-api";
 import {
   markCoverPreviewLoaded,
   nextCompactView,
@@ -24,11 +26,7 @@ import {
   renderCoverPreviewEmpty,
   setCompactToggleLabel,
 } from "./new-post-page/preview";
-import {
-  buildSubmitPayload,
-  resolveSubmitRequest,
-  resolveSubmitStatus,
-} from "./new-post-page/submit";
+import { bindSubmitEvent } from "./new-post-page/submit-events";
 import {
   normalizeCoverUrl,
   normalizeMarkdownLinks,
@@ -36,7 +34,6 @@ import {
 import {
   doesSlugExist,
   slugify,
-  suggestAvailableSlug,
 } from "./new-post-page/slug";
 import {
   createUploadBundle,
@@ -47,11 +44,10 @@ import type {
   AdminPostPayload,
   CompactView,
   DropTarget,
-  PostStatus,
-  PostVisibility,
 } from "./new-post-page/types";
 
 const markdownPreview = createMarkdownRenderer();
+
 export async function initNewPostAdminPage(): Promise<void> {
   const dom = queryWriterDomElements();
   if (!dom) return;
@@ -357,38 +353,32 @@ export async function initNewPostAdminPage(): Promise<void> {
     const normalizedSlug = draftSlug.trim();
     if (!normalizedSlug) return false;
 
-    try {
-      const response = await fetch(
-        `/internal-api/posts/${encodeURIComponent(normalizedSlug)}?status=draft`,
-      );
-      if (response.status === 404) {
+    const draftResponse = await requestDraftBySlug(normalizedSlug);
+    if (!draftResponse.ok) {
+      if (draftResponse.reason === "not_found") {
         showFeedback("요청한 임시저장 글을 찾지 못했습니다.", "error");
-        return false;
-      }
-      if (!response.ok) {
+      } else if (draftResponse.reason === "http_error") {
         showFeedback("임시저장 글을 불러오지 못했습니다.", "error");
-        return false;
-      }
-
-      const loaded = (await response.json()) as Partial<AdminPostPayload>;
-      await applyDraftPayload(loaded, normalizedSlug);
-      if (options.updateQuery !== false) {
-        updateDraftQueryParam(editingPostSlug || normalizedSlug);
-      }
-      if (options.showToast !== false) {
+      } else {
         showFeedback(
-          `임시저장 글을 불러왔습니다: ${titleInput.value || "제목 없음"}`,
-          "ok",
+          "네트워크 오류로 임시저장 글을 불러오지 못했습니다.",
+          "error",
         );
       }
-      return true;
-    } catch {
-      showFeedback(
-        "네트워크 오류로 임시저장 글을 불러오지 못했습니다.",
-        "error",
-      );
       return false;
     }
+
+    await applyDraftPayload(draftResponse.payload, normalizedSlug);
+    if (options.updateQuery !== false) {
+      updateDraftQueryParam(editingPostSlug || normalizedSlug);
+    }
+    if (options.showToast !== false) {
+      showFeedback(
+        `임시저장 글을 불러왔습니다: ${titleInput.value || "제목 없음"}`,
+        "ok",
+      );
+    }
+    return true;
   };
 
   const loadDraftFromQuery = async () => {
@@ -402,37 +392,33 @@ export async function initNewPostAdminPage(): Promise<void> {
     setDraftFeedback("임시저장 글을 불러오는 중...", "info");
     renderDraftListEmpty(draftList, "임시저장 글을 불러오는 중입니다.");
 
-    try {
-      const response = await fetch(
-        "/internal-api/posts?status=draft&limit=100&offset=0",
-      );
-      if (!response.ok) {
-        renderDraftListEmpty(draftList, "불러오기 실패");
-        setDraftFeedback("임시저장 목록을 불러오지 못했습니다.", "error");
-        return;
-      }
-
-      const posts = (await response.json()) as unknown;
-      const drafts = normalizeDraftList(posts);
-
-      draftList.innerHTML = "";
-      if (drafts.length === 0) {
-        renderDraftListEmpty(draftList, "임시저장 글이 없습니다.");
-        setDraftFeedback("", "info");
-        return;
-      }
-
-      drafts.forEach((post) => {
-        draftList.append(createDraftListItem(post));
-      });
-      setDraftFeedback("", "info");
-    } catch {
+    const listResponse = await requestDraftList();
+    if (!listResponse.ok) {
       renderDraftListEmpty(draftList, "불러오기 실패");
-      setDraftFeedback(
-        "네트워크 오류로 임시저장 목록을 불러오지 못했습니다.",
-        "error",
-      );
+      if (listResponse.reason === "network_error") {
+        setDraftFeedback(
+          "네트워크 오류로 임시저장 목록을 불러오지 못했습니다.",
+          "error",
+        );
+      } else {
+        setDraftFeedback("임시저장 목록을 불러오지 못했습니다.", "error");
+      }
+      return;
     }
+
+    const drafts = normalizeDraftList(listResponse.posts);
+
+    draftList.innerHTML = "";
+    if (drafts.length === 0) {
+      renderDraftListEmpty(draftList, "임시저장 글이 없습니다.");
+      setDraftFeedback("", "info");
+      return;
+    }
+
+    drafts.forEach((post) => {
+      draftList.append(createDraftListItem(post));
+    });
+    setDraftFeedback("", "info");
   };
 
   const insertSnippet = async (snippet: string) => {
@@ -531,69 +517,26 @@ export async function initNewPostAdminPage(): Promise<void> {
   setDraftLayerOpen(false);
   setPublishLayerOpen(false);
 
-  openDraftsButton.addEventListener("click", async () => {
-    setPublishLayerOpen(false);
-    setDraftLayerOpen(true);
-    await loadDraftList();
-  });
-
-  closeDraftsButton.addEventListener("click", () => {
-    setDraftLayerOpen(false);
-  });
-
-  draftBackdrop.addEventListener("click", () => {
-    setDraftLayerOpen(false);
-  });
-
-  draftList.addEventListener("click", async (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    if (target.classList.contains("writer-draft-title")) {
-      const slug = target.dataset.slug?.trim();
-      if (!slug) return;
-      const loaded = await loadDraftBySlug(slug, {
-        updateQuery: true,
-        showToast: true,
-      });
-      if (loaded) {
-        setDraftLayerOpen(false);
-      }
-      return;
-    }
-
-    if (
-      target.classList.contains("writer-draft-delete") &&
-      target instanceof HTMLButtonElement
-    ) {
-      const slug = target.dataset.slug?.trim();
-      if (!slug) return;
-
-      target.disabled = true;
-      try {
-        const response = await fetch(
-          `/internal-api/posts/${encodeURIComponent(slug)}?status=draft`,
-          {
-            method: "DELETE",
-          },
-        );
-        if (!response.ok) {
-          setDraftFeedback("임시저장 글 삭제에 실패했습니다.", "error");
-          target.disabled = false;
-          return;
-        }
-
-        if (editingPostSlug === slug) {
-          editingPostSlug = null;
-          updateDraftQueryParam(null);
-        }
-        setDraftFeedback("임시저장 글을 삭제했습니다.", "ok");
-        await loadDraftList();
-      } catch {
-        setDraftFeedback("네트워크 오류로 삭제하지 못했습니다.", "error");
-        target.disabled = false;
-      }
-    }
+  bindDraftLayerEvents({
+    openDraftsButton,
+    closeDraftsButton,
+    draftBackdrop,
+    draftList,
+    setPublishLayerOpen,
+    setDraftLayerOpen,
+    loadDraftList,
+    loadDraftBySlug,
+    requestDraftDeleteBySlug: async (slug) => {
+      const deleteResult = await requestDraftDelete(slug);
+      if (!deleteResult.ok) return deleteResult.reason;
+      return "ok";
+    },
+    setDraftFeedback,
+    getEditingPostSlug: () => editingPostSlug,
+    setEditingPostSlug: (nextSlug) => {
+      editingPostSlug = nextSlug;
+    },
+    updateDraftQueryParam,
   });
 
   uploadTrigger.addEventListener("click", () => {
@@ -783,137 +726,29 @@ export async function initNewPostAdminPage(): Promise<void> {
   window.addEventListener("drop", onWindowDrop);
   window.addEventListener("resize", syncCompactViewForViewport);
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const submitter = (event as SubmitEvent).submitter as HTMLElement | null;
-    const desiredStatus = submitter?.getAttribute("data-submit-status");
-    const status: PostStatus = resolveSubmitStatus({
-      desiredStatus: desiredStatus ?? null,
-      submitterIsNull: submitter === null,
-      publishLayerOpen: isPublishLayerOpen(),
-    });
-    if (desiredStatus === "draft") {
-      setPublishLayerOpen(false);
-    }
-
-    const slug = slugInput.value.trim();
-    const title = titleInput.value.trim();
-    const visibility: PostVisibility =
-      visibilityInput.value === "private" ? "private" : "public";
-    const bodyMarkdown = normalizeMarkdownLinks(
-      sanitizeEditorMarkdown((await editorBridge.getMarkdown()).trim()),
-      window.location.protocol,
-    );
-    normalizeCoverInputValue(false);
-
-    if (!ensureTitleExists("제목을 입력해 주세요.")) {
-      return;
-    }
-
-    if (!slug) {
-      showFeedback("Post URL을 입력해 주세요.", "error");
-      slugInput.focus();
-      if (desiredStatus === "published" && !isPublishLayerOpen()) {
-        setPublishLayerOpen(true);
-      }
-      return;
-    }
-
-    const hasDuplicateSlug = await validateSlugAvailability("submit");
-    if (hasDuplicateSlug) {
-      if (desiredStatus === "published" && !isPublishLayerOpen()) {
-        setPublishLayerOpen(true);
-      }
-      slugInput.focus();
-      return;
-    }
-
-    const payload = buildSubmitPayload({
-      slug,
-      title,
-      excerpt: excerptInput.value,
-      bodyMarkdown,
-      coverImageUrl: coverInput.value,
-      status,
-      visibility,
-      nowIso: new Date().toISOString(),
-    });
-    const submitRequest = resolveSubmitRequest(editingPostSlug);
-
-    showFeedback("게시글 저장 중...", "info", 0);
-    openPublishButton.disabled = true;
-    confirmPublishButton.disabled = true;
-
-    try {
-      const response = await fetch(submitRequest.path, {
-        method: submitRequest.method,
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const errorPayload = (await response
-          .json()
-          .catch(() => null)) as unknown;
-        if (response.status === 409 && isSlugAlreadyExistsError(errorPayload)) {
-          let suggestedSlug: string | null = null;
-          try {
-            suggestedSlug = await suggestAvailableSlug(slug);
-          } catch {
-            suggestedSlug = null;
-          }
-
-          if (desiredStatus === "published" && !isPublishLayerOpen()) {
-            setPublishLayerOpen(true);
-          }
-
-          if (suggestedSlug && suggestedSlug !== slug) {
-            setSlugValidationState(
-              "error",
-              `이미 사용 중인 주소입니다. 예: ${suggestedSlug}`,
-            );
-          } else {
-            setSlugValidationState(
-              "error",
-              "이미 사용 중인 주소입니다. 다른 Post URL을 입력해 주세요.",
-            );
-          }
-
-          slugInput.focus();
-          return;
-        }
-        throw new Error(normalizeJsonError(errorPayload));
-      }
-
-      const created = (await response.json()) as {
-        slug: string;
-        status: string;
-      };
-      if (created.slug) {
-        slugInput.value = created.slug;
-        editingPostSlug = created.slug;
-        setSlugValidationState("idle");
-        queuePreviewRefresh();
-      }
-      const createdStatus = (created.status ?? status).toLowerCase();
-      const publicPath =
-        createdStatus === "published" ? `/blog/${created.slug}/` : "/blog/";
-      if (createdStatus === "published") {
-        setPublishLayerOpen(false);
-        updateDraftQueryParam(null);
-        window.location.assign(publicPath);
-        return;
-      }
-      updateDraftQueryParam(created.slug);
-      showFeedback("임시저장 완료", "ok");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.";
-      showFeedback(message, "error");
-    } finally {
-      openPublishButton.disabled = false;
-      confirmPublishButton.disabled = false;
-    }
+  bindSubmitEvent({
+    form,
+    slugInput,
+    titleInput,
+    excerptInput,
+    coverInput,
+    visibilityInput,
+    openPublishButton,
+    confirmPublishButton,
+    editorBridge,
+    isPublishLayerOpen,
+    setPublishLayerOpen,
+    ensureTitleExists,
+    validateSlugAvailability,
+    normalizeCoverInputValue,
+    showFeedback,
+    setSlugValidationState,
+    queuePreviewRefresh,
+    updateDraftQueryParam,
+    getEditingPostSlug: () => editingPostSlug,
+    setEditingPostSlug: (nextSlug) => {
+      editingPostSlug = nextSlug;
+    },
   });
 
   const teardown = () => {

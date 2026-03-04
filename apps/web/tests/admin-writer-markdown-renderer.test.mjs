@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { readCssModule } from "./helpers/read-css-module.mjs";
 
 const writerScriptPath = new URL(
   "../src/lib/admin/new-post-page.ts",
@@ -12,6 +13,10 @@ const rendererPath = new URL(
   import.meta.url,
 );
 const stylePath = new URL("../src/styles/components/blog.css", import.meta.url);
+const writerStylePath = new URL(
+  "../src/styles/components/writer.css",
+  import.meta.url,
+);
 
 test("writer and blog db share markdown renderer with figure caption output", async () => {
   const [writerSource, blogDbSource, rendererSource] = await Promise.all([
@@ -27,9 +32,13 @@ test("writer and blog db share markdown renderer with figure caption output", as
   assert.match(rendererSource, /<figcaption/);
 });
 
-test("writer and post content define figcaption styles", async () => {
-  const styleSource = await readFile(stylePath, "utf8");
+test("writer preview figcaption style is isolated from blog styles", async () => {
+  const [blogStyleSource, writerStyleSource] = await Promise.all([
+    readFile(stylePath, "utf8"),
+    readCssModule(writerStylePath),
+  ]);
 
-  assert.match(styleSource, /\.writer-preview-content figcaption/);
-  assert.match(styleSource, /\.post-content figcaption/);
+  assert.match(blogStyleSource, /\.post-content figcaption/);
+  assert.doesNotMatch(blogStyleSource, /\.writer-preview-content figcaption/);
+  assert.match(writerStyleSource, /\.writer-preview-content figcaption/);
 });
