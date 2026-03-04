@@ -3,10 +3,29 @@ import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getBlogSource, toPostCard } from "../lib/content-source";
+import { listPublishedDbPosts } from "../lib/blog-db";
+import { getBlogSource, getContentProvider, toPostCard, type PostCard as PostCardData } from "../lib/content-source";
 import { getProjects } from "../lib/projects";
 
-const posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
+const provider = getContentProvider();
+let posts: PostCardData[] = [];
+if (provider === "db") {
+  try {
+    const dbPosts = await listPublishedDbPosts(3);
+    posts = dbPosts.map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      description: post.description,
+      pubDate: post.publishedAt,
+      updatedDate: post.updatedAt,
+      heroImage: post.coverImageUrl,
+    }));
+  } catch {
+    posts = [];
+  }
+} else {
+  posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
+}
 const projects = getProjects().slice(0, 2);
 ---
 

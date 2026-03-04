@@ -3,7 +3,7 @@ import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/nord.css';
 import { replaceAll } from '@milkdown/utils';
 
-import { createMarkdownRenderer } from './markdown-renderer';
+import { createMarkdownRenderer } from '../markdown-renderer';
 
 type PostStatus = 'draft' | 'published';
 type AssetKind = 'image' | 'video' | 'file';

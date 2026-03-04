@@ -30,34 +30,30 @@ class MarkdownBlogSource implements BlogContentSource {
     }
 }
 
-class DbBlogSourceFallback implements BlogContentSource {
-    private readonly markdown = new MarkdownBlogSource();
-
-    async listPosts(): Promise<BlogEntry[]> {
-        // TODO(KHJ): Replace with DB query when local instance schema is ready.
-        return this.markdown.listPosts();
-    }
-
-    async getPostBySlug(slug: string): Promise<BlogEntry | null> {
-        // TODO(KHJ): Replace with DB query when local instance schema is ready.
-        return this.markdown.getPostBySlug(slug);
-    }
+function normalizeProvider(value: string | undefined): 'file' | 'db' | null {
+    const normalized = value?.trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized === 'db') return 'db';
+    if (normalized === 'file') return 'file';
+    return null;
 }
 
-function createBlogSource(): BlogContentSource {
-    const provider = (import.meta.env.CONTENT_PROVIDER ?? 'file').toLowerCase();
-    return provider === 'db' ? new DbBlogSourceFallback() : new MarkdownBlogSource();
+function resolveContentProvider(): 'file' | 'db' {
+    const runtimeProvider = normalizeProvider(process.env.CONTENT_PROVIDER);
+    if (runtimeProvider) return runtimeProvider;
+    const buildTimeProvider = normalizeProvider(import.meta.env.CONTENT_PROVIDER);
+    if (buildTimeProvider) return buildTimeProvider;
+    return 'db';
 }
 
-const blogSource = createBlogSource();
+const markdownBlogSource = new MarkdownBlogSource();
 
 export function getBlogSource(): BlogContentSource {
-    return blogSource;
+    return markdownBlogSource;
 }
 
 export function getContentProvider(): 'file' | 'db' {
-    const provider = (import.meta.env.CONTENT_PROVIDER ?? 'file').toLowerCase();
-    return provider === 'db' ? 'db' : 'file';
+    return resolveContentProvider();
 }
 
 export function toPostCard(post: BlogEntry): PostCard {

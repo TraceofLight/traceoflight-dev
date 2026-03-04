@@ -1,16 +1,35 @@
 import rss from '@astrojs/rss';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
-import { getBlogSource } from '../lib/content-source';
+import { listPublishedDbPosts } from '../lib/blog-db';
+import { getBlogSource, getContentProvider } from '../lib/content-source';
 
 export async function GET(context) {
-	const posts = await getBlogSource().listPosts();
+	const provider = getContentProvider();
+	let items = [];
+	if (provider === 'db') {
+		try {
+			const posts = await listPublishedDbPosts(100);
+			items = posts.map((post) => ({
+				title: post.title,
+				description: post.description,
+				pubDate: post.publishedAt,
+				link: `/blog/${post.slug}/`,
+			}));
+		} catch {
+			items = [];
+		}
+	} else {
+		const posts = await getBlogSource().listPosts();
+		items = posts.map((post) => ({
+			...post.data,
+			link: `/blog/${post.id}/`,
+		}));
+	}
+
 	return rss({
 		title: SITE_TITLE,
 		description: SITE_DESCRIPTION,
 		site: context.site,
-		items: posts.map((post) => ({
-			...post.data,
-			link: `/blog/${post.id}/`,
-		})),
+		items,
 	});
 }
