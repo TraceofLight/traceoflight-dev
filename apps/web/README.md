@@ -7,6 +7,8 @@ Astro frontend for landing, blog, and projects.
 Copy `.env.example` to `.env` when needed.
 
 - `SITE_URL`: public site url
+- `GA4_MEASUREMENT_ID`: optional Google Analytics 4 measurement id (example: `G-XXXXXXXXXX`)
+- `GA4_REPORTS_URL`: optional admin quick-link URL for GA4 dashboard
 - `CONTENT_PROVIDER`: `file` or `db`
 - `API_BASE_URL`: backend API base URL (runtime fallback is `http://traceoflight-api:6654/api/v1`)
 

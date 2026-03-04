@@ -17,6 +17,8 @@ const canonicalBase = Astro.site ?? new URL(SITE_URL);
 const canonicalURL = new URL(Astro.url.pathname, canonicalBase);
 const ogImage = image ? new URL(image.src, Astro.url) : new URL('/android-chrome-512x512.png', Astro.url);
 const fullTitle = title.includes(SITE_TITLE) ? title : `${title} | ${SITE_TITLE}`;
+const ga4MeasurementIdRaw = (process.env.GA4_MEASUREMENT_ID ?? '').trim();
+const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4MeasurementIdRaw : '';
 ---
 
 <meta charset="utf-8" />
@@ -47,3 +49,45 @@ const fullTitle = title.includes(SITE_TITLE) ? title : `${title} | ${SITE_TITLE}
 <meta property="twitter:title" content={fullTitle} />
 <meta property="twitter:description" content={description} />
 <meta property="twitter:image" content={ogImage} />
+
+{
+  ga4MeasurementId && (
+    <>
+      <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`}></script>
+      <script is:inline define:vars={{ ga4MeasurementId }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          window.dataLayer.push(arguments);
+        }
+        window.gtag = window.gtag || gtag;
+
+        if (!window.__traceoflightGa4Configured) {
+          window.gtag('js', new Date());
+          window.gtag('config', ga4MeasurementId, {
+            send_page_view: false,
+            anonymize_ip: true,
+          });
+          window.__traceoflightGa4Configured = true;
+        }
+
+        window.__traceoflightTrackPageView =
+          window.__traceoflightTrackPageView ||
+          function () {
+            if (typeof window.gtag !== 'function') return;
+            window.gtag('event', 'page_view', {
+              page_location: window.location.href,
+              page_path: `${window.location.pathname}${window.location.search}`,
+              page_title: document.title,
+            });
+          };
+
+        if (!window.__traceoflightGa4ListenerBound) {
+          document.addEventListener('astro:page-load', window.__traceoflightTrackPageView);
+          window.__traceoflightGa4ListenerBound = true;
+        }
+
+        window.__traceoflightTrackPageView();
+      </script>
+    </>
+  )
+}
