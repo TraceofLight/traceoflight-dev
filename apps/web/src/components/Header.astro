@@ -1,7 +1,4 @@
 ---
-import { Image } from "astro:assets";
-
-import profileImage from "../assets/traceoflight-profile.png";
 import { NAV_LINKS, SITE_TITLE } from "../consts";
 import HeaderLink from "./HeaderLink.astro";
 ---
@@ -9,13 +6,6 @@ import HeaderLink from "./HeaderLink.astro";
 <header class="site-header">
   <div class="container header-inner">
     <a href="/" class="brand">
-      <Image
-        src={profileImage}
-        alt={`${SITE_TITLE} profile`}
-        width={36}
-        height={36}
-        class="brand-avatar"
-      />
       <span class="brand-name">{SITE_TITLE}</span>
     </a>
 

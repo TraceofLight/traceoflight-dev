@@ -50,18 +50,9 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-}
-
-.brand-avatar {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
-  border: 1px solid rgba(54, 210, 147, 0.45);
-  box-shadow: 0 0 0 4px rgba(54, 210, 147, 0.18);
 }
 
 .brand-name {

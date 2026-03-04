@@ -1,20 +1,31 @@
 ---
+import { Image } from "astro:assets";
+
 import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
+import profileImage from "../assets/traceoflight-profile.png";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { listPublishedDbPosts } from "../lib/blog-db";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
-import { getBlogSource, getContentProvider, toPostCard, type PostCard as PostCardData } from "../lib/content-source";
+import {
+  getBlogSource,
+  getContentProvider,
+  toPostCard,
+  type PostCard as PostCardData,
+} from "../lib/content-source";
 import { getProjects } from "../lib/projects";
+import "../styles/components/home.css";
 
 const provider = getContentProvider();
-const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? '';
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 let posts: PostCardData[] = [];
 if (provider === "db") {
   try {
-    const dbPosts = await listPublishedDbPosts(3, { includePrivate: isAdminViewer });
+    const dbPosts = await listPublishedDbPosts(3, {
+      includePrivate: isAdminViewer,
+    });
     posts = dbPosts.map((post) => ({
       slug: post.slug,
       title: post.title,
@@ -30,64 +41,341 @@ if (provider === "db") {
 } else {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
-const projects = getProjects().slice(0, 2);
+const projects = getProjects().slice(0, 3);
+
+const profile = {
+  name: "TraceofLight",
+};
+
+const heroRoleTokens = [
+  "Cloud-Native Database",
+  "Backend API",
+  "Frontend Engineering",
+  "Technical Writing",
+];
+
+const longIntroTop =
+  "문제를 빠르게 재현하고 원인을 명확히 추적한 뒤, 서비스 레이어와 UI를 함께 개선하는 개발 방식을 지향합니다.";
+const longIntroBottom =
+  "DB, API, 웹 프론트엔드까지 연결된 흐름에서 성능과 운영성을 동시에 챙기는 엔지니어링을 목표로 합니다.";
+
+const resumeLeftSections = [
+  {
+    title: "Education",
+    items: [
+      { main: "2026.02. 크래프톤 정글 게임테크랩 2기 수료" },
+      { main: "2023.08. 삼성 청년 SW 아카데미 8기 수료" },
+      { main: "2022.08. 연세대학교 도시공학과 졸업", sub: "학점 (3.19 / 4.5)" },
+    ],
+  },
+  {
+    title: "License",
+    items: [{ main: "2022.12. SQL 개발자" }],
+  },
+  {
+    title: "Military Service",
+    items: [{ main: "2017.06. ~ 2019.05. 공군 병장 만기전역" }],
+  },
+];
+
+const resumeRightSections = [
+  {
+    title: "Career",
+    items: [{ main: "2023.10. ~ 2024.11. 티맥스티베로 DB본부 연구원" }],
+  },
+  {
+    title: "Experience",
+    items: [{ main: "2023 Cloud-Native 차세대 DB 개발 프로젝트 참여" }],
+  },
+  {
+    title: "Award",
+    items: [
+      {
+        main: "2021.11. 도시공학과 종합설계 작품전 우수작품상",
+        sub: "미래 모빌리티와 연계한 고양시 발전방향 기획안\n: 성남시와 비교 분석",
+      },
+    ],
+  },
+];
+
+const techStackGroups = [
+  {
+    title: "Language",
+    items: [
+      { label: "C++", icon: "/icons/tech/cplusplus.svg" },
+      { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
+      { label: "Java", icon: "/icons/tech/java.svg" },
+      { label: "Python", icon: "/icons/tech/python.svg" },
+    ],
+  },
+  {
+    title: "Graphics & Engine",
+    items: [
+      { label: "DirectX 11", icon: "/icons/tech/directx11.webp" },
+      { label: "Unreal Engine 5", icon: "/icons/tech/unrealengine.svg" },
+    ],
+  },
+  {
+    title: "SCM",
+    items: [
+      { label: "Git", icon: "/icons/tech/git.svg" },
+      { label: "Perforce", icon: "/icons/tech/perforce.svg" },
+    ],
+  },
+  {
+    title: "Web",
+    items: [
+      { label: "FastAPI", icon: "/icons/tech/fastapi.svg" },
+      { label: "Spring Boot", icon: "/icons/tech/springboot.svg" },
+      { divider: true },
+      { label: "React", icon: "/icons/tech/react.svg" },
+    ],
+  },
+];
+
+const featuredSeriesCards: Array<{ title: string; summary: string }> = [];
+
+const connectLinks = [
+  { label: "GitHub", href: "https://github.com/TraceofLight", external: true },
+  { label: "Email", href: "mailto:rickyjun96@gmail.com", external: false },
+  { label: "Resume PDF", href: "/resume.pdf", external: false },
+  { label: "Blog", href: "/blog", external: false },
+];
 ---
 
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
-  <section class="hero">
-    <p class="kicker">TRACEOFLIGHT</p>
-    <h1>
-      Lorem ipsum dolor sit amet,
-      <span> consectetur adipiscing elit.</span>
-    </h1>
-    <p class="lead">
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-      tempor incididunt ut labore et dolore magna aliqua.
-    </p>
-    <div class="hero-actions">
-      <a class="button" href="/blog">Lorem ipsum</a>
-      <a class="button button-ghost" href="/projects">Dolor sit</a>
-    </div>
-  </section>
+  <section class="home-resume">
+    <section
+      class="home-panel home-profile"
+      aria-labelledby="home-profile-title"
+    >
+      <div class="home-profile-content">
+        <p class="home-eyebrow">Profile</p>
+        <h1 id="home-profile-title">{profile.name}</h1>
+        <p class="home-long-copy">{longIntroTop}</p>
+        <p class="home-long-copy">{longIntroBottom}</p>
+        <ul class="home-role-list">
+          {heroRoleTokens.map((role) => <li>{role}</li>)}
+        </ul>
+        <div class="home-profile-actions">
+          <a class="button" href="/projects">프로젝트 보기</a>
+          <a class="button button-ghost" href="/blog">블로그 보기</a>
+        </div>
+      </div>
+      <div class="home-profile-visual" aria-hidden="true">
+        <Image
+          src={profileImage}
+          alt=""
+          width={264}
+          height={264}
+          class="home-profile-icon"
+        />
+      </div>
+    </section>
 
-  <section class="section" aria-labelledby="featured-projects">
-    <div class="section-head">
-      <h2 id="featured-projects">Lorem Ipsum</h2>
-      <a href="/projects">Dolor Sit Amet</a>
-    </div>
+    <section
+      class="home-section"
+      id="home-experience-education"
+      aria-labelledby="home-experience-heading"
+    >
+      <div class="home-section-head">
+        <h2 id="home-experience-heading">Profile</h2>
+      </div>
+      <div class="home-resume-grid">
+        <div class="home-resume-column">
+          {
+            resumeLeftSections.map((section) => (
+              <article class="home-resume-block">
+                <h3>{section.title}</h3>
+                <ul>
+                  {section.items.map((item) => (
+                    <li>
+                      <p class="home-resume-main">{item.main}</p>
+                      {item.sub ? (
+                        <p class="home-resume-sub">{item.sub}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))
+          }
+        </div>
 
-    <div class="card-grid">
+        <div class="home-resume-column">
+          {
+            resumeRightSections.map((section) => (
+              <article class="home-resume-block">
+                <h3>{section.title}</h3>
+                <ul>
+                  {section.items.map((item) => (
+                    <li>
+                      <p class="home-resume-main">{item.main}</p>
+                      {item.sub ? (
+                        <p class="home-resume-sub">{item.sub}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="home-section"
+      id="home-tech-stack"
+      aria-labelledby="home-tech-heading"
+    >
+      <div class="home-section-head">
+        <h2 id="home-tech-heading">Skill</h2>
+      </div>
+      <div class="home-stack-groups">
+        {
+          techStackGroups.map((group) => (
+            <article
+              class={`home-stack-card ${
+                group.title === "Language" ? "home-stack-card-language" : ""
+              }`.trim()}
+            >
+              <h3>{group.title}</h3>
+              <ul
+                class={`home-stack-items ${
+                  group.title === "Language" ? "home-stack-items-inline" : ""
+                }`.trim()}
+              >
+                {group.items.map((item) =>
+                  "divider" in item ? (
+                    <li
+                      class="home-stack-divider"
+                      role="separator"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <li class="home-stack-item">
+                      {item.icon ? (
+                        <img
+                          class="home-stack-icon"
+                          src={item.icon}
+                          alt={`${item.label} logo`}
+                          loading="lazy"
+                          width="18"
+                          height="18"
+                        />
+                      ) : (
+                        <span class="home-stack-fallback" aria-hidden="true">
+                          {item.fallback}
+                        </span>
+                      )}
+                      <span>{item.label}</span>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section
+      class="home-section"
+      id="home-featured-projects"
+      aria-labelledby="home-projects-heading"
+    >
+      <div class="home-section-head">
+        <h2 id="home-projects-heading">Featured Projects</h2>
+        <a href="/projects">View All Projects</a>
+      </div>
+      <div class="card-grid home-project-grid">
+        {
+          projects.map((project) => (
+            <ProjectCard
+              project={project}
+              imageWidth={960}
+              imageHeight={540}
+              stackLimit={3}
+            />
+          ))
+        }
+      </div>
+    </section>
+
+    <section
+      class="home-section"
+      id="home-featured-series"
+      aria-labelledby="home-series-heading"
+    >
+      <div class="home-section-head">
+        <h2 id="home-series-heading">Featured Series</h2>
+        <a href="/blog">View All Series</a>
+      </div>
       {
-        projects.map((project) => (
-          <ProjectCard
-            project={project}
-            imageWidth={960}
-            imageHeight={540}
-            stackLimit={3}
-          />
-        ))
+        featuredSeriesCards.length > 0 ? (
+          <div class="home-series-grid">
+            {
+              featuredSeriesCards.map((card) => (
+                <article class="home-series-card">
+                  <h3>{card.title}</h3>
+                  <p>{card.summary}</p>
+                </article>
+              ))
+            }
+          </div>
+        ) : (
+          <div class="empty-state home-series-empty">아직 등록된 시리즈가 없습니다.</div>
+        )
       }
-    </div>
-  </section>
+    </section>
 
-  <section class="section" aria-labelledby="latest-posts">
-    <div class="section-head">
-      <h2 id="latest-posts">Lorem Dolor</h2>
-      <a href="/blog">Ipsum Archive</a>
-    </div>
+    <section
+      class="home-section"
+      id="home-latest-posts"
+      aria-labelledby="home-posts-heading"
+    >
+      <div class="home-section-head">
+        <h2 id="home-posts-heading">Latest Posts</h2>
+        <a href="/blog">View All Posts</a>
+      </div>
+      {
+        posts.length > 0 ? (
+          <div class="post-list home-post-list">
+            {posts.map((post) => (
+              <PostCard post={post} imageWidth={960} imageHeight={540} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty-state">아직 공개된 글이 없습니다.</div>
+        )
+      }
+    </section>
 
-    {
-      posts.length > 0 ? (
-        <div class="post-list">
-          {posts.map((post) => (
-            <PostCard post={post} imageWidth={960} imageHeight={540} />
-          ))}
+    <section
+      class="home-section"
+      id="home-connect"
+      aria-labelledby="home-connect-heading"
+    >
+      <div class="home-connect-panel">
+        <h2 id="home-connect-heading">Connect</h2>
+        <p class="home-long-copy">
+          협업/프로젝트 문의는 메일로 부탁드립니다. 이력서는 PDF로 제공됩니다.
+        </p>
+        <div class="home-contact-links">
+          {
+            connectLinks.map((link) => (
+              <a
+                href={link.href}
+                target={link.external ? "_blank" : undefined}
+                rel={link.external ? "noreferrer" : undefined}
+              >
+                {link.label}
+              </a>
+            ))
+          }
         </div>
-      ) : (
-        <div class="empty-state">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        </div>
-      )
-    }
+      </div>
+    </section>
   </section>
 </BaseLayout>
