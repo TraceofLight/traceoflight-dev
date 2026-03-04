@@ -23,6 +23,13 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 
 <BaseLayout title={title} description={description} image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}>
   <article class="post-shell">
+    <nav class="post-top-nav" aria-label="Post navigation">
+      <a class="post-back-link button button-ghost" href="/blog/">
+        <span aria-hidden="true">‹</span>
+        <span>블로그로 돌아가기</span>
+      </a>
+    </nav>
+
     {
       heroImage &&
         (typeof heroImage === 'string' ? (
@@ -51,5 +58,12 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     <section class="post-content">
       <slot />
     </section>
+
+    <nav class="post-bottom-nav" aria-label="Blog archive">
+      <a class="post-archive-link button button-ghost" href="/blog/">
+        <span aria-hidden="true">☰</span>
+        <span>모든 글 보기</span>
+      </a>
+    </nav>
   </article>
 </BaseLayout>

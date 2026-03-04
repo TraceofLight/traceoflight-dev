@@ -1,5 +1,5 @@
 ---
-import { GITHUB_URL, SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+import { GITHUB_URL, SITE_TITLE } from "../consts";
 
 const currentYear = new Date().getFullYear();
 ---
@@ -7,9 +7,7 @@ const currentYear = new Date().getFullYear();
 <footer class="site-footer">
   <div class="container footer-inner">
     <div>
-      <p class="footer-title">{SITE_TITLE}</p>
-      <p class="footer-copy">{SITE_DESCRIPTION}</p>
-      <p class="footer-copy">{currentYear} all rights reserved.</p>
+      <p class="footer-copy">{currentYear} {SITE_TITLE} all rights reserved.</p>
     </div>
 
     <div class="footer-links">
