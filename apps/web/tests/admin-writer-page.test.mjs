@@ -49,6 +49,7 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /class="writer-publish-column writer-publish-column-side"/);
   assert.match(source, /class="writer-slug-input-wrap"/);
   assert.match(source, /class="writer-slug-prefix">\/blog\//);
+  assert.match(source, /id="writer-slug-feedback"/);
   assert.match(source, /id="post-excerpt"[\s\S]*rows="7"/);
   assert.match(source, /<span>요약<\/span>/);
   assert.doesNotMatch(source, /<span>Excerpt<\/span>/);
@@ -63,11 +64,14 @@ test('admin writer has target-aware drop indicator styles', async () => {
 test('admin writer style prevents milkdown link tooltip clipping and button bleed', async () => {
   const source = await readFile(stylePath, 'utf8');
   assert.match(source, /\.writer-editor-shell \.milkdown-editor[\s\S]*overflow:\s*visible/);
+  assert.match(source, /\.writer-editor-shell \.milkdown \.editor[\s\S]*max-width:\s*none/);
+  assert.match(source, /\.writer-editor-shell \.milkdown \.editor[\s\S]*margin:\s*0/);
   assert.match(source, /\.writer-editor-shell \.milkdown \.milkdown-link-edit > \.link-edit > \.button/);
   assert.doesNotMatch(source, /\.writer-editor-guide/);
   assert.doesNotMatch(source, /\.writer-preview-excerpt\[data-empty='true']/);
   assert.match(source, /\.writer-cover-preview[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
   assert.match(source, /\.writer-cover-preview-image[\s\S]*object-fit:\s*cover/);
+  assert.match(source, /\.writer-field-feedback\[data-state='error'][\s\S]*color:\s*#b43a3a/);
 });
 
 test('admin writer has editor-side bottom bar and publish layer style', async () => {

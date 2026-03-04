@@ -49,6 +49,17 @@ test('writer script supports publish-layer open and confirm submit flow', async 
   assert.match(source, /data-submit-status/);
   assert.match(source, /post slug already exists/);
   assert.match(source, /suggestAvailableSlug/);
+  assert.match(source, /window\.location\.assign\(/);
+});
+
+test('writer script validates duplicate slug with inline feedback and debounce', async () => {
+  const source = await readFile(scriptPath, 'utf8');
+  assert.match(source, /#writer-slug-feedback/);
+  assert.match(source, /setSlugValidationState/);
+  assert.match(source, /slugCheckTimer/);
+  assert.match(source, /setTimeout\([\s\S]*1000\)/);
+  assert.match(source, /validateSlugAvailability/);
+  assert.match(source, /aria-invalid/);
 });
 
 test('writer script uses milkdown replaceAll action for markdown injection', async () => {

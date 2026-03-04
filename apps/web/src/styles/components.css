@@ -806,6 +806,18 @@
   box-shadow: 0 0 0 2px rgba(79, 200, 162, 0.18);
 }
 
+.writer-field-feedback {
+  margin: -0.15rem 0 0.1rem;
+  min-height: 1rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: transparent;
+}
+
+.writer-field-feedback[data-state='error'] {
+  color: #b43a3a;
+}
+
 .writer-field input:focus,
 .writer-field textarea:focus,
 .writer-field select:focus {
@@ -871,6 +883,16 @@
   border-radius: 0;
   background: transparent;
   overflow: visible;
+}
+
+.writer-editor-shell .milkdown .editor {
+  max-width: none;
+  margin: 0;
+  padding: 0.95rem 1.3rem 1.8rem;
+}
+
+.writer-editor-shell .milkdown .editor > * {
+  max-width: none;
 }
 
 .writer-editor-shell[data-drop-state='active'] .milkdown-editor {

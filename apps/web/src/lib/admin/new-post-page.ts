@@ -472,6 +472,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const editorRoot = document.querySelector<HTMLElement>('#milkdown-editor');
   const titleInput = document.querySelector<HTMLInputElement>('#post-title');
   const slugInput = document.querySelector<HTMLInputElement>('#post-slug');
+  const slugFeedback = document.querySelector<HTMLElement>('#writer-slug-feedback');
   const excerptInput = document.querySelector<HTMLTextAreaElement>('#post-excerpt');
   const coverInput = document.querySelector<HTMLInputElement>('#post-cover');
   const statusInput = document.querySelector<HTMLSelectElement>('#post-status');
@@ -496,6 +497,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     !editorRoot ||
     !titleInput ||
     !slugInput ||
+    !slugFeedback ||
     !excerptInput ||
     !coverInput ||
     !statusInput ||
@@ -536,7 +538,62 @@ export async function initNewPostAdminPage(): Promise<void> {
   let isUploading = false;
   let previewJobQueued = false;
   let dragDepth = 0;
+  let slugCheckTimer: number | null = null;
+  let slugCheckSequence = 0;
   let activeDropTarget: DropTarget = null;
+
+  const setSlugValidationState = (state: 'idle' | 'error', message = '') => {
+    slugFeedback.dataset.state = state;
+    slugFeedback.textContent = state === 'error' ? message : '';
+    slugInput.setAttribute('aria-invalid', state === 'error' ? 'true' : 'false');
+  };
+
+  const validateSlugAvailability = async (source: 'typing' | 'submit'): Promise<boolean> => {
+    const slug = slugInput.value.trim();
+    if (!slug) {
+      setSlugValidationState('idle');
+      return false;
+    }
+
+    const checkId = ++slugCheckSequence;
+    let exists = false;
+    try {
+      exists = await doesSlugExist(slug);
+    } catch {
+      if (source === 'submit') {
+        showFeedback('slug 중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      }
+      return false;
+    }
+
+    if (checkId !== slugCheckSequence) return false;
+
+    if (exists) {
+      setSlugValidationState('error', '이미 사용 중인 주소입니다. 다른 Post URL을 입력해 주세요.');
+      return true;
+    }
+
+    setSlugValidationState('idle');
+    return false;
+  };
+
+  const queueSlugAvailabilityCheck = () => {
+    if (slugCheckTimer !== null) {
+      window.clearTimeout(slugCheckTimer);
+      slugCheckTimer = null;
+    }
+
+    if (!slugInput.value.trim()) {
+      setSlugValidationState('idle');
+      return;
+    }
+
+    slugCheckTimer = window.setTimeout(() => {
+      slugCheckTimer = null;
+      void validateSlugAvailability('typing');
+    }, 1000);
+  };
+  setSlugValidationState('idle');
 
   const setDropTargetState = (target: DropTarget) => {
     if (activeDropTarget === target) return;
@@ -706,12 +763,14 @@ export async function initNewPostAdminPage(): Promise<void> {
   titleInput.addEventListener('input', () => {
     if (!slugInput.dataset.touched || slugInput.value.trim().length === 0) {
       slugInput.value = slugify(titleInput.value);
+      queueSlugAvailabilityCheck();
     }
     queuePreviewRefresh();
   });
 
   slugInput.addEventListener('input', () => {
     slugInput.dataset.touched = 'true';
+    queueSlugAvailabilityCheck();
     queuePreviewRefresh();
   });
 
@@ -731,6 +790,7 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   openPublishButton.addEventListener('click', () => {
     setPublishLayerOpen(true);
+    queueSlugAvailabilityCheck();
   });
 
   closePublishButton.addEventListener('click', () => {
@@ -933,6 +993,15 @@ export async function initNewPostAdminPage(): Promise<void> {
       return;
     }
 
+    const hasDuplicateSlug = await validateSlugAvailability('submit');
+    if (hasDuplicateSlug) {
+      if (desiredStatus === 'published' && !isPublishLayerOpen()) {
+        setPublishLayerOpen(true);
+      }
+      slugInput.focus();
+      return;
+    }
+
     const payload = {
       slug,
       title,
@@ -968,12 +1037,9 @@ export async function initNewPostAdminPage(): Promise<void> {
           }
 
           if (suggestedSlug && suggestedSlug !== slug) {
-            slugInput.value = suggestedSlug;
-            slugInput.dataset.touched = 'true';
-            queuePreviewRefresh();
-            showFeedback(`이미 사용 중인 slug입니다. \`${suggestedSlug}\`로 바꾼 뒤 다시 Publish 해주세요.`, 'error', 6400);
+            setSlugValidationState('error', `이미 사용 중인 주소입니다. 예: ${suggestedSlug}`);
           } else {
-            showFeedback('이미 사용 중인 slug입니다. slug를 변경해 주세요.', 'error', 6400);
+            setSlugValidationState('error', '이미 사용 중인 주소입니다. 다른 Post URL을 입력해 주세요.');
           }
 
           slugInput.focus();
@@ -985,11 +1051,15 @@ export async function initNewPostAdminPage(): Promise<void> {
       const created = (await response.json()) as { slug: string; status: string };
       if (created.slug) {
         slugInput.value = created.slug;
+        setSlugValidationState('idle');
         queuePreviewRefresh();
       }
-      const publicPath = created.status === 'published' ? `/blog/${created.slug}/` : '/blog/';
-      if (created.status === 'published') {
+      const createdStatus = (created.status ?? status).toLowerCase();
+      const publicPath = createdStatus === 'published' ? `/blog/${created.slug}/` : '/blog/';
+      if (createdStatus === 'published') {
         setPublishLayerOpen(false);
+        window.location.assign(publicPath);
+        return;
       }
       showFeedback(`저장 완료: ${publicPath}`, 'ok');
     } catch (error) {
@@ -1003,6 +1073,10 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   const teardown = () => {
     unobserveEditor();
+    if (slugCheckTimer !== null) {
+      window.clearTimeout(slugCheckTimer);
+      slugCheckTimer = null;
+    }
     window.removeEventListener('keydown', onWindowKeyDown);
     window.removeEventListener('dragenter', onWindowDragEnter);
     window.removeEventListener('dragover', onWindowDragOver);

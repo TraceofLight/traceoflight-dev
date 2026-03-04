@@ -77,6 +77,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
                 <input id="post-slug" name="slug" type="text" required placeholder="your-post-slug" />
               </div>
             </label>
+            <p id="writer-slug-feedback" class="writer-field-feedback" data-state="idle" aria-live="polite"></p>
             <label class="writer-field">
               <span>요약</span>
               <textarea id="post-excerpt" name="excerpt" rows="7" placeholder="게시글 요약을 입력하세요." />
