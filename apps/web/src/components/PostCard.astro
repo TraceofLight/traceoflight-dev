@@ -6,35 +6,89 @@ import type { PostCard as PostCardData } from "../lib/content-source";
 
 interface Props {
   post: PostCardData;
+  variant?: 'default' | 'archive';
   imageWidth?: number;
   imageHeight?: number;
 }
 
-const { post, imageWidth = 1200, imageHeight = 630 } = Astro.props;
+const { post, variant = 'default', imageWidth = 1200, imageHeight = 630 } = Astro.props;
+const normalizedVisibility = post.visibility === 'private' ? 'private' : 'public';
+const descriptionText = post.description?.trim() || '요약이 아직 등록되지 않았습니다.';
+const readingMinutes = Math.max(
+  1,
+  Math.round(
+    `${post.title} ${descriptionText}`
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length / 180,
+  ),
+);
+const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-card';
 ---
 
-<article class="post-card">
+<article
+  class={cardClass}
+  data-title={post.title.toLowerCase()}
+  data-description={descriptionText.toLowerCase()}
+  data-visibility={normalizedVisibility}
+  data-published-at={String(post.pubDate.valueOf())}
+  data-sort-title={post.title.toLowerCase()}
+>
   {
-    post.heroImage && (
-      <a class="thumb" href={`/blog/${post.slug}/`}>
+    variant === 'archive' ? (
+      <>
+        <a class="thumb post-card-archive-thumb" href={`/blog/${post.slug}/`}>
+          {
+            post.heroImage ? (
+              typeof post.heroImage === 'string' ? (
+                <img src={post.heroImage} alt={post.title} loading="lazy" />
+              ) : (
+                <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+              )
+            ) : (
+              <span class="post-card-archive-thumb-placeholder">TraceofLight</span>
+            )
+          }
+        </a>
+        <div class="post-card-archive-body">
+          <p class="post-card-archive-kicker">{normalizedVisibility === 'private' ? '비공개 포스트' : '공개 포스트'}</p>
+          <h3>
+            <a href={`/blog/${post.slug}/`}>{post.title}</a>
+          </h3>
+          <p class="post-card-archive-description">{descriptionText}</p>
+          <p class="post-card-archive-meta">
+            <span><FormattedDate date={post.pubDate} /></span>
+            <span aria-hidden="true">•</span>
+            <span>약 {readingMinutes}분</span>
+          </p>
+        </div>
+      </>
+    ) : (
+      <>
         {
-          typeof post.heroImage === 'string' ? (
-            <img src={post.heroImage} alt={post.title} loading="lazy" />
-          ) : (
-            <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+          post.heroImage && (
+            <a class="thumb" href={`/blog/${post.slug}/`}>
+              {
+                typeof post.heroImage === 'string' ? (
+                  <img src={post.heroImage} alt={post.title} loading="lazy" />
+                ) : (
+                  <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+                )
+              }
+            </a>
           )
         }
-      </a>
+        <p class="post-meta">
+          <FormattedDate date={post.pubDate} />
+          {
+            post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
+          }
+        </p>
+        <h3>
+          <a href={`/blog/${post.slug}/`}>{post.title}</a>
+        </h3>
+        <p>{descriptionText}</p>
+      </>
     )
   }
-  <p class="post-meta">
-    <FormattedDate date={post.pubDate} />
-    {
-      post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
-    }
-  </p>
-  <h3>
-    <a href={`/blog/${post.slug}/`}>{post.title}</a>
-  </h3>
-  <p>{post.description}</p>
 </article>

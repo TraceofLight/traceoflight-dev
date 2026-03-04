@@ -29,27 +29,154 @@ if (provider === 'db') {
 } else {
   posts = (await getBlogSource().listPosts()).map(toPostCard);
 }
+
+const publicCount = posts.filter((post) => post.visibility !== 'private').length;
+const privateCount = posts.filter((post) => post.visibility === 'private').length;
 ---
 
 <BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
-  <section class="hero">
-    <p class="kicker">BLOG ARCHIVE</p>
-    <h1>Lorem ipsum dolor sit amet</h1>
-    <p class="lead">
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
-      labore et dolore magna aliqua.
-    </p>
-  </section>
+  <section class="blog-archive">
+    <header class="blog-archive-hero">
+      <h1>Blog</h1>
+      <p>TraceofLight의 개발과 다양한 이야기 Archive</p>
+    </header>
 
-  {
-    posts.length > 0 ? (
-      <section class="section post-list">
-        {posts.map((post) => <PostCard post={post} />)}
-      </section>
-    ) : (
-      <section class="section">
-        <div class="empty-state">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-      </section>
-    )
-  }
+    {
+      posts.length > 0 ? (
+        <>
+          <section class="blog-archive-control-bar" aria-label="Blog archive controls">
+            <label class="blog-archive-search" for="blog-search">
+              <span class="sr-only">포스트 검색</span>
+              <input id="blog-search" type="search" placeholder="포스트 검색..." autocomplete="off" />
+            </label>
+
+            <div class="blog-archive-control-actions">
+              <select id="blog-sort" aria-label="정렬 방식">
+                <option value="latest">최신순</option>
+                <option value="oldest">오래된순</option>
+                <option value="title">제목순</option>
+              </select>
+              <button id="blog-filter-toggle" class="button button-ghost" type="button" aria-expanded="true">
+                필터
+              </button>
+            </div>
+          </section>
+
+          <section class="blog-archive-filter-panel" id="blog-filter-panel">
+            <p class="blog-archive-filter-label">게시글 필터</p>
+            <div class="blog-archive-filter-chips">
+              <button class="is-active" type="button" data-visibility-filter="all" aria-pressed="true">
+                전체 ({posts.length})
+              </button>
+              <button type="button" data-visibility-filter="public" aria-pressed="false">
+                공개 ({publicCount})
+              </button>
+              {
+                isAdminViewer && (
+                  <button type="button" data-visibility-filter="private" aria-pressed="false">
+                    비공개 ({privateCount})
+                  </button>
+                )
+              }
+            </div>
+          </section>
+
+          <p id="blog-post-count" class="blog-archive-count">총 {posts.length}개의 포스트</p>
+
+          <section id="blog-post-grid" class="blog-archive-grid">
+            {posts.map((post) => <PostCard post={post} variant="archive" />)}
+          </section>
+        </>
+      ) : (
+        <div class="empty-state">게시글이 아직 없습니다.</div>
+      )
+    }
+  </section>
 </BaseLayout>
+
+<script type="module">
+  const searchInput = document.querySelector('#blog-search');
+  const sortSelect = document.querySelector('#blog-sort');
+  const filterToggleButton = document.querySelector('#blog-filter-toggle');
+  const filterPanel = document.querySelector('#blog-filter-panel');
+  const postCountText = document.querySelector('#blog-post-count');
+  const postGrid = document.querySelector('#blog-post-grid');
+
+  if (postGrid instanceof HTMLElement) {
+    const cards = Array.from(postGrid.querySelectorAll('.post-card'));
+    const filterButtons = Array.from(document.querySelectorAll('[data-visibility-filter]'));
+    let activeVisibility = 'all';
+
+    const normalize = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+    const sortCards = (visibleCards) => {
+      const selectedSort = sortSelect instanceof HTMLSelectElement ? sortSelect.value : 'latest';
+
+      return [...visibleCards].sort((left, right) => {
+        const leftTimestamp = Number(left.dataset.publishedAt || 0);
+        const rightTimestamp = Number(right.dataset.publishedAt || 0);
+        const leftTitle = left.dataset.sortTitle || '';
+        const rightTitle = right.dataset.sortTitle || '';
+
+        if (selectedSort === 'oldest') return leftTimestamp - rightTimestamp;
+        if (selectedSort === 'title') return leftTitle.localeCompare(rightTitle, 'ko-KR');
+        return rightTimestamp - leftTimestamp;
+      });
+    };
+
+    const applyFiltersAndSort = () => {
+      const searchTerm = normalize(searchInput instanceof HTMLInputElement ? searchInput.value : '');
+      const visibleCards = cards.filter((card) => {
+        const cardVisibility = normalize(card.dataset.visibility || 'public');
+        const title = normalize(card.dataset.title || '');
+        const description = normalize(card.dataset.description || '');
+        const matchesVisibility = activeVisibility === 'all' || cardVisibility === activeVisibility;
+        const matchesSearch = !searchTerm || title.includes(searchTerm) || description.includes(searchTerm);
+        const isVisible = matchesVisibility && matchesSearch;
+        card.hidden = !isVisible;
+        return isVisible;
+      });
+
+      const sorted = sortCards(visibleCards);
+      sorted.forEach((card) => postGrid.append(card));
+
+      if (postCountText instanceof HTMLElement) {
+        postCountText.textContent = `총 ${visibleCards.length}개의 포스트`;
+      }
+    };
+
+    const setActiveFilter = (value) => {
+      activeVisibility = normalize(value || 'all') || 'all';
+      filterButtons.forEach((button) => {
+        const isActive = normalize(button.dataset.visibilityFilter) === activeVisibility;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+      applyFiltersAndSort();
+    };
+
+    filterButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        setActiveFilter(button.dataset.visibilityFilter || 'all');
+      });
+    });
+
+    if (sortSelect instanceof HTMLSelectElement) {
+      sortSelect.addEventListener('change', applyFiltersAndSort);
+    }
+
+    if (searchInput instanceof HTMLInputElement) {
+      searchInput.addEventListener('input', applyFiltersAndSort);
+    }
+
+    if (filterToggleButton instanceof HTMLButtonElement && filterPanel instanceof HTMLElement) {
+      filterToggleButton.addEventListener('click', () => {
+        const nextHiddenState = !filterPanel.hidden;
+        filterPanel.hidden = nextHiddenState;
+        filterToggleButton.setAttribute('aria-expanded', nextHiddenState ? 'false' : 'true');
+      });
+    }
+
+    setActiveFilter('all');
+  }
+</script>
