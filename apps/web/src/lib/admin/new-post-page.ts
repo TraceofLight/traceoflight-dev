@@ -27,6 +27,8 @@ interface EditorBridge {
   observeChanges: (onChange: () => void) => () => void;
 }
 
+type DropTarget = 'body' | 'cover' | null;
+
 const markdownPreview = new MarkdownIt({
   html: true,
   linkify: true,
@@ -133,21 +135,53 @@ function normalizeCoverUrl(rawValue: string, pageProtocol: string): { value: str
   return { value: upgraded.value };
 }
 
-function normalizeEscapedMarkdownLinks(markdown: string): string {
+const LINK_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
+const RELATIVE_LINK_PATTERN = /^(#|\/|\.\.?\/)/;
+
+function looksLikeExternalHost(value: string): boolean {
+  if (value.startsWith('www.')) return true;
+  if (value.includes('@')) return false;
+  const hostCandidate = value.split('/')[0];
+  if (!hostCandidate.includes('.')) return false;
+  return /^[a-z0-9.-]+$/i.test(hostCandidate);
+}
+
+function normalizeMarkdownLinkTarget(rawUrl: string, pageProtocol: string): string {
+  const compactUrl = rawUrl.replace(/\s+/g, '');
+  if (!compactUrl) return compactUrl;
+
+  if (RELATIVE_LINK_PATTERN.test(compactUrl)) return compactUrl;
+
+  if (compactUrl.startsWith('//')) {
+    const protocol = pageProtocol === 'https:' ? 'https:' : 'http:';
+    return normalizeCoverUrl(`${protocol}${compactUrl}`, pageProtocol).value;
+  }
+
+  if (LINK_SCHEME_PATTERN.test(compactUrl)) {
+    if (!/^https?:\/\//i.test(compactUrl)) return compactUrl;
+    return normalizeCoverUrl(compactUrl, pageProtocol).value;
+  }
+
+  if (looksLikeExternalHost(compactUrl)) {
+    return normalizeCoverUrl(`https://${compactUrl}`, pageProtocol).value;
+  }
+
+  return compactUrl;
+}
+
+function normalizeEscapedMarkdownLinks(markdown: string, pageProtocol: string): string {
   return markdown.replace(/\\(!?\[(?:\\.|[^\]])*\\?\])\\?\(([\s\S]*?)\\?\)/g, (full, rawLabel, rawUrl) => {
-    const compactUrl = rawUrl.replace(/\s+/g, '');
-    if (!/^https?:\/\//i.test(compactUrl)) return full;
+    const normalizedUrl = normalizeMarkdownLinkTarget(rawUrl, pageProtocol);
+    if (!normalizedUrl) return full;
     const label = rawLabel.replace(/\\\[/g, '[').replace(/\\\]/g, ']');
-    return `${label}(${compactUrl})`;
+    return `${label}(${normalizedUrl})`;
   });
 }
 
 function normalizeMarkdownLinks(markdown: string, pageProtocol: string): string {
-  const normalizedEscaped = normalizeEscapedMarkdownLinks(markdown);
+  const normalizedEscaped = normalizeEscapedMarkdownLinks(markdown, pageProtocol);
   return normalizedEscaped.replace(/(!?\[[^\]]*]\()([\s\S]*?)(\))/g, (full, prefix, rawUrl, suffix) => {
-    const compactUrl = rawUrl.replace(/\s+/g, '');
-    if (!/^https?:\/\//i.test(compactUrl)) return full;
-    const normalized = normalizeCoverUrl(compactUrl, pageProtocol).value;
+    const normalized = normalizeMarkdownLinkTarget(rawUrl, pageProtocol);
     return `${prefix}${normalized}${suffix}`;
   });
 }
@@ -328,7 +362,8 @@ export async function initNewPostAdminPage(): Promise<void> {
   const previewContent = document.querySelector<HTMLElement>('#writer-preview-content');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
-  const dropOverlay = document.querySelector<HTMLElement>('#writer-drop-overlay');
+  const editorDropZone = document.querySelector<HTMLElement>('#writer-editor-drop-zone');
+  const coverDropZone = document.querySelector<HTMLElement>('#writer-cover-drop-zone');
 
   if (
     !feedback ||
@@ -344,7 +379,9 @@ export async function initNewPostAdminPage(): Promise<void> {
     !previewCover ||
     !previewContent ||
     !uploadTrigger ||
-    !uploadInput
+    !uploadInput ||
+    !editorDropZone ||
+    !coverDropZone
   ) {
     return;
   }
@@ -362,17 +399,31 @@ export async function initNewPostAdminPage(): Promise<void> {
   let isUploading = false;
   let previewJobQueued = false;
   let dragDepth = 0;
+  let activeDropTarget: DropTarget = null;
 
-  const showDropOverlay = () => {
-    if (!dropOverlay) return;
-    dropOverlay.hidden = false;
-    dropOverlay.setAttribute('aria-hidden', 'false');
+  const setDropTargetState = (target: DropTarget) => {
+    if (activeDropTarget === target) return;
+    activeDropTarget = target;
+    editorDropZone.setAttribute('data-drop-state', target === 'body' ? 'active' : 'idle');
+    coverDropZone.setAttribute('data-drop-state', target === 'cover' ? 'active' : 'idle');
   };
 
-  const hideDropOverlay = () => {
-    if (!dropOverlay) return;
-    dropOverlay.hidden = true;
-    dropOverlay.setAttribute('aria-hidden', 'true');
+  const clearDropTargetState = () => {
+    setDropTargetState(null);
+  };
+
+  const resolveDropTarget = (event: DragEvent): DropTarget => {
+    const eventTarget = event.target;
+    const element =
+      eventTarget instanceof Element
+        ? eventTarget
+        : eventTarget instanceof Node
+          ? eventTarget.parentElement
+          : null;
+    if (!element) return null;
+    if (element.closest('#writer-cover-drop-zone')) return 'cover';
+    if (element.closest('#writer-editor-drop-zone') || element.closest('#milkdown-editor')) return 'body';
+    return null;
   };
 
   const normalizeCoverInputValue = (withMessage: boolean) => {
@@ -523,13 +574,18 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   editorRoot.addEventListener('dragover', (event) => {
     event.preventDefault();
+    setDropTargetState('body');
   });
 
   editorRoot.addEventListener('drop', async (event) => {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (!file) return;
-    await uploadOneFileToBody(file);
+    try {
+      await uploadOneFileToBody(file);
+    } finally {
+      clearDropTargetState();
+    }
   });
 
   editorRoot.addEventListener('paste', async (event) => {
@@ -539,15 +595,20 @@ export async function initNewPostAdminPage(): Promise<void> {
     await uploadOneFileToBody(file);
   });
 
-  coverInput.addEventListener('dragover', (event) => {
+  coverDropZone.addEventListener('dragover', (event) => {
     event.preventDefault();
+    setDropTargetState('cover');
   });
 
-  coverInput.addEventListener('drop', async (event) => {
+  coverDropZone.addEventListener('drop', async (event) => {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (!file) return;
-    await uploadOneFileToCover(file);
+    try {
+      await uploadOneFileToCover(file);
+    } finally {
+      clearDropTargetState();
+    }
   });
 
   coverInput.addEventListener('paste', async (event) => {
@@ -587,7 +648,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     if (!isMediaFileDrag(event)) return;
     event.preventDefault();
     dragDepth += 1;
-    showDropOverlay();
+    setDropTargetState(resolveDropTarget(event));
   };
 
   const onWindowDragOver = (event: DragEvent) => {
@@ -596,7 +657,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'copy';
     }
-    showDropOverlay();
+    setDropTargetState(resolveDropTarget(event));
   };
 
   const onWindowDragLeave = (event: DragEvent) => {
@@ -604,18 +665,23 @@ export async function initNewPostAdminPage(): Promise<void> {
     event.preventDefault();
     dragDepth = Math.max(0, dragDepth - 1);
     if (dragDepth === 0) {
-      hideDropOverlay();
+      clearDropTargetState();
     }
   };
 
   const onWindowDrop = async (event: DragEvent) => {
     if (!isMediaFileDrag(event)) return;
     const alreadyHandled = event.defaultPrevented;
+    const dropTarget = resolveDropTarget(event);
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     dragDepth = 0;
-    hideDropOverlay();
+    clearDropTargetState();
     if (!file || alreadyHandled) return;
+    if (dropTarget === 'cover') {
+      await uploadOneFileToCover(file);
+      return;
+    }
     await uploadOneFileToBody(file);
   };
 
@@ -689,7 +755,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     window.removeEventListener('dragover', onWindowDragOver);
     window.removeEventListener('dragleave', onWindowDragLeave);
     window.removeEventListener('drop', onWindowDrop);
-    hideDropOverlay();
+    clearDropTargetState();
   };
 
   window.addEventListener('beforeunload', teardown, { once: true });

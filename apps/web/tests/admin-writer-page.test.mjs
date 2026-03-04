@@ -25,10 +25,18 @@ test('admin writer page has split editor and preview layout', async () => {
   assert.match(source, /id="writer-preview-content"/);
   assert.match(source, /id="writer-preview-slug"/);
   assert.match(source, /id="writer-preview-cover"/);
-  assert.match(source, /id="writer-drop-overlay"/);
+  assert.match(source, /id="writer-editor-drop-zone"/);
+  assert.match(source, /id="writer-cover-drop-zone"/);
 });
 
-test('admin writer drop overlay stays hidden by default', async () => {
+test('admin writer has target-aware drop indicator styles', async () => {
   const source = await readFile(stylePath, 'utf8');
-  assert.match(source, /\.writer-drop-overlay\[hidden\]/);
+  assert.match(source, /\.writer-editor-shell\[data-drop-state='active']/);
+  assert.match(source, /\.writer-field-cover-drop\[data-drop-state='active']/);
+});
+
+test('admin writer style prevents milkdown link tooltip clipping and button bleed', async () => {
+  const source = await readFile(stylePath, 'utf8');
+  assert.match(source, /\.writer-editor-shell \.milkdown-editor[\s\S]*overflow:\s*visible/);
+  assert.match(source, /\.writer-editor-shell \.milkdown \.milkdown-link-edit > \.link-edit > \.button/);
 });

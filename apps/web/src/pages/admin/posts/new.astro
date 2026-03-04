@@ -55,16 +55,23 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             <span>Excerpt</span>
             <textarea id="post-excerpt" name="excerpt" rows="2" placeholder="A short summary for cards and SEO snippets." />
           </label>
-          <label class="writer-field">
+          <label id="writer-cover-drop-zone" class="writer-field writer-field-cover-drop" data-drop-state="idle">
             <span>Cover Image URL</span>
             <input id="post-cover" name="cover_image_url" type="url" placeholder="https://..." />
+            <span class="writer-cover-drop-indicator" aria-hidden="true">
+              Drop cover image here to upload
+            </span>
           </label>
           <p class="writer-helper">
             Drag and drop image/video into editor, or paste from clipboard.
           </p>
         </div>
 
-        <div class="writer-editor-shell">
+        <div id="writer-editor-drop-zone" class="writer-editor-shell" data-drop-state="idle">
+          <div class="writer-editor-drop-indicator" aria-hidden="true">
+            <p class="writer-editor-drop-title">Drop media to insert into body</p>
+            <p class="writer-editor-drop-caption">Images and videos are uploaded and inserted at the end.</p>
+          </div>
           <div id="milkdown-editor" class="milkdown-editor"></div>
         </div>
       </section>
@@ -87,12 +94,6 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
       <p id="admin-feedback" class="writer-feedback" data-state="info">Start writing your post.</p>
     </footer>
   </form>
-  <div id="writer-drop-overlay" class="writer-drop-overlay" hidden aria-hidden="true">
-    <div class="writer-drop-overlay-panel">
-      <p class="writer-drop-overlay-title">Drop media to upload</p>
-      <p class="writer-drop-overlay-caption">Images and videos will be inserted into body markdown.</p>
-    </div>
-  </div>
 </AdminWriterLayout>
 
 <script>
