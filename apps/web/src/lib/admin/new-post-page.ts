@@ -64,9 +64,34 @@ function buildMarkdownSnippet(kind: AssetKind, fileName: string, mediaUrl: strin
   return `[${fileName}](${mediaUrl})`;
 }
 
-function setFeedback(target: HTMLElement, message: string, type: 'error' | 'ok' | 'info'): void {
+function setFeedback(
+  target: HTMLElement,
+  message: string,
+  type: 'error' | 'ok' | 'info',
+  options: { autoHideMs?: number; hideTimerRef?: { id: number | null } } = {},
+): void {
+  const autoHideMs = options.autoHideMs ?? 3200;
   target.textContent = message;
   target.dataset.state = type;
+  target.setAttribute('data-visible', 'true');
+
+  if (options.hideTimerRef && options.hideTimerRef.id !== null) {
+    window.clearTimeout(options.hideTimerRef.id);
+    options.hideTimerRef.id = null;
+  }
+
+  if (autoHideMs <= 0) return;
+
+  const timerId = window.setTimeout(() => {
+    target.setAttribute('data-visible', 'false');
+    if (options.hideTimerRef) {
+      options.hideTimerRef.id = null;
+    }
+  }, autoHideMs);
+
+  if (options.hideTimerRef) {
+    options.hideTimerRef.id = timerId;
+  }
 }
 
 function normalizeJsonError(payload: unknown): string {
@@ -74,6 +99,31 @@ function normalizeJsonError(payload: unknown): string {
   const detail = (payload as { detail?: unknown }).detail;
   if (typeof detail === 'string') return detail;
   return 'request failed';
+}
+
+function isSlugAlreadyExistsError(payload: unknown): boolean {
+  if (!payload || typeof payload !== 'object') return false;
+  const detail = (payload as { detail?: unknown }).detail;
+  if (typeof detail !== 'string') return false;
+  return detail.toLowerCase().includes('post slug already exists');
+}
+
+async function doesSlugExist(slug: string): Promise<boolean> {
+  const response = await fetch(`/internal-api/posts/${encodeURIComponent(slug)}`);
+  if (response.status === 404) return false;
+  return response.ok;
+}
+
+async function suggestAvailableSlug(baseSlug: string): Promise<string | null> {
+  const normalizedBase = slugify(baseSlug) || 'post';
+  if (!(await doesSlugExist(normalizedBase))) return normalizedBase;
+  for (let suffix = 2; suffix <= 50; suffix += 1) {
+    const candidate = `${normalizedBase}-${suffix}`;
+    if (!(await doesSlugExist(candidate))) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 function tryDecodeUrlParam(value: string): string {
@@ -184,6 +234,46 @@ function normalizeMarkdownLinks(markdown: string, pageProtocol: string): string 
     const normalized = normalizeMarkdownLinkTarget(rawUrl, pageProtocol);
     return `${prefix}${normalized}${suffix}`;
   });
+}
+
+function isLikelyImageLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/^!\[[^\]]*]\([\s\S]*\)$/.test(trimmed)) return true;
+  if (/^<img\b[\s\S]*>$/i.test(trimmed)) return true;
+  if (/^<\/?figure\b[\s\S]*>$/i.test(trimmed)) return true;
+  if (/^<\/?figcaption\b[\s\S]*>$/i.test(trimmed)) return true;
+  return false;
+}
+
+function isLikelyImageScaleLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!/^\d+\.\d+$/.test(trimmed)) return false;
+  const numeric = Number(trimmed);
+  return Number.isFinite(numeric) && numeric > 0 && numeric <= 5;
+}
+
+function findNearestNonEmptyLine(lines: string[], startIndex: number, direction: 1 | -1): string | null {
+  let index = startIndex + direction;
+  while (index >= 0 && index < lines.length) {
+    const trimmed = lines[index].trim();
+    if (trimmed.length > 0) return trimmed;
+    index += direction;
+  }
+  return null;
+}
+
+function sanitizeEditorMarkdown(markdown: string): string {
+  const withoutObjectChars = markdown.replace(/\uFFFC/g, '');
+  const normalized = withoutObjectChars.replace(/\r\n/g, '\n');
+  const lines = normalized.split('\n');
+  const filtered = lines.filter((line, index) => {
+    if (!isLikelyImageScaleLine(line)) return true;
+    const prev = findNearestNonEmptyLine(lines, index, -1);
+    if (!prev) return true;
+    return !isLikelyImageLine(prev);
+  });
+  return filtered.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
 function shouldProxyUpload(uploadUrl: string): boolean {
@@ -348,7 +438,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const form = document.querySelector<HTMLFormElement>('#admin-post-form');
   if (!form) return;
 
-  const feedback = document.querySelector<HTMLElement>('#admin-feedback');
+  const feedback = document.querySelector<HTMLElement>('#writer-toast');
   const editorRoot = document.querySelector<HTMLElement>('#milkdown-editor');
   const titleInput = document.querySelector<HTMLInputElement>('#post-title');
   const slugInput = document.querySelector<HTMLInputElement>('#post-slug');
@@ -356,12 +446,17 @@ export async function initNewPostAdminPage(): Promise<void> {
   const coverInput = document.querySelector<HTMLInputElement>('#post-cover');
   const statusInput = document.querySelector<HTMLSelectElement>('#post-status');
   const previewTitle = document.querySelector<HTMLElement>('#writer-preview-title');
-  const previewSlug = document.querySelector<HTMLElement>('#writer-preview-slug');
-  const previewExcerpt = document.querySelector<HTMLElement>('#writer-preview-excerpt');
-  const previewCover = document.querySelector<HTMLImageElement>('#writer-preview-cover');
   const previewContent = document.querySelector<HTMLElement>('#writer-preview-content');
+  const coverPreview = document.querySelector<HTMLElement>('#writer-cover-preview');
+  const coverPreviewImage = document.querySelector<HTMLImageElement>('#writer-cover-preview-image');
+  const coverPreviewEmpty = document.querySelector<HTMLElement>('#writer-cover-preview-empty');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
+  const openPublishButton = document.querySelector<HTMLButtonElement>('#writer-open-publish');
+  const publishLayer = document.querySelector<HTMLElement>('#writer-publish-layer');
+  const publishBackdrop = document.querySelector<HTMLButtonElement>('#writer-publish-backdrop');
+  const closePublishButton = document.querySelector<HTMLButtonElement>('#writer-cancel-publish');
+  const confirmPublishButton = document.querySelector<HTMLButtonElement>('#writer-confirm-publish');
   const editorDropZone = document.querySelector<HTMLElement>('#writer-editor-drop-zone');
   const coverDropZone = document.querySelector<HTMLElement>('#writer-cover-drop-zone');
 
@@ -374,25 +469,35 @@ export async function initNewPostAdminPage(): Promise<void> {
     !coverInput ||
     !statusInput ||
     !previewTitle ||
-    !previewSlug ||
-    !previewExcerpt ||
-    !previewCover ||
     !previewContent ||
+    !coverPreview ||
+    !coverPreviewImage ||
+    !coverPreviewEmpty ||
     !uploadTrigger ||
     !uploadInput ||
+    !openPublishButton ||
+    !publishLayer ||
+    !publishBackdrop ||
+    !closePublishButton ||
+    !confirmPublishButton ||
     !editorDropZone ||
     !coverDropZone
   ) {
     return;
   }
 
+  const toastTimer = { id: null as number | null };
+  const showFeedback = (message: string, type: 'error' | 'ok' | 'info', autoHideMs?: number) => {
+    setFeedback(feedback, message, type, { autoHideMs, hideTimerRef: toastTimer });
+  };
+
   const mediaBaseUrl = normalizeMediaBaseUrl(form.dataset.mediaBaseUrl ?? '', window.location.origin);
-  const editorBridge = await createEditorBridge(editorRoot, '# Lorem ipsum heading\n\nWrite your story here.\n');
+  const editorBridge = await createEditorBridge(editorRoot, '');
   if (editorBridge.mode === 'fallback') {
-    setFeedback(
-      feedback,
+    showFeedback(
       `Editor initialization failed, switched to fallback textarea: ${editorBridge.initError ?? 'unknown'}`,
       'error',
+      0,
     );
   }
 
@@ -411,6 +516,17 @@ export async function initNewPostAdminPage(): Promise<void> {
   const clearDropTargetState = () => {
     setDropTargetState(null);
   };
+
+  const setPublishLayerOpen = (nextOpen: boolean) => {
+    publishLayer.hidden = !nextOpen;
+    publishLayer.setAttribute('data-open', nextOpen ? 'true' : 'false');
+    confirmPublishButton.disabled = false;
+    if (nextOpen) {
+      statusInput.value = 'published';
+    }
+  };
+
+  const isPublishLayerOpen = () => publishLayer.getAttribute('data-open') === 'true';
 
   const resolveDropTarget = (event: DragEvent): DropTarget => {
     const eventTarget = event.target;
@@ -433,35 +549,58 @@ export async function initNewPostAdminPage(): Promise<void> {
       coverInput.value = normalized.value;
     }
     if (withMessage && normalized.message) {
-      setFeedback(feedback, normalized.message, 'info');
+      showFeedback(normalized.message, 'info');
     }
     return normalized.value;
   };
 
-  const refreshPreview = async () => {
-    const markdown = await editorBridge.getMarkdown();
-    const normalizedMarkdown = normalizeMarkdownLinks(markdown, window.location.protocol);
-    previewContent.innerHTML = markdownPreview.render(normalizedMarkdown);
+  const renderCoverPreviewEmpty = (message: string) => {
+    coverPreview.setAttribute('data-empty', 'true');
+    coverPreviewImage.hidden = true;
+    coverPreviewImage.removeAttribute('src');
+    coverPreviewEmpty.textContent = message;
+  };
 
-    const nextTitle = titleInput.value.trim() || 'Lorem ipsum title';
-    const nextSlug = slugInput.value.trim() || 'lorem-ipsum-title';
-    const nextExcerpt =
-      excerptInput.value.trim() || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
-    const nextCover = normalizeCoverInputValue(false);
+  const renderCoverPreviewImage = (url: string) => {
+    coverPreview.setAttribute('data-empty', 'false');
+    coverPreviewEmpty.textContent = '';
+    coverPreviewImage.hidden = false;
+    coverPreviewImage.src = url;
+  };
+
+  const renderCoverPreview = (url: string) => {
+    if (!url) {
+      renderCoverPreviewEmpty('커버 이미지를 설정하면 여기에 미리보기가 표시됩니다.');
+      return;
+    }
+    renderCoverPreviewImage(url);
+  };
+
+  coverPreviewImage.addEventListener('error', () => {
+    renderCoverPreviewEmpty('이미지를 불러오지 못했습니다. URL을 확인하세요.');
+  });
+
+  coverPreviewImage.addEventListener('load', () => {
+    coverPreview.setAttribute('data-empty', 'false');
+    coverPreviewEmpty.textContent = '';
+    coverPreviewImage.hidden = false;
+  });
+
+  const refreshPreview = async () => {
+    const markdown = sanitizeEditorMarkdown(await editorBridge.getMarkdown());
+    const normalizedMarkdown = normalizeMarkdownLinks(markdown, window.location.protocol);
+    const hasBodyContent = normalizedMarkdown.trim().length > 0;
+    editorDropZone.setAttribute('data-has-content', hasBodyContent ? 'true' : 'false');
+    if (hasBodyContent) {
+      previewContent.innerHTML = markdownPreview.render(normalizedMarkdown);
+    } else {
+      previewContent.innerHTML = '<p class="writer-preview-empty">본문을 입력하면 여기에 미리보기가 표시됩니다.</p>';
+    }
+
+    const nextTitle = titleInput.value.trim() || '제목 없음';
 
     previewTitle.textContent = nextTitle;
-    previewSlug.textContent = `/blog/${nextSlug}`;
-    previewExcerpt.textContent = nextExcerpt;
-
-    if (nextCover) {
-      previewCover.hidden = false;
-      previewCover.src = nextCover;
-      previewCover.alt = `${nextTitle} cover`;
-    } else {
-      previewCover.hidden = true;
-      previewCover.removeAttribute('src');
-      previewCover.alt = 'Cover preview';
-    }
+    renderCoverPreview(coverInput.value.trim());
   };
 
   const queuePreviewRefresh = () => {
@@ -481,21 +620,21 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   const uploadOneFileToBody = async (file: File) => {
     if (isUploading) {
-      setFeedback(feedback, '이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.', 'info');
+      showFeedback('이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.', 'info');
       return;
     }
 
     isUploading = true;
-    setFeedback(feedback, '미디어 업로드 중...', 'info');
+    showFeedback('미디어 업로드 중...', 'info', 0);
     uploadTrigger.disabled = true;
 
     try {
       const bundle = await createUploadBundle(file, mediaBaseUrl);
       await insertSnippet(bundle.snippet);
-      setFeedback(feedback, '업로드 완료, 본문에 삽입했습니다.', 'ok');
+      showFeedback('업로드 완료, 본문에 삽입했습니다.', 'ok');
     } catch (error) {
       const message = error instanceof Error ? error.message : '미디어 업로드 중 오류가 발생했습니다.';
-      setFeedback(feedback, message, 'error');
+      showFeedback(message, 'error');
     } finally {
       isUploading = false;
       uploadTrigger.disabled = false;
@@ -505,26 +644,26 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   const uploadOneFileToCover = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      setFeedback(feedback, '커버 이미지는 이미지 파일만 지원합니다.', 'error');
+      showFeedback('커버 이미지는 이미지 파일만 지원합니다.', 'error');
       return;
     }
 
     if (isUploading) {
-      setFeedback(feedback, '이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.', 'info');
+      showFeedback('이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.', 'info');
       return;
     }
 
     isUploading = true;
-    setFeedback(feedback, '커버 이미지 업로드 중...', 'info');
+    showFeedback('커버 이미지 업로드 중...', 'info', 0);
 
     try {
       const bundle = await createUploadBundle(file, mediaBaseUrl);
       coverInput.value = bundle.mediaUrl;
       queuePreviewRefresh();
-      setFeedback(feedback, '커버 이미지 업로드 완료.', 'ok');
+      showFeedback('커버 이미지 업로드 완료.', 'ok');
     } catch (error) {
       const message = error instanceof Error ? error.message : '커버 이미지 업로드 중 오류가 발생했습니다.';
-      setFeedback(feedback, message, 'error');
+      showFeedback(message, 'error');
     } finally {
       isUploading = false;
     }
@@ -549,22 +688,33 @@ export async function initNewPostAdminPage(): Promise<void> {
     queuePreviewRefresh();
   });
 
-  previewCover.addEventListener('error', () => {
-    previewCover.hidden = true;
-    previewCover.removeAttribute('src');
-    previewCover.alt = 'Cover preview';
-    setFeedback(
-      feedback,
-      'Cover image could not be loaded. Use a direct HTTPS image URL or upload an image file.',
-      'error',
-    );
-  });
-
   const unobserveEditor = editorBridge.observeChanges(queuePreviewRefresh);
+  setPublishLayerOpen(false);
 
   uploadTrigger.addEventListener('click', () => {
     uploadInput.click();
   });
+
+  openPublishButton.addEventListener('click', () => {
+    setPublishLayerOpen(true);
+  });
+
+  closePublishButton.addEventListener('click', () => {
+    setPublishLayerOpen(false);
+  });
+
+  publishBackdrop.addEventListener('click', () => {
+    setPublishLayerOpen(false);
+  });
+
+  const onWindowKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Escape') return;
+    if (!isPublishLayerOpen()) return;
+    event.preventDefault();
+    setPublishLayerOpen(false);
+  };
+
+  window.addEventListener('keydown', onWindowKeyDown);
 
   uploadInput.addEventListener('change', async () => {
     const file = uploadInput.files?.[0];
@@ -698,18 +848,21 @@ export async function initNewPostAdminPage(): Promise<void> {
     if (desiredStatus === 'draft' || desiredStatus === 'published') {
       statusInput.value = desiredStatus;
     }
+    if (desiredStatus === 'draft') {
+      setPublishLayerOpen(false);
+    }
 
     const slug = slugInput.value.trim();
     const title = titleInput.value.trim();
     const status = statusInput.value as PostStatus;
     const bodyMarkdown = normalizeMarkdownLinks(
-      (await editorBridge.getMarkdown()).trim(),
+      sanitizeEditorMarkdown((await editorBridge.getMarkdown()).trim()),
       window.location.protocol,
     );
     normalizeCoverInputValue(false);
 
     if (!slug || !title || !bodyMarkdown) {
-      setFeedback(feedback, 'slug, title, body는 필수입니다.', 'error');
+      showFeedback('slug, title, body는 필수입니다.', 'error');
       return;
     }
 
@@ -723,7 +876,9 @@ export async function initNewPostAdminPage(): Promise<void> {
       published_at: status === 'published' ? new Date().toISOString() : null,
     };
 
-    setFeedback(feedback, '게시글 저장 중...', 'info');
+    showFeedback('게시글 저장 중...', 'info', 0);
+    openPublishButton.disabled = true;
+    confirmPublishButton.disabled = true;
 
     try {
       const response = await fetch('/internal-api/posts', {
@@ -733,6 +888,30 @@ export async function initNewPostAdminPage(): Promise<void> {
       });
       if (!response.ok) {
         const errorPayload = (await response.json().catch(() => null)) as unknown;
+        if (response.status === 409 && isSlugAlreadyExistsError(errorPayload)) {
+          let suggestedSlug: string | null = null;
+          try {
+            suggestedSlug = await suggestAvailableSlug(slug);
+          } catch {
+            suggestedSlug = null;
+          }
+
+          if (desiredStatus === 'published' && !isPublishLayerOpen()) {
+            setPublishLayerOpen(true);
+          }
+
+          if (suggestedSlug && suggestedSlug !== slug) {
+            slugInput.value = suggestedSlug;
+            slugInput.dataset.touched = 'true';
+            queuePreviewRefresh();
+            showFeedback(`이미 사용 중인 slug입니다. \`${suggestedSlug}\`로 바꾼 뒤 다시 Publish 해주세요.`, 'error', 6400);
+          } else {
+            showFeedback('이미 사용 중인 slug입니다. slug를 변경해 주세요.', 'error', 6400);
+          }
+
+          slugInput.focus();
+          return;
+        }
         throw new Error(normalizeJsonError(errorPayload));
       }
 
@@ -742,19 +921,27 @@ export async function initNewPostAdminPage(): Promise<void> {
         queuePreviewRefresh();
       }
       const publicPath = created.status === 'published' ? `/blog/${created.slug}/` : '/blog/';
-      setFeedback(feedback, `저장 완료: ${publicPath}`, 'ok');
+      if (created.status === 'published') {
+        setPublishLayerOpen(false);
+      }
+      showFeedback(`저장 완료: ${publicPath}`, 'ok');
     } catch (error) {
       const message = error instanceof Error ? error.message : '저장 중 오류가 발생했습니다.';
-      setFeedback(feedback, message, 'error');
+      showFeedback(message, 'error');
+    } finally {
+      openPublishButton.disabled = false;
+      confirmPublishButton.disabled = false;
     }
   });
 
   const teardown = () => {
     unobserveEditor();
+    window.removeEventListener('keydown', onWindowKeyDown);
     window.removeEventListener('dragenter', onWindowDragEnter);
     window.removeEventListener('dragover', onWindowDragOver);
     window.removeEventListener('dragleave', onWindowDragLeave);
     window.removeEventListener('drop', onWindowDrop);
+    setPublishLayerOpen(false);
     clearDropTargetState();
   };
 

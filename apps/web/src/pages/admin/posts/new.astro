@@ -7,42 +7,88 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
   <form id="admin-post-form" class="writer-form" data-media-base-url={defaultMediaBaseUrl}>
-    <header class="writer-topbar">
-      <div class="writer-topbar-left">
-        <a class="writer-back-link" href="/admin">Back</a>
-        <p class="writer-kicker">Admin Writer</p>
-      </div>
-      <div class="writer-topbar-right">
-        <button id="writer-upload-trigger" class="writer-action writer-action-muted" type="button">
-          Upload
-        </button>
-        <button id="writer-save-draft" class="writer-action writer-action-muted" type="submit" data-submit-status="draft">
-          Draft
-        </button>
-        <button
-          id="writer-save-published"
-          class="writer-action writer-action-primary"
-          type="submit"
-          data-submit-status="published"
-        >
-          Publish
-        </button>
-      </div>
-      <input id="writer-upload-input" type="file" hidden />
-    </header>
-
     <div class="writer-shell">
       <section class="writer-pane writer-pane-editor">
-        <div class="writer-meta">
-          <label class="writer-field writer-field-title">
-            <span>Title</span>
-            <input id="post-title" name="title" type="text" required placeholder="Write your title" />
-          </label>
-          <div class="writer-meta-grid">
-            <label class="writer-field">
-              <span>Slug</span>
-              <input id="post-slug" name="slug" type="text" required placeholder="traceoflight-writer-post" />
+        <div class="writer-title-area">
+          <input
+            id="post-title"
+            name="title"
+            class="writer-title-input"
+            type="text"
+            required
+            placeholder="제목을 입력하세요"
+          />
+        </div>
+
+        <div id="writer-editor-drop-zone" class="writer-editor-shell" data-drop-state="idle" data-has-content="false">
+          <div class="writer-editor-drop-indicator" aria-hidden="true">
+            <p class="writer-editor-drop-title">Drop media to insert into body</p>
+            <p class="writer-editor-drop-caption">Images and videos are uploaded and inserted at the end.</p>
+          </div>
+          <div id="milkdown-editor" class="milkdown-editor"></div>
+        </div>
+
+        <div id="writer-bottom-bar" class="writer-bottom-bar">
+          <a class="writer-bottom-back" href="/admin">Back</a>
+          <div class="writer-bottom-actions">
+            <button id="writer-upload-trigger" class="writer-action writer-action-muted" type="button">Upload</button>
+            <button
+              id="writer-save-draft"
+              class="writer-action writer-action-muted"
+              type="submit"
+              data-submit-status="draft"
+            >
+              Draft
+            </button>
+            <button id="writer-open-publish" class="writer-action writer-action-primary" type="button">
+              Publish
+            </button>
+          </div>
+          <input id="writer-upload-input" type="file" hidden />
+        </div>
+      </section>
+
+      <section class="writer-pane writer-pane-preview">
+        <div class="writer-preview-head">
+          <p class="writer-preview-kicker">Live Preview</p>
+          <h1 id="writer-preview-title">제목 없음</h1>
+        </div>
+        <article id="writer-preview-content" class="writer-preview-content"></article>
+      </section>
+    </div>
+
+    <div id="writer-publish-layer" class="writer-publish-layer" data-open="false" hidden>
+      <button id="writer-publish-backdrop" class="writer-publish-backdrop" type="button" aria-label="Close publish settings">
+      </button>
+      <section class="writer-publish-panel" role="dialog" aria-modal="true" aria-labelledby="writer-publish-title">
+        <header class="writer-publish-head">
+          <div class="writer-publish-head-copy">
+            <p class="writer-publish-kicker">Publish</p>
+            <h2 id="writer-publish-title">출간 설정</h2>
+            <p class="writer-publish-description">URL, 요약, 커버 이미지를 확인한 뒤 게시합니다.</p>
+          </div>
+        </header>
+        <div class="writer-publish-body">
+          <div class="writer-publish-column writer-publish-column-main">
+            <label class="writer-field writer-field-slug">
+              <span>Post URL</span>
+              <div class="writer-slug-input-wrap">
+                <span class="writer-slug-prefix">/blog/</span>
+                <input id="post-slug" name="slug" type="text" required placeholder="your-post-slug" />
+              </div>
             </label>
+            <label class="writer-field">
+              <span>Excerpt</span>
+              <textarea id="post-excerpt" name="excerpt" rows="7" placeholder="게시글 요약을 입력하세요." />
+            </label>
+          </div>
+          <div class="writer-publish-column writer-publish-column-side">
+            <div id="writer-cover-preview" class="writer-cover-preview" data-empty="true">
+              <img id="writer-cover-preview-image" class="writer-cover-preview-image" alt="Cover preview" hidden />
+              <p id="writer-cover-preview-empty" class="writer-cover-preview-empty">
+                커버 이미지를 설정하면 여기에 미리보기가 표시됩니다.
+              </p>
+            </div>
             <label class="writer-field">
               <span>Status</span>
               <select id="post-status" name="status">
@@ -50,49 +96,30 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
                 <option value="published">Published</option>
               </select>
             </label>
+            <label id="writer-cover-drop-zone" class="writer-field writer-field-cover-drop" data-drop-state="idle">
+              <span>Cover Image URL</span>
+              <input id="post-cover" name="cover_image_url" type="url" placeholder="https://..." />
+              <span class="writer-cover-drop-indicator" aria-hidden="true">
+                Drop cover image here to upload
+              </span>
+            </label>
+            <p class="writer-helper">
+              Drag/drop image to cover field, or paste URL/file from clipboard.
+            </p>
           </div>
-          <label class="writer-field">
-            <span>Excerpt</span>
-            <textarea id="post-excerpt" name="excerpt" rows="2" placeholder="A short summary for cards and SEO snippets." />
-          </label>
-          <label id="writer-cover-drop-zone" class="writer-field writer-field-cover-drop" data-drop-state="idle">
-            <span>Cover Image URL</span>
-            <input id="post-cover" name="cover_image_url" type="url" placeholder="https://..." />
-            <span class="writer-cover-drop-indicator" aria-hidden="true">
-              Drop cover image here to upload
-            </span>
-          </label>
-          <p class="writer-helper">
-            Drag and drop image/video into editor, or paste from clipboard.
-          </p>
         </div>
-
-        <div id="writer-editor-drop-zone" class="writer-editor-shell" data-drop-state="idle">
-          <div class="writer-editor-drop-indicator" aria-hidden="true">
-            <p class="writer-editor-drop-title">Drop media to insert into body</p>
-            <p class="writer-editor-drop-caption">Images and videos are uploaded and inserted at the end.</p>
-          </div>
-          <div id="milkdown-editor" class="milkdown-editor"></div>
+        <div class="writer-publish-actions">
+          <button id="writer-cancel-publish" class="writer-action writer-action-muted" type="button">Cancel</button>
+          <button id="writer-confirm-publish" class="writer-action writer-action-primary" type="submit" data-submit-status="published">
+            Publish now
+          </button>
         </div>
-      </section>
-
-      <section class="writer-pane writer-pane-preview">
-        <div class="writer-preview-head">
-          <p class="writer-preview-kicker">Live Preview</p>
-          <h1 id="writer-preview-title">Lorem ipsum title</h1>
-          <p id="writer-preview-slug" class="writer-preview-slug">/blog/lorem-ipsum-title</p>
-          <p id="writer-preview-excerpt" class="writer-preview-excerpt">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-          </p>
-        </div>
-        <img id="writer-preview-cover" class="writer-preview-cover" hidden alt="Cover preview" />
-        <article id="writer-preview-content" class="writer-preview-content"></article>
       </section>
     </div>
 
-    <footer class="writer-footer">
-      <p id="admin-feedback" class="writer-feedback" data-state="info">Start writing your post.</p>
-    </footer>
+    <p id="writer-toast" class="writer-toast" data-state="info" data-visible="false" role="status" aria-live="polite">
+      글 작성을 시작하세요.
+    </p>
   </form>
 </AdminWriterLayout>
 
