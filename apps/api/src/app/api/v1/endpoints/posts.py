@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException
 from fastapi import Query
+from fastapi import Response
 
 from app.api.deps import get_post_service
 from app.models.post import PostStatus
@@ -44,3 +45,30 @@ def create_post(
         return service.create_post(payload)
     except IntegrityError as exc:
         raise HTTPException(status_code=409, detail='post slug already exists') from exc
+
+
+@router.put('/{slug}', response_model=PostRead)
+def update_post_by_slug(
+    slug: str,
+    payload: PostCreate,
+    service: PostService = Depends(get_post_service),
+) -> PostRead:
+    try:
+        updated = service.update_post_by_slug(slug=slug, payload=payload)
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail='post slug already exists') from exc
+    if updated is None:
+        raise HTTPException(status_code=404, detail='post not found')
+    return updated
+
+
+@router.delete('/{slug}', status_code=204)
+def delete_post_by_slug(
+    slug: str,
+    status: PostStatus | None = Query(default=None),
+    service: PostService = Depends(get_post_service),
+) -> Response:
+    deleted = service.delete_post_by_slug(slug=slug, status=status)
+    if not deleted:
+        raise HTTPException(status_code=404, detail='post not found')
+    return Response(status_code=204)

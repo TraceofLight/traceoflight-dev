@@ -62,6 +62,27 @@ test('writer script validates duplicate slug with inline feedback and debounce',
   assert.match(source, /aria-invalid/);
 });
 
+test('writer script can load draft by slug query', async () => {
+  const source = await readFile(scriptPath, 'utf8');
+  assert.match(source, /new URLSearchParams\(window\.location\.search\)/);
+  assert.match(source, /draft/);
+  assert.match(source, /loadDraftBySlug/);
+  assert.match(source, /editorBridge\.setMarkdown/);
+});
+
+test('writer script supports draft modal list and delete actions', async () => {
+  const source = await readFile(scriptPath, 'utf8');
+  assert.match(source, /#writer-open-drafts/);
+  assert.match(source, /#writer-draft-layer/);
+  assert.match(source, /#writer-draft-list/);
+  assert.match(source, /loadDraftList/);
+  assert.match(source, /setDraftLayerOpen/);
+  assert.match(source, /\/internal-api\/posts\?status=draft&limit=100&offset=0/);
+  assert.match(source, /writer-draft-delete/);
+  assert.match(source, /method:\s*'DELETE'/);
+  assert.match(source, /updateDraftQueryParam/);
+});
+
 test('writer script uses milkdown replaceAll action for markdown injection', async () => {
   const source = await readFile(scriptPath, 'utf8');
   assert.match(source, /replaceAll/);

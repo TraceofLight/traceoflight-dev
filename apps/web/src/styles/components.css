@@ -507,6 +507,12 @@
   font-weight: 700;
 }
 
+.writer-bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .writer-bottom-actions {
   display: flex;
   align-items: center;
@@ -517,7 +523,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 38vw);
 }
 
 .writer-pane {
@@ -531,6 +537,7 @@
   background: #f8fafc;
 }
 
+.writer-draft-layer,
 .writer-publish-layer {
   position: fixed;
   inset: 0;
@@ -544,17 +551,38 @@
   transition: opacity 0.18s ease;
 }
 
+.writer-draft-layer[data-open='true'],
 .writer-publish-layer[data-open='true'] {
   opacity: 1;
   pointer-events: auto;
 }
 
+.writer-draft-backdrop,
 .writer-publish-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
   background: rgba(6, 11, 18, 0.62);
   backdrop-filter: blur(4px);
+}
+
+.writer-draft-panel {
+  position: relative;
+  z-index: 1;
+  width: min(94vw, 720px);
+  max-height: min(86vh, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid #d5deea;
+  border-radius: 1.1rem;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(12, 20, 32, 0.28);
+  transform: translateY(16px) scale(0.98);
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .writer-publish-panel {
@@ -577,9 +605,138 @@
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
+.writer-draft-layer[data-open='true'] .writer-draft-panel,
 .writer-publish-layer[data-open='true'] .writer-publish-panel {
   transform: translateY(0) scale(1);
   opacity: 1;
+}
+
+.writer-draft-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #ecf1f7;
+}
+
+.writer-draft-head-copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.writer-draft-kicker {
+  margin: 0;
+  color: #607084;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.writer-draft-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 1.1rem;
+}
+
+.writer-draft-feedback {
+  margin: 0;
+  min-height: 1.1rem;
+  font-size: 0.78rem;
+  color: #607084;
+}
+
+.writer-draft-feedback[data-state='error'] {
+  color: #b43a3a;
+}
+
+.writer-draft-feedback[data-state='ok'] {
+  color: #0f8a64;
+}
+
+.writer-draft-list {
+  margin: 0;
+  padding: 0.15rem 0 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+  overflow: auto;
+}
+
+.writer-draft-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid #e2e9f2;
+  border-radius: 0.75rem;
+  background: #f9fbfd;
+}
+
+.writer-draft-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.26rem;
+}
+
+.writer-draft-title {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #0f172a;
+  text-align: left;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.writer-draft-title:hover {
+  color: #0d9a6f;
+}
+
+.writer-draft-meta {
+  margin: 0;
+  color: #6d7b8e;
+  font-size: 0.76rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.writer-draft-delete {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d5deea;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.writer-draft-delete:hover {
+  color: #b43a3a;
+  border-color: #e7bbbb;
+  background: #fff6f6;
+}
+
+.writer-draft-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.writer-draft-empty {
+  padding: 0.8rem 0.2rem;
+  color: #6d7b8e;
+  font-size: 0.84rem;
 }
 
 .writer-publish-head {
@@ -1019,7 +1176,7 @@
   background: rgba(255, 246, 246, 0.98);
 }
 
-@media (max-width: 1240px) {
+@media (max-width: 840px) {
   .writer-shell {
     grid-template-columns: 1fr;
   }
@@ -1045,6 +1202,16 @@
 
   .writer-title-input {
     font-size: clamp(1.65rem, 8vw, 2.1rem);
+  }
+
+  .writer-draft-panel {
+    width: min(96vw, 680px);
+    max-height: 90vh;
+    border-radius: 1rem;
+  }
+
+  .writer-draft-item {
+    padding: 0.62rem;
   }
 
   .writer-publish-panel {
@@ -1080,6 +1247,10 @@
     gap: 0.35rem;
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .writer-bottom-left {
+    gap: 0.35rem;
   }
 
   .writer-bottom-back {

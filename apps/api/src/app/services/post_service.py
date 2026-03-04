@@ -17,3 +17,9 @@ class PostService:
 
     def create_post(self, payload: PostCreate):
         return self.repo.create(payload)
+
+    def update_post_by_slug(self, slug: str, payload: PostCreate):
+        return self.repo.update_by_slug(current_slug=slug, payload=payload)
+
+    def delete_post_by_slug(self, slug: str, status: PostStatus | None = None) -> bool:
+        return self.repo.delete_by_slug(slug=slug, status=status)

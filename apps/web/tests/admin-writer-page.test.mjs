@@ -10,6 +10,10 @@ test('admin writer page renders post form shell', async () => {
 
   assert.match(source, /id="admin-post-form"/);
   assert.match(source, /id="milkdown-editor"/);
+  assert.match(source, /id="writer-open-drafts"/);
+  assert.match(source, /id="writer-draft-layer"/);
+  assert.match(source, /id="writer-draft-list"/);
+  assert.match(source, /id="writer-draft-feedback"/);
   assert.match(source, /id="writer-upload-trigger"/);
   assert.match(source, /id="writer-bottom-bar"/);
   assert.match(source, /id="writer-open-publish"/);
@@ -90,4 +94,7 @@ test('admin writer has editor-side bottom bar and publish layer style', async ()
   assert.match(source, /\.writer-toast[\s\S]*position:\s*fixed/);
   assert.match(source, /\.writer-toast[\s\S]*right:\s*1\.2rem/);
   assert.match(source, /\.writer-toast[\s\S]*bottom:\s*1\.2rem/);
+  assert.match(source, /\.writer-draft-layer/);
+  assert.match(source, /\.writer-draft-list/);
+  assert.match(source, /\.writer-draft-delete/);
 });

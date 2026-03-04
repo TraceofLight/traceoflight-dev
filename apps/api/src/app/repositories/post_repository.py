@@ -36,3 +36,28 @@ class PostRepository:
         self.db.commit()
         self.db.refresh(post)
         return post
+
+    def update_by_slug(self, current_slug: str, payload: PostCreate) -> Post | None:
+        post = self.get_by_slug(current_slug)
+        if post is None:
+            return None
+
+        post_data = payload.model_dump()
+        if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
+            post_data["published_at"] = datetime.now(timezone.utc)
+
+        for field, value in post_data.items():
+            setattr(post, field, value)
+
+        self.db.commit()
+        self.db.refresh(post)
+        return post
+
+    def delete_by_slug(self, slug: str, status: PostStatus | None = None) -> bool:
+        post = self.get_by_slug(slug=slug, status=status)
+        if post is None:
+            return False
+
+        self.db.delete(post)
+        self.db.commit()
+        return True

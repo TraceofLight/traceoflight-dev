@@ -20,6 +20,23 @@ interface UploadBundle {
   snippet: string;
 }
 
+interface AdminPostPayload {
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  body_markdown: string;
+  cover_image_url: string | null;
+  status: PostStatus;
+}
+
+interface AdminDraftListItem {
+  slug: string;
+  title?: string | null;
+  status?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 interface EditorBridge {
   mode: 'crepe' | 'fallback';
   initError?: string;
@@ -95,6 +112,8 @@ function normalizeJsonError(payload: unknown): string {
   if (!payload || typeof payload !== 'object') return 'request failed';
   const detail = (payload as { detail?: unknown }).detail;
   if (typeof detail === 'string') return detail;
+  const message = (payload as { message?: unknown }).message;
+  if (typeof message === 'string' && message.trim().length > 0) return message;
   return 'request failed';
 }
 
@@ -484,6 +503,12 @@ export async function initNewPostAdminPage(): Promise<void> {
   const coverUploadInput = document.querySelector<HTMLInputElement>('#writer-cover-upload-input');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
+  const openDraftsButton = document.querySelector<HTMLButtonElement>('#writer-open-drafts');
+  const draftLayer = document.querySelector<HTMLElement>('#writer-draft-layer');
+  const draftBackdrop = document.querySelector<HTMLButtonElement>('#writer-draft-backdrop');
+  const closeDraftsButton = document.querySelector<HTMLButtonElement>('#writer-close-drafts');
+  const draftList = document.querySelector<HTMLElement>('#writer-draft-list');
+  const draftFeedback = document.querySelector<HTMLElement>('#writer-draft-feedback');
   const openPublishButton = document.querySelector<HTMLButtonElement>('#writer-open-publish');
   const publishLayer = document.querySelector<HTMLElement>('#writer-publish-layer');
   const publishBackdrop = document.querySelector<HTMLButtonElement>('#writer-publish-backdrop');
@@ -509,6 +534,12 @@ export async function initNewPostAdminPage(): Promise<void> {
     !coverUploadInput ||
     !uploadTrigger ||
     !uploadInput ||
+    !openDraftsButton ||
+    !draftLayer ||
+    !draftBackdrop ||
+    !closeDraftsButton ||
+    !draftList ||
+    !draftFeedback ||
     !openPublishButton ||
     !publishLayer ||
     !publishBackdrop ||
@@ -523,6 +554,10 @@ export async function initNewPostAdminPage(): Promise<void> {
   const toastTimer = { id: null as number | null };
   const showFeedback = (message: string, type: 'error' | 'ok' | 'info', autoHideMs?: number) => {
     setFeedback(feedback, message, type, { autoHideMs, hideTimerRef: toastTimer });
+  };
+  const setDraftFeedback = (message: string, state: 'info' | 'ok' | 'error') => {
+    draftFeedback.textContent = message;
+    draftFeedback.dataset.state = state;
   };
 
   const mediaBaseUrl = normalizeMediaBaseUrl(form.dataset.mediaBaseUrl ?? '', window.location.origin);
@@ -540,7 +575,22 @@ export async function initNewPostAdminPage(): Promise<void> {
   let dragDepth = 0;
   let slugCheckTimer: number | null = null;
   let slugCheckSequence = 0;
+  let editingPostSlug: string | null = null;
   let activeDropTarget: DropTarget = null;
+
+  const setDraftLayerOpen = (nextOpen: boolean) => {
+    draftLayer.hidden = !nextOpen;
+    draftLayer.setAttribute('data-open', nextOpen ? 'true' : 'false');
+  };
+
+  const isDraftLayerOpen = () => draftLayer.getAttribute('data-open') === 'true';
+
+  const toDateLabel = (isoValue: string | null | undefined) => {
+    if (!isoValue) return '';
+    const parsed = new Date(isoValue);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toLocaleString();
+  };
 
   const setSlugValidationState = (state: 'idle' | 'error', message = '') => {
     slugFeedback.dataset.state = state;
@@ -551,6 +601,11 @@ export async function initNewPostAdminPage(): Promise<void> {
   const validateSlugAvailability = async (source: 'typing' | 'submit'): Promise<boolean> => {
     const slug = slugInput.value.trim();
     if (!slug) {
+      setSlugValidationState('idle');
+      return false;
+    }
+
+    if (editingPostSlug && slug === editingPostSlug) {
       setSlugValidationState('idle');
       return false;
     }
@@ -703,6 +758,146 @@ export async function initNewPostAdminPage(): Promise<void> {
     });
   };
 
+  const updateDraftQueryParam = (draftSlug: string | null) => {
+    const nextUrl = new URL(window.location.href);
+    if (draftSlug) {
+      nextUrl.searchParams.set('draft', draftSlug);
+    } else {
+      nextUrl.searchParams.delete('draft');
+    }
+    const nextPath = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    window.history.replaceState({}, '', nextPath);
+  };
+
+  const applyDraftPayload = async (loaded: Partial<AdminPostPayload>, fallbackSlug: string) => {
+    editingPostSlug = loaded.slug?.trim() || fallbackSlug;
+    titleInput.value = loaded.title?.trim() ?? '';
+    slugInput.value = loaded.slug?.trim() || fallbackSlug;
+    slugInput.dataset.touched = 'true';
+    excerptInput.value = loaded.excerpt ?? '';
+    coverInput.value = loaded.cover_image_url ?? '';
+    statusInput.value = loaded.status === 'published' ? 'published' : 'draft';
+    await editorBridge.setMarkdown(loaded.body_markdown ?? '');
+    setSlugValidationState('idle');
+    queueSlugAvailabilityCheck();
+    queuePreviewRefresh();
+  };
+
+  const loadDraftBySlug = async (
+    draftSlug: string,
+    options: { updateQuery?: boolean; showToast?: boolean } = {},
+  ): Promise<boolean> => {
+    const normalizedSlug = draftSlug.trim();
+    if (!normalizedSlug) return false;
+
+    try {
+      const response = await fetch(`/internal-api/posts/${encodeURIComponent(normalizedSlug)}?status=draft`);
+      if (response.status === 404) {
+        showFeedback('요청한 임시저장 글을 찾지 못했습니다.', 'error');
+        return false;
+      }
+      if (!response.ok) {
+        showFeedback('임시저장 글을 불러오지 못했습니다.', 'error');
+        return false;
+      }
+
+      const loaded = (await response.json()) as Partial<AdminPostPayload>;
+      await applyDraftPayload(loaded, normalizedSlug);
+      if (options.updateQuery !== false) {
+        updateDraftQueryParam(editingPostSlug || normalizedSlug);
+      }
+      if (options.showToast !== false) {
+        showFeedback(`임시저장 글을 불러왔습니다: ${titleInput.value || '제목 없음'}`, 'ok');
+      }
+      return true;
+    } catch {
+      showFeedback('네트워크 오류로 임시저장 글을 불러오지 못했습니다.', 'error');
+      return false;
+    }
+  };
+
+  const loadDraftFromQuery = async () => {
+    const draftSlug = new URLSearchParams(window.location.search).get('draft')?.trim() ?? '';
+    if (!draftSlug) return;
+
+    await loadDraftBySlug(draftSlug, { updateQuery: true, showToast: true });
+  };
+
+  const renderDraftListEmpty = (message: string) => {
+    draftList.innerHTML = `<li class="writer-draft-empty">${message}</li>`;
+  };
+
+  const createDraftListItem = (post: AdminDraftListItem) => {
+    const item = document.createElement('li');
+    item.className = 'writer-draft-item';
+
+    const main = document.createElement('div');
+    main.className = 'writer-draft-main';
+
+    const titleButton = document.createElement('button');
+    titleButton.type = 'button';
+    titleButton.className = 'writer-draft-title';
+    titleButton.dataset.slug = post.slug;
+    titleButton.textContent = post.title?.trim() || '제목 없음';
+
+    const meta = document.createElement('p');
+    meta.className = 'writer-draft-meta';
+    meta.textContent = `${post.slug} · ${toDateLabel(post.updated_at || post.created_at)}`;
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'writer-draft-delete';
+    removeButton.dataset.slug = post.slug;
+    removeButton.setAttribute('aria-label', `${post.title?.trim() || post.slug} 삭제`);
+    removeButton.textContent = 'x';
+
+    main.append(titleButton, meta);
+    item.append(main, removeButton);
+    return item;
+  };
+
+  const loadDraftList = async () => {
+    setDraftFeedback('임시저장 글을 불러오는 중...', 'info');
+    renderDraftListEmpty('임시저장 글을 불러오는 중입니다.');
+
+    try {
+      const response = await fetch('/internal-api/posts?status=draft&limit=100&offset=0');
+      if (!response.ok) {
+        renderDraftListEmpty('불러오기 실패');
+        setDraftFeedback('임시저장 목록을 불러오지 못했습니다.', 'error');
+        return;
+      }
+
+      const posts = (await response.json()) as unknown;
+      const drafts = Array.isArray(posts)
+        ? (posts as AdminDraftListItem[])
+            .filter((post) => post?.status === 'draft' && typeof post?.slug === 'string')
+            .sort((a, b) => {
+              const leftTitle = a.title?.trim() || '제목 없음';
+              const rightTitle = b.title?.trim() || '제목 없음';
+              const titleOrder = leftTitle.localeCompare(rightTitle, 'ko');
+              if (titleOrder !== 0) return titleOrder;
+              return (a.slug || '').localeCompare(b.slug || '', 'ko');
+            })
+        : [];
+
+      draftList.innerHTML = '';
+      if (drafts.length === 0) {
+        renderDraftListEmpty('임시저장 글이 없습니다.');
+        setDraftFeedback('', 'info');
+        return;
+      }
+
+      drafts.forEach((post) => {
+        draftList.append(createDraftListItem(post));
+      });
+      setDraftFeedback('', 'info');
+    } catch {
+      renderDraftListEmpty('불러오기 실패');
+      setDraftFeedback('네트워크 오류로 임시저장 목록을 불러오지 못했습니다.', 'error');
+    }
+  };
+
   const insertSnippet = async (snippet: string) => {
     const currentMarkdown = await editorBridge.getMarkdown();
     await editorBridge.setMarkdown(`${currentMarkdown.trimEnd()}\n\n${snippet}\n`);
@@ -782,13 +977,71 @@ export async function initNewPostAdminPage(): Promise<void> {
   });
 
   const unobserveEditor = editorBridge.observeChanges(queuePreviewRefresh);
+  setDraftLayerOpen(false);
   setPublishLayerOpen(false);
+
+  openDraftsButton.addEventListener('click', async () => {
+    setPublishLayerOpen(false);
+    setDraftLayerOpen(true);
+    await loadDraftList();
+  });
+
+  closeDraftsButton.addEventListener('click', () => {
+    setDraftLayerOpen(false);
+  });
+
+  draftBackdrop.addEventListener('click', () => {
+    setDraftLayerOpen(false);
+  });
+
+  draftList.addEventListener('click', async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    if (target.classList.contains('writer-draft-title')) {
+      const slug = target.dataset.slug?.trim();
+      if (!slug) return;
+      const loaded = await loadDraftBySlug(slug, { updateQuery: true, showToast: true });
+      if (loaded) {
+        setDraftLayerOpen(false);
+      }
+      return;
+    }
+
+    if (target.classList.contains('writer-draft-delete') && target instanceof HTMLButtonElement) {
+      const slug = target.dataset.slug?.trim();
+      if (!slug) return;
+
+      target.disabled = true;
+      try {
+        const response = await fetch(`/internal-api/posts/${encodeURIComponent(slug)}?status=draft`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          setDraftFeedback('임시저장 글 삭제에 실패했습니다.', 'error');
+          target.disabled = false;
+          return;
+        }
+
+        if (editingPostSlug === slug) {
+          editingPostSlug = null;
+          updateDraftQueryParam(null);
+        }
+        setDraftFeedback('임시저장 글을 삭제했습니다.', 'ok');
+        await loadDraftList();
+      } catch {
+        setDraftFeedback('네트워크 오류로 삭제하지 못했습니다.', 'error');
+        target.disabled = false;
+      }
+    }
+  });
 
   uploadTrigger.addEventListener('click', () => {
     uploadInput.click();
   });
 
   openPublishButton.addEventListener('click', () => {
+    setDraftLayerOpen(false);
     setPublishLayerOpen(true);
     queueSlugAvailabilityCheck();
   });
@@ -803,6 +1056,11 @@ export async function initNewPostAdminPage(): Promise<void> {
 
   const onWindowKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Escape') return;
+    if (isDraftLayerOpen()) {
+      event.preventDefault();
+      setDraftLayerOpen(false);
+      return;
+    }
     if (!isPublishLayerOpen()) return;
     event.preventDefault();
     setPublishLayerOpen(false);
@@ -1011,14 +1269,18 @@ export async function initNewPostAdminPage(): Promise<void> {
       status,
       published_at: status === 'published' ? new Date().toISOString() : null,
     };
+    const submitPath = editingPostSlug
+      ? `/internal-api/posts/${encodeURIComponent(editingPostSlug)}`
+      : '/internal-api/posts';
+    const submitMethod = editingPostSlug ? 'PUT' : 'POST';
 
     showFeedback('게시글 저장 중...', 'info', 0);
     openPublishButton.disabled = true;
     confirmPublishButton.disabled = true;
 
     try {
-      const response = await fetch('/internal-api/posts', {
-        method: 'POST',
+      const response = await fetch(submitPath, {
+        method: submitMethod,
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -1051,6 +1313,7 @@ export async function initNewPostAdminPage(): Promise<void> {
       const created = (await response.json()) as { slug: string; status: string };
       if (created.slug) {
         slugInput.value = created.slug;
+        editingPostSlug = created.slug;
         setSlugValidationState('idle');
         queuePreviewRefresh();
       }
@@ -1058,10 +1321,12 @@ export async function initNewPostAdminPage(): Promise<void> {
       const publicPath = createdStatus === 'published' ? `/blog/${created.slug}/` : '/blog/';
       if (createdStatus === 'published') {
         setPublishLayerOpen(false);
+        updateDraftQueryParam(null);
         window.location.assign(publicPath);
         return;
       }
-      showFeedback(`저장 완료: ${publicPath}`, 'ok');
+      updateDraftQueryParam(created.slug);
+      showFeedback('임시저장 완료', 'ok');
     } catch (error) {
       const message = error instanceof Error ? error.message : '저장 중 오류가 발생했습니다.';
       showFeedback(message, 'error');
@@ -1082,6 +1347,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     window.removeEventListener('dragover', onWindowDragOver);
     window.removeEventListener('dragleave', onWindowDragLeave);
     window.removeEventListener('drop', onWindowDrop);
+    setDraftLayerOpen(false);
     setPublishLayerOpen(false);
     clearDropTargetState();
   };
@@ -1089,5 +1355,6 @@ export async function initNewPostAdminPage(): Promise<void> {
   window.addEventListener('beforeunload', teardown, { once: true });
   window.addEventListener('pagehide', teardown, { once: true });
 
+  await loadDraftFromQuery();
   await refreshPreview();
 }
