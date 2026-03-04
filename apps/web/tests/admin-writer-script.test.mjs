@@ -22,6 +22,12 @@ test('writer script has fallback text editor for init failure', async () => {
   assert.match(source, /createEditorBridge/);
 });
 
+test('writer script uses milkdown replaceAll action for markdown injection', async () => {
+  const source = await readFile(scriptPath, 'utf8');
+  assert.match(source, /replaceAll/);
+  assert.match(source, /editor\.editor\.action\(replaceAll\(markdown\)\)/);
+});
+
 test('writer script includes global drag overlay and upload proxy fallback', async () => {
   const source = await readFile(scriptPath, 'utf8');
   assert.match(source, /writer-drop-overlay/);
@@ -37,4 +43,9 @@ test('writer script normalizes cover and markdown links', async () => {
   assert.match(source, /normalizeCoverUrl/);
   assert.match(source, /normalizeMarkdownLinks/);
   assert.match(source, /google\.com/);
+});
+
+test('writer script normalizes escaped markdown link syntax from editor output', async () => {
+  const source = await readFile(scriptPath, 'utf8');
+  assert.match(source, /normalizeEscapedMarkdownLinks/);
 });

@@ -1,6 +1,7 @@
 import { Crepe } from '@milkdown/crepe';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/nord.css';
+import { replaceAll } from '@milkdown/utils';
 import MarkdownIt from 'markdown-it';
 
 type PostStatus = 'draft' | 'published';
@@ -132,8 +133,18 @@ function normalizeCoverUrl(rawValue: string, pageProtocol: string): { value: str
   return { value: upgraded.value };
 }
 
+function normalizeEscapedMarkdownLinks(markdown: string): string {
+  return markdown.replace(/\\(!?\[(?:\\.|[^\]])*\\?\])\\?\(([\s\S]*?)\\?\)/g, (full, rawLabel, rawUrl) => {
+    const compactUrl = rawUrl.replace(/\s+/g, '');
+    if (!/^https?:\/\//i.test(compactUrl)) return full;
+    const label = rawLabel.replace(/\\\[/g, '[').replace(/\\\]/g, ']');
+    return `${label}(${compactUrl})`;
+  });
+}
+
 function normalizeMarkdownLinks(markdown: string, pageProtocol: string): string {
-  return markdown.replace(/(!?\[[^\]]*]\()([\s\S]*?)(\))/g, (full, prefix, rawUrl, suffix) => {
+  const normalizedEscaped = normalizeEscapedMarkdownLinks(markdown);
+  return normalizedEscaped.replace(/(!?\[[^\]]*]\()([\s\S]*?)(\))/g, (full, prefix, rawUrl, suffix) => {
     const compactUrl = rawUrl.replace(/\s+/g, '');
     if (!/^https?:\/\//i.test(compactUrl)) return full;
     const normalized = normalizeCoverUrl(compactUrl, pageProtocol).value;
@@ -259,7 +270,7 @@ async function createEditorBridge(editorRoot: HTMLElement, initialValue: string)
         return await markdown;
       },
       setMarkdown: async (markdown: string) => {
-        await editor.setMarkdown(markdown);
+        editor.editor.action(replaceAll(markdown));
       },
       observeChanges: (onChange: () => void) => {
         const observer = new MutationObserver(() => onChange());
