@@ -92,6 +92,7 @@ services:
           sleep 2
         done
         mc mb -p "local/$$MINIO_BUCKET" || true
+        mc anonymous set download "local/$$MINIO_BUCKET"
         exit 0
     networks:
       - api_internal
