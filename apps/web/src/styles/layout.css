@@ -3,7 +3,14 @@
   margin-inline: auto;
 }
 
+.site-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .page {
+  flex: 1 0 auto;
   padding: 3.2rem 0 5.6rem;
 }
 

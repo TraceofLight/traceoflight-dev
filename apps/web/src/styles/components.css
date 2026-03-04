@@ -139,7 +139,7 @@
 .blog-archive-control-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 0.75rem;
 }
@@ -170,14 +170,22 @@
 }
 
 .blog-archive-control-actions select {
-  min-height: 44px;
-  min-width: 118px;
-  padding: 0.65rem 2.2rem 0.65rem 0.75rem;
+  min-height: 46px;
+  min-width: 124px;
+  padding: 0.72rem 2.05rem 0.72rem 0.95rem;
   border-radius: 999px;
   border: 1px solid rgba(141, 160, 184, 0.24);
-  background: rgba(13, 20, 31, 0.82);
+  background-color: rgba(13, 20, 31, 0.82);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2399AECB' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 0.72rem auto;
   color: var(--text-primary);
   font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
 }
 
 .blog-archive-filter-panel {
@@ -241,6 +249,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: rgba(18, 27, 40, 0.92);
+}
+
+.blog-archive-grid .post-card[hidden] {
+  display: none !important;
 }
 
 .post-card .thumb {

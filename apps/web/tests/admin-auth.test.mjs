@@ -21,10 +21,12 @@ test('admin auth middleware and routes are present', async () => {
   await exists('src/pages/internal-api/auth/login.ts');
   await exists('src/pages/internal-api/auth/refresh.ts');
   await exists('src/pages/internal-api/auth/logout.ts');
+  await exists('src/pages/admin/logout.ts');
   await exists('src/pages/admin/login.astro');
 
   const middleware = await read('src/middleware.ts');
   assert.match(middleware, /pathname\.startsWith\('\/admin'\)/);
   assert.match(middleware, /pathname\.startsWith\('\/internal-api'\)/);
+  assert.match(middleware, /pathname === '\/admin\/logout'/);
   assert.match(middleware, /pathname\.startsWith\('\/internal-api\/auth\/'\)/);
 });

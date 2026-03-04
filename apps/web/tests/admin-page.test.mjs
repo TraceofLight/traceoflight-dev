@@ -8,7 +8,9 @@ test('admin dashboard keeps navigation and logout without draft list', async () 
   const source = await readFile(pagePath, 'utf8');
 
   assert.match(source, /Go to Writer/);
-  assert.match(source, /id="admin-logout-button"/);
+  assert.match(source, /href="\/admin\/logout"/);
+  assert.doesNotMatch(source, /admin-logout-button/);
+  assert.doesNotMatch(source, /initializeAdminLogout/);
   assert.doesNotMatch(source, /id="admin-draft-list"/);
   assert.doesNotMatch(source, /admin-draft-delete/);
   assert.doesNotMatch(source, /status=draft/);

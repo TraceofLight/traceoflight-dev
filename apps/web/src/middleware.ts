@@ -15,6 +15,7 @@ function isProtectedPath(pathname: string): boolean {
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === '/admin/login') return true;
+  if (pathname === '/admin/logout') return true;
   if (pathname.startsWith('/internal-api/auth/')) return true;
   return false;
 }

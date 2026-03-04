@@ -56,9 +56,6 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
                 <option value="oldest">오래된순</option>
                 <option value="title">제목순</option>
               </select>
-              <button id="blog-filter-toggle" class="button button-ghost" type="button" aria-expanded="true">
-                필터
-              </button>
             </div>
           </section>
 
@@ -68,14 +65,16 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
               <button class="is-active" type="button" data-visibility-filter="all" aria-pressed="true">
                 전체 ({posts.length})
               </button>
-              <button type="button" data-visibility-filter="public" aria-pressed="false">
-                공개 ({publicCount})
-              </button>
               {
                 isAdminViewer && (
-                  <button type="button" data-visibility-filter="private" aria-pressed="false">
-                    비공개 ({privateCount})
-                  </button>
+                  <>
+                    <button type="button" data-visibility-filter="public" aria-pressed="false">
+                      공개 ({publicCount})
+                    </button>
+                    <button type="button" data-visibility-filter="private" aria-pressed="false">
+                      비공개 ({privateCount})
+                    </button>
+                  </>
                 )
               }
             </div>
@@ -95,16 +94,23 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
 </BaseLayout>
 
 <script type="module">
-  const searchInput = document.querySelector('#blog-search');
-  const sortSelect = document.querySelector('#blog-sort');
-  const filterToggleButton = document.querySelector('#blog-filter-toggle');
-  const filterPanel = document.querySelector('#blog-filter-panel');
-  const postCountText = document.querySelector('#blog-post-count');
-  const postGrid = document.querySelector('#blog-post-grid');
+  function initializeBlogArchivePage() {
+    const searchInput = document.querySelector('#blog-search');
+    const sortSelect = document.querySelector('#blog-sort');
+    const postCountText = document.querySelector('#blog-post-count');
+    const postGrid = document.querySelector('#blog-post-grid');
 
-  if (postGrid instanceof HTMLElement) {
-    const cards = Array.from(postGrid.querySelectorAll('.post-card'));
-    const filterButtons = Array.from(document.querySelectorAll('[data-visibility-filter]'));
+    if (!(postGrid instanceof HTMLElement)) return;
+    if (postGrid.dataset.archiveBound === 'true') return;
+    postGrid.dataset.archiveBound = 'true';
+
+    const archiveRoot = postGrid.closest('.blog-archive');
+    const filterScope = archiveRoot instanceof HTMLElement ? archiveRoot : document;
+    const getCards = () =>
+      Array.from(postGrid.querySelectorAll('[data-visibility]')).filter((card) => card instanceof HTMLElement);
+    const filterButtons = Array.from(filterScope.querySelectorAll('[data-visibility-filter]')).filter((button) =>
+      button instanceof HTMLButtonElement,
+    );
     let activeVisibility = 'all';
 
     const normalize = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
@@ -125,20 +131,29 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
     };
 
     const applyFiltersAndSort = () => {
+      const cards = getCards();
       const searchTerm = normalize(searchInput instanceof HTMLInputElement ? searchInput.value : '');
-      const visibleCards = cards.filter((card) => {
+      const visibleCards = [];
+      const hiddenCards = [];
+
+      cards.forEach((card) => {
         const cardVisibility = normalize(card.dataset.visibility || 'public');
         const title = normalize(card.dataset.title || '');
         const description = normalize(card.dataset.description || '');
         const matchesVisibility = activeVisibility === 'all' || cardVisibility === activeVisibility;
         const matchesSearch = !searchTerm || title.includes(searchTerm) || description.includes(searchTerm);
         const isVisible = matchesVisibility && matchesSearch;
-        card.hidden = !isVisible;
-        return isVisible;
+
+        card.toggleAttribute('hidden', !isVisible);
+        if (isVisible) {
+          visibleCards.push(card);
+          return;
+        }
+        hiddenCards.push(card);
       });
 
       const sorted = sortCards(visibleCards);
-      sorted.forEach((card) => postGrid.append(card));
+      [...sorted, ...hiddenCards].forEach((card) => postGrid.append(card));
 
       if (postCountText instanceof HTMLElement) {
         postCountText.textContent = `총 ${visibleCards.length}개의 포스트`;
@@ -169,14 +184,9 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
       searchInput.addEventListener('input', applyFiltersAndSort);
     }
 
-    if (filterToggleButton instanceof HTMLButtonElement && filterPanel instanceof HTMLElement) {
-      filterToggleButton.addEventListener('click', () => {
-        const nextHiddenState = !filterPanel.hidden;
-        filterPanel.hidden = nextHiddenState;
-        filterToggleButton.setAttribute('aria-expanded', nextHiddenState ? 'false' : 'true');
-      });
-    }
-
     setActiveFilter('all');
   }
+
+  initializeBlogArchivePage();
+  document.addEventListener('astro:page-load', initializeBlogArchivePage);
 </script>

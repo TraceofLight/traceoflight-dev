@@ -21,7 +21,7 @@ const { title, description, image } = Astro.props;
     <BaseHead title={title} description={description} image={image} />
     <PageTransitions />
   </head>
-  <body>
+  <body class="site-shell">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <Header transition:persist />
     <main id="main-content" class="page container" transition:name="page-content">
