@@ -46,6 +46,7 @@ interface EditorBridge {
 }
 
 type DropTarget = 'body' | 'cover' | null;
+type CompactView = 'editor' | 'preview';
 
 const markdownPreview = createMarkdownRenderer();
 
@@ -487,6 +488,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const form = document.querySelector<HTMLFormElement>('#admin-post-form');
   if (!form) return;
 
+  const writerShell = document.querySelector<HTMLElement>('.writer-shell');
   const feedback = document.querySelector<HTMLElement>('#writer-toast');
   const editorRoot = document.querySelector<HTMLElement>('#milkdown-editor');
   const titleInput = document.querySelector<HTMLInputElement>('#post-title');
@@ -501,6 +503,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const coverPreviewImage = document.querySelector<HTMLImageElement>('#writer-cover-preview-image');
   const coverPreviewEmpty = document.querySelector<HTMLElement>('#writer-cover-preview-empty');
   const coverUploadInput = document.querySelector<HTMLInputElement>('#writer-cover-upload-input');
+  const compactToggleButton = document.querySelector<HTMLButtonElement>('#writer-toggle-compact-view');
   const uploadTrigger = document.querySelector<HTMLButtonElement>('#writer-upload-trigger');
   const uploadInput = document.querySelector<HTMLInputElement>('#writer-upload-input');
   const openDraftsButton = document.querySelector<HTMLButtonElement>('#writer-open-drafts');
@@ -518,6 +521,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   const coverDropZone = document.querySelector<HTMLElement>('#writer-cover-drop-zone');
 
   if (
+    !writerShell ||
     !feedback ||
     !editorRoot ||
     !titleInput ||
@@ -532,6 +536,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     !coverPreviewImage ||
     !coverPreviewEmpty ||
     !coverUploadInput ||
+    !compactToggleButton ||
     !uploadTrigger ||
     !uploadInput ||
     !openDraftsButton ||
@@ -756,6 +761,33 @@ export async function initNewPostAdminPage(): Promise<void> {
       previewJobQueued = false;
       await refreshPreview();
     });
+  };
+
+  const compactMediaQuery = window.matchMedia('(max-width: 1200px)');
+
+  const setCompactToggleLabel = (view: CompactView) => {
+    const isPreview = view === 'preview';
+    compactToggleButton.setAttribute('aria-pressed', isPreview ? 'true' : 'false');
+    compactToggleButton.textContent = isPreview ? '편집 보기' : '미리보기';
+  };
+
+  const setCompactView = (view: CompactView) => {
+    writerShell.dataset.compactView = view;
+    setCompactToggleLabel(view);
+    if (view === 'preview') {
+      queuePreviewRefresh();
+    }
+  };
+
+  const syncCompactViewForViewport = () => {
+    if (!compactMediaQuery.matches) {
+      writerShell.dataset.compactView = 'editor';
+      setCompactToggleLabel('editor');
+      return;
+    }
+
+    const currentView = writerShell.dataset.compactView === 'preview' ? 'preview' : 'editor';
+    setCompactToggleLabel(currentView);
   };
 
   const updateDraftQueryParam = (draftSlug: string | null) => {
@@ -1040,6 +1072,16 @@ export async function initNewPostAdminPage(): Promise<void> {
     uploadInput.click();
   });
 
+  compactToggleButton.addEventListener('click', () => {
+    if (!compactMediaQuery.matches) {
+      queuePreviewRefresh();
+      return;
+    }
+
+    const nextView: CompactView = writerShell.dataset.compactView === 'preview' ? 'editor' : 'preview';
+    setCompactView(nextView);
+  });
+
   openPublishButton.addEventListener('click', () => {
     setDraftLayerOpen(false);
     setPublishLayerOpen(true);
@@ -1224,6 +1266,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   window.addEventListener('dragover', onWindowDragOver);
   window.addEventListener('dragleave', onWindowDragLeave);
   window.addEventListener('drop', onWindowDrop);
+  window.addEventListener('resize', syncCompactViewForViewport);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -1347,6 +1390,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     window.removeEventListener('dragover', onWindowDragOver);
     window.removeEventListener('dragleave', onWindowDragLeave);
     window.removeEventListener('drop', onWindowDrop);
+    window.removeEventListener('resize', syncCompactViewForViewport);
     setDraftLayerOpen(false);
     setPublishLayerOpen(false);
     clearDropTargetState();
@@ -1356,5 +1400,6 @@ export async function initNewPostAdminPage(): Promise<void> {
   window.addEventListener('pagehide', teardown, { once: true });
 
   await loadDraftFromQuery();
+  syncCompactViewForViewport();
   await refreshPreview();
 }

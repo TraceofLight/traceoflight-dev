@@ -15,6 +15,7 @@ test('admin writer page renders post form shell', async () => {
   assert.match(source, /id="writer-draft-list"/);
   assert.match(source, /id="writer-draft-feedback"/);
   assert.match(source, /id="writer-upload-trigger"/);
+  assert.match(source, /id="writer-toggle-compact-view"/);
   assert.match(source, /id="writer-bottom-bar"/);
   assert.match(source, /id="writer-open-publish"/);
   assert.match(source, /id="writer-publish-layer"/);
@@ -30,6 +31,7 @@ test('admin writer page bootstraps writer module', async () => {
 test('admin writer page has split editor and preview layout', async () => {
   const source = await readFile(pagePath, 'utf8');
   assert.match(source, /class="writer-shell"/);
+  assert.match(source, /class="writer-shell" data-compact-view="editor"/);
   assert.match(source, /class="writer-pane writer-pane-preview"/);
   assert.match(source, /class="writer-title-area"/);
   assert.match(source, /class="writer-pane writer-pane-editor"[\s\S]*id="writer-bottom-bar"/);
@@ -97,4 +99,7 @@ test('admin writer has editor-side bottom bar and publish layer style', async ()
   assert.match(source, /\.writer-draft-layer/);
   assert.match(source, /\.writer-draft-list/);
   assert.match(source, /\.writer-draft-delete/);
+  assert.match(source, /\.writer-compact-toggle[\s\S]*display:\s*none/);
+  assert.match(source, /@media \(max-width:\s*1200px\)[\s\S]*\.writer-compact-toggle[\s\S]*display:\s*inline-flex/);
+  assert.match(source, /\.writer-shell\[data-compact-view='preview'] \.writer-pane\.writer-pane-preview[\s\S]*display:\s*flex/);
 });
