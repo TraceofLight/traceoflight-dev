@@ -44,7 +44,70 @@ if (provider === "db") {
 const projects = getProjects().slice(0, 3);
 
 const profile = {
-  name: "TraceofLight",
+  name: "Hi there, I'm TraceofLight!",
+};
+
+type ResumeBadge = {
+  label: string;
+  icon: string;
+};
+
+type ResumeItem = {
+  main: string;
+  period?: string;
+  sub?: string;
+  badges?: ResumeBadge[];
+};
+
+type ResumeSection = {
+  title: string;
+  items: ResumeItem[];
+};
+
+type ResumeDisplay = {
+  period?: string;
+  text: string;
+};
+
+type TechStackItem =
+  | {
+      divider: true;
+    }
+  | {
+      label: string;
+      icon?: string;
+      fallback?: string;
+    };
+
+type TechStackGroup = {
+  title: string;
+  items: TechStackItem[];
+};
+
+const inferResumePeriod = (main: string): ResumeDisplay => {
+  const value = main.trim();
+  const rangeMatch = value.match(
+    /^(\d{4}\.\d{2}\.\s*~\s*\d{4}\.\d{2}\.)\s*(.+)$/u,
+  );
+  if (rangeMatch) {
+    return { period: rangeMatch[1], text: rangeMatch[2] };
+  }
+  const monthMatch = value.match(/^(\d{4}\.\d{2}\.)\s*(.+)$/u);
+  if (monthMatch) {
+    return { period: monthMatch[1], text: monthMatch[2] };
+  }
+  const yearMatch = value.match(/^(\d{4})\s+(.+)$/u);
+  if (yearMatch) {
+    return { period: yearMatch[1], text: yearMatch[2] };
+  }
+  return { text: main };
+};
+
+const toResumeDisplay = (item: ResumeItem): ResumeDisplay => {
+  if (item.period) {
+    return { period: item.period, text: item.main };
+  }
+  return inferResumePeriod(item.main);
 };
 
 const heroRoleTokens = [
@@ -55,17 +118,17 @@ const heroRoleTokens = [
 ];
 
 const longIntroTop =
-  "문제를 빠르게 재현하고 원인을 명확히 추적한 뒤, 서비스 레이어와 UI를 함께 개선하는 개발 방식을 지향합니다.";
+  "상상을 현실로, 가상 세계에 생동감을 불어넣는 개발자 TraceofLight입니다.";
 const longIntroBottom =
-  "DB, API, 웹 프론트엔드까지 연결된 흐름에서 성능과 운영성을 동시에 챙기는 엔지니어링을 목표로 합니다.";
+  "위로는 새로운 기술에 대한 호기심, 아래로는 기반 지식에 대한 꾸준한 탐구를 바탕으로 성장 중입니다.";
 
-const resumeLeftSections = [
+const resumeLeftSections: ResumeSection[] = [
   {
     title: "Education",
     items: [
       { main: "2026.02. 크래프톤 정글 게임테크랩 2기 수료" },
       { main: "2023.08. 삼성 청년 SW 아카데미 8기 수료" },
-      { main: "2022.08. 연세대학교 도시공학과 졸업", sub: "학점 (3.19 / 4.5)" },
+      { main: "2022.08. 연세대학교 도시공학과 졸업" },
     ],
   },
   {
@@ -78,14 +141,24 @@ const resumeLeftSections = [
   },
 ];
 
-const resumeRightSections = [
+const resumeRightSections: ResumeSection[] = [
   {
     title: "Career",
     items: [{ main: "2023.10. ~ 2024.11. 티맥스티베로 DB본부 연구원" }],
   },
   {
     title: "Experience",
-    items: [{ main: "2023 Cloud-Native 차세대 DB 개발 프로젝트 참여" }],
+    items: [
+      {
+        period: "2023.10. ~ 2024.11.",
+        main: "Cloud-Native 차세대 DB 개발 프로젝트 참여",
+        badges: [
+          { label: "C++", icon: "/icons/tech/cplusplus.svg" },
+          { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
+          { label: "Vim", icon: "/icons/tech/vim.svg" },
+        ],
+      },
+    ],
   },
   {
     title: "Award",
@@ -98,18 +171,20 @@ const resumeRightSections = [
   },
 ];
 
-const techStackGroups = [
+const techStackGroups: TechStackGroup[] = [
   {
     title: "Language",
     items: [
       { label: "C++", icon: "/icons/tech/cplusplus.svg" },
+      { label: "HLSL", fallback: "HLSL" },
       { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
       { label: "Java", icon: "/icons/tech/java.svg" },
       { label: "Python", icon: "/icons/tech/python.svg" },
+      { label: "SQL", icon: "/icons/tech/sql.svg" },
     ],
   },
   {
-    title: "Graphics & Engine",
+    title: "Game Development",
     items: [
       { label: "DirectX 11", icon: "/icons/tech/directx11.webp" },
       { label: "Unreal Engine 5", icon: "/icons/tech/unrealengine.svg" },
@@ -150,10 +225,12 @@ const connectLinks = [
       aria-labelledby="home-profile-title"
     >
       <div class="home-profile-content">
-        <p class="home-eyebrow">Profile</p>
+        <p class="home-eyebrow">About Me</p>
         <h1 id="home-profile-title">{profile.name}</h1>
-        <p class="home-long-copy">{longIntroTop}</p>
-        <p class="home-long-copy">{longIntroBottom}</p>
+        <div class="home-intro-copy">
+          <p class="home-long-copy">{longIntroTop}</p>
+          <p class="home-long-copy">{longIntroBottom}</p>
+        </div>
         <ul class="home-role-list">
           {heroRoleTokens.map((role) => <li>{role}</li>)}
         </ul>
@@ -188,14 +265,55 @@ const connectLinks = [
               <article class="home-resume-block">
                 <h3>{section.title}</h3>
                 <ul>
-                  {section.items.map((item) => (
-                    <li>
-                      <p class="home-resume-main">{item.main}</p>
-                      {item.sub ? (
-                        <p class="home-resume-sub">{item.sub}</p>
-                      ) : null}
-                    </li>
-                  ))}
+                  {section.items.map((item) => {
+                    const display = toResumeDisplay(item);
+                    return (
+                      <li>
+                        {display.period ? (
+                          <div class="home-resume-main-split">
+                            <p class="home-resume-main home-resume-period">
+                              {display.period}
+                            </p>
+                            <p class="home-resume-main home-resume-main-text">
+                              {display.text}
+                            </p>
+                            {item.sub ? (
+                              <p class="home-resume-sub home-resume-sub-split">
+                                {item.sub}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <>
+                            <p class="home-resume-main">{display.text}</p>
+                            {item.sub ? (
+                              <p class="home-resume-sub">{item.sub}</p>
+                            ) : null}
+                          </>
+                        )}
+                        {item.badges?.length ? (
+                          <ul
+                            class="home-resume-badges"
+                            aria-label="Experience stack"
+                          >
+                            {item.badges.map((badge) => (
+                              <li>
+                                <img
+                                  class="home-resume-badge-icon"
+                                  src={badge.icon}
+                                  alt=""
+                                  loading="lazy"
+                                  width="14"
+                                  height="14"
+                                />
+                                <span>{badge.label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               </article>
             ))
@@ -208,14 +326,55 @@ const connectLinks = [
               <article class="home-resume-block">
                 <h3>{section.title}</h3>
                 <ul>
-                  {section.items.map((item) => (
-                    <li>
-                      <p class="home-resume-main">{item.main}</p>
-                      {item.sub ? (
-                        <p class="home-resume-sub">{item.sub}</p>
-                      ) : null}
-                    </li>
-                  ))}
+                  {section.items.map((item) => {
+                    const display = toResumeDisplay(item);
+                    return (
+                      <li>
+                        {display.period ? (
+                          <div class="home-resume-main-split">
+                            <p class="home-resume-main home-resume-period">
+                              {display.period}
+                            </p>
+                            <p class="home-resume-main home-resume-main-text">
+                              {display.text}
+                            </p>
+                            {item.sub ? (
+                              <p class="home-resume-sub home-resume-sub-split">
+                                {item.sub}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <>
+                            <p class="home-resume-main">{display.text}</p>
+                            {item.sub ? (
+                              <p class="home-resume-sub">{item.sub}</p>
+                            ) : null}
+                          </>
+                        )}
+                        {item.badges?.length ? (
+                          <ul
+                            class="home-resume-badges"
+                            aria-label="Experience stack"
+                          >
+                            {item.badges.map((badge) => (
+                              <li>
+                                <img
+                                  class="home-resume-badge-icon"
+                                  src={badge.icon}
+                                  alt=""
+                                  loading="lazy"
+                                  width="14"
+                                  height="14"
+                                />
+                                <span>{badge.label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               </article>
             ))
@@ -315,17 +474,17 @@ const connectLinks = [
       {
         featuredSeriesCards.length > 0 ? (
           <div class="home-series-grid">
-            {
-              featuredSeriesCards.map((card) => (
-                <article class="home-series-card">
-                  <h3>{card.title}</h3>
-                  <p>{card.summary}</p>
-                </article>
-              ))
-            }
+            {featuredSeriesCards.map((card) => (
+              <article class="home-series-card">
+                <h3>{card.title}</h3>
+                <p>{card.summary}</p>
+              </article>
+            ))}
           </div>
         ) : (
-          <div class="empty-state home-series-empty">아직 등록된 시리즈가 없습니다.</div>
+          <div class="empty-state home-series-empty">
+            아직 등록된 시리즈가 없습니다.
+          </div>
         )
       }
     </section>
@@ -360,7 +519,8 @@ const connectLinks = [
       <div class="home-connect-panel">
         <h2 id="home-connect-heading">Connect</h2>
         <p class="home-long-copy">
-          협업/프로젝트 문의는 메일로 부탁드립니다. 이력서는 PDF로 제공됩니다.
+          협업이나 프로젝트 문의는 메일로 부탁드립니다. 이력서는 PDF로
+          제공됩니다.
         </p>
         <div class="home-contact-links">
           {

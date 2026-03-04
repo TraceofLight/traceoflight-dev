@@ -1,0 +1,33 @@
+---
+import adminIcon from "../assets/icons/footer/admin.svg?raw";
+import githubIcon from "../assets/icons/footer/github.svg?raw";
+import mailIcon from "../assets/icons/footer/mail.svg?raw";
+
+type FooterIconName = "mail" | "github" | "admin";
+
+type Props = {
+  href: string;
+  label: string;
+  icon: FooterIconName;
+  external?: boolean;
+};
+
+const { href, label, icon, external = false } = Astro.props as Props;
+
+const iconSvgs: Record<FooterIconName, string> = {
+  mail: mailIcon,
+  github: githubIcon,
+  admin: adminIcon,
+};
+---
+
+<a
+  href={href}
+  target={external ? "_blank" : undefined}
+  rel={external ? "noreferrer" : undefined}
+  class="icon-link footer-icon-link"
+  data-icon={icon}
+  aria-label={label}
+>
+  <span class="footer-icon-glyph" aria-hidden="true" set:html={iconSvgs[icon]}></span>
+</a>

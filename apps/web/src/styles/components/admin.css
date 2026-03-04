@@ -1,5 +1,19 @@
+.auth-login-layout {
+  max-width: 640px;
+  margin-inline: auto;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-login-kicker {
+  margin: 0;
+  text-align: left;
+  letter-spacing: 0.12em;
+}
+
 .auth-shell {
-  max-width: 520px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .auth-form,

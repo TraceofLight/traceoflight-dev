@@ -6,23 +6,19 @@ const safeNextPath = sanitizeNextPath(Astro.url.searchParams.get('next'));
 ---
 
 <BaseLayout title="Admin Login" description="Admin login for TraceofLight dashboard">
-  <section class="hero">
-    <p class="kicker">ADMIN</p>
-    <h1>Lorem ipsum login</h1>
-    <p class="lead">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-  </section>
+  <section class="section auth-login-layout">
+    <p class="kicker auth-login-kicker">ADMIN LOGIN</p>
 
-  <section class="section auth-shell">
-    <form id="admin-login-form" class="auth-form" data-next={safeNextPath}>
+    <form id="admin-login-form" class="auth-form auth-shell" data-next={safeNextPath}>
       <label>
-        <span>Username</span>
+        <span>아이디</span>
         <input id="admin-username" name="username" type="text" autocomplete="username" required />
       </label>
       <label>
-        <span>Password</span>
+        <span>비밀번호</span>
         <input id="admin-password" name="password" type="password" autocomplete="current-password" required />
       </label>
-      <button class="button" type="submit">Login</button>
+      <button class="button" type="submit">로그인</button>
       <p id="auth-feedback" class="auth-feedback" data-state="info">로그인 정보를 입력해 주세요.</p>
     </form>
   </section>

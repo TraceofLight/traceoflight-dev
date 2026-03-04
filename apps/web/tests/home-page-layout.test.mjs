@@ -25,8 +25,10 @@ test("home page uses cruzlab-like modular home sections", async () => {
   assert.match(source, /\/icons\/tech\/directx11\.webp/);
   assert.match(source, /\/icons\/tech\/react\.svg/);
   assert.match(source, /\/icons\/tech\/fastapi\.svg/);
+  assert.match(source, /\/icons\/tech\/vim\.svg/);
   assert.match(source, /home-stack-icon/);
   assert.match(source, /home-resume-grid/);
+  assert.match(source, /home-resume-badges/);
   assert.match(source, /home-post-list/);
   assert.match(source, /home-stack-divider/);
   assert.match(source, /home-stack-card-language/);
@@ -73,6 +75,8 @@ test("home page uses cruzlab-like modular home sections", async () => {
   assert.doesNotMatch(source, /title:\s*"Backend"/);
   assert.doesNotMatch(source, /title:\s*"Frontend"/);
   assert.match(source, /title:\s*"Language"/);
+  assert.match(source, /period:\s*"2023\.10\. ~ 2024\.11\."/);
+  assert.match(source, /main:\s*"Cloud-Native 차세대 DB 개발 프로젝트 참여"/);
 
   assert.match(source, /2021\.11\. 도시공학과 종합설계 작품전 우수작품상/);
   assert.match(source, /sub:\s*"미래 모빌리티와 연계한 고양시 발전방향 기획안\\n: 성남시와 비교 분석"/);
@@ -103,6 +107,10 @@ test("home style module defines resume layout sections and responsive grid", asy
   assert.match(source, /\.home-stack-card-language\s*{[\s\S]*grid-column:\s*1 \/ -1/);
   assert.match(source, /\.home-stack-items-inline\s*{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(source, /\.home-resume-sub\s*{[\s\S]*white-space:\s*pre-line/);
+  assert.match(source, /\.home-resume-main-split/);
+  assert.match(source, /\.home-resume-period/);
+  assert.match(source, /\.home-resume-badges/);
+  assert.match(source, /\.home-resume-badge-icon/);
   assert.match(source, /\.home-stack-item\s*{[\s\S]*min-height:\s*34px/);
   assert.doesNotMatch(source, /min-height:\s*236px/);
   assert.match(source, /\.home-series-grid/);
