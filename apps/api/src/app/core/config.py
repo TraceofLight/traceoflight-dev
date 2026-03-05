@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     draft_retention_days: int = Field(default=7, alias='DRAFT_RETENTION_DAYS')
     draft_cleanup_start_hour: int = Field(default=0, alias='DRAFT_CLEANUP_START_HOUR')
     draft_cleanup_end_hour: int = Field(default=5, alias='DRAFT_CLEANUP_END_HOUR')
+    series_projection_rebuild_debounce_seconds: float = Field(
+        default=1.0,
+        alias='SERIES_PROJECTION_REBUILD_DEBOUNCE_SECONDS',
+    )
 
     @property
     def database_url(self) -> str:

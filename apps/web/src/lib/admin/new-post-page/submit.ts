@@ -12,6 +12,7 @@ export interface SubmitPayloadInput {
   excerpt: string;
   bodyMarkdown: string;
   coverImageUrl: string;
+  seriesTitle: string;
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];
@@ -29,6 +30,7 @@ export interface SubmitPayload {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  series_title: string | null;
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];
@@ -49,6 +51,7 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     excerpt,
     bodyMarkdown,
     coverImageUrl,
+    seriesTitle,
     status,
     visibility,
     tags,
@@ -60,6 +63,7 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     excerpt: excerpt.trim() || null,
     body_markdown: bodyMarkdown,
     cover_image_url: coverImageUrl.trim() || null,
+    series_title: seriesTitle.trim() || null,
     status,
     visibility,
     tags,

@@ -3,6 +3,14 @@ from __future__ import annotations
 from app.models.post import PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PostCreate
+from app.services.series_projection_cache import request_series_projection_refresh
+
+
+def _normalized_series_title(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
 
 
 class PostService:
@@ -36,10 +44,34 @@ class PostService:
         return self.repo.get_by_slug(slug=slug, status=status, visibility=visibility)
 
     def create_post(self, payload: PostCreate):
-        return self.repo.create(payload)
+        created = self.repo.create(payload)
+        if _normalized_series_title(getattr(created, "series_title", None)) is not None:
+            request_series_projection_refresh("post-created-series-assigned")
+        return created
 
     def update_post_by_slug(self, slug: str, payload: PostCreate):
-        return self.repo.update_by_slug(current_slug=slug, payload=payload)
+        before = self.repo.get_by_slug(slug=slug)
+        if before is None:
+            return None
+
+        before_series = _normalized_series_title(getattr(before, "series_title", None))
+        before_published_at = getattr(before, "published_at", None)
+
+        updated = self.repo.update_by_slug(current_slug=slug, payload=payload)
+        if updated is None:
+            return None
+
+        after_series = _normalized_series_title(getattr(updated, "series_title", None))
+        after_published_at = getattr(updated, "published_at", None)
+
+        should_refresh = before_series != after_series
+        if not should_refresh and before_series is not None:
+            should_refresh = before_published_at != after_published_at
+
+        if should_refresh:
+            request_series_projection_refresh("post-updated-series-changed")
+
+        return updated
 
     def delete_post_by_slug(
         self,
@@ -47,4 +79,13 @@ class PostService:
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
     ) -> bool:
-        return self.repo.delete_by_slug(slug=slug, status=status, visibility=visibility)
+        existing = self.repo.get_by_slug(slug=slug, status=status, visibility=visibility)
+        had_series = (
+            _normalized_series_title(getattr(existing, "series_title", None))
+            if existing is not None
+            else None
+        )
+        deleted = self.repo.delete_by_slug(slug=slug, status=status, visibility=visibility)
+        if deleted and had_series is not None:
+            request_series_projection_refresh("post-deleted-series-assigned")
+        return deleted

@@ -1,92 +1,55 @@
-# Series Feature Architecture (Unified FE/BE)
+# Series Feature Architecture (Post-Driven Async Cache)
 
 ## Goal
 
-Implement a full series system that groups related posts into ordered learning flows, with public discovery routes and admin management capabilities.
+시리즈를 수동 편집 대상이 아니라 **게시글 메타데이터에서 자동 파생되는 읽기 캐시**로 운영한다.
 
-## Unified Architecture
+- 게시글 저장 시 시리즈 입력값(`posts.series_title`)만 기록한다.
+- 백엔드는 변경 이벤트를 받아 비동기로 전체 게시글을 재검토한다.
+- 재검토 완료 후 `series`/`series_posts` 캐시를 트랜잭션으로 교체(swap)하고, 이후 API는 해당 캐시를 제공한다.
 
-### Core Domain
+## Source Of Truth And Cache
 
-- `series` (metadata)
-- `series_posts` (ordered mapping from series to posts)
-- `series_context` projection on post detail
+### Source of truth
 
-v1 rule:
+- `posts.series_title` (nullable)
+- writer publish 설정에서 입력한 시리즈명 그대로 저장
 
-- one post belongs to at most one series (`unique(post_id)` in mapping table).
+### Derived cache
 
-### Public Experience
+- `series` (slug/title/description/cover)
+- `series_posts` (series ↔ post order mapping)
+- `post.series_context`는 `series`/`series_posts`를 읽어 계산
 
-- `/series`:
-  - card list, count/updated metadata.
-- `/about`:
-  - redirected alias to `/series` (about page reused).
-- `/series/[slug]`:
-  - hero + ordered table-of-contents + start button.
-- `/blog/[...slug]`:
-  - optional in-series navigation block (prev/next).
+## Rebuild Flow
 
-### Admin Experience
+1. 게시글 create/update/delete 발생
+2. 서비스 레이어에서 시리즈 관련 변경 여부를 확인
+3. 변경이면 `series projection refresh` 요청을 큐잉
+4. 백그라운드 루프가 debounce 후 전체 posts를 재검토
+5. 메모리에서 next projection 생성
+6. 단일 DB 트랜잭션으로 `series_posts` 재작성 + `series` upsert/delete
+7. commit 시점에 새 캐시가 한 번에 노출됨
 
-- `/admin/series`: list and delete.
-- `/admin/series/new`: create.
-- `/admin/series/[slug]/edit`: update metadata + reorder/assign posts.
+핵심 포인트:
 
-### API Surface
+- 이벤트는 coalesce(합치기)되어 연속 저장 폭주 시에도 루프 1회로 수렴
+- empty series는 재빌드 결과에서 제외되어 자동 정리
+- 재빌드 실패 시 기존 캐시는 유지되고 다음 이벤트에서 재시도
 
-- Backend:
-  - `GET /api/v1/series`
-  - `GET /api/v1/series/{slug}`
-  - `POST /api/v1/series`
-  - `PUT /api/v1/series/{slug}`
-  - `DELETE /api/v1/series/{slug}`
-  - `PUT /api/v1/series/{slug}/posts`
-- Frontend internal proxy:
-  - `/internal-api/series*` mirrors backend methods.
+## Ordering Rule
 
-## Contract Sync Points
+- 시리즈 내부 순서: `published_at` 우선, 없으면 `created_at`, 이후 `slug` 보조 정렬
+- 수동 reorder API 값은 장기 source-of-truth가 아니며, post 기반 재빌드에서 덮어쓴다
 
-Lock before implementation:
+## API Behavior
 
-1. slug ownership:
-   - path slug is identity key for update/delete.
-2. reorder payload:
-   - explicit ordered post slug list with stable shape.
-3. error semantics:
-   - `401` unauthorized,
-   - `404` not found,
-   - `409` duplicate slug/order conflict,
-   - `400` validation errors.
-4. visibility behavior:
-   - public responses filter non-visible posts.
+- `/api/v1/series`, `/api/v1/series/{slug}`: 캐시 테이블 기반 조회
+- `/api/v1/posts*`: `series_context`를 캐시 매핑으로 계산
+- writer는 게시글 저장 payload에 `series_title`만 전달
 
-## Parallel Delivery Model
+## Operational Notes
 
-1. FE and BE tracks are defined independently in this unified contract before coding.
-2. FE and BE implementation can run in parallel after contract freeze.
-3. One dedicated integration session resolves API mismatch/awkwardness.
-4. Final pass validates both stacks together before merge.
-
-## Integration Session (Required)
-
-Session objective:
-
-- remove FE/BE API awkwardness in one place before completion.
-
-Checklist:
-
-- query parameter names/types,
-- payload field casing and nullability,
-- no-body response handling (`204`),
-- ordering semantics (`order_index`),
-- not-found and conflict message shape.
-
-## Risks and Mitigations
-
-- Risk: FE assumes richer data than BE returns.
-  - Mitigation: contract fixture examples + integration session tests.
-- Risk: reorder conflicts from concurrent edits.
-  - Mitigation: transactional reorder and conflict response.
-- Risk: public series page leaks private posts.
-  - Mitigation: enforce visibility filter in series reader queries.
+- 앱 시작 시 시리즈 projection 루프가 즉시 1회 bootstrap rebuild 수행
+- debounce 간격은 `SERIES_PROJECTION_REBUILD_DEBOUNCE_SECONDS`로 조정
+- 다중 worker 환경에서는 별도 분산 락/리더 선출이 필요하며, 현재는 단일 API 프로세스 기준

@@ -20,6 +20,7 @@ export interface AdminPostPayload {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  series_title?: string | null;
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];

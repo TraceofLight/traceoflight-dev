@@ -11,6 +11,7 @@ from app.api.v1.router import router as api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.services.draft_cleanup_scheduler import run_draft_cleanup_loop
+from app.services.series_projection_cache import run_series_projection_loop
 
 OPENAPI_TAGS = [
     {'name': 'health', 'description': 'Liveness and readiness probe endpoints.'},
@@ -26,13 +27,16 @@ async def lifespan(_: FastAPI):
     configure_logging()
     stop_event = asyncio.Event()
     cleanup_task = asyncio.create_task(run_draft_cleanup_loop(stop_event))
+    series_projection_task = asyncio.create_task(run_series_projection_loop(stop_event))
     try:
         yield
     finally:
         stop_event.set()
-        cleanup_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await cleanup_task
+        for task in (cleanup_task, series_projection_task):
+            task.cancel()
+        for task in (cleanup_task, series_projection_task):
+            with suppress(asyncio.CancelledError):
+                await task
 
 
 app = FastAPI(

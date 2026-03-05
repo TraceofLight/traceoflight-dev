@@ -33,6 +33,11 @@ class PostCreate(BaseModel):
         description='Optional cover image URL rendered for post cards and detail pages.',
         json_schema_extra={'example': 'https://cdn.traceoflight.dev/images/my-first-post-cover.jpg'},
     )
+    series_title: str | None = Field(
+        default=None,
+        description='Optional series title selected in writer publish settings.',
+        json_schema_extra={'example': 'FastAPI Deep Dive'},
+    )
     status: PostStatus = Field(
         default=PostStatus.DRAFT,
         description='Publication status lifecycle of the post.',
@@ -64,6 +69,7 @@ class PostRead(BaseModel):
     excerpt: str | None
     body_markdown: str
     cover_image_url: str | None
+    series_title: str | None = None
     status: PostStatus
     visibility: PostVisibility
     published_at: datetime | None

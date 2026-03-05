@@ -37,6 +37,7 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     excerpt: Mapped[str | None] = mapped_column(String(400), nullable=True)
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
     cover_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    series_title: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
     status: Mapped[PostStatus] = mapped_column(
         Enum(PostStatus, name='post_status', values_callable=_enum_values),
         index=True,

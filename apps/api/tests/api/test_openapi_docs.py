@@ -63,6 +63,7 @@ def test_post_and_media_component_schemas_have_field_descriptions() -> None:
     assert post_create['slug']['description'] == 'URL-friendly unique post identifier.'
     assert 'example' in post_create['title']
     assert post_create['tags']['description'] == 'Tag slug list assigned to this post.'
+    assert post_create['series_title']['description'] == 'Optional series title selected in writer publish settings.'
     assert post_read['tags']['description'] == 'Normalized tag objects assigned to this post.'
     assert media_upload['filename']['description'] == 'Original file name from client.'
     assert 'example' in media_upload['mime_type']

@@ -140,13 +140,13 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.match(submitEventsSource, /buildSubmitPayload/);
   assert.match(submitEventsSource, /resolveSubmitRequest/);
   assert.match(submitEventsSource, /requestPostSubmit/);
-  assert.match(submitEventsSource, /syncPostSeriesAssignment/);
   assert.match(submitEventsSource, /seriesInput\.value\.trim/);
+  assert.match(submitEventsSource, /seriesTitle:\s*seriesName/);
   assert.match(submitSource, /resolveSubmitStatus/);
   assert.match(submitSource, /buildSubmitPayload/);
+  assert.match(submitSource, /series_title/);
   assert.match(postsApiSource, /requestPostSubmit/);
   assert.match(postsApiSource, /requestSeriesList/);
-  assert.match(postsApiSource, /syncPostSeriesAssignment/);
   assert.match(postsApiSource, /\/internal-api\/series/);
   assert.match(postsApiSource, /content-type/);
   assert.match(feedbackSource, /post slug already exists/);

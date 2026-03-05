@@ -14,6 +14,13 @@ from app.repositories.tag_repository import normalize_tag_slugs
 from app.schemas.post import PostCreate
 
 
+def _normalize_series_title(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 class PostRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -156,6 +163,7 @@ class PostRepository:
     def create(self, payload: PostCreate) -> Post:
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
+        post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
         if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
 
@@ -176,6 +184,7 @@ class PostRepository:
 
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
+        post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
         if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
 

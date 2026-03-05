@@ -223,7 +223,6 @@ export async function initNewPostAdminPage(
   let tagSuggestionSequence = 0;
   let seriesSuggestionSequence = 0;
   let editingPostSlug: string | null = mode === "edit" ? initialEditSlug : null;
-  let currentSeriesSlug: string | null = null;
   let activeDropTarget: DropTarget = null;
   let selectedTags: string[] = [];
 
@@ -441,8 +440,7 @@ export async function initNewPostAdminPage(
     coverInput.value = loaded.cover_image_url ?? "";
     visibilityInput.value =
       loaded.visibility === "private" ? "private" : "public";
-    currentSeriesSlug = loaded.series_context?.series_slug ?? null;
-    seriesInput.value = loaded.series_context?.series_title ?? "";
+    seriesInput.value = loaded.series_title?.trim() ?? loaded.series_context?.series_title ?? "";
     selectedTags = dedupeTagSlugs(loaded.tags ?? []);
     syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");
@@ -924,10 +922,6 @@ export async function initNewPostAdminPage(
       editingPostSlug = nextSlug;
     },
     getSelectedTags: () => selectedTags,
-    getCurrentSeriesSlug: () => currentSeriesSlug,
-    setCurrentSeriesSlug: (nextSlug) => {
-      currentSeriesSlug = nextSlug;
-    },
   });
 
   const teardown = () => {

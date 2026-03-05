@@ -6,6 +6,22 @@
 - Frontend proxy base: `/internal-api`
 - Auth header for privileged actions: `x-internal-api-secret`
 
+## Series Source Input (Post Payload)
+
+`POST /api/v1/posts` and `PUT /api/v1/posts/{slug}` accept:
+
+```json
+{
+  "series_title": "FastAPI Deep Dive"
+}
+```
+
+Semantics:
+
+- `series_title` is source-of-truth input from writer.
+- Backend asynchronously rebuilds series cache after post changes.
+- Series read APIs are eventually consistent (after rebuild swap).
+
 ## Series Read
 
 ### `GET /api/v1/series`
