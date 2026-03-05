@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const homePagePath = new URL("../src/pages/index.astro", import.meta.url);
-const homeStylePath = new URL("../src/styles/components/home.css", import.meta.url);
+const homeStylePath = new URL(
+  "../src/styles/components/home.css",
+  import.meta.url,
+);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
 
 test("home page uses cruzlab-like modular home sections", async () => {
@@ -91,6 +94,11 @@ test("site header brand uses text-only mark without avatar image", async () => {
   const source = await readFile(headerPath, "utf8");
   assert.match(source, /class="brand"/);
   assert.match(source, /class="brand-name"/);
+  assert.match(source, /ADMIN_ACCESS_COOKIE/);
+  assert.match(source, /verifyAccessToken/);
+  assert.match(source, /id="header-admin-link"/);
+  assert.match(source, /id="header-admin-logout"/);
+  assert.match(source, /\/internal-api\/auth\/logout/);
   assert.doesNotMatch(source, /brand-avatar/);
   assert.doesNotMatch(source, /traceoflight-profile\.png/);
 });
@@ -104,8 +112,14 @@ test("home style module defines resume layout sections and responsive grid", asy
   assert.match(source, /\.home-stack-item/);
   assert.match(source, /\.home-stack-icon/);
   assert.match(source, /\.home-stack-divider/);
-  assert.match(source, /\.home-stack-card-language\s*{[\s\S]*grid-column:\s*1 \/ -1/);
-  assert.match(source, /\.home-stack-items-inline\s*{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(
+    source,
+    /\.home-stack-card-language\s*{[\s\S]*grid-column:\s*1 \/ -1/,
+  );
+  assert.match(
+    source,
+    /\.home-stack-items-inline\s*{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
+  );
   assert.match(source, /\.home-resume-sub\s*{[\s\S]*white-space:\s*pre-line/);
   assert.match(source, /\.home-resume-main-split/);
   assert.match(source, /\.home-resume-period/);
@@ -115,8 +129,14 @@ test("home style module defines resume layout sections and responsive grid", asy
   assert.doesNotMatch(source, /min-height:\s*236px/);
   assert.match(source, /\.home-series-grid/);
   assert.match(source, /\.home-contact-links/);
-  assert.match(source, /\.home-profile\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.3fr\)\s*minmax\(250px,\s*0\.7fr\)/);
-  assert.match(source, /\.home-profile-visual\s*{[\s\S]*justify-content:\s*center/);
+  assert.match(
+    source,
+    /\.home-profile\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.3fr\)\s*minmax\(250px,\s*0\.7fr\)/,
+  );
+  assert.match(
+    source,
+    /\.home-profile-visual\s*{[\s\S]*justify-content:\s*center/,
+  );
   assert.match(source, /\.home-profile-icon\s*{[\s\S]*border-radius:\s*50%/);
   assert.match(source, /\.home-profile-icon\s*{[\s\S]*border:\s*0/);
   assert.match(source, /@media \(max-width: 760px\)/);

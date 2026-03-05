@@ -24,6 +24,10 @@ test("blog archive page provides search, sort, and visibility filters", async ()
     source,
     /isAdminViewer && \([\s\S]*data-visibility-filter="public"[\s\S]*data-visibility-filter="private"/,
   );
+  assert.match(
+    source,
+    /isAdminViewer && \([\s\S]*id="blog-admin-write"[\s\S]*href="\/admin\/posts\/new"/,
+  );
   assert.doesNotMatch(source, /id="blog-filter-toggle"/);
   assert.match(source, /variant="archive"/);
   assert.match(source, /id="blog-post-grid"/);
@@ -35,24 +39,24 @@ test("blog archive page includes client script for filtering and sorting cards",
   assert.match(source, /function initializeBlogArchivePage\(\)/);
   assert.match(
     source,
-    /const searchInput = document\.querySelector\('#blog-search'\)/,
+    /const searchInput = document\.querySelector\(["']#blog-search["']\)/,
   );
   assert.match(
     source,
-    /const sortSelect = document\.querySelector\('#blog-sort'\)/,
+    /const sortSelect = document\.querySelector\(["']#blog-sort["']\)/,
   );
   assert.match(source, /applyFiltersAndSort/);
   assert.match(
     source,
-    /document\.addEventListener\('astro:page-load', initializeBlogArchivePage\)/,
+    /document\.addEventListener\(["']astro:page-load["'], initializeBlogArchivePage\)/,
   );
   assert.match(source, /data-visibility/);
 });
 
 test("blog archive script filters cards using data attributes rather than class-only selectors", async () => {
   const source = await readFile(blogIndexPath, "utf8");
-  assert.match(source, /querySelectorAll\('\[data-visibility\]'\)/);
-  assert.match(source, /toggleAttribute\('hidden', !isVisible\)/);
+  assert.match(source, /querySelectorAll\(["']\[data-visibility\]["']\)/);
+  assert.match(source, /toggleAttribute\(["']hidden["'], !isVisible\)/);
 });
 
 test("post card supports archive variant markup and styles", async () => {

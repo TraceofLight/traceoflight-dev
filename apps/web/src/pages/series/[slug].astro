@@ -28,35 +28,103 @@ if (!series) {
   {
     series ? (
       <section class="series-detail">
-        <header class="series-detail-hero">
-          <p class="kicker">SERIES</p>
-          <h1>{series.title}</h1>
-          <p>{series.description}</p>
-          <p class="series-detail-meta">
-            <span>{series.postCount} posts</span>
-            <span>·</span>
-            <FormattedDate date={series.updatedAt} />
-          </p>
-          {series.posts.length > 0 && (
-            <a class="button series-start-link" href={`/blog/${series.posts[0].slug}`}>
-              시리즈 시작하기
-            </a>
-          )}
+        <header class="series-detail-hero-card">
+          <div class="series-detail-hero-main">
+            <p class="kicker">SERIES</p>
+            <h1>{series.title}</h1>
+            <p id="series-hero-description" class="series-detail-hero-description">
+              {series.description}
+            </p>
+            <p class="series-detail-hero-meta">
+              <span>{series.postCount} posts</span>
+              <span>·</span>
+              <FormattedDate date={series.updatedAt} />
+            </p>
+            {series.posts.length > 0 && (
+              <a id="series-start-link" class="button series-start-link" href={`/blog/${series.posts[0].slug}`}>
+                시리즈 시작하기
+              </a>
+            )}
+          </div>
+          <div class="series-detail-hero-visual">
+            {series.coverImageUrl ? (
+              <img
+                id="series-hero-cover-image"
+                class="series-detail-hero-cover"
+                src={series.coverImageUrl}
+                alt={series.title}
+                loading="lazy"
+              />
+            ) : (
+              <div id="series-hero-cover-placeholder" class="series-detail-hero-cover-placeholder">
+                <span>{series.title}</span>
+              </div>
+            )}
+          </div>
         </header>
 
-        <ol class="series-post-list">
+        {
+          isAdminViewer && (
+            <section id="series-admin-panel" class="series-admin-panel" data-series-slug={series.slug} data-series-title={series.title}>
+              <h2>시리즈 관리</h2>
+              <div class="series-admin-grid">
+                <label class="series-admin-field">
+                  <span>시리즈 설명</span>
+                  <textarea id="series-admin-description" rows="3" maxlength="300">{series.description}</textarea>
+                </label>
+                <label class="series-admin-field">
+                  <span>썸네일 URL</span>
+                  <input id="series-admin-cover-image-url" type="url" placeholder="https://..." value={series.coverImageUrl ?? ''} />
+                </label>
+              </div>
+              <div class="series-admin-actions">
+                <button id="series-admin-save-meta" class="button button-ghost" type="button">
+                  시리즈 저장
+                </button>
+                <p id="series-admin-meta-feedback" class="series-admin-feedback" data-state="info"></p>
+              </div>
+            </section>
+          )
+        }
+
+        <ol id="series-post-list" class="series-post-list">
           {series.posts.map((post) => (
-            <li class="series-post-item" data-series-order={post.orderIndex}>
-              <a href={`/blog/${post.slug}`}>
-                <span class="series-post-index">{post.orderIndex}</span>
-                <span class="series-post-content">
-                  <strong>{post.title}</strong>
-                  {post.excerpt && <small>{post.excerpt}</small>}
-                </span>
-              </a>
+            <li class="series-post-item" data-series-order={post.orderIndex} data-post-slug={post.slug}>
+              <div class="series-post-item-inner">
+                <a class="series-post-item-link" href={`/blog/${post.slug}`}>
+                  <span class="series-post-index">{post.orderIndex}</span>
+                  <span class="series-post-content">
+                    <strong>{post.title}</strong>
+                    {post.excerpt && <small>{post.excerpt}</small>}
+                  </span>
+                </a>
+                {
+                  isAdminViewer && (
+                    <div class="series-post-item-admin-actions">
+                      <button type="button" class="series-reorder-btn" data-series-move="up" aria-label={`${post.title} 위로 이동`}>
+                        ↑
+                      </button>
+                      <button type="button" class="series-reorder-btn" data-series-move="down" aria-label={`${post.title} 아래로 이동`}>
+                        ↓
+                      </button>
+                    </div>
+                  )
+                }
+              </div>
             </li>
           ))}
         </ol>
+
+        {
+          isAdminViewer && series.posts.length > 0 && (
+            <div class="series-post-item-reorder">
+              <button id="series-admin-save-order" class="button button-ghost" type="button">
+                글 순서 저장
+              </button>
+              <p id="series-admin-order-feedback" class="series-admin-feedback" data-state="info"></p>
+            </div>
+          )
+        }
       </section>
     ) : (
       <section class="section">
@@ -68,3 +136,254 @@ if (!series) {
     )
   }
 </BaseLayout>
+
+<script type="module">
+  function initializeSeriesAdminControls() {
+    const panel = document.querySelector("#series-admin-panel");
+    const postList = document.querySelector("#series-post-list");
+    if (!(panel instanceof HTMLElement)) return;
+    if (!(postList instanceof HTMLOListElement)) return;
+    if (panel.dataset.bound === "true") return;
+    panel.dataset.bound = "true";
+
+    const slug = panel.dataset.seriesSlug || "";
+    const title = panel.dataset.seriesTitle || "";
+    if (!slug || !title) return;
+
+    const descriptionInput = document.querySelector("#series-admin-description");
+    const coverInput = document.querySelector("#series-admin-cover-image-url");
+    const saveMetaButton = document.querySelector("#series-admin-save-meta");
+    const saveOrderButton = document.querySelector("#series-admin-save-order");
+    const metaFeedback = document.querySelector("#series-admin-meta-feedback");
+    const orderFeedback = document.querySelector("#series-admin-order-feedback");
+    const heroDescription = document.querySelector("#series-hero-description");
+    const heroVisual = document.querySelector(".series-detail-hero-visual");
+    const startLink = document.querySelector("#series-start-link");
+    if (!(descriptionInput instanceof HTMLTextAreaElement)) return;
+    if (!(coverInput instanceof HTMLInputElement)) return;
+    if (!(saveMetaButton instanceof HTMLButtonElement)) return;
+    if (!(heroVisual instanceof HTMLElement)) return;
+
+    const setFeedback = (target, message, state = "info") => {
+      if (!(target instanceof HTMLElement)) return;
+      target.textContent = message;
+      target.dataset.state = state;
+    };
+
+    const normalizeCover = (rawValue) => {
+      const value = typeof rawValue === "string" ? rawValue.trim() : "";
+      return value.length > 0 ? value : null;
+    };
+
+    const ensureCoverPreview = (coverImageUrl) => {
+      if (!(heroVisual instanceof HTMLElement)) return;
+
+      const currentImage = heroVisual.querySelector("#series-hero-cover-image");
+      const currentPlaceholder = heroVisual.querySelector("#series-hero-cover-placeholder");
+
+      if (coverImageUrl) {
+        if (currentPlaceholder instanceof HTMLElement) {
+          currentPlaceholder.remove();
+        }
+        if (currentImage instanceof HTMLImageElement) {
+          currentImage.src = coverImageUrl;
+          return;
+        }
+        const image = document.createElement("img");
+        image.id = "series-hero-cover-image";
+        image.className = "series-detail-hero-cover";
+        image.alt = title;
+        image.loading = "lazy";
+        image.src = coverImageUrl;
+        heroVisual.append(image);
+        return;
+      }
+
+      if (currentImage instanceof HTMLImageElement) {
+        currentImage.remove();
+      }
+      if (!(currentPlaceholder instanceof HTMLElement)) {
+        const placeholder = document.createElement("div");
+        placeholder.id = "series-hero-cover-placeholder";
+        placeholder.className = "series-detail-hero-cover-placeholder";
+        const label = document.createElement("span");
+        label.textContent = title;
+        placeholder.append(label);
+        heroVisual.append(placeholder);
+      }
+    };
+
+    const getOrderedItems = () =>
+      Array.from(postList.querySelectorAll(".series-post-item")).filter(
+        (item) => item instanceof HTMLLIElement,
+      );
+
+    const refreshOrderIndices = () => {
+      const items = getOrderedItems();
+      items.forEach((item, index) => {
+        const order = index + 1;
+        item.dataset.seriesOrder = String(order);
+        const label = item.querySelector(".series-post-index");
+        if (label instanceof HTMLElement) {
+          label.textContent = String(order);
+        }
+      });
+      if (startLink instanceof HTMLAnchorElement) {
+        const firstSlug = items[0]?.dataset.postSlug || "";
+        if (firstSlug) {
+          startLink.href = `/blog/${firstSlug}`;
+        }
+      }
+    };
+
+    const refreshMoveButtons = () => {
+      const items = getOrderedItems();
+      items.forEach((item, index) => {
+        const upButton = item.querySelector('[data-series-move="up"]');
+        const downButton = item.querySelector('[data-series-move="down"]');
+        if (upButton instanceof HTMLButtonElement) {
+          upButton.disabled = index === 0;
+        }
+        if (downButton instanceof HTMLButtonElement) {
+          downButton.disabled = index === items.length - 1;
+        }
+      });
+    };
+
+    postList.addEventListener("click", (event) => {
+      const moveButton =
+        event.target instanceof HTMLElement
+          ? event.target.closest("[data-series-move]")
+          : null;
+      if (!(moveButton instanceof HTMLButtonElement)) return;
+
+      const direction = moveButton.dataset.seriesMove;
+      const currentItem = moveButton.closest(".series-post-item");
+      if (!(currentItem instanceof HTMLLIElement)) return;
+
+      if (direction === "up") {
+        const prevItem = currentItem.previousElementSibling;
+        if (prevItem instanceof HTMLLIElement) {
+          postList.insertBefore(currentItem, prevItem);
+        }
+      } else if (direction === "down") {
+        const nextItem = currentItem.nextElementSibling;
+        if (nextItem instanceof HTMLLIElement) {
+          postList.insertBefore(nextItem, currentItem);
+        }
+      }
+
+      refreshOrderIndices();
+      refreshMoveButtons();
+      setFeedback(orderFeedback, "순서가 변경되었습니다. 저장 버튼으로 반영하세요.", "info");
+    });
+
+    saveMetaButton.addEventListener("click", async () => {
+      const description = descriptionInput.value.trim();
+      if (!description) {
+        setFeedback(metaFeedback, "시리즈 설명을 입력해 주세요.", "error");
+        descriptionInput.focus();
+        return;
+      }
+
+      saveMetaButton.disabled = true;
+      setFeedback(metaFeedback, "시리즈 정보를 저장하는 중...", "info");
+      try {
+        const response = await fetch(`/internal-api/series/${encodeURIComponent(slug)}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            slug,
+            title,
+            description,
+            cover_image_url: normalizeCover(coverInput.value),
+          }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            setFeedback(metaFeedback, "관리자 세션이 만료되었습니다. 다시 로그인해 주세요.", "error");
+            return;
+          }
+          const errorJson = await response.json().catch(() => ({}));
+          setFeedback(metaFeedback, errorJson.detail || "시리즈 저장에 실패했습니다.", "error");
+          return;
+        }
+
+        const updated = await response.json().catch(() => null);
+        const nextDescription =
+          typeof updated?.description === "string" && updated.description.trim()
+            ? updated.description.trim()
+            : description;
+        const nextCoverImageUrl =
+          typeof updated?.cover_image_url === "string"
+            ? updated.cover_image_url.trim()
+            : normalizeCover(coverInput.value);
+
+        if (heroDescription instanceof HTMLElement) {
+          heroDescription.textContent = nextDescription;
+        }
+        coverInput.value = nextCoverImageUrl ?? "";
+        ensureCoverPreview(nextCoverImageUrl);
+        setFeedback(metaFeedback, "시리즈 정보가 저장되었습니다.", "ok");
+      } catch {
+        setFeedback(metaFeedback, "네트워크 오류로 시리즈 저장에 실패했습니다.", "error");
+      } finally {
+        saveMetaButton.disabled = false;
+      }
+    });
+
+    if (saveOrderButton instanceof HTMLButtonElement) {
+      saveOrderButton.addEventListener("click", async () => {
+        const orderedPostSlugs = getOrderedItems()
+          .map((item) =>
+            typeof item.dataset.postSlug === "string" ? item.dataset.postSlug : "",
+          )
+          .filter((value) => value.length > 0);
+
+        saveOrderButton.disabled = true;
+        setFeedback(orderFeedback, "글 순서를 저장하는 중...", "info");
+        try {
+          const response = await fetch(
+            `/internal-api/series/${encodeURIComponent(slug)}/posts`,
+            {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ post_slugs: orderedPostSlugs }),
+            },
+          );
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              setFeedback(
+                orderFeedback,
+                "관리자 세션이 만료되었습니다. 다시 로그인해 주세요.",
+                "error",
+              );
+              return;
+            }
+            const errorJson = await response.json().catch(() => ({}));
+            setFeedback(
+              orderFeedback,
+              errorJson.detail || "글 순서 저장에 실패했습니다.",
+              "error",
+            );
+            return;
+          }
+
+          setFeedback(orderFeedback, "글 순서가 저장되었습니다.", "ok");
+        } catch {
+          setFeedback(orderFeedback, "네트워크 오류로 순서 저장에 실패했습니다.", "error");
+        } finally {
+          saveOrderButton.disabled = false;
+        }
+      });
+    }
+
+    refreshOrderIndices();
+    refreshMoveButtons();
+  }
+
+  initializeSeriesAdminControls();
+  document.addEventListener("astro:page-load", initializeSeriesAdminControls);
+</script>

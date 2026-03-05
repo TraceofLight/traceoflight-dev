@@ -47,6 +47,12 @@
   height: 72px;
 }
 
+.header-brand-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -57,6 +63,50 @@
 
 .brand-name {
   line-height: 1;
+}
+
+.header-admin-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.header-admin-link,
+.header-admin-logout {
+  min-height: 34px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(141, 160, 184, 0.32);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.header-admin-link {
+  background: rgba(196, 41, 41, 0.24);
+  border-color: rgba(229, 92, 92, 0.58);
+  color: #ffbcbc;
+}
+
+.header-admin-link:hover {
+  border-color: rgba(255, 128, 128, 0.8);
+  color: #ffe4e4;
+}
+
+.header-admin-logout {
+  background: rgba(16, 25, 38, 0.85);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.header-admin-logout:hover {
+  border-color: rgba(54, 210, 147, 0.45);
+  color: var(--text-primary);
+}
+
+.header-admin-logout:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .main-nav {
@@ -120,15 +170,18 @@
   gap: 0.85rem;
 }
 
-.footer-links a {
+.footer-links a,
+.footer-links button {
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: 999px;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
-.footer-links a:hover {
+.footer-links a:hover,
+.footer-links button:hover {
   color: var(--text-primary);
   border-color: rgba(54, 210, 147, 0.4);
 }
@@ -146,6 +199,39 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+}
+
+.footer-admin-login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.footer-admin-login-modal[hidden] {
+  display: none;
+}
+
+.footer-admin-login-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(3, 8, 16, 0.76);
+  backdrop-filter: blur(2px);
+}
+
+.footer-admin-login-panel {
+  position: relative;
+  z-index: 1;
+  width: min(480px, 100%);
+}
+
+.footer-admin-login-panel .auth-form {
+  gap: 0.9rem;
+  padding: 1rem;
 }
 
 .footer-links .footer-icon-link .footer-icon-glyph {
@@ -245,6 +331,11 @@
     padding: 0.9rem 0;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .header-brand-group {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .main-nav {

@@ -1,8 +1,10 @@
 ---
-import AdminWriterLayout from '../../../layouts/AdminWriterLayout.astro';
+import AdminWriterLayout from "../../../layouts/AdminWriterLayout.astro";
 
-const siteUrl = import.meta.env.SITE_URL?.trim() ?? '';
-const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '/media';
+const siteUrl = import.meta.env.SITE_URL?.trim() ?? "";
+const defaultMediaBaseUrl = siteUrl
+  ? `${siteUrl.replace(/\/+$/, "")}/media`
+  : "/media";
 ---
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
@@ -25,18 +27,31 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
           />
         </div>
 
-        <div id="writer-editor-drop-zone" class="writer-editor-shell" data-drop-state="idle" data-has-content="false">
+        <div
+          id="writer-editor-drop-zone"
+          class="writer-editor-shell"
+          data-drop-state="idle"
+          data-has-content="false"
+        >
           <div class="writer-editor-drop-indicator" aria-hidden="true">
-            <p class="writer-editor-drop-title">Drop media to insert into body</p>
-            <p class="writer-editor-drop-caption">Images and videos are uploaded and inserted at the end.</p>
+            <p class="writer-editor-drop-title">
+              Drop media to insert into body
+            </p>
+            <p class="writer-editor-drop-caption">
+              Images and videos are uploaded and inserted at the end.
+            </p>
           </div>
           <div id="milkdown-editor" class="milkdown-editor"></div>
         </div>
 
         <div id="writer-bottom-bar" class="writer-bottom-bar">
           <div class="writer-bottom-left">
-            <a class="writer-bottom-back" href="/admin">뒤로가기</a>
-            <button id="writer-open-drafts" class="writer-bottom-back writer-bottom-drafts" type="button">임시저장</button>
+            <a class="writer-bottom-back" href="/blog/">뒤로가기</a>
+            <button
+              id="writer-open-drafts"
+              class="writer-bottom-back writer-bottom-drafts"
+              type="button">임시저장</button
+            >
           </div>
           <div class="writer-bottom-actions">
             <button
@@ -47,7 +62,11 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             >
               미리보기
             </button>
-            <button id="writer-upload-trigger" class="writer-action writer-action-muted" type="button">업로드</button>
+            <button
+              id="writer-upload-trigger"
+              class="writer-action writer-action-muted"
+              type="button">업로드</button
+            >
             <button
               id="writer-save-draft"
               class="writer-action writer-action-muted"
@@ -56,7 +75,11 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             >
               저장
             </button>
-            <button id="writer-open-publish" class="writer-action writer-action-primary" type="button">
+            <button
+              id="writer-open-publish"
+              class="writer-action writer-action-primary"
+              type="button"
+            >
               출간
             </button>
           </div>
@@ -69,36 +92,77 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
           <p class="writer-preview-kicker">Live Preview</p>
           <h1 id="writer-preview-title"></h1>
         </div>
-        <article id="writer-preview-content" class="writer-preview-content"></article>
+        <article id="writer-preview-content" class="writer-preview-content">
+        </article>
       </section>
     </div>
 
-    <div id="writer-draft-layer" class="writer-draft-layer" data-open="false" hidden>
-      <button id="writer-draft-backdrop" class="writer-draft-backdrop" type="button" aria-label="Close drafts"></button>
-      <section class="writer-draft-panel" role="dialog" aria-modal="true" aria-labelledby="writer-draft-title">
+    <div
+      id="writer-draft-layer"
+      class="writer-draft-layer"
+      data-open="false"
+      hidden
+    >
+      <button
+        id="writer-draft-backdrop"
+        class="writer-draft-backdrop"
+        type="button"
+        aria-label="Close drafts"></button>
+      <section
+        class="writer-draft-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="writer-draft-title"
+      >
         <header class="writer-draft-head">
           <div class="writer-draft-head-copy">
             <p class="writer-draft-kicker">Drafts</p>
             <h2 id="writer-draft-title">임시저장 글</h2>
           </div>
-          <button id="writer-close-drafts" class="writer-action writer-action-muted" type="button">닫기</button>
+          <button
+            id="writer-close-drafts"
+            class="writer-action writer-action-muted"
+            type="button">닫기</button
+          >
         </header>
-        <p id="writer-draft-feedback" class="writer-draft-feedback" data-state="info"></p>
+        <p
+          id="writer-draft-feedback"
+          class="writer-draft-feedback"
+          data-state="info"
+        >
+        </p>
         <ul id="writer-draft-list" class="writer-draft-list" aria-live="polite">
           <li class="writer-draft-empty">임시저장 글을 불러오는 중입니다.</li>
         </ul>
       </section>
     </div>
 
-    <div id="writer-publish-layer" class="writer-publish-layer" data-open="false" hidden>
-      <button id="writer-publish-backdrop" class="writer-publish-backdrop" type="button" aria-label="Close publish settings">
+    <div
+      id="writer-publish-layer"
+      class="writer-publish-layer"
+      data-open="false"
+      hidden
+    >
+      <button
+        id="writer-publish-backdrop"
+        class="writer-publish-backdrop"
+        type="button"
+        aria-label="Close publish settings"
+      >
       </button>
-      <section class="writer-publish-panel" role="dialog" aria-modal="true" aria-labelledby="writer-publish-title">
+      <section
+        class="writer-publish-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="writer-publish-title"
+      >
         <header class="writer-publish-head">
           <div class="writer-publish-head-copy">
             <p class="writer-publish-kicker">Publish</p>
             <h2 id="writer-publish-title">출간 설정</h2>
-            <p class="writer-publish-description">URL, 요약, 커버 이미지를 확인한 뒤 게시합니다.</p>
+            <p class="writer-publish-description">
+              URL, 요약, 커버 이미지를 확인한 뒤 게시합니다.
+            </p>
           </div>
         </header>
         <div class="writer-publish-body">
@@ -107,23 +171,56 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
               <span>Post URL</span>
               <div class="writer-slug-input-wrap">
                 <span class="writer-slug-prefix">/blog/</span>
-                <input id="post-slug" name="slug" type="text" placeholder="your-post-slug" />
+                <input
+                  id="post-slug"
+                  name="slug"
+                  type="text"
+                  placeholder="your-post-slug"
+                />
               </div>
             </label>
-            <p id="writer-slug-feedback" class="writer-field-feedback" data-state="idle" aria-live="polite"></p>
+            <p
+              id="writer-slug-feedback"
+              class="writer-field-feedback"
+              data-state="idle"
+              aria-live="polite"
+            >
+            </p>
             <label class="writer-field">
               <span>요약</span>
-              <textarea id="post-excerpt" name="excerpt" rows="7" placeholder="게시글 요약을 입력하세요." />
+              <textarea
+                id="post-excerpt"
+                name="excerpt"
+                rows="7"
+                placeholder="게시글 요약을 입력하세요."></textarea>
             </label>
           </div>
           <div class="writer-publish-column writer-publish-column-side">
-            <div id="writer-cover-preview" class="writer-cover-preview" data-empty="true" data-drop-state="idle">
-              <img id="writer-cover-preview-image" class="writer-cover-preview-image" alt="Cover preview" hidden />
-              <p id="writer-cover-preview-empty" class="writer-cover-preview-empty">
+            <div
+              id="writer-cover-preview"
+              class="writer-cover-preview"
+              data-empty="true"
+              data-drop-state="idle"
+            >
+              <img
+                id="writer-cover-preview-image"
+                class="writer-cover-preview-image"
+                alt="Cover preview"
+                hidden
+              />
+              <p
+                id="writer-cover-preview-empty"
+                class="writer-cover-preview-empty"
+              >
                 커버 이미지를 설정하면 여기에 미리보기가 표시됩니다.
               </p>
             </div>
-            <input id="writer-cover-upload-input" type="file" accept="image/*" hidden />
+            <input
+              id="writer-cover-upload-input"
+              type="file"
+              accept="image/*"
+              hidden
+            />
             <label class="writer-field">
               <span>공개 범위</span>
               <select id="post-visibility" name="visibility">
@@ -156,9 +253,18 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
             <div id="writer-meta-chip-rail" class="writer-meta-chip-rail">
               <div id="writer-tag-chip-list" class="writer-tag-chip-list"></div>
             </div>
-            <label id="writer-cover-drop-zone" class="writer-field writer-field-cover-drop" data-drop-state="idle">
+            <label
+              id="writer-cover-drop-zone"
+              class="writer-field writer-field-cover-drop"
+              data-drop-state="idle"
+            >
               <span>Cover Image URL</span>
-              <input id="post-cover" name="cover_image_url" type="url" placeholder="https://..." />
+              <input
+                id="post-cover"
+                name="cover_image_url"
+                type="url"
+                placeholder="https://..."
+              />
               <span class="writer-cover-drop-indicator" aria-hidden="true">
                 Drop cover image here to upload
               </span>
@@ -169,22 +275,38 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
           </div>
         </div>
         <div class="writer-publish-actions">
-          <button id="writer-cancel-publish" class="writer-action writer-action-muted" type="button">취소</button>
-          <button id="writer-confirm-publish" class="writer-action writer-action-primary" type="submit" data-submit-status="published">
+          <button
+            id="writer-cancel-publish"
+            class="writer-action writer-action-muted"
+            type="button">취소</button
+          >
+          <button
+            id="writer-confirm-publish"
+            class="writer-action writer-action-primary"
+            type="submit"
+            data-submit-status="published"
+          >
             지금 출간
           </button>
         </div>
       </section>
     </div>
 
-    <p id="writer-toast" class="writer-toast" data-state="info" data-visible="false" role="status" aria-live="polite">
+    <p
+      id="writer-toast"
+      class="writer-toast"
+      data-state="info"
+      data-visible="false"
+      role="status"
+      aria-live="polite"
+    >
       글 작성을 시작하세요.
     </p>
   </form>
 </AdminWriterLayout>
 
 <script>
-  import { initNewPostAdminPage } from '../../../lib/admin/new-post-page';
+  import { initNewPostAdminPage } from "../../../lib/admin/new-post-page";
 
-  void initNewPostAdminPage({ mode: 'create' });
+  void initNewPostAdminPage({ mode: "create" });
 </script>

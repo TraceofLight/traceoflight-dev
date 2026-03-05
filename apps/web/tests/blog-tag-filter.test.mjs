@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const blogIndexPath = new URL("../src/pages/blog/index.astro", import.meta.url);
-const postCardPath = new URL("../src/components/PostCard.astro", import.meta.url);
+const postCardPath = new URL(
+  "../src/components/PostCard.astro",
+  import.meta.url,
+);
 const blogDbPath = new URL("../src/lib/blog-db.ts", import.meta.url);
 const stylesPath = new URL(
   "../src/styles/components/blog.css",
@@ -25,7 +28,7 @@ test("blog archive script applies tag filtering and query sync", async () => {
 
   assert.match(source, /activeTags/);
   assert.match(source, /matchesTag/);
-  assert.match(source, /url\.searchParams\.set\('tag'/);
+  assert.match(source, /url\.searchParams\.set\(["']tag["']/);
   assert.match(source, /new URLSearchParams\(window\.location\.search\)/);
 });
 

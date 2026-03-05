@@ -1,17 +1,29 @@
-import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { test } from 'node:test';
+import assert from "node:assert/strict";
+import { access, readFile } from "node:fs/promises";
+import { test } from "node:test";
 
-const pagePath = new URL('../src/pages/admin/index.astro', import.meta.url);
+const adminIndexPath = new URL(
+  "../src/pages/admin/index.astro",
+  import.meta.url,
+);
+const newWriterPath = new URL(
+  "../src/pages/admin/posts/new.astro",
+  import.meta.url,
+);
+const editWriterPath = new URL(
+  "../src/pages/admin/posts/[slug]/edit.astro",
+  import.meta.url,
+);
 
-test('admin dashboard keeps navigation and logout without draft list', async () => {
-  const source = await readFile(pagePath, 'utf8');
+test("admin dashboard route is removed and writer back links return to blog", async () => {
+  await assert.rejects(access(adminIndexPath));
+  const [newWriterSource, editWriterSource] = await Promise.all([
+    readFile(newWriterPath, "utf8"),
+    readFile(editWriterPath, "utf8"),
+  ]);
 
-  assert.match(source, /Go to Writer/);
-  assert.match(source, /href="\/admin\/logout"/);
-  assert.doesNotMatch(source, /admin-logout-button/);
-  assert.doesNotMatch(source, /initializeAdminLogout/);
-  assert.doesNotMatch(source, /id="admin-draft-list"/);
-  assert.doesNotMatch(source, /admin-draft-delete/);
-  assert.doesNotMatch(source, /status=draft/);
+  assert.match(newWriterSource, /href="\/blog\/"/);
+  assert.match(editWriterSource, /href="\/blog\/"/);
+  assert.doesNotMatch(newWriterSource, /href="\/admin"/);
+  assert.doesNotMatch(editWriterSource, /href="\/admin"/);
 });

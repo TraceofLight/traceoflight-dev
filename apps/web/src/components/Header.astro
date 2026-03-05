@@ -1,13 +1,39 @@
 ---
 import { NAV_LINKS, SITE_TITLE } from "../consts";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import HeaderLink from "./HeaderLink.astro";
+
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 ---
 
 <header class="site-header">
   <div class="container header-inner">
-    <a href="/" class="brand">
-      <span class="brand-name">{SITE_TITLE}</span>
-    </a>
+    <div class="header-brand-group">
+      <a href="/" class="brand">
+        <span class="brand-name">{SITE_TITLE}</span>
+      </a>
+      {
+        isAdminViewer && (
+          <div class="header-admin-tools">
+            <a
+              id="header-admin-link"
+              class="header-admin-link"
+              href="/admin/posts/new"
+            >
+              Admin
+            </a>
+            <button
+              id="header-admin-logout"
+              class="header-admin-logout"
+              type="button"
+            >
+              Logout
+            </button>
+          </div>
+        )
+      }
+    </div>
 
     <nav class="main-nav" aria-label="Main navigation">
       {
@@ -18,3 +44,30 @@ import HeaderLink from "./HeaderLink.astro";
     </nav>
   </div>
 </header>
+
+<script type="module">
+  const initializeHeaderAdminLogout = () => {
+    const logoutButton = document.querySelector("#header-admin-logout");
+    if (!(logoutButton instanceof HTMLButtonElement)) return;
+    if (logoutButton.dataset.bound === "true") return;
+    logoutButton.dataset.bound = "true";
+
+    logoutButton.addEventListener("click", async () => {
+      logoutButton.disabled = true;
+      try {
+        const response = await fetch("/internal-api/auth/logout", {
+          method: "POST",
+        });
+        if (!response.ok) {
+          throw new Error("logout failed");
+        }
+        window.location.assign("/");
+      } catch {
+        logoutButton.disabled = false;
+      }
+    });
+  };
+
+  initializeHeaderAdminLogout();
+  document.addEventListener("astro:page-load", initializeHeaderAdminLogout);
+</script>
