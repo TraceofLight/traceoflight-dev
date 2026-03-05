@@ -9,7 +9,9 @@ export interface WriterDomElements {
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
   visibilityInput: HTMLSelectElement;
+  seriesInput: HTMLInputElement;
   tagInput: HTMLInputElement;
+  seriesSuggestionList: HTMLDataListElement;
   tagChipList: HTMLElement;
   metaChipRail: HTMLElement;
   tagSuggestionList: HTMLDataListElement;
@@ -48,7 +50,9 @@ const WRITER_SELECTORS = {
   excerptInput: "#post-excerpt",
   coverInput: "#post-cover",
   visibilityInput: "#post-visibility",
+  seriesInput: "#post-series",
   tagInput: "#post-tags",
+  seriesSuggestionList: "#writer-series-suggestions",
   tagChipList: "#writer-tag-chip-list",
   metaChipRail: "#writer-meta-chip-rail",
   tagSuggestionList: "#writer-tag-suggestions",
@@ -109,7 +113,12 @@ export function queryWriterDomElements(
       root,
       WRITER_SELECTORS.visibilityInput,
     ),
+    seriesInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.seriesInput),
     tagInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.tagInput),
+    seriesSuggestionList: queryElement<HTMLDataListElement>(
+      root,
+      WRITER_SELECTORS.seriesSuggestionList,
+    ),
     tagChipList: queryElement<HTMLElement>(root, WRITER_SELECTORS.tagChipList),
     metaChipRail: queryElement<HTMLElement>(root, WRITER_SELECTORS.metaChipRail),
     tagSuggestionList: queryElement<HTMLDataListElement>(

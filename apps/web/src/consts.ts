@@ -6,8 +6,8 @@ export const SITE_URL = 'https://traceoflight.dev';
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/blog', label: 'Blog' },
+  { href: '/series', label: 'Series' },
   { href: '/projects', label: 'Projects' },
-  { href: '/about', label: 'About' },
 ] as const;
 
 export const GITHUB_URL = 'https://github.com/TraceofLight';

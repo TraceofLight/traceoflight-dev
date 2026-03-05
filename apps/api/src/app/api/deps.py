@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db_session
 from app.repositories.media_repository import MediaRepository
 from app.repositories.post_repository import PostRepository
+from app.repositories.series_repository import SeriesRepository
 from app.repositories.tag_repository import TagRepository
 from app.services.media_service import MediaService
 from app.services.post_service import PostService
+from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
 from app.storage.minio_client import MinioStorageClient
 
@@ -28,3 +30,7 @@ def get_media_service(db: Session = Depends(get_db)) -> MediaService:
 
 def get_tag_service(db: Session = Depends(get_db)) -> TagService:
     return TagService(repo=TagRepository(db))
+
+
+def get_series_service(db: Session = Depends(get_db)) -> SeriesService:
+    return SeriesService(repo=SeriesRepository(db))

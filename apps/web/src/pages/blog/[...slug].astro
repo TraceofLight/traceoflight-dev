@@ -48,6 +48,7 @@ if (markdownPost) {
       heroImage={dbPost.coverImageUrl}
       adminPostSlug={dbPost.slug}
       showAdminActions={isAdminViewer}
+      seriesContext={dbPost.seriesContext}
     >
       <div set:html={dbPostHtml} />
     </BlogPost>

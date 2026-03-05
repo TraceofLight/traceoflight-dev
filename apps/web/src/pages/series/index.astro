@@ -1,0 +1,57 @@
+---
+import FormattedDate from "../../components/FormattedDate.astro";
+import { SITE_TITLE } from "../../consts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
+import { listSeries } from "../../lib/series-db";
+
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+
+let series = [];
+try {
+  series = await listSeries({ includePrivate: isAdminViewer, limit: 100 });
+} catch {
+  series = [];
+}
+---
+
+<BaseLayout title={`Series | ${SITE_TITLE}`} description="TraceofLight series archive">
+  <section id="series-archive" class="series-archive">
+    <header class="series-archive-hero">
+      <h1>Series</h1>
+      <p>연결된 글 흐름으로 묶은 학습/구현 기록입니다.</p>
+    </header>
+
+    {
+      series.length > 0 ? (
+        <div class="series-grid">
+          {series.map((series) => (
+            <article class="series-card" data-series-card>
+              <a class="series-card-anchor" href={`/series/${series.slug}`}>
+                <div class="series-card-thumb">
+                  {series.coverImageUrl ? (
+                    <img src={series.coverImageUrl} alt={series.title} loading="lazy" />
+                  ) : (
+                    <span>{series.title}</span>
+                  )}
+                </div>
+                <div class="series-card-body">
+                  <h2>{series.title}</h2>
+                  <p>{series.description}</p>
+                  <p class="series-card-meta">
+                    <span>{series.postCount} posts</span>
+                    <span>·</span>
+                    <FormattedDate date={series.updatedAt} />
+                  </p>
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">아직 등록된 시리즈가 없습니다.</div>
+      )
+    }
+  </section>
+</BaseLayout>

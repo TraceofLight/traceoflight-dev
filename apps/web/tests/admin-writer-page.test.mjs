@@ -75,6 +75,9 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /<span>요약<\/span>/);
   assert.match(source, /id="post-visibility"/);
   assert.match(source, /<span>공개 범위<\/span>/);
+  assert.match(source, /id="post-series"/);
+  assert.match(source, /id="writer-series-suggestions"/);
+  assert.match(source, /<span>시리즈<\/span>/);
   assert.doesNotMatch(source, /<span>Excerpt<\/span>/);
   assert.doesNotMatch(source, /<span>Status<\/span>/);
 });

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.series import SeriesPost
     from app.models.tag import PostTag, Tag
 
 
@@ -60,4 +61,10 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="posts",
         overlaps="post_tags,post,tag",
         order_by="Tag.slug",
+    )
+    series_post: Mapped["SeriesPost | None"] = relationship(
+        "SeriesPost",
+        back_populates="post",
+        uselist=False,
+        cascade="all, delete-orphan",
     )

@@ -129,6 +129,8 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.match(domSource, /#writer-publish-layer/);
   assert.match(domSource, /#writer-confirm-publish/);
   assert.match(domSource, /#post-visibility/);
+  assert.match(domSource, /#post-series/);
+  assert.match(domSource, /#writer-series-suggestions/);
   assert.match(source, /from ["']\.\/new-post-page\/submit-events["']/);
   assert.match(source, /setPublishLayerOpen/);
   assert.match(source, /ensureTitleExists/);
@@ -138,9 +140,14 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.match(submitEventsSource, /buildSubmitPayload/);
   assert.match(submitEventsSource, /resolveSubmitRequest/);
   assert.match(submitEventsSource, /requestPostSubmit/);
+  assert.match(submitEventsSource, /syncPostSeriesAssignment/);
+  assert.match(submitEventsSource, /seriesInput\.value\.trim/);
   assert.match(submitSource, /resolveSubmitStatus/);
   assert.match(submitSource, /buildSubmitPayload/);
   assert.match(postsApiSource, /requestPostSubmit/);
+  assert.match(postsApiSource, /requestSeriesList/);
+  assert.match(postsApiSource, /syncPostSeriesAssignment/);
+  assert.match(postsApiSource, /\/internal-api\/series/);
   assert.match(postsApiSource, /content-type/);
   assert.match(feedbackSource, /post slug already exists/);
   assert.match(submitEventsSource, /suggestAvailableSlug/);

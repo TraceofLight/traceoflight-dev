@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.post import Post, PostStatus, PostVisibility
+from app.models.series import Series, SeriesPost
 from app.models.tag import Tag
 from app.repositories.tag_repository import normalize_tag_slugs
 from app.schemas.post import PostCreate
@@ -16,6 +17,65 @@ from app.schemas.post import PostCreate
 class PostRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def _attach_series_context(self, post: Post, public_only: bool) -> None:
+        series_row = self.db.execute(
+            select(SeriesPost, Series)
+            .join(Series, Series.id == SeriesPost.series_id)
+            .where(SeriesPost.post_id == post.id)
+        ).first()
+        if series_row is None:
+            setattr(post, "series_context", None)
+            return
+
+        mapping, series = series_row
+        ordered_rows = list(
+            self.db.execute(
+                select(
+                    SeriesPost.order_index,
+                    Post.slug,
+                    Post.title,
+                    Post.status,
+                    Post.visibility,
+                )
+                .join(Post, Post.id == SeriesPost.post_id)
+                .where(SeriesPost.series_id == series.id)
+                .order_by(SeriesPost.order_index.asc())
+            )
+        )
+        if public_only:
+            ordered_rows = [
+                row
+                for row in ordered_rows
+                if row.status == PostStatus.PUBLISHED and row.visibility == PostVisibility.PUBLIC
+            ]
+
+        current_index = next((idx for idx, row in enumerate(ordered_rows) if row.slug == post.slug), None)
+        if current_index is None:
+            setattr(post, "series_context", None)
+            return
+
+        prev_row = ordered_rows[current_index - 1] if current_index > 0 else None
+        next_row = ordered_rows[current_index + 1] if current_index + 1 < len(ordered_rows) else None
+        setattr(
+            post,
+            "series_context",
+            {
+                "series_slug": series.slug,
+                "series_title": series.title,
+                "order_index": mapping.order_index,
+                "total_posts": len(ordered_rows),
+                "prev_post_slug": None if prev_row is None else prev_row.slug,
+                "prev_post_title": None if prev_row is None else prev_row.title,
+                "next_post_slug": None if next_row is None else next_row.slug,
+                "next_post_title": None if next_row is None else next_row.title,
+            },
+        )
+
+    def _apply_series_context(self, posts: list[Post], public_only: bool) -> list[Post]:
+        for post in posts:
+            self._attach_series_context(post, public_only=public_only)
+        return posts
 
     def list(
         self,
@@ -43,7 +103,9 @@ class PostRepository:
                 tag_stmt = tag_stmt.having(func.count(distinct(Tag.slug)) == len(normalized_tags))
             stmt = stmt.where(Post.id.in_(tag_stmt))
         stmt = stmt.limit(limit).offset(offset)
-        return list(self.db.scalars(stmt))
+        rows = list(self.db.scalars(stmt))
+        public_only = status == PostStatus.PUBLISHED and visibility == PostVisibility.PUBLIC
+        return self._apply_series_context(rows, public_only=public_only)
 
     def get_by_slug(
         self,
@@ -56,7 +118,12 @@ class PostRepository:
             stmt = stmt.where(Post.status == status)
         if visibility is not None:
             stmt = stmt.where(Post.visibility == visibility)
-        return self.db.scalar(stmt)
+        row = self.db.scalar(stmt)
+        if row is None:
+            return None
+        public_only = status == PostStatus.PUBLISHED and visibility == PostVisibility.PUBLIC
+        self._attach_series_context(row, public_only=public_only)
+        return row
 
     def _resolve_tags(self, raw_tags: Iterable[str]) -> list[Tag]:
         normalized_slugs = normalize_tag_slugs(raw_tags)
@@ -96,7 +163,11 @@ class PostRepository:
         post.tags = self._resolve_tags(raw_tags)
         self.db.add(post)
         self.db.commit()
-        return self.get_by_slug(post.slug) or post
+        created = self.get_by_slug(post.slug)
+        if created is not None:
+            return created
+        self._attach_series_context(post, public_only=False)
+        return post
 
     def update_by_slug(self, current_slug: str, payload: PostCreate) -> Post | None:
         post = self.get_by_slug(current_slug)
@@ -113,7 +184,11 @@ class PostRepository:
         post.tags = self._resolve_tags(raw_tags)
 
         self.db.commit()
-        return self.get_by_slug(post.slug) or post
+        updated = self.get_by_slug(post.slug)
+        if updated is not None:
+            return updated
+        self._attach_series_context(post, public_only=False)
+        return post
 
     def delete_by_slug(
         self,

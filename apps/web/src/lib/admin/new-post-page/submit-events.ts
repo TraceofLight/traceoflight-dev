@@ -4,7 +4,7 @@ import {
   normalizeJsonError,
 } from "./feedback";
 import { normalizeMarkdownLinks } from "./link-normalization";
-import { requestPostSubmit } from "./posts-api";
+import { requestPostSubmit, syncPostSeriesAssignment } from "./posts-api";
 import { suggestAvailableSlug } from "./slug";
 import {
   buildSubmitPayload,
@@ -27,6 +27,7 @@ export interface SubmitBindings {
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
   visibilityInput: HTMLSelectElement;
+  seriesInput: HTMLInputElement;
   openPublishButton: HTMLButtonElement;
   confirmPublishButton: HTMLButtonElement;
   editorBridge: EditorBridge;
@@ -42,6 +43,8 @@ export interface SubmitBindings {
   getEditingPostSlug: () => string | null;
   setEditingPostSlug: (nextSlug: string | null) => void;
   getSelectedTags: () => string[];
+  getCurrentSeriesSlug: () => string | null;
+  setCurrentSeriesSlug: (nextSlug: string | null) => void;
 }
 
 export function bindSubmitEvent(bindings: SubmitBindings): void {
@@ -52,6 +55,7 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     excerptInput,
     coverInput,
     visibilityInput,
+    seriesInput,
     openPublishButton,
     confirmPublishButton,
     editorBridge,
@@ -67,6 +71,8 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     getEditingPostSlug,
     setEditingPostSlug,
     getSelectedTags,
+    getCurrentSeriesSlug,
+    setCurrentSeriesSlug,
   } = bindings;
 
   form.addEventListener("submit", async (event) => {
@@ -85,6 +91,7 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
 
     const slug = slugInput.value.trim();
     const title = titleInput.value.trim();
+    const seriesName = seriesInput.value.trim();
     const visibility: PostVisibility =
       visibilityInput.value === "private" ? "private" : "public";
     const bodyMarkdown = normalizeMarkdownLinks(
@@ -176,6 +183,22 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
         queuePreviewRefresh();
       }
       const createdStatus = (created.status ?? status).toLowerCase();
+      if (createdStatus === "published") {
+        const seriesSyncResult = await syncPostSeriesAssignment({
+          postSlug: created.slug,
+          seriesName,
+          previousSeriesSlug: getCurrentSeriesSlug(),
+        });
+        if (!seriesSyncResult.ok) {
+          showFeedback(
+            `게시글은 출간되었지만 시리즈 반영에 실패했습니다. ${seriesSyncResult.reason}`,
+            "error",
+            0,
+          );
+          return;
+        }
+        setCurrentSeriesSlug(seriesSyncResult.seriesSlug);
+      }
       const publicPath =
         createdStatus === "published" ? `/blog/${created.slug}/` : "/blog/";
       if (createdStatus === "published") {

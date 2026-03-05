@@ -1,0 +1,70 @@
+---
+import FormattedDate from "../../components/FormattedDate.astro";
+import { SITE_TITLE } from "../../consts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
+import { getSeriesBySlug } from "../../lib/series-db";
+
+const slug = Astro.params.slug ?? '';
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? '';
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+
+let series = null;
+try {
+  series = await getSeriesBySlug(slug, { includePrivate: isAdminViewer });
+} catch {
+  series = null;
+}
+
+if (!series) {
+  Astro.response.status = 404;
+}
+---
+
+<BaseLayout
+  title={series ? `${series.title} | Series | ${SITE_TITLE}` : `Series | ${SITE_TITLE}`}
+  description={series?.description ?? "Series not found"}
+>
+  {
+    series ? (
+      <section class="series-detail">
+        <header class="series-detail-hero">
+          <p class="kicker">SERIES</p>
+          <h1>{series.title}</h1>
+          <p>{series.description}</p>
+          <p class="series-detail-meta">
+            <span>{series.postCount} posts</span>
+            <span>·</span>
+            <FormattedDate date={series.updatedAt} />
+          </p>
+          {series.posts.length > 0 && (
+            <a class="button series-start-link" href={`/blog/${series.posts[0].slug}`}>
+              시리즈 시작하기
+            </a>
+          )}
+        </header>
+
+        <ol class="series-post-list">
+          {series.posts.map((post) => (
+            <li class="series-post-item" data-series-order={post.orderIndex}>
+              <a href={`/blog/${post.slug}`}>
+                <span class="series-post-index">{post.orderIndex}</span>
+                <span class="series-post-content">
+                  <strong>{post.title}</strong>
+                  {post.excerpt && <small>{post.excerpt}</small>}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ) : (
+      <section class="section">
+        <div class="empty-state">
+          <p>시리즈를 찾을 수 없습니다.</p>
+          <a class="button" href="/series">시리즈 목록</a>
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>

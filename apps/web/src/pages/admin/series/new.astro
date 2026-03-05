@@ -1,0 +1,105 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="New Series" description="Create series">
+  <section class="hero">
+    <p class="kicker">ADMIN SERIES</p>
+    <h1>새 시리즈</h1>
+  </section>
+
+  <section class="section auth-shell">
+    <form id="admin-series-form" class="auth-panel" autocomplete="off">
+      <label>
+        Slug
+        <input name="slug" required placeholder="series-slug" />
+      </label>
+      <label>
+        Title
+        <input name="title" required placeholder="Series title" />
+      </label>
+      <label>
+        Description
+        <textarea name="description" rows={4} required placeholder="Series description"></textarea>
+      </label>
+      <label>
+        Cover URL
+        <input name="cover_image_url" placeholder="https://..." />
+      </label>
+      <label>
+        Ordered Post Slugs
+        <textarea name="post_slugs" rows={6} placeholder="post-a, post-b or line separated"></textarea>
+      </label>
+      <div class="auth-panel">
+        <button class="button" type="submit">Create series</button>
+        <a class="button button-ghost" href="/admin/series">Cancel</a>
+      </div>
+      <p id="admin-series-feedback" class="lead"></p>
+    </form>
+  </section>
+</BaseLayout>
+
+<script type="module">
+  const form = document.querySelector("#admin-series-form");
+  const feedback = document.querySelector("#admin-series-feedback");
+  if (!(form instanceof HTMLFormElement)) {
+    throw new Error("admin-series-form is required");
+  }
+
+  const setFeedback = (text) => {
+    if (!(feedback instanceof HTMLElement)) return;
+    feedback.textContent = text;
+  };
+
+  const parsePostSlugs = (raw) =>
+    raw
+      .split(/[\n,]+/g)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(form);
+    const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+    const title = String(formData.get("title") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+    const coverImageUrlRaw = String(formData.get("cover_image_url") ?? "").trim();
+    const postSlugs = parsePostSlugs(String(formData.get("post_slugs") ?? ""));
+    const coverImageUrl = coverImageUrlRaw.length > 0 ? coverImageUrlRaw : null;
+
+    setFeedback("시리즈 생성 중...");
+    try {
+      const createResponse = await fetch("/internal-api/series", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          title,
+          description,
+          cover_image_url: coverImageUrl,
+        }),
+      });
+      if (!createResponse.ok) {
+        setFeedback("시리즈 생성에 실패했습니다.");
+        return;
+      }
+
+      if (postSlugs.length > 0) {
+        const reorderResponse = await fetch(`/internal-api/series/${encodeURIComponent(slug)}/posts`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ post_slugs: postSlugs }),
+        });
+        if (!reorderResponse.ok) {
+          setFeedback("시리즈는 생성되었지만 글 순서 저장에 실패했습니다.");
+          return;
+        }
+      }
+
+      window.location.assign("/admin/series");
+    } catch {
+      setFeedback("네트워크 오류로 처리하지 못했습니다.");
+    }
+  });
+</script>

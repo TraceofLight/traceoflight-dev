@@ -14,6 +14,7 @@ const ga4ReportsUrl = (process.env.GA4_REPORTS_URL ?? '').trim();
   <section class="section auth-shell">
     <div class="auth-panel">
       <a class="button" href="/admin/posts/new">Go to Writer</a>
+      <a class="button button-ghost" href="/admin/series">Series Manager</a>
       {
         ga4ReportsUrl && (
           <a class="button button-ghost" href={ga4ReportsUrl} target="_blank" rel="noreferrer">

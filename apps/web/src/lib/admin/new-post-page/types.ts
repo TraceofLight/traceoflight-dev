@@ -23,11 +23,17 @@ export interface AdminPostPayload {
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];
+  series_context?: AdminSeriesContext | null;
 }
 
 export interface AdminTagOption {
   slug: string;
   label: string;
+}
+
+export interface AdminSeriesContext {
+  series_slug: string;
+  series_title: string;
 }
 
 export interface AdminDraftListItem {

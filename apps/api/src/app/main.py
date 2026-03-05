@@ -15,6 +15,7 @@ from app.services.draft_cleanup_scheduler import run_draft_cleanup_loop
 OPENAPI_TAGS = [
     {'name': 'health', 'description': 'Liveness and readiness probe endpoints.'},
     {'name': 'posts', 'description': 'Post query endpoints and internal write operations.'},
+    {'name': 'series', 'description': 'Series discovery endpoints and internal series management operations.'},
     {'name': 'tags', 'description': 'Tag query endpoints and internal tag management operations.'},
     {'name': 'media', 'description': 'Media upload URL issuance, proxy upload, and metadata registration.'},
 ]

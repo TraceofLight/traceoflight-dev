@@ -18,6 +18,7 @@ import {
   requestDraftDelete,
   requestDraftList,
   requestPostBySlug,
+  requestSeriesList,
   requestTagList,
 } from "./new-post-page/posts-api";
 import {
@@ -88,7 +89,9 @@ export async function initNewPostAdminPage(
     excerptInput,
     coverInput,
     visibilityInput,
+    seriesInput,
     tagInput,
+    seriesSuggestionList,
     tagChipList,
     metaChipRail,
     tagSuggestionList,
@@ -174,6 +177,31 @@ export async function initNewPostAdminPage(
     buildTagSuggestionOptions(tagSuggestionList, result.tags);
   };
 
+  const loadSeriesSuggestions = async (query = "") => {
+    const nextSequence = ++seriesSuggestionSequence;
+    const result = await requestSeriesList();
+    if (nextSequence !== seriesSuggestionSequence) return;
+    if (!result.ok) return;
+
+    const queryText = query.trim().toLowerCase();
+    const filteredSeries = queryText
+      ? result.series.filter(
+          (series) =>
+            series.title.toLowerCase().includes(queryText) ||
+            series.slug.includes(queryText),
+        )
+      : result.series;
+
+    const fragment = document.createDocumentFragment();
+    filteredSeries.forEach((series) => {
+      const option = document.createElement("option");
+      option.value = series.title;
+      fragment.append(option);
+    });
+    seriesSuggestionList.innerHTML = "";
+    seriesSuggestionList.append(fragment);
+  };
+
   const mediaBaseUrl = normalizeMediaBaseUrl(
     form.dataset.mediaBaseUrl ?? "",
     window.location.origin,
@@ -193,7 +221,9 @@ export async function initNewPostAdminPage(
   let slugCheckTimer: number | null = null;
   let slugCheckSequence = 0;
   let tagSuggestionSequence = 0;
+  let seriesSuggestionSequence = 0;
   let editingPostSlug: string | null = mode === "edit" ? initialEditSlug : null;
+  let currentSeriesSlug: string | null = null;
   let activeDropTarget: DropTarget = null;
   let selectedTags: string[] = [];
 
@@ -411,6 +441,8 @@ export async function initNewPostAdminPage(
     coverInput.value = loaded.cover_image_url ?? "";
     visibilityInput.value =
       loaded.visibility === "private" ? "private" : "public";
+    currentSeriesSlug = loaded.series_context?.series_slug ?? null;
+    seriesInput.value = loaded.series_context?.series_title ?? "";
     selectedTags = dedupeTagSlugs(loaded.tags ?? []);
     syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");
@@ -615,6 +647,16 @@ export async function initNewPostAdminPage(
   tagInput.addEventListener("input", () => {
     const query = tagInput.value.trim();
     void loadTagSuggestions(query);
+  });
+
+  seriesInput.addEventListener("focus", () => {
+    const query = seriesInput.value.trim();
+    void loadSeriesSuggestions(query);
+  });
+
+  seriesInput.addEventListener("input", () => {
+    const query = seriesInput.value.trim();
+    void loadSeriesSuggestions(query);
   });
 
   tagInput.addEventListener("keydown", (event) => {
@@ -864,6 +906,7 @@ export async function initNewPostAdminPage(
     excerptInput,
     coverInput,
     visibilityInput,
+    seriesInput,
     openPublishButton,
     confirmPublishButton,
     editorBridge,
@@ -881,6 +924,10 @@ export async function initNewPostAdminPage(
       editingPostSlug = nextSlug;
     },
     getSelectedTags: () => selectedTags,
+    getCurrentSeriesSlug: () => currentSeriesSlug,
+    setCurrentSeriesSlug: (nextSlug) => {
+      currentSeriesSlug = nextSlug;
+    },
   });
 
   const teardown = () => {
@@ -904,6 +951,7 @@ export async function initNewPostAdminPage(
   window.addEventListener("pagehide", teardown, { once: true });
 
   void loadTagSuggestions();
+  void loadSeriesSuggestions();
   if (mode === "edit") {
     if (initialEditSlug) {
       await loadExistingPostBySlug(initialEditSlug, { showToast: false });

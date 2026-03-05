@@ -16,9 +16,21 @@ interface DbPostData {
   heroImage?: string;
 }
 
+interface SeriesContext {
+  seriesSlug: string;
+  seriesTitle: string;
+  orderIndex: number;
+  totalPosts: number;
+  prevPostSlug: string | null;
+  prevPostTitle: string | null;
+  nextPostSlug: string | null;
+  nextPostTitle: string | null;
+}
+
 interface BlogPostAdminProps {
   adminPostSlug?: string;
   showAdminActions?: boolean;
+  seriesContext?: SeriesContext;
 }
 
 type Props = (MarkdownPostData | DbPostData) & BlogPostAdminProps;
@@ -31,6 +43,7 @@ const {
   heroImage,
   adminPostSlug = '',
   showAdminActions = false,
+  seriesContext,
 } = Astro.props;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) : '';
@@ -81,6 +94,38 @@ const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) :
       <h1>{title}</h1>
       <p class="post-description">{description}</p>
     </header>
+
+    {
+      seriesContext && (
+        <section class="post-series-nav">
+          <p class="post-series-kicker">
+            <a href={`/series/${seriesContext.seriesSlug}`}>{seriesContext.seriesTitle}</a>
+            <span>
+              {' '}
+              · {seriesContext.orderIndex}/{seriesContext.totalPosts}
+            </span>
+          </p>
+          <div class="post-series-links">
+            {seriesContext.prevPostSlug ? (
+              <a class="post-series-prev" href={`/blog/${seriesContext.prevPostSlug}`}>
+                <small>이전 글</small>
+                <strong>{seriesContext.prevPostTitle ?? seriesContext.prevPostSlug}</strong>
+              </a>
+            ) : (
+              <span class="post-series-prev is-empty" aria-hidden="true"></span>
+            )}
+            {seriesContext.nextPostSlug ? (
+              <a class="post-series-next" href={`/blog/${seriesContext.nextPostSlug}`}>
+                <small>다음 글</small>
+                <strong>{seriesContext.nextPostTitle ?? seriesContext.nextPostSlug}</strong>
+              </a>
+            ) : (
+              <span class="post-series-next is-empty" aria-hidden="true"></span>
+            )}
+          </div>
+        </section>
+      )
+    }
 
     <section class="post-content">
       <slot />

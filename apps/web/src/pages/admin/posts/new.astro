@@ -132,6 +132,17 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
               </select>
             </label>
             <label class="writer-field">
+              <span>시리즈</span>
+              <input
+                id="post-series"
+                name="series"
+                type="text"
+                list="writer-series-suggestions"
+                placeholder="시리즈 이름 입력 (선택)"
+              />
+              <datalist id="writer-series-suggestions"></datalist>
+            </label>
+            <label class="writer-field">
               <span>태그</span>
               <input
                 id="post-tags"

@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.post import PostStatus, PostVisibility
+from app.schemas.series import PostSeriesContext
 from app.schemas.tag import TagRead
 
 
@@ -69,6 +70,10 @@ class PostRead(BaseModel):
     tags: list[TagRead] = Field(
         default_factory=list,
         description='Normalized tag objects assigned to this post.',
+    )
+    series_context: PostSeriesContext | None = Field(
+        default=None,
+        description='Optional in-series projection used by post detail navigation.',
     )
     created_at: datetime
     updated_at: datetime
