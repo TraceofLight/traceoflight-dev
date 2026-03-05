@@ -25,12 +25,21 @@ test("blog post layout includes admin edit delete controls and delete confirm mo
   assert.match(layoutSource, /id=["']post-admin-actions["']/);
   assert.match(layoutSource, /id=["']post-admin-delete-trigger["']/);
   assert.match(layoutSource, /id=["']post-admin-delete-modal["']/);
+  assert.match(layoutSource, /data-post-slug=\{adminPostSlug\}/);
   assert.match(layoutSource, /id=["']post-admin-delete-confirm["']/);
   assert.match(layoutSource, /id=["']post-admin-delete-cancel["']/);
   assert.match(layoutSource, /encodedAdminPostSlug/);
   assert.match(layoutSource, /\/admin\/posts\/\$\{encodedAdminPostSlug\}\/edit/);
-  assert.match(layoutSource, /fetch\(`\/internal-api\/posts\/\$\{encodeURIComponent\(adminPostSlug\)\}`/);
+  assert.match(layoutSource, /modal\.dataset\.deleteModalBound/);
+  assert.match(layoutSource, /const slug = typeof modal\.dataset\.postSlug === 'string' \? modal\.dataset\.postSlug\.trim\(\) : ''/);
+  assert.match(layoutSource, /const postPath = `\/internal-api\/posts\/\$\{encodeURIComponent\(slug\)\}`/);
+  assert.match(layoutSource, /const initializePostAdminDeleteModal = \(\) =>/);
+  assert.match(layoutSource, /document\.addEventListener\('astro:page-load', initializePostAdminDeleteModal\)/);
+  assert.match(layoutSource, /fetch\(postPath,\s*\{/);
   assert.match(layoutSource, /method:\s*["']DELETE["']/);
+  assert.match(layoutSource, /response\.status\s*===\s*403/);
+  assert.match(layoutSource, /method:\s*["']POST["']/);
+  assert.match(layoutSource, /action:\s*["']delete["']/);
   assert.match(layoutSource, /response\.status\s*===\s*404/);
   assert.match(layoutSource, /window\.location\.assign\(["']\/blog\/["']\)/);
 

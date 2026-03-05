@@ -31,6 +31,19 @@ function createProxiedResponse(response: Response, body: string): Response {
   });
 }
 
+async function proxyDeletePostBySlug(slug: string, query: string): Promise<Response> {
+  let response: Response;
+  try {
+    response = await requestBackend(`/posts/${slug}${query}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    return backendUnavailableResponse();
+  }
+  const responseBody = await response.text();
+  return createProxiedResponse(response, responseBody);
+}
+
 export const GET: APIRoute = async ({ params, url }) => {
   const slug = params.slug;
   if (!slug) {
@@ -88,15 +101,39 @@ export const DELETE: APIRoute = async ({ params, url }) => {
   }
 
   const query = url.search ? url.search : '';
-  let response: Response;
-  try {
-    response = await requestBackend(`/posts/${slug}${query}`, {
-      method: 'DELETE',
-    });
-  } catch {
-    return backendUnavailableResponse();
-  }
-  const responseBody = await response.text();
+  return proxyDeletePostBySlug(slug, query);
+};
 
-  return createProxiedResponse(response, responseBody);
+export const POST: APIRoute = async ({ params, request, url }) => {
+  const slug = params.slug;
+  if (!slug) {
+    return new Response(JSON.stringify({ message: 'slug is required' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  const bodyText = (await request.text()).trim();
+  let action = '';
+  if (bodyText.length > 0) {
+    try {
+      const parsed = JSON.parse(bodyText) as { action?: string };
+      action = typeof parsed.action === 'string' ? parsed.action.trim().toLowerCase() : '';
+    } catch {
+      return new Response(JSON.stringify({ message: 'invalid request payload' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+  }
+
+  if (action !== 'delete') {
+    return new Response(JSON.stringify({ message: 'unsupported action' }), {
+      status: 405,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  const query = url.search ? url.search : '';
+  return proxyDeletePostBySlug(slug, query);
 };

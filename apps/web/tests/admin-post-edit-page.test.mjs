@@ -14,7 +14,7 @@ test("admin post edit page bootstraps writer in edit mode", async () => {
   assert.match(source, /data-writer-mode=["']edit["']/);
   assert.match(source, /data-edit-slug=\{slug\}/);
   assert.match(source, /initNewPostAdminPage\(\{\s*mode:\s*["']edit["']/);
-  assert.match(source, /slug\s*\}\)/);
+  assert.doesNotMatch(source, /mode:\s*["']edit["'][\s\S]*slug/);
 });
 
 test("admin new writer page keeps create mode bootstrap", async () => {

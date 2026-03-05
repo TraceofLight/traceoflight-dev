@@ -96,7 +96,7 @@ const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) :
 
   {
     shouldRenderAdminActions && (
-      <div id="post-admin-delete-modal" class="post-admin-modal" data-open="false" hidden>
+      <div id="post-admin-delete-modal" class="post-admin-modal" data-open="false" data-post-slug={adminPostSlug} hidden>
         <button
           id="post-admin-delete-backdrop"
           class="post-admin-modal-backdrop"
@@ -121,15 +121,24 @@ const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) :
 
 {
   shouldRenderAdminActions && (
-    <script is:inline define:vars={{ adminPostSlug }}>
-      const slug = typeof adminPostSlug === 'string' ? adminPostSlug.trim() : '';
-      if (slug) {
+    <script type="module">
+      const initializePostAdminDeleteModal = () => {
         const modal = document.querySelector('#post-admin-delete-modal');
+        if (!(modal instanceof HTMLElement)) return;
+        if (modal.dataset.deleteModalBound === 'true') return;
+
+        const slug = typeof modal.dataset.postSlug === 'string' ? modal.dataset.postSlug.trim() : '';
+        if (!slug) return;
+
         const openButton = document.querySelector('#post-admin-delete-trigger');
         const closeButton = document.querySelector('#post-admin-delete-cancel');
         const backdropButton = document.querySelector('#post-admin-delete-backdrop');
         const confirmButton = document.querySelector('#post-admin-delete-confirm');
         const feedback = document.querySelector('#post-admin-delete-feedback');
+        if (!(openButton instanceof HTMLButtonElement)) return;
+        if (!(closeButton instanceof HTMLButtonElement)) return;
+        if (!(backdropButton instanceof HTMLButtonElement)) return;
+        if (!(confirmButton instanceof HTMLButtonElement)) return;
 
         const setFeedback = (message, state = 'info') => {
           if (!(feedback instanceof HTMLElement)) return;
@@ -138,7 +147,6 @@ const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) :
         };
 
         const setModalOpen = (nextOpen) => {
-          if (!(modal instanceof HTMLElement)) return;
           modal.hidden = !nextOpen;
           modal.dataset.open = nextOpen ? 'true' : 'false';
           if (!nextOpen) {
@@ -147,62 +155,60 @@ const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) :
         };
 
         const handleClose = () => setModalOpen(false);
+        modal.dataset.deleteModalBound = 'true';
+        openButton.addEventListener('click', () => setModalOpen(true));
+        closeButton.addEventListener('click', handleClose);
+        backdropButton.addEventListener('click', handleClose);
 
-        if (openButton instanceof HTMLButtonElement) {
-          openButton.addEventListener('click', () => {
-            setModalOpen(true);
-          });
-        }
-
-        if (closeButton instanceof HTMLButtonElement) {
-          closeButton.addEventListener('click', handleClose);
-        }
-
-        if (backdropButton instanceof HTMLButtonElement) {
-          backdropButton.addEventListener('click', handleClose);
-        }
-
-        if (confirmButton instanceof HTMLButtonElement) {
-          confirmButton.addEventListener('click', async () => {
-            confirmButton.disabled = true;
-            setFeedback('삭제 처리 중...', 'info');
-            try {
-              const response = await fetch(`/internal-api/posts/${encodeURIComponent(adminPostSlug)}`, {
-                method: 'DELETE',
+        confirmButton.addEventListener('click', async () => {
+          confirmButton.disabled = true;
+          setFeedback('삭제 처리 중...', 'info');
+          try {
+            const postPath = `/internal-api/posts/${encodeURIComponent(slug)}`;
+            let response = await fetch(postPath, {
+              method: 'DELETE',
+            });
+            if (response.status === 403) {
+              response = await fetch(postPath, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ action: 'delete' }),
               });
-
-              if (response.ok || response.status === 404) {
-                window.location.assign('/blog/');
-                return;
-              }
-
-              if (response.status === 401) {
-                setFeedback('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.', 'error');
-                return;
-              }
-
-              if (response.status === 503) {
-                setFeedback('백엔드 연결 상태가 불안정합니다. 잠시 후 다시 시도해 주세요.', 'error');
-                return;
-              }
-
-              setFeedback('게시글 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
-            } catch {
-              setFeedback('네트워크 오류로 게시글 삭제에 실패했습니다.', 'error');
-            } finally {
-              confirmButton.disabled = false;
             }
-          });
-        }
+
+            if (response.ok || response.status === 404) {
+              window.location.assign('/blog/');
+              return;
+            }
+
+            if (response.status === 401) {
+              setFeedback('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.', 'error');
+              return;
+            }
+
+            if (response.status === 503) {
+              setFeedback('백엔드 연결 상태가 불안정합니다. 잠시 후 다시 시도해 주세요.', 'error');
+              return;
+            }
+
+            setFeedback('게시글 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+          } catch {
+            setFeedback('네트워크 오류로 게시글 삭제에 실패했습니다.', 'error');
+          } finally {
+            confirmButton.disabled = false;
+          }
+        });
 
         window.addEventListener('keydown', (event) => {
           if (event.key !== 'Escape') return;
-          if (!(modal instanceof HTMLElement)) return;
           if (modal.dataset.open !== 'true') return;
           event.preventDefault();
           setModalOpen(false);
         });
-      }
+      };
+
+      initializePostAdminDeleteModal();
+      document.addEventListener('astro:page-load', initializePostAdminDeleteModal);
     </script>
   )
 }
