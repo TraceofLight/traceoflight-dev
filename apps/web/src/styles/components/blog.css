@@ -210,11 +210,14 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.75rem;
+  align-items: stretch;
 }
 
 .series-admin-field {
   display: grid;
+  grid-template-rows: auto 1fr;
   gap: 0.42rem;
+  min-height: 100%;
 }
 
 .series-admin-field span {
@@ -236,7 +239,8 @@
 }
 
 .series-admin-field textarea {
-  min-height: 84px;
+  min-height: 120px;
+  height: 100%;
   resize: vertical;
 }
 
@@ -247,6 +251,7 @@
   border-radius: var(--radius-sm);
   border: 1px dashed rgba(141, 160, 184, 0.28);
   background: rgba(9, 15, 24, 0.6);
+  min-height: 100%;
   transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 

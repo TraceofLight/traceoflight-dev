@@ -9,7 +9,7 @@ import { sanitizeNextPath } from '../../../lib/admin-redirect';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ cookies, request, url, redirect }) => {
+const performLogout: APIRoute = async ({ cookies, request, url, redirect }) => {
   const refreshToken = cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? '';
   if (refreshToken) {
     revokeRefreshTokenFamily(refreshToken);
@@ -26,4 +26,12 @@ export const POST: APIRoute = async ({ cookies, request, url, redirect }) => {
     status: 200,
     headers: { 'content-type': 'application/json' },
   });
+};
+
+export const POST: APIRoute = performLogout;
+
+export const GET: APIRoute = async (context) => {
+  await performLogout(context);
+  const nextPath = sanitizeNextPath(context.url.searchParams.get('next'));
+  return context.redirect(nextPath);
 };
