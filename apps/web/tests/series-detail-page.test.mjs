@@ -23,11 +23,16 @@ test("series detail page uses slug route and ordered series posts", async () => 
     /isAdminViewer && \([\s\S]*id="series-admin-panel"[\s\S]*id="series-admin-description"/,
   );
   assert.match(source, /id="series-admin-cover-image-url"/);
+  assert.match(source, /id="series-admin-cover-dropzone"/);
+  assert.match(source, /id="series-admin-cover-upload-trigger"/);
+  assert.match(source, /id="series-admin-cover-upload-input"/);
   assert.match(source, /id="series-admin-save-meta"/);
   assert.match(source, /data-series-move="up"/);
   assert.match(source, /data-series-move="down"/);
   assert.match(source, /id="series-admin-save-order"/);
   assert.match(source, /function initializeSeriesAdminControls\(\)/);
+  assert.match(source, /createUploadBundle/);
+  assert.match(source, /\/images\/empty-series-image\.png/);
   assert.match(source, /\/internal-api\/series\/\$\{encodeURIComponent\(slug\)\}/);
   assert.match(source, /\/internal-api\/series\/\$\{encodeURIComponent\(slug\)\}\/posts/);
 });

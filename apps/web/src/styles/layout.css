@@ -71,6 +71,10 @@
   gap: 0.45rem;
 }
 
+.header-admin-tools form {
+  margin: 0;
+}
+
 .header-admin-link,
 .header-admin-logout {
   min-height: 34px;
@@ -91,6 +95,10 @@
 .header-admin-link:hover {
   border-color: rgba(255, 128, 128, 0.8);
   color: #ffe4e4;
+}
+
+.header-admin-link[aria-disabled="true"] {
+  pointer-events: none;
 }
 
 .header-admin-logout {

@@ -7,6 +7,7 @@ import { listSeries } from "../../lib/series-db";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const defaultSeriesCoverImage = "/images/empty-series-image.png";
 
 let series = [];
 try {
@@ -30,11 +31,7 @@ try {
             <article class="series-card" data-series-card>
               <a class="series-card-anchor" href={`/series/${series.slug}`}>
                 <div class="series-card-thumb">
-                  {series.coverImageUrl ? (
-                    <img src={series.coverImageUrl} alt={series.title} loading="lazy" />
-                  ) : (
-                    <span>{series.title}</span>
-                  )}
+                  <img src={series.coverImageUrl ?? defaultSeriesCoverImage} alt={series.title} loading="lazy" />
                 </div>
                 <div class="series-card-body">
                   <h2>{series.title}</h2>

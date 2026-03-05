@@ -90,34 +90,36 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
       </>
     ) : (
       <>
-        <a class="thumb post-card-default-thumb" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
-          {
-            post.heroImage ? (
-              typeof post.heroImage === 'string' ? (
-                <img src={post.heroImage} alt={post.title} loading="lazy" />
+        <a class="post-card-default-anchor" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
+          <div class="thumb post-card-default-thumb">
+            {
+              post.heroImage ? (
+                typeof post.heroImage === 'string' ? (
+                  <img src={post.heroImage} alt={post.title} loading="lazy" />
+                ) : (
+                  <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+                )
               ) : (
-                <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+                <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
               )
-            ) : (
-              <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
-            )
-          }
+            }
+          </div>
+          <div class="post-card-default-body">
+            <p class="post-meta">
+              <FormattedDate date={post.pubDate} />
+              {
+                showVisibility && post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
+              }
+            </p>
+            <h3>{post.title}</h3>
+            <p class={`post-card-default-description${hasDescription ? '' : ' is-empty'}`}>
+              {hasDescription ? descriptionText : ' '}
+            </p>
+            <ul class={`post-card-tag-list${hasTags ? '' : ' is-empty'}`} aria-hidden={hasTags ? undefined : 'true'}>
+              {postTags.map((tag) => <li class="post-card-tag-chip">{tag}</li>)}
+            </ul>
+          </div>
         </a>
-        <p class="post-meta">
-          <FormattedDate date={post.pubDate} />
-          {
-            showVisibility && post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
-          }
-        </p>
-        <h3>
-          <a href={`/blog/${post.slug}/`}>{post.title}</a>
-        </h3>
-        <p class={`post-card-default-description${hasDescription ? '' : ' is-empty'}`}>
-          {hasDescription ? descriptionText : ' '}
-        </p>
-        <ul class={`post-card-tag-list${hasTags ? '' : ' is-empty'}`} aria-hidden={hasTags ? undefined : 'true'}>
-          {postTags.map((tag) => <li class="post-card-tag-chip">{tag}</li>)}
-        </ul>
       </>
     )
   }

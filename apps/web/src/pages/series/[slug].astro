@@ -8,6 +8,7 @@ import { getSeriesBySlug } from "../../lib/series-db";
 const slug = Astro.params.slug ?? '';
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? '';
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const defaultSeriesCoverImage = "/images/empty-series-image.png";
 
 let series = null;
 try {
@@ -47,25 +48,26 @@ if (!series) {
             )}
           </div>
           <div class="series-detail-hero-visual">
-            {series.coverImageUrl ? (
-              <img
-                id="series-hero-cover-image"
-                class="series-detail-hero-cover"
-                src={series.coverImageUrl}
-                alt={series.title}
-                loading="lazy"
-              />
-            ) : (
-              <div id="series-hero-cover-placeholder" class="series-detail-hero-cover-placeholder">
-                <span>{series.title}</span>
-              </div>
-            )}
+            <img
+              id="series-hero-cover-image"
+              class="series-detail-hero-cover"
+              src={series.coverImageUrl ?? defaultSeriesCoverImage}
+              alt={series.title}
+              loading="lazy"
+              data-default-cover={defaultSeriesCoverImage}
+            />
           </div>
         </header>
 
         {
           isAdminViewer && (
-            <section id="series-admin-panel" class="series-admin-panel" data-series-slug={series.slug} data-series-title={series.title}>
+            <section
+              id="series-admin-panel"
+              class="series-admin-panel"
+              data-series-slug={series.slug}
+              data-series-title={series.title}
+              data-default-cover-image={defaultSeriesCoverImage}
+            >
               <h2>시리즈 관리</h2>
               <div class="series-admin-grid">
                 <label class="series-admin-field">
@@ -74,7 +76,16 @@ if (!series) {
                 </label>
                 <label class="series-admin-field">
                   <span>썸네일 URL</span>
-                  <input id="series-admin-cover-image-url" type="url" placeholder="https://..." value={series.coverImageUrl ?? ''} />
+                  <div id="series-admin-cover-dropzone" class="series-admin-cover-dropzone">
+                    <input id="series-admin-cover-image-url" type="url" placeholder="https://..." value={series.coverImageUrl ?? ''} />
+                    <div class="series-admin-cover-controls">
+                      <button id="series-admin-cover-upload-trigger" class="button button-ghost" type="button">
+                        파일 업로드
+                      </button>
+                      <input id="series-admin-cover-upload-input" type="file" accept="image/*" hidden />
+                      <small>이미지를 드래그/드롭하거나 업로드 버튼으로 추가하세요.</small>
+                    </div>
+                  </div>
                 </label>
               </div>
               <div class="series-admin-actions">
@@ -138,6 +149,8 @@ if (!series) {
 </BaseLayout>
 
 <script type="module">
+  import { createUploadBundle } from "../../lib/admin/new-post-page/upload";
+
   function initializeSeriesAdminControls() {
     const panel = document.querySelector("#series-admin-panel");
     const postList = document.querySelector("#series-post-list");
@@ -152,6 +165,9 @@ if (!series) {
 
     const descriptionInput = document.querySelector("#series-admin-description");
     const coverInput = document.querySelector("#series-admin-cover-image-url");
+    const coverDropzone = document.querySelector("#series-admin-cover-dropzone");
+    const coverUploadTrigger = document.querySelector("#series-admin-cover-upload-trigger");
+    const coverUploadInput = document.querySelector("#series-admin-cover-upload-input");
     const saveMetaButton = document.querySelector("#series-admin-save-meta");
     const saveOrderButton = document.querySelector("#series-admin-save-order");
     const metaFeedback = document.querySelector("#series-admin-meta-feedback");
@@ -161,13 +177,40 @@ if (!series) {
     const startLink = document.querySelector("#series-start-link");
     if (!(descriptionInput instanceof HTMLTextAreaElement)) return;
     if (!(coverInput instanceof HTMLInputElement)) return;
+    if (!(coverDropzone instanceof HTMLElement)) return;
+    if (!(coverUploadTrigger instanceof HTMLButtonElement)) return;
+    if (!(coverUploadInput instanceof HTMLInputElement)) return;
     if (!(saveMetaButton instanceof HTMLButtonElement)) return;
     if (!(heroVisual instanceof HTMLElement)) return;
+
+    const defaultCoverImage =
+      typeof panel.dataset.defaultCoverImage === "string" &&
+      panel.dataset.defaultCoverImage.trim().length > 0
+        ? panel.dataset.defaultCoverImage.trim()
+        : "/images/empty-series-image.png";
 
     const setFeedback = (target, message, state = "info") => {
       if (!(target instanceof HTMLElement)) return;
       target.textContent = message;
       target.dataset.state = state;
+    };
+
+    const extractErrorDetail = async (response, fallbackMessage) => {
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const payload = await response.json().catch(() => null);
+        if (payload && typeof payload === "object") {
+          if (typeof payload.detail === "string" && payload.detail.trim()) {
+            return payload.detail.trim();
+          }
+          if (typeof payload.message === "string" && payload.message.trim()) {
+            return payload.message.trim();
+          }
+        }
+      }
+      const text = await response.text().catch(() => "");
+      if (text.trim().length > 0) return text.trim();
+      return fallbackMessage;
     };
 
     const normalizeCover = (rawValue) => {
@@ -177,40 +220,31 @@ if (!series) {
 
     const ensureCoverPreview = (coverImageUrl) => {
       if (!(heroVisual instanceof HTMLElement)) return;
-
       const currentImage = heroVisual.querySelector("#series-hero-cover-image");
-      const currentPlaceholder = heroVisual.querySelector("#series-hero-cover-placeholder");
+      const nextImageUrl = coverImageUrl || defaultCoverImage;
 
-      if (coverImageUrl) {
-        if (currentPlaceholder instanceof HTMLElement) {
-          currentPlaceholder.remove();
-        }
-        if (currentImage instanceof HTMLImageElement) {
-          currentImage.src = coverImageUrl;
-          return;
-        }
-        const image = document.createElement("img");
-        image.id = "series-hero-cover-image";
-        image.className = "series-detail-hero-cover";
-        image.alt = title;
-        image.loading = "lazy";
-        image.src = coverImageUrl;
-        heroVisual.append(image);
+      if (currentImage instanceof HTMLImageElement) {
+        currentImage.onerror = () => {
+          if (currentImage.src !== defaultCoverImage) {
+            currentImage.src = defaultCoverImage;
+          }
+        };
+        currentImage.src = nextImageUrl;
         return;
       }
 
-      if (currentImage instanceof HTMLImageElement) {
-        currentImage.remove();
-      }
-      if (!(currentPlaceholder instanceof HTMLElement)) {
-        const placeholder = document.createElement("div");
-        placeholder.id = "series-hero-cover-placeholder";
-        placeholder.className = "series-detail-hero-cover-placeholder";
-        const label = document.createElement("span");
-        label.textContent = title;
-        placeholder.append(label);
-        heroVisual.append(placeholder);
-      }
+      const image = document.createElement("img");
+      image.id = "series-hero-cover-image";
+      image.className = "series-detail-hero-cover";
+      image.alt = title;
+      image.loading = "lazy";
+      image.onerror = () => {
+        if (image.src !== defaultCoverImage) {
+          image.src = defaultCoverImage;
+        }
+      };
+      image.src = nextImageUrl;
+      heroVisual.append(image);
     };
 
     const getOrderedItems = () =>
@@ -278,11 +312,92 @@ if (!series) {
       setFeedback(orderFeedback, "순서가 변경되었습니다. 저장 버튼으로 반영하세요.", "info");
     });
 
+    const mediaBaseUrl = `${window.location.origin}/media`;
+
+    const uploadSeriesCover = async (file) => {
+      if (!(file instanceof File)) return;
+      if (!file.type.startsWith("image/")) {
+        setFeedback(metaFeedback, "이미지 파일만 업로드할 수 있습니다.", "error");
+        return;
+      }
+
+      coverUploadTrigger.disabled = true;
+      setFeedback(metaFeedback, "시리즈 썸네일을 업로드하는 중...", "info");
+      try {
+        const uploadBundle = await createUploadBundle(file, mediaBaseUrl);
+        coverInput.value = uploadBundle.mediaUrl;
+        ensureCoverPreview(uploadBundle.mediaUrl);
+        setFeedback(metaFeedback, "업로드 완료. 저장 버튼으로 반영하세요.", "ok");
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message.trim()
+            : "썸네일 업로드에 실패했습니다.";
+        setFeedback(metaFeedback, message, "error");
+      } finally {
+        coverUploadTrigger.disabled = false;
+        coverUploadInput.value = "";
+        coverDropzone.classList.remove("is-dragover");
+      }
+    };
+
+    const setDropzoneState = (isActive) => {
+      coverDropzone.classList.toggle("is-dragover", Boolean(isActive));
+    };
+
+    coverInput.addEventListener("input", () => {
+      ensureCoverPreview(normalizeCover(coverInput.value));
+    });
+
+    coverUploadTrigger.addEventListener("click", () => {
+      coverUploadInput.click();
+    });
+
+    coverUploadInput.addEventListener("change", async () => {
+      const file = coverUploadInput.files?.[0];
+      if (!file) return;
+      await uploadSeriesCover(file);
+    });
+
+    coverDropzone.addEventListener("dragenter", (event) => {
+      event.preventDefault();
+      setDropzoneState(true);
+    });
+
+    coverDropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      setDropzoneState(true);
+    });
+
+    coverDropzone.addEventListener("dragleave", (event) => {
+      event.preventDefault();
+      const currentTarget = event.currentTarget;
+      if (!(currentTarget instanceof HTMLElement)) return;
+      if (event.relatedTarget instanceof Node && currentTarget.contains(event.relatedTarget)) {
+        return;
+      }
+      setDropzoneState(false);
+    });
+
+    coverDropzone.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      setDropzoneState(false);
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      await uploadSeriesCover(file);
+    });
+
     saveMetaButton.addEventListener("click", async () => {
       const description = descriptionInput.value.trim();
       if (!description) {
         setFeedback(metaFeedback, "시리즈 설명을 입력해 주세요.", "error");
         descriptionInput.focus();
+        return;
+      }
+      const normalizedCoverImageUrl = normalizeCover(coverInput.value);
+      if (typeof normalizedCoverImageUrl === "string" && normalizedCoverImageUrl.length > 500) {
+        setFeedback(metaFeedback, "썸네일 URL은 500자 이하여야 합니다.", "error");
+        coverInput.focus();
         return;
       }
 
@@ -296,7 +411,7 @@ if (!series) {
             slug,
             title,
             description,
-            cover_image_url: normalizeCover(coverInput.value),
+            cover_image_url: normalizedCoverImageUrl,
           }),
         });
 
@@ -305,8 +420,11 @@ if (!series) {
             setFeedback(metaFeedback, "관리자 세션이 만료되었습니다. 다시 로그인해 주세요.", "error");
             return;
           }
-          const errorJson = await response.json().catch(() => ({}));
-          setFeedback(metaFeedback, errorJson.detail || "시리즈 저장에 실패했습니다.", "error");
+          const errorDetail = await extractErrorDetail(
+            response,
+            "시리즈 저장에 실패했습니다.",
+          );
+          setFeedback(metaFeedback, errorDetail, "error");
           return;
         }
 
@@ -362,10 +480,13 @@ if (!series) {
               );
               return;
             }
-            const errorJson = await response.json().catch(() => ({}));
+            const errorDetail = await extractErrorDetail(
+              response,
+              "글 순서 저장에 실패했습니다.",
+            );
             setFeedback(
               orderFeedback,
-              errorJson.detail || "글 순서 저장에 실패했습니다.",
+              errorDetail,
               "error",
             );
             return;
@@ -382,6 +503,7 @@ if (!series) {
 
     refreshOrderIndices();
     refreshMoveButtons();
+    ensureCoverPreview(normalizeCover(coverInput.value));
   }
 
   initializeSeriesAdminControls();

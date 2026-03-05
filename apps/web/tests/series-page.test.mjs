@@ -12,6 +12,7 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(source, /id="series-archive"/);
   assert.match(source, /data-series-card/);
   assert.match(source, /href=\{`\/series\/\$\{series\.slug\}`\}/);
+  assert.match(source, /\/images\/empty-series-image\.png/);
   assert.match(source, /아직 등록된 시리즈가 없습니다/);
 });
 

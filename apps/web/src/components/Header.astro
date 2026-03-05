@@ -16,20 +16,22 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       {
         isAdminViewer && (
           <div class="header-admin-tools">
-            <a
+            <span
               id="header-admin-link"
               class="header-admin-link"
-              href="/admin/posts/new"
+              aria-disabled="true"
             >
               Admin
-            </a>
-            <button
-              id="header-admin-logout"
-              class="header-admin-logout"
-              type="button"
-            >
-              Logout
-            </button>
+            </span>
+            <form method="POST" action="/internal-api/auth/logout?next=/">
+              <button
+                id="header-admin-logout"
+                class="header-admin-logout"
+                type="submit"
+              >
+                Logout
+              </button>
+            </form>
           </div>
         )
       }
@@ -44,30 +46,3 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
     </nav>
   </div>
 </header>
-
-<script type="module">
-  const initializeHeaderAdminLogout = () => {
-    const logoutButton = document.querySelector("#header-admin-logout");
-    if (!(logoutButton instanceof HTMLButtonElement)) return;
-    if (logoutButton.dataset.bound === "true") return;
-    logoutButton.dataset.bound = "true";
-
-    logoutButton.addEventListener("click", async () => {
-      logoutButton.disabled = true;
-      try {
-        const response = await fetch("/internal-api/auth/logout", {
-          method: "POST",
-        });
-        if (!response.ok) {
-          throw new Error("logout failed");
-        }
-        window.location.assign("/");
-      } catch {
-        logoutButton.disabled = false;
-      }
-    });
-  };
-
-  initializeHeaderAdminLogout();
-  document.addEventListener("astro:page-load", initializeHeaderAdminLogout);
-</script>
