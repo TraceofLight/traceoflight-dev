@@ -17,6 +17,7 @@ import {
   requestDraftBySlug,
   requestDraftDelete,
   requestDraftList,
+  requestTagList,
 } from "./new-post-page/posts-api";
 import {
   markCoverPreviewLoaded,
@@ -27,6 +28,13 @@ import {
   setCompactToggleLabel,
 } from "./new-post-page/preview";
 import { bindSubmitEvent } from "./new-post-page/submit-events";
+import {
+  buildTagSuggestionOptions,
+  consumeTagInputValue,
+  dedupeTagSlugs,
+  renderMetadataChipRail,
+  syncTagInputState,
+} from "./new-post-page/tags";
 import {
   normalizeCoverUrl,
   normalizeMarkdownLinks,
@@ -63,6 +71,10 @@ export async function initNewPostAdminPage(): Promise<void> {
     excerptInput,
     coverInput,
     visibilityInput,
+    tagInput,
+    tagChipList,
+    metaChipRail,
+    tagSuggestionList,
     previewTitle,
     previewContent,
     coverPreview,
@@ -106,6 +118,43 @@ export async function initNewPostAdminPage(): Promise<void> {
     draftFeedback.dataset.state = state;
   };
 
+  const syncTagUi = () => {
+    syncTagInputState(tagInput, selectedTags);
+    renderMetadataChipRail({
+      rail: metaChipRail,
+      tagChipList,
+      tags: selectedTags,
+      onRemoveTag: (slug) => {
+        selectedTags = selectedTags.filter((current) => current !== slug);
+        syncTagUi();
+      },
+    });
+  };
+
+  const commitTagInput = () => {
+    const rawValue = tagInput.value.trim();
+    if (!rawValue) return;
+    const { nextTags, consumed } = consumeTagInputValue(
+      `${rawValue},`,
+      selectedTags,
+    );
+    if (!consumed) {
+      tagInput.value = "";
+      return;
+    }
+    selectedTags = nextTags;
+    tagInput.value = "";
+    syncTagUi();
+  };
+
+  const loadTagSuggestions = async (query = "") => {
+    const nextSequence = ++tagSuggestionSequence;
+    const result = await requestTagList(query);
+    if (nextSequence !== tagSuggestionSequence) return;
+    if (!result.ok) return;
+    buildTagSuggestionOptions(tagSuggestionList, result.tags);
+  };
+
   const mediaBaseUrl = normalizeMediaBaseUrl(
     form.dataset.mediaBaseUrl ?? "",
     window.location.origin,
@@ -124,8 +173,10 @@ export async function initNewPostAdminPage(): Promise<void> {
   let dragDepth = 0;
   let slugCheckTimer: number | null = null;
   let slugCheckSequence = 0;
+  let tagSuggestionSequence = 0;
   let editingPostSlug: string | null = null;
   let activeDropTarget: DropTarget = null;
+  let selectedTags: string[] = [];
 
   const setDraftLayerOpen = (nextOpen: boolean) => {
     draftLayer.hidden = !nextOpen;
@@ -203,6 +254,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     }, 1000);
   };
   setSlugValidationState("idle");
+  syncTagUi();
 
   const setDropTargetState = (target: DropTarget) => {
     if (activeDropTarget === target) return;
@@ -340,6 +392,8 @@ export async function initNewPostAdminPage(): Promise<void> {
     coverInput.value = loaded.cover_image_url ?? "";
     visibilityInput.value =
       loaded.visibility === "private" ? "private" : "public";
+    selectedTags = dedupeTagSlugs(loaded.tags ?? []);
+    syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");
     setSlugValidationState("idle");
     queueSlugAvailabilityCheck();
@@ -507,6 +561,36 @@ export async function initNewPostAdminPage(): Promise<void> {
   });
 
   excerptInput.addEventListener("input", queuePreviewRefresh);
+  visibilityInput.addEventListener("change", () => {
+    queuePreviewRefresh();
+  });
+
+  tagInput.addEventListener("input", () => {
+    const query = tagInput.value.trim();
+    void loadTagSuggestions(query);
+  });
+
+  tagInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      commitTagInput();
+      return;
+    }
+
+    if (
+      event.key === "Backspace" &&
+      !tagInput.value.trim() &&
+      selectedTags.length > 0
+    ) {
+      selectedTags = selectedTags.slice(0, -1);
+      syncTagUi();
+    }
+  });
+
+  tagInput.addEventListener("blur", () => {
+    commitTagInput();
+  });
+
   coverInput.addEventListener("input", queuePreviewRefresh);
   coverInput.addEventListener("blur", () => {
     normalizeCoverInputValue(true);
@@ -749,6 +833,7 @@ export async function initNewPostAdminPage(): Promise<void> {
     setEditingPostSlug: (nextSlug) => {
       editingPostSlug = nextSlug;
     },
+    getSelectedTags: () => selectedTags,
   });
 
   const teardown = () => {
@@ -771,6 +856,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   window.addEventListener("beforeunload", teardown, { once: true });
   window.addEventListener("pagehide", teardown, { once: true });
 
+  void loadTagSuggestions();
   await loadDraftFromQuery();
   syncCompactViewForViewport();
   await refreshPreview();

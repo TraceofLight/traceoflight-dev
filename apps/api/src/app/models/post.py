@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.tag import PostTag, Tag
 
 
 class PostStatus(str, enum.Enum):
@@ -43,3 +47,17 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         default=PostVisibility.PUBLIC,
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    post_tags: Mapped[list["PostTag"]] = relationship(
+        "PostTag",
+        back_populates="post",
+        cascade="all, delete-orphan",
+        overlaps="posts,tags",
+    )
+    tags: Mapped[list["Tag"]] = relationship(
+        "Tag",
+        secondary="post_tags",
+        back_populates="posts",
+        overlaps="post_tags,post,tag",
+        order_by="Tag.slug",
+    )

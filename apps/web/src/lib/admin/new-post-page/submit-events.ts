@@ -41,6 +41,7 @@ export interface SubmitBindings {
   updateDraftQueryParam: (nextSlug: string | null) => void;
   getEditingPostSlug: () => string | null;
   setEditingPostSlug: (nextSlug: string | null) => void;
+  getSelectedTags: () => string[];
 }
 
 export function bindSubmitEvent(bindings: SubmitBindings): void {
@@ -65,6 +66,7 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     updateDraftQueryParam,
     getEditingPostSlug,
     setEditingPostSlug,
+    getSelectedTags,
   } = bindings;
 
   form.addEventListener("submit", async (event) => {
@@ -121,6 +123,7 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       coverImageUrl: coverInput.value,
       status,
       visibility,
+      tags: getSelectedTags(),
       nowIso: new Date().toISOString(),
     });
     const submitRequest = resolveSubmitRequest(getEditingPostSlug());

@@ -22,6 +22,12 @@ export interface AdminPostPayload {
   cover_image_url: string | null;
   status: PostStatus;
   visibility: PostVisibility;
+  tags: string[];
+}
+
+export interface AdminTagOption {
+  slug: string;
+  label: string;
 }
 
 export interface AdminDraftListItem {

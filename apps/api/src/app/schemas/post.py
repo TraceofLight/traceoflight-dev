@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.post import PostStatus, PostVisibility
+from app.schemas.tag import TagRead
 
 
 class PostCreate(BaseModel):
@@ -46,6 +47,11 @@ class PostCreate(BaseModel):
         description='Publication timestamp in UTC. Null for unpublished drafts.',
         json_schema_extra={'example': '2026-03-05T09:00:00Z'},
     )
+    tags: list[str] = Field(
+        default_factory=list,
+        description='Tag slug list assigned to this post.',
+        json_schema_extra={'example': ['fastapi', 'astro']},
+    )
 
 
 class PostRead(BaseModel):
@@ -60,5 +66,9 @@ class PostRead(BaseModel):
     status: PostStatus
     visibility: PostVisibility
     published_at: datetime | None
+    tags: list[TagRead] = Field(
+        default_factory=list,
+        description='Normalized tag objects assigned to this post.',
+    )
     created_at: datetime
     updated_at: datetime

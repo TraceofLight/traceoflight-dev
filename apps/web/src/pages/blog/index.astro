@@ -22,6 +22,7 @@ if (provider === 'db') {
       updatedDate: post.updatedAt,
       heroImage: post.coverImageUrl,
       visibility: post.visibility,
+      tags: post.tags.map((tag) => tag.slug),
     }));
   } catch {
     posts = [];
@@ -32,6 +33,20 @@ if (provider === 'db') {
 
 const publicCount = posts.filter((post) => post.visibility !== 'private').length;
 const privateCount = posts.filter((post) => post.visibility === 'private').length;
+const tagCountMap = new Map<string, number>();
+for (const post of posts) {
+  const normalizedTags = new Set((post.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean));
+  for (const tag of normalizedTags) {
+    tagCountMap.set(tag, (tagCountMap.get(tag) ?? 0) + 1);
+  }
+}
+const tagFilters = Array.from(tagCountMap.entries())
+  .map(([slug, count]) => ({ slug, count }))
+  .sort((left, right) => left.slug.localeCompare(right.slug, 'ko-KR'));
+const selectedTagsFromQuery = Astro.url.searchParams
+  .getAll('tag')
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
 ---
 
 <BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
@@ -77,13 +92,28 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
                   </>
                 )
               }
+              {
+                tagFilters.map((tag) => {
+                  const isActive = selectedTagsFromQuery.includes(tag.slug);
+                  return (
+                    <button
+                      class={isActive ? 'is-active' : undefined}
+                      type="button"
+                      data-tag-filter={tag.slug}
+                      aria-pressed={isActive ? 'true' : 'false'}
+                    >
+                      {tag.slug} ({tag.count})
+                    </button>
+                  );
+                })
+              }
             </div>
           </section>
 
           <p id="blog-post-count" class="blog-archive-count">총 {posts.length}개의 포스트</p>
 
           <section id="blog-post-grid" class="blog-archive-grid">
-            {posts.map((post) => <PostCard post={post} variant="archive" />)}
+            {posts.map((post) => <PostCard post={post} variant="archive" showVisibility={isAdminViewer} />)}
           </section>
         </>
       ) : (
@@ -111,9 +141,18 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
     const filterButtons = Array.from(filterScope.querySelectorAll('[data-visibility-filter]')).filter((button) =>
       button instanceof HTMLButtonElement,
     );
+    const tagButtons = Array.from(filterScope.querySelectorAll('[data-tag-filter]')).filter((button) =>
+      button instanceof HTMLButtonElement,
+    );
     let activeVisibility = 'all';
+    let activeTags = new Set();
 
     const normalize = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+    const parseCardTags = (value) =>
+      (typeof value === 'string' ? value : '')
+        .split(',')
+        .map((tag) => normalize(tag))
+        .filter(Boolean);
 
     const sortCards = (visibleCards) => {
       const selectedSort = sortSelect instanceof HTMLSelectElement ? sortSelect.value : 'latest';
@@ -140,9 +179,13 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
         const cardVisibility = normalize(card.dataset.visibility || 'public');
         const title = normalize(card.dataset.title || '');
         const description = normalize(card.dataset.description || '');
+        const cardTags = parseCardTags(card.dataset.tags || '');
         const matchesVisibility = activeVisibility === 'all' || cardVisibility === activeVisibility;
         const matchesSearch = !searchTerm || title.includes(searchTerm) || description.includes(searchTerm);
-        const isVisible = matchesVisibility && matchesSearch;
+        const matchesTag =
+          activeTags.size === 0 ||
+          cardTags.some((tag) => activeTags.has(tag));
+        const isVisible = matchesVisibility && matchesSearch && matchesTag;
 
         card.toggleAttribute('hidden', !isVisible);
         if (isVisible) {
@@ -160,6 +203,25 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
       }
     };
 
+    const syncTagFilterButtons = () => {
+      tagButtons.forEach((button) => {
+        const tagValue = normalize(button.dataset.tagFilter || '');
+        const isActive = tagValue ? activeTags.has(tagValue) : false;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    };
+
+    const syncTagQuery = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tag');
+      const firstTag = Array.from(activeTags)[0];
+      if (firstTag) {
+        url.searchParams.set('tag', firstTag);
+      }
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    };
+
     const setActiveFilter = (value) => {
       activeVisibility = normalize(value || 'all') || 'all';
       filterButtons.forEach((button) => {
@@ -170,9 +232,36 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
       applyFiltersAndSort();
     };
 
+    const initializeTagFilterFromQuery = () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const initialTags = searchParams
+        .getAll('tag')
+        .map((value) => normalize(value))
+        .filter(Boolean);
+      activeTags = new Set(initialTags.slice(0, 1));
+      syncTagFilterButtons();
+    };
+
     filterButtons.forEach((button) => {
       button.addEventListener('click', () => {
         setActiveFilter(button.dataset.visibilityFilter || 'all');
+      });
+    });
+
+    tagButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const tagValue = normalize(button.dataset.tagFilter || '');
+        if (!tagValue) {
+          return;
+        }
+        if (activeTags.has(tagValue)) {
+          activeTags.clear();
+        } else {
+          activeTags = new Set([tagValue]);
+        }
+        syncTagFilterButtons();
+        syncTagQuery();
+        applyFiltersAndSort();
       });
     });
 
@@ -184,6 +273,7 @@ const privateCount = posts.filter((post) => post.visibility === 'private').lengt
       searchInput.addEventListener('input', applyFiltersAndSort);
     }
 
+    initializeTagFilterFromQuery();
     setActiveFilter('all');
   }
 

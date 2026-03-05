@@ -10,9 +10,15 @@ export interface DbPost {
   cover_image_url: string | null;
   status: 'draft' | 'published' | 'archived';
   visibility?: 'public' | 'private';
+  tags: DbTag[];
   published_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbTag {
+  slug: string;
+  label: string;
 }
 
 export interface DbBlogPost {
@@ -23,6 +29,7 @@ export interface DbBlogPost {
   bodyMarkdown: string;
   coverImageUrl?: string;
   visibility: 'public' | 'private';
+  tags: DbTag[];
   publishedAt: Date;
   updatedAt?: Date;
 }
@@ -39,10 +46,11 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     id: post.id,
     slug: post.slug,
     title: post.title,
-    description: post.excerpt ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    description: post.excerpt?.trim() ?? '',
     bodyMarkdown: post.body_markdown,
     coverImageUrl: post.cover_image_url ?? undefined,
     visibility: post.visibility === 'private' ? 'private' : 'public',
+    tags: Array.isArray(post.tags) ? post.tags : [],
     publishedAt: new Date(publishedDate),
     updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
   };

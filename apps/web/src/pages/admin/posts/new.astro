@@ -125,6 +125,20 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
                 <option value="private">Private</option>
               </select>
             </label>
+            <label class="writer-field">
+              <span>태그</span>
+              <input
+                id="post-tags"
+                name="tags"
+                type="text"
+                list="writer-tag-suggestions"
+                placeholder="태그 입력 후 Enter 또는 콤마"
+              />
+              <datalist id="writer-tag-suggestions"></datalist>
+            </label>
+            <div id="writer-meta-chip-rail" class="writer-meta-chip-rail">
+              <div id="writer-tag-chip-list" class="writer-tag-chip-list"></div>
+            </div>
             <label id="writer-cover-drop-zone" class="writer-field writer-field-cover-drop" data-drop-state="idle">
               <span>Cover Image URL</span>
               <input id="post-cover" name="cover_image_url" type="url" placeholder="https://..." />

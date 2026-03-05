@@ -112,6 +112,51 @@
   font-size: 0.76rem;
 }
 
+.writer-meta-chip-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.writer-tag-chip-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.writer-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.8rem;
+  padding: 0.24rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid #d5deea;
+  background: #f8fbff;
+  color: #526274;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.writer-meta-chip.writer-meta-chip-system {
+  border-color: #b9d7cc;
+  background: #edf9f3;
+  color: #0f8a64;
+}
+
+.writer-meta-chip.writer-meta-chip-tag {
+  cursor: pointer;
+}
+
+.writer-meta-chip.writer-meta-chip-tag:hover {
+  border-color: #e7bbbb;
+  background: #fff6f6;
+  color: #b43a3a;
+}
+
 .writer-slug-input-wrap:focus-within {
   border-color: #4fc8a2;
   box-shadow: 0 0 0 2px rgba(79, 200, 162, 0.18);

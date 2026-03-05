@@ -9,6 +9,10 @@ export interface WriterDomElements {
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
   visibilityInput: HTMLSelectElement;
+  tagInput: HTMLInputElement;
+  tagChipList: HTMLElement;
+  metaChipRail: HTMLElement;
+  tagSuggestionList: HTMLDataListElement;
   previewTitle: HTMLElement;
   previewContent: HTMLElement;
   coverPreview: HTMLElement;
@@ -44,6 +48,10 @@ const WRITER_SELECTORS = {
   excerptInput: "#post-excerpt",
   coverInput: "#post-cover",
   visibilityInput: "#post-visibility",
+  tagInput: "#post-tags",
+  tagChipList: "#writer-tag-chip-list",
+  metaChipRail: "#writer-meta-chip-rail",
+  tagSuggestionList: "#writer-tag-suggestions",
   previewTitle: "#writer-preview-title",
   previewContent: "#writer-preview-content",
   coverPreview: "#writer-cover-preview",
@@ -100,6 +108,13 @@ export function queryWriterDomElements(
     visibilityInput: queryElement<HTMLSelectElement>(
       root,
       WRITER_SELECTORS.visibilityInput,
+    ),
+    tagInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.tagInput),
+    tagChipList: queryElement<HTMLElement>(root, WRITER_SELECTORS.tagChipList),
+    metaChipRail: queryElement<HTMLElement>(root, WRITER_SELECTORS.metaChipRail),
+    tagSuggestionList: queryElement<HTMLDataListElement>(
+      root,
+      WRITER_SELECTORS.tagSuggestionList,
     ),
     previewTitle: queryElement<HTMLElement>(root, WRITER_SELECTORS.previewTitle),
     previewContent: queryElement<HTMLElement>(

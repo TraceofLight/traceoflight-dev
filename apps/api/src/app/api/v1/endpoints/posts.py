@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+from typing import Literal
 
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends
@@ -42,6 +43,14 @@ def ensure_trusted_internal_request(request: Request, request_secret: str | None
     raise HTTPException(status_code=401, detail='unauthorized')
 
 
+def _integrity_conflict_detail(exc: IntegrityError) -> str:
+    source = getattr(exc, "orig", exc)
+    message = str(source).lower()
+    if "ix_posts_slug" in message or "posts.slug" in message or "posts_slug_key" in message:
+        return "post slug already exists"
+    return "post integrity conflict"
+
+
 @router.get(
     '',
     response_model=list[PostRead],
@@ -60,6 +69,14 @@ def list_posts(
     offset: int = Query(default=0, ge=0),
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
+    tag: list[str] | None = Query(
+        default=None,
+        description='Repeatable tag query parameter. Example: ?tag=fastapi&tag=astro',
+    ),
+    tag_match: Literal['any', 'all'] = Query(
+        default='any',
+        description='Tag match strategy. "any" matches at least one tag; "all" requires all requested tags.',
+    ),
     x_internal_api_secret: str | None = Header(
         default=None,
         alias='x-internal-api-secret',
@@ -74,7 +91,14 @@ def list_posts(
         effective_status = PostStatus.PUBLISHED
         effective_visibility = PostVisibility.PUBLIC
 
-    return service.list_posts(limit=limit, offset=offset, status=effective_status, visibility=effective_visibility)
+    return service.list_posts(
+        limit=limit,
+        offset=offset,
+        status=effective_status,
+        visibility=effective_visibility,
+        tags=tag,
+        tag_match=tag_match,
+    )
 
 
 @router.get(
@@ -141,7 +165,7 @@ def create_post(
     try:
         return service.create_post(payload)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail='post slug already exists') from exc
+        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
 
 
 @router.put(
@@ -172,7 +196,7 @@ def update_post_by_slug(
     try:
         updated = service.update_post_by_slug(slug=slug, payload=payload)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail='post slug already exists') from exc
+        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
     if updated is None:
         raise HTTPException(status_code=404, detail='post not found')
     return updated

@@ -9,11 +9,24 @@ interface Props {
   variant?: 'default' | 'archive';
   imageWidth?: number;
   imageHeight?: number;
+  showVisibility?: boolean;
 }
 
-const { post, variant = 'default', imageWidth = 1200, imageHeight = 630 } = Astro.props;
+const {
+  post,
+  variant = 'default',
+  imageWidth = 1200,
+  imageHeight = 630,
+  showVisibility = false,
+} = Astro.props;
 const normalizedVisibility = post.visibility === 'private' ? 'private' : 'public';
-const descriptionText = post.description?.trim() || '요약이 아직 등록되지 않았습니다.';
+const descriptionText = post.description?.trim() ?? '';
+const hasDescription = descriptionText.length > 0;
+const postTags = (post.tags ?? [])
+  .map((tag) => tag.trim().toLowerCase())
+  .filter(Boolean);
+const hasTags = postTags.length > 0;
+const fallbackHeroImage = '/images/empty-article-image.png';
 const readingMinutes = Math.max(
   1,
   Math.round(
@@ -31,13 +44,53 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
   data-title={post.title.toLowerCase()}
   data-description={descriptionText.toLowerCase()}
   data-visibility={normalizedVisibility}
+  data-tags={postTags.join(',')}
   data-published-at={String(post.pubDate.valueOf())}
   data-sort-title={post.title.toLowerCase()}
 >
   {
     variant === 'archive' ? (
       <>
-        <a class="thumb post-card-archive-thumb" href={`/blog/${post.slug}/`}>
+        <a class="post-card-archive-anchor" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
+          <div class="thumb post-card-archive-thumb">
+            {
+              post.heroImage ? (
+                typeof post.heroImage === 'string' ? (
+                  <img src={post.heroImage} alt={post.title} loading="lazy" />
+                ) : (
+                  <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
+                )
+              ) : (
+                <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
+              )
+            }
+          </div>
+          <div class="post-card-archive-body">
+            {
+              showVisibility && (
+                <p class="post-card-archive-kicker">
+                  {normalizedVisibility === 'private' ? '비공개 포스트' : '공개 포스트'}
+                </p>
+              )
+            }
+            <h3>{post.title}</h3>
+            <p class={`post-card-archive-description${hasDescription ? '' : ' is-empty'}`}>
+              {hasDescription ? descriptionText : ' '}
+            </p>
+            <ul class={`post-card-tag-list${hasTags ? '' : ' is-empty'}`} aria-hidden={hasTags ? undefined : 'true'}>
+              {postTags.map((tag) => <li class="post-card-tag-chip">{tag}</li>)}
+            </ul>
+            <p class="post-card-archive-meta">
+              <span><FormattedDate date={post.pubDate} /></span>
+              <span aria-hidden="true">•</span>
+              <span>약 {readingMinutes}분</span>
+            </p>
+          </div>
+        </a>
+      </>
+    ) : (
+      <>
+        <a class="thumb post-card-default-thumb" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
           {
             post.heroImage ? (
               typeof post.heroImage === 'string' ? (
@@ -46,48 +99,25 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
                 <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
               )
             ) : (
-              <span class="post-card-archive-thumb-placeholder">TraceofLight</span>
+              <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
             )
           }
         </a>
-        <div class="post-card-archive-body">
-          <p class="post-card-archive-kicker">{normalizedVisibility === 'private' ? '비공개 포스트' : '공개 포스트'}</p>
-          <h3>
-            <a href={`/blog/${post.slug}/`}>{post.title}</a>
-          </h3>
-          <p class="post-card-archive-description">{descriptionText}</p>
-          <p class="post-card-archive-meta">
-            <span><FormattedDate date={post.pubDate} /></span>
-            <span aria-hidden="true">•</span>
-            <span>약 {readingMinutes}분</span>
-          </p>
-        </div>
-      </>
-    ) : (
-      <>
-        {
-          post.heroImage && (
-            <a class="thumb" href={`/blog/${post.slug}/`}>
-              {
-                typeof post.heroImage === 'string' ? (
-                  <img src={post.heroImage} alt={post.title} loading="lazy" />
-                ) : (
-                  <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
-                )
-              }
-            </a>
-          )
-        }
         <p class="post-meta">
           <FormattedDate date={post.pubDate} />
           {
-            post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
+            showVisibility && post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
           }
         </p>
         <h3>
           <a href={`/blog/${post.slug}/`}>{post.title}</a>
         </h3>
-        <p>{descriptionText}</p>
+        <p class={`post-card-default-description${hasDescription ? '' : ' is-empty'}`}>
+          {hasDescription ? descriptionText : ' '}
+        </p>
+        <ul class={`post-card-tag-list${hasTags ? '' : ' is-empty'}`} aria-hidden={hasTags ? undefined : 'true'}>
+          {postTags.map((tag) => <li class="post-card-tag-chip">{tag}</li>)}
+        </ul>
       </>
     )
   }

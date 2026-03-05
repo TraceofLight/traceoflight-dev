@@ -34,6 +34,8 @@ def test_posts_operations_expose_reference_metadata() -> None:
     assert create_op['summary'] == 'Create post'
     assert '401' in create_op['responses']
     assert '409' in create_op['responses']
+    assert 'tag' in str(list_op)
+    assert 'tag_match' in str(list_op)
 
     assert delete_op['summary'] == 'Delete post'
     assert delete_op['responses']['204']['description'] == 'Post deleted'
@@ -55,19 +57,38 @@ def test_media_operations_document_upload_flow_and_proxy_headers() -> None:
 def test_post_and_media_component_schemas_have_field_descriptions() -> None:
     schema = _openapi()
     post_create = schema['components']['schemas']['PostCreate']['properties']
+    post_read = schema['components']['schemas']['PostRead']['properties']
     media_upload = schema['components']['schemas']['MediaUploadRequest']['properties']
 
     assert post_create['slug']['description'] == 'URL-friendly unique post identifier.'
     assert 'example' in post_create['title']
+    assert post_create['tags']['description'] == 'Tag slug list assigned to this post.'
+    assert post_read['tags']['description'] == 'Normalized tag objects assigned to this post.'
     assert media_upload['filename']['description'] == 'Original file name from client.'
     assert 'example' in media_upload['mime_type']
 
 
-def test_openapi_has_tag_descriptions_for_health_posts_media() -> None:
+def test_openapi_has_tag_descriptions_for_health_posts_media_and_tags() -> None:
     schema = _openapi()
     tags = {tag['name']: tag for tag in schema['tags']}
 
     assert 'health' in tags
     assert 'posts' in tags
     assert 'media' in tags
+    assert 'tags' in tags
     assert 'liveness' in tags['health']['description'].lower()
+
+
+def test_openapi_includes_tags_endpoints_metadata() -> None:
+    schema = _openapi()
+    list_op = schema['paths']['/api/v1/tags']['get']
+    create_op = schema['paths']['/api/v1/tags']['post']
+    patch_op = schema['paths']['/api/v1/tags/{slug}']['patch']
+    delete_op = schema['paths']['/api/v1/tags/{slug}']['delete']
+
+    assert list_op['summary'] == 'List tags'
+    assert create_op['summary'] == 'Create tag'
+    assert patch_op['summary'] == 'Update tag'
+    assert delete_op['summary'] == 'Delete tag'
+    assert '401' in create_op['responses']
+    assert '409' in create_op['responses']

@@ -15,8 +15,17 @@ class PostService:
         offset: int = 0,
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
+        tags: list[str] | None = None,
+        tag_match: str = "any",
     ):
-        return self.repo.list(limit=limit, offset=offset, status=status, visibility=visibility)
+        return self.repo.list(
+            limit=limit,
+            offset=offset,
+            status=status,
+            visibility=visibility,
+            tags=tags,
+            tag_match=tag_match,
+        )
 
     def get_post_by_slug(
         self,

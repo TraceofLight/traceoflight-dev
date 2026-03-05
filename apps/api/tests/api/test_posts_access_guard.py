@@ -40,12 +40,22 @@ class _StubPostService:
         self.update_called = False
         self.delete_called = False
 
-    def list_posts(self, limit=20, offset=0, status=None, visibility=None):  # type: ignore[no-untyped-def]
+    def list_posts(  # type: ignore[no-untyped-def]
+        self,
+        limit=20,
+        offset=0,
+        status=None,
+        visibility=None,
+        tags=None,
+        tag_match="any",
+    ):
         self.list_call = {
             'limit': limit,
             'offset': offset,
             'status': status,
             'visibility': visibility,
+            'tags': tags,
+            'tag_match': tag_match,
         }
         return []
 

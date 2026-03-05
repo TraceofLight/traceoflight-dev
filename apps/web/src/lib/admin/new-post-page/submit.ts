@@ -14,6 +14,7 @@ export interface SubmitPayloadInput {
   coverImageUrl: string;
   status: PostStatus;
   visibility: PostVisibility;
+  tags: string[];
   nowIso: string;
 }
 
@@ -30,6 +31,7 @@ export interface SubmitPayload {
   cover_image_url: string | null;
   status: PostStatus;
   visibility: PostVisibility;
+  tags: string[];
   published_at: string | null;
 }
 
@@ -49,6 +51,7 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     coverImageUrl,
     status,
     visibility,
+    tags,
     nowIso,
   } = input;
   return {
@@ -59,6 +62,7 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     cover_image_url: coverImageUrl.trim() || null,
     status,
     visibility,
+    tags,
     published_at: status === "published" ? nowIso : null,
   };
 }
