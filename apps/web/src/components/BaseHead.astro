@@ -17,6 +17,7 @@ const canonicalBase = Astro.site ?? new URL(SITE_URL);
 const canonicalURL = new URL(Astro.url.pathname, canonicalBase);
 const ogImage = image ? new URL(image.src, Astro.url) : new URL('/android-chrome-512x512.png', Astro.url);
 const fullTitle = title.includes(SITE_TITLE) ? title : `${title} | ${SITE_TITLE}`;
+const iconVersion = '20260305';
 const ga4MeasurementIdRaw = (process.env.GA4_MEASUREMENT_ID ?? '').trim();
 const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4MeasurementIdRaw : '';
 ---
@@ -25,11 +26,14 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="generator" content={Astro.generator} />
 
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-<link rel="icon" href="/favicon.ico" sizes="any" />
-<link rel="manifest" href="/site.webmanifest" />
+<meta name="application-name" content={SITE_TITLE} />
+<meta name="apple-mobile-web-app-title" content={SITE_TITLE} />
+<link rel="apple-touch-icon" sizes="180x180" href={`/apple-touch-icon.png?v=${iconVersion}`} />
+<link rel="icon" type="image/png" sizes="32x32" href={`/favicon-32x32.png?v=${iconVersion}`} />
+<link rel="icon" type="image/png" sizes="16x16" href={`/favicon-16x16.png?v=${iconVersion}`} />
+<link rel="shortcut icon" href={`/favicon.ico?v=${iconVersion}`} />
+<link rel="icon" href={`/favicon.ico?v=${iconVersion}`} sizes="any" />
+<link rel="manifest" href={`/site.webmanifest?v=${iconVersion}`} />
 <link rel="sitemap" href="/sitemap-index.xml" />
 <link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="canonical" href={canonicalURL} />
