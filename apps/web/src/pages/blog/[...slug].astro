@@ -6,6 +6,7 @@ import BlogPost from '../../layouts/BlogPost.astro';
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from '../../lib/admin-auth';
 import { getPublishedDbPostBySlug, renderDbMarkdown } from '../../lib/blog-db';
 import { getBlogSource, getContentProvider } from '../../lib/content-source';
+import { getSeriesBySlug } from '../../lib/series-db';
 
 const slug = Astro.params.slug ?? '';
 const provider = getContentProvider();
@@ -24,11 +25,64 @@ if (provider === 'db') {
 
 let Content: Awaited<ReturnType<typeof render>>['Content'] | null = null;
 let dbPostHtml: string | null = null;
+let dbSeriesPostsForSidebar: {
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverImageUrl?: string;
+  relation: 'prev' | 'next';
+}[] = [];
 
 if (markdownPost) {
   ({ Content } = await render(markdownPost));
 } else if (dbPost) {
   dbPostHtml = renderDbMarkdown(dbPost.bodyMarkdown);
+  const seriesSlug = dbPost.seriesContext?.seriesSlug?.trim() ?? '';
+  if (seriesSlug.length > 0) {
+    try {
+      const detail = await getSeriesBySlug(seriesSlug, { includePrivate: isAdminViewer });
+      if (detail?.posts?.length) {
+        const bySlug = new Map(
+          detail.posts.map((post) => [
+            post.slug,
+            {
+              slug: post.slug,
+              title: post.title,
+              excerpt: post.excerpt ?? '',
+              coverImageUrl: post.coverImageUrl,
+            },
+          ]),
+        );
+
+        const prevPostSlug = dbPost.seriesContext?.prevPostSlug?.trim() ?? '';
+        const nextPostSlug = dbPost.seriesContext?.nextPostSlug?.trim() ?? '';
+
+        if (prevPostSlug.length > 0) {
+          const prevPost = bySlug.get(prevPostSlug);
+          dbSeriesPostsForSidebar.push({
+            slug: prevPostSlug,
+            title: prevPost?.title ?? dbPost.seriesContext?.prevPostTitle ?? prevPostSlug,
+            excerpt: prevPost?.excerpt ?? '',
+            coverImageUrl: prevPost?.coverImageUrl,
+            relation: 'prev',
+          });
+        }
+
+        if (nextPostSlug.length > 0) {
+          const nextPost = bySlug.get(nextPostSlug);
+          dbSeriesPostsForSidebar.push({
+            slug: nextPostSlug,
+            title: nextPost?.title ?? dbPost.seriesContext?.nextPostTitle ?? nextPostSlug,
+            excerpt: nextPost?.excerpt ?? '',
+            coverImageUrl: nextPost?.coverImageUrl,
+            relation: 'next',
+          });
+        }
+      }
+    } catch {
+      dbSeriesPostsForSidebar = [];
+    }
+  }
 } else {
   Astro.response.status = 404;
 }
@@ -46,9 +100,11 @@ if (markdownPost) {
       pubDate={dbPost.publishedAt}
       updatedDate={dbPost.updatedAt}
       heroImage={dbPost.coverImageUrl}
+      postSlug={dbPost.slug}
       adminPostSlug={dbPost.slug}
       showAdminActions={isAdminViewer}
       seriesContext={dbPost.seriesContext}
+      seriesPosts={dbSeriesPostsForSidebar}
     >
       <div set:html={dbPostHtml} />
     </BlogPost>

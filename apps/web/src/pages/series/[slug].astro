@@ -9,6 +9,7 @@ const slug = Astro.params.slug ?? '';
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? '';
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 const defaultSeriesCoverImage = "/images/empty-series-image.png";
+const defaultSeriesPostCoverImage = "/images/empty-series-image.png";
 
 let series = null;
 try {
@@ -108,6 +109,12 @@ if (!series) {
                     <strong>{post.title}</strong>
                     {post.excerpt && <small>{post.excerpt}</small>}
                   </span>
+                  <img
+                    class="series-post-thumb"
+                    src={post.coverImageUrl ?? defaultSeriesPostCoverImage}
+                    alt={post.title}
+                    loading="lazy"
+                  />
                 </a>
                 {
                   isAdminViewer && (
@@ -349,6 +356,14 @@ if (!series) {
       ensureCoverPreview(normalizeCover(coverInput.value));
     });
 
+    coverDropzone.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLButtonElement) {
+        return;
+      }
+      coverUploadInput.click();
+    });
+
     coverUploadTrigger.addEventListener("click", () => {
       coverUploadInput.click();
     });
@@ -361,16 +376,19 @@ if (!series) {
 
     coverDropzone.addEventListener("dragenter", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       setDropzoneState(true);
     });
 
     coverDropzone.addEventListener("dragover", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       setDropzoneState(true);
     });
 
     coverDropzone.addEventListener("dragleave", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       const currentTarget = event.currentTarget;
       if (!(currentTarget instanceof HTMLElement)) return;
       if (event.relatedTarget instanceof Node && currentTarget.contains(event.relatedTarget)) {
@@ -381,6 +399,7 @@ if (!series) {
 
     coverDropzone.addEventListener("drop", async (event) => {
       event.preventDefault();
+      event.stopPropagation();
       setDropzoneState(false);
       const file = event.dataTransfer?.files?.[0];
       if (!file) return;
@@ -506,6 +525,12 @@ if (!series) {
     ensureCoverPreview(normalizeCover(coverInput.value));
   }
 
-  initializeSeriesAdminControls();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeSeriesAdminControls, {
+      once: true,
+    });
+  } else {
+    initializeSeriesAdminControls();
+  }
   document.addEventListener("astro:page-load", initializeSeriesAdminControls);
 </script>

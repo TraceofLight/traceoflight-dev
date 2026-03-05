@@ -27,10 +27,20 @@ interface SeriesContext {
   nextPostTitle: string | null;
 }
 
+interface SeriesPostItem {
+  slug: string;
+  title: string;
+  excerpt?: string;
+  coverImageUrl?: string;
+  relation: 'prev' | 'next';
+}
+
 interface BlogPostAdminProps {
+  postSlug?: string;
   adminPostSlug?: string;
   showAdminActions?: boolean;
   seriesContext?: SeriesContext;
+  seriesPosts?: SeriesPostItem[];
 }
 
 type Props = (MarkdownPostData | DbPostData) & BlogPostAdminProps;
@@ -44,100 +54,113 @@ const {
   adminPostSlug = '',
   showAdminActions = false,
   seriesContext,
+  seriesPosts = [],
 } = Astro.props;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) : '';
+const defaultSeriesPostCoverImage = '/images/empty-series-image.png';
+const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 ---
 
 <BaseLayout title={title} description={description} image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}>
-  <article class="post-shell">
-    <nav class="post-top-nav" aria-label="Post navigation">
-      <a class="post-back-link button button-ghost" href="/blog/">
-        <span aria-hidden="true">‹</span>
-        <span>블로그로 돌아가기</span>
-      </a>
-      {
-        shouldRenderAdminActions && (
-          <div id="post-admin-actions" class="post-admin-actions">
-            <a class="button button-ghost post-admin-action-edit" href={`/admin/posts/${encodedAdminPostSlug}/edit`}>
-              수정
-            </a>
-            <button id="post-admin-delete-trigger" class="button button-ghost post-admin-action-delete" type="button">
-              삭제
-            </button>
-          </div>
-        )
-      }
-    </nav>
-
-    {
-      heroImage &&
-        (typeof heroImage === 'string' ? (
-          <img class="post-hero" src={heroImage} alt={title} loading="lazy" />
-        ) : (
-          <Image class="post-hero" src={heroImage} alt={title} width={1200} height={630} />
-        ))
-    }
-
-    <header class="post-header">
-      <p class="post-meta">
-        <FormattedDate date={pubDate} />
+  <div class={`post-layout${hasSeriesSidebar ? ' has-series-sidebar' : ''}`}>
+    <article class="post-shell">
+      <nav class="post-top-nav" aria-label="Post navigation">
+        <a class="post-back-link button button-ghost" href="/blog/">
+          <span aria-hidden="true">‹</span>
+          <span>블로그로 돌아가기</span>
+        </a>
         {
-          updatedDate && (
-            <>
-              {' '}
-              / updated <FormattedDate date={updatedDate} />
-            </>
+          shouldRenderAdminActions && (
+            <div id="post-admin-actions" class="post-admin-actions">
+              <a class="button button-ghost post-admin-action-edit" href={`/admin/posts/${encodedAdminPostSlug}/edit`}>
+                수정
+              </a>
+              <button id="post-admin-delete-trigger" class="button button-ghost post-admin-action-delete" type="button">
+                삭제
+              </button>
+            </div>
           )
         }
-      </p>
-      <h1>{title}</h1>
-      <p class="post-description">{description}</p>
-    </header>
+      </nav>
+
+      {
+        heroImage &&
+          (typeof heroImage === 'string' ? (
+            <img class="post-hero" src={heroImage} alt={title} loading="lazy" />
+          ) : (
+            <Image class="post-hero" src={heroImage} alt={title} width={1200} height={630} />
+          ))
+      }
+
+      <header class="post-header">
+        <p class="post-meta">
+          <FormattedDate date={pubDate} />
+          {
+            updatedDate && (
+              <>
+                {' '}
+                / updated <FormattedDate date={updatedDate} />
+              </>
+            )
+          }
+        </p>
+        <h1>{title}</h1>
+        <p class="post-description">{description}</p>
+      </header>
+
+      <section class="post-content">
+        <slot />
+      </section>
+
+      <nav class="post-bottom-nav" aria-label="Blog archive">
+        <a class="post-archive-link button button-ghost" href="/blog/">
+          <span aria-hidden="true">☰</span>
+          <span>모든 글 보기</span>
+        </a>
+      </nav>
+    </article>
 
     {
-      seriesContext && (
-        <section class="post-series-nav">
-          <p class="post-series-kicker">
-            <a href={`/series/${seriesContext.seriesSlug}`}>{seriesContext.seriesTitle}</a>
-            <span>
-              {' '}
-              · {seriesContext.orderIndex}/{seriesContext.totalPosts}
-            </span>
-          </p>
-          <div class="post-series-links">
-            {seriesContext.prevPostSlug ? (
-              <a class="post-series-prev" href={`/blog/${seriesContext.prevPostSlug}`}>
-                <small>이전 글</small>
-                <strong>{seriesContext.prevPostTitle ?? seriesContext.prevPostSlug}</strong>
-              </a>
-            ) : (
-              <span class="post-series-prev is-empty" aria-hidden="true"></span>
-            )}
-            {seriesContext.nextPostSlug ? (
-              <a class="post-series-next" href={`/blog/${seriesContext.nextPostSlug}`}>
-                <small>다음 글</small>
-                <strong>{seriesContext.nextPostTitle ?? seriesContext.nextPostSlug}</strong>
-              </a>
-            ) : (
-              <span class="post-series-next is-empty" aria-hidden="true"></span>
-            )}
-          </div>
-        </section>
+      hasSeriesSidebar && seriesContext && (
+        <aside class="post-series-sidebar" aria-label="시리즈 탐색">
+          <section class="post-series-nav">
+            <p class="post-series-kicker">
+              <a href={`/series/${seriesContext.seriesSlug}`}>{seriesContext.seriesTitle}</a>
+              <span>
+                {' '}
+                · {seriesContext.orderIndex}/{seriesContext.totalPosts}
+              </span>
+            </p>
+            <ol class="post-series-links post-series-sidebar-list">
+              {seriesPosts.map((seriesPost) => {
+                const relationClass = seriesPost.relation === 'prev' ? 'post-series-prev' : 'post-series-next';
+                const previewText = (seriesPost.excerpt ?? '').trim();
+                const relationLabel = seriesPost.relation === 'prev' ? '이전 글' : '다음 글';
+                return (
+                  <li class="post-series-sidebar-item">
+                    <a class={`post-series-sidebar-link ${relationClass}`} href={`/blog/${seriesPost.slug}`}>
+                      <img
+                        class="post-series-sidebar-thumb"
+                        src={seriesPost.coverImageUrl ?? defaultSeriesPostCoverImage}
+                        alt={seriesPost.title}
+                        loading="lazy"
+                      />
+                      <span class="post-series-sidebar-content">
+                        <small>{relationLabel}</small>
+                        <strong>{seriesPost.title}</strong>
+                        <em>{previewText.length > 0 ? previewText : '요약 없음'}</em>
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        </aside>
       )
     }
-
-    <section class="post-content">
-      <slot />
-    </section>
-
-    <nav class="post-bottom-nav" aria-label="Blog archive">
-      <a class="post-archive-link button button-ghost" href="/blog/">
-        <span aria-hidden="true">☰</span>
-        <span>모든 글 보기</span>
-      </a>
-    </nav>
-  </article>
+  </div>
 
   {
     shouldRenderAdminActions && (

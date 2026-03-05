@@ -40,7 +40,7 @@ def _normalize_series_title(value: str | None) -> str | None:
 def _slugify_series_title(title: str) -> str:
     chars: list[str] = []
     last_was_dash = False
-    for char in title.strip().lower():
+    for char in title.strip():
         if char.isalnum():
             chars.append(char)
             last_was_dash = False

@@ -225,7 +225,7 @@ function normalizeTagOptions(raw: unknown): AdminTagOption[] {
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
     const slug = typeof (item as { slug?: unknown }).slug === "string"
-      ? (item as { slug: string }).slug.trim()
+      ? (item as { slug: string }).slug.trim().toLowerCase()
       : "";
     if (!slug || seen.has(slug)) continue;
     const label = typeof (item as { label?: unknown }).label === "string"
@@ -244,9 +244,9 @@ function normalizeTagSlugs(raw: unknown): string[] {
   for (const item of raw) {
     let slug = "";
     if (typeof item === "string") {
-      slug = item.trim();
+      slug = item.trim().toLowerCase();
     } else if (item && typeof item === "object" && typeof (item as { slug?: unknown }).slug === "string") {
-      slug = (item as { slug: string }).slug.trim();
+      slug = (item as { slug: string }).slug.trim().toLowerCase();
     }
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
@@ -264,7 +264,7 @@ function normalizeSeriesContext(raw: unknown): AdminSeriesContext | null {
   ) {
     return null;
   }
-  const series_slug = value.series_slug.trim().toLowerCase();
+  const series_slug = value.series_slug.trim();
   const series_title = value.series_title.trim();
   if (!series_slug || !series_title) return null;
   return { series_slug, series_title };
@@ -277,7 +277,7 @@ function normalizeSeriesList(raw: unknown): SeriesListItem[] {
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
     const value = item as Record<string, unknown>;
-    const slug = typeof value.slug === "string" ? value.slug.trim().toLowerCase() : "";
+    const slug = typeof value.slug === "string" ? value.slug.trim() : "";
     const title = typeof value.title === "string" ? value.title.trim() : "";
     if (!slug || !title || seen.has(slug)) continue;
     seen.add(slug);
