@@ -12,6 +12,12 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.services.draft_cleanup_scheduler import run_draft_cleanup_loop
 
+OPENAPI_TAGS = [
+    {'name': 'health', 'description': 'Liveness and readiness probe endpoints.'},
+    {'name': 'posts', 'description': 'Post query endpoints and internal write operations.'},
+    {'name': 'media', 'description': 'Media upload URL issuance, proxy upload, and metadata registration.'},
+]
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -27,7 +33,12 @@ async def lifespan(_: FastAPI):
             await cleanup_task
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name,
+    description='TraceofLight content API for post and media management.',
+    lifespan=lifespan,
+    openapi_tags=OPENAPI_TAGS,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

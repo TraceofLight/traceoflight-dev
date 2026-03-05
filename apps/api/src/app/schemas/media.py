@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.media import AssetKind
 
@@ -35,9 +35,18 @@ class MediaRead(BaseModel):
 
 
 class MediaUploadRequest(BaseModel):
-    kind: AssetKind
-    filename: str
-    mime_type: str
+    kind: AssetKind = Field(
+        description='Logical asset category used for storage path and validation.',
+        json_schema_extra={'example': 'image'},
+    )
+    filename: str = Field(
+        description='Original file name from client.',
+        json_schema_extra={'example': 'cover.jpg'},
+    )
+    mime_type: str = Field(
+        description='IANA media type of upload file.',
+        json_schema_extra={'example': 'image/jpeg'},
+    )
 
 
 class MediaUploadResponse(BaseModel):

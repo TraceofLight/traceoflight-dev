@@ -26,6 +26,26 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port "$API_PORT"
 pytest -q
 ```
 
+OpenAPI documentation contract test:
+
+```bash
+pytest tests/api/test_openapi_docs.py -q
+```
+
+## OpenAPI Commenting Style
+
+OpenAPI metadata and docstring conventions are documented at:
+
+- `docs/api/fastapi-openapi-commenting-style.md`
+
+## OpenAPI Export
+
+Export static OpenAPI JSON artifact:
+
+```bash
+python scripts/export_openapi.py
+```
+
 ## Docker Stack
 
 Use `infra/docker/api/docker-compose.yml` to run API + PostgreSQL + MinIO.

@@ -13,24 +13,73 @@ from app.services.media_service import MediaService
 router = APIRouter()
 
 
-@router.post('/upload-url', response_model=MediaUploadResponse)
+@router.post(
+    '/upload-url',
+    response_model=MediaUploadResponse,
+    summary='Create upload URL',
+    description='Issue a pre-signed object storage upload URL for a client-provided media descriptor.',
+    responses={
+        200: {'description': 'Pre-signed upload URL issued'},
+    },
+)
 def create_upload_url(
     payload: MediaUploadRequest,
     service: MediaService = Depends(get_media_service),
 ) -> MediaUploadResponse:
+    """Create a pre-signed upload URL for object storage."""
     return service.create_upload_url(payload)
 
 
-@router.post('', response_model=MediaRead)
+@router.post(
+    '',
+    response_model=MediaRead,
+    summary='Register uploaded media',
+    description='Persist metadata for media that has already been uploaded to object storage.',
+    responses={
+        200: {'description': 'Media metadata registered'},
+    },
+)
 def register_media(
     payload: MediaCreate,
     service: MediaService = Depends(get_media_service),
 ) -> MediaRead:
+    """Register uploaded media metadata in the database."""
     return service.register_media(payload)
 
 
-@router.post('/upload-proxy')
+@router.post(
+    '/upload-proxy',
+    summary='Proxy upload to object storage',
+    description=(
+        'Forward raw request body to a pre-signed object storage URL. '
+        'Required header: x-upload-url. Optional header: x-upload-content-type.'
+    ),
+    responses={
+        200: {'description': 'Binary payload uploaded successfully'},
+        400: {'description': 'Missing header/body or unsupported protocol'},
+        502: {'description': 'Object storage upload request failed'},
+    },
+    openapi_extra={
+        'parameters': [
+            {
+                'name': 'x-upload-url',
+                'in': 'header',
+                'required': True,
+                'schema': {'type': 'string'},
+                'description': 'Pre-signed PUT URL from object storage.',
+            },
+            {
+                'name': 'x-upload-content-type',
+                'in': 'header',
+                'required': False,
+                'schema': {'type': 'string'},
+                'description': 'Content-Type forwarded to object storage PUT request.',
+            },
+        ]
+    },
+)
 async def upload_media_proxy(request: FastAPIRequest) -> dict[str, bool]:
+    """Upload binary payload to object storage via server-side proxy."""
     upload_url = str(request.headers.get('x-upload-url', '')).strip()
     content_type = str(
         request.headers.get('x-upload-content-type')
