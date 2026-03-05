@@ -328,9 +328,9 @@
 
 .series-post-item-reorder {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.68rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.42rem;
 }
 
 .blog-archive-hero {

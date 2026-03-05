@@ -114,6 +114,24 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
     if (modal.dataset.bound === "true") return;
     modal.dataset.bound = "true";
 
+    const isAdminViewer =
+      document.querySelector("#header-admin-logout") instanceof HTMLButtonElement;
+    if (isAdminViewer) {
+      modal.hidden = true;
+      modal.dataset.open = "false";
+      if (modal.dataset.openOnLoad === "true") {
+        const current = new URL(window.location.href);
+        current.searchParams.delete("admin_login");
+        current.searchParams.delete("next");
+        window.history.replaceState(
+          {},
+          "",
+          `${current.pathname}${current.search}${current.hash}`,
+        );
+      }
+      return;
+    }
+
     const nextPath = form.dataset.next || "/";
     const setFeedback = (message, state = "info") => {
       feedback.textContent = message;
