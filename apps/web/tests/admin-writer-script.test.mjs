@@ -213,10 +213,20 @@ test("writer script delegates post network requests to posts-api module", async 
   assert.match(source, /requestDraftBySlug/);
   assert.match(source, /requestDraftList/);
   assert.match(source, /requestDraftDelete/);
+  assert.match(source, /requestPostBySlug/);
   assert.doesNotMatch(source, /requestPostSubmit/);
   assert.match(submitEventsSource, /requestPostSubmit/);
   assert.doesNotMatch(source, /fetch\(/);
   assert.match(postsApiSource, /fetch\(/);
+});
+
+test("writer script supports create and edit initialization modes", async () => {
+  const source = await readFile(scriptPath, "utf8");
+  assert.match(source, /interface WriterPageInitOptions/);
+  assert.match(source, /mode\?:\s*["']create["']\s*\|\s*["']edit["']/);
+  assert.match(source, /options:\s*WriterPageInitOptions\s*=\s*\{\}/);
+  assert.match(source, /if\s*\(mode\s*===\s*["']edit["']\)/);
+  assert.match(source, /loadExistingPostBySlug/);
 });
 
 test("writer script uses milkdown replaceAll action for markdown injection", async () => {

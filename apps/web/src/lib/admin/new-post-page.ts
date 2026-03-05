@@ -17,6 +17,7 @@ import {
   requestDraftBySlug,
   requestDraftDelete,
   requestDraftList,
+  requestPostBySlug,
   requestTagList,
 } from "./new-post-page/posts-api";
 import {
@@ -56,7 +57,23 @@ import type {
 
 const markdownPreview = createMarkdownRenderer();
 
-export async function initNewPostAdminPage(): Promise<void> {
+export interface WriterPageInitOptions {
+  mode?: "create" | "edit";
+  slug?: string;
+}
+
+function resolveWriterMode(rawMode: string | undefined): "create" | "edit" {
+  return rawMode === "edit" ? "edit" : "create";
+}
+
+function normalizeInitialSlug(rawSlug: string | undefined): string | null {
+  const normalized = rawSlug?.trim() ?? "";
+  return normalized.length > 0 ? normalized : null;
+}
+
+export async function initNewPostAdminPage(
+  options: WriterPageInitOptions = {},
+): Promise<void> {
   const dom = queryWriterDomElements();
   if (!dom) return;
 
@@ -98,6 +115,8 @@ export async function initNewPostAdminPage(): Promise<void> {
     editorDropZone,
     coverDropZone,
   } = dom;
+  const mode = resolveWriterMode(options.mode ?? form.dataset.writerMode);
+  const initialEditSlug = normalizeInitialSlug(options.slug ?? form.dataset.editSlug);
 
   const toastTimer = { id: null as number | null };
   const showFeedback = (
@@ -174,7 +193,7 @@ export async function initNewPostAdminPage(): Promise<void> {
   let slugCheckTimer: number | null = null;
   let slugCheckSequence = 0;
   let tagSuggestionSequence = 0;
-  let editingPostSlug: string | null = null;
+  let editingPostSlug: string | null = mode === "edit" ? initialEditSlug : null;
   let activeDropTarget: DropTarget = null;
   let selectedTags: string[] = [];
 
@@ -436,10 +455,38 @@ export async function initNewPostAdminPage(): Promise<void> {
   };
 
   const loadDraftFromQuery = async () => {
+    if (mode === "edit") return;
     const draftSlug = readDraftSlugFromSearch(window.location.search);
     if (!draftSlug) return;
 
     await loadDraftBySlug(draftSlug, { updateQuery: true, showToast: true });
+  };
+
+  const loadExistingPostBySlug = async (
+    postSlug: string,
+    options: { showToast?: boolean } = {},
+  ): Promise<boolean> => {
+    const normalizedSlug = postSlug.trim();
+    if (!normalizedSlug) return false;
+
+    const postResponse = await requestPostBySlug(normalizedSlug);
+    if (!postResponse.ok) {
+      if (postResponse.reason === "not_found") {
+        showFeedback("수정할 게시글을 찾지 못했습니다.", "error");
+      } else if (postResponse.reason === "http_error") {
+        showFeedback("게시글을 불러오지 못했습니다.", "error");
+      } else {
+        showFeedback("네트워크 오류로 게시글을 불러오지 못했습니다.", "error");
+      }
+      return false;
+    }
+
+    await applyDraftPayload(postResponse.payload, normalizedSlug);
+    updateDraftQueryParam(null);
+    if (options.showToast !== false) {
+      showFeedback(`게시글을 불러왔습니다: ${titleInput.value || "제목 없음"}`, "ok");
+    }
+    return true;
   };
 
   const loadDraftList = async () => {
@@ -857,7 +904,15 @@ export async function initNewPostAdminPage(): Promise<void> {
   window.addEventListener("pagehide", teardown, { once: true });
 
   void loadTagSuggestions();
-  await loadDraftFromQuery();
+  if (mode === "edit") {
+    if (initialEditSlug) {
+      await loadExistingPostBySlug(initialEditSlug, { showToast: false });
+    } else {
+      showFeedback("수정할 게시글 주소를 찾지 못했습니다.", "error");
+    }
+  } else {
+    await loadDraftFromQuery();
+  }
   syncCompactViewForViewport();
   await refreshPreview();
 }

@@ -1,8 +1,13 @@
 ---
-import AdminWriterLayout from '../../../layouts/AdminWriterLayout.astro';
+import AdminWriterLayout from '../../../../layouts/AdminWriterLayout.astro';
 
 const siteUrl = import.meta.env.SITE_URL?.trim() ?? '';
 const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '/media';
+const slug = (Astro.params.slug ?? '').trim();
+
+if (!slug) {
+  Astro.response.status = 404;
+}
 ---
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
@@ -10,7 +15,8 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
     id="admin-post-form"
     class="writer-form"
     data-media-base-url={defaultMediaBaseUrl}
-    data-writer-mode="create"
+    data-writer-mode="edit"
+    data-edit-slug={slug}
     novalidate
   >
     <div class="writer-shell" data-compact-view="editor">
@@ -173,7 +179,7 @@ const defaultMediaBaseUrl = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/media` : '
 </AdminWriterLayout>
 
 <script>
-  import { initNewPostAdminPage } from '../../../lib/admin/new-post-page';
+  import { initNewPostAdminPage } from '../../../../lib/admin/new-post-page';
 
-  void initNewPostAdminPage({ mode: 'create' });
+  void initNewPostAdminPage({ mode: 'edit', slug });
 </script>

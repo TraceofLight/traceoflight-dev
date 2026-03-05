@@ -339,6 +339,10 @@
 }
 
 .post-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
   margin-bottom: 1.2rem;
 }
 
@@ -357,6 +361,100 @@
   background: rgba(14, 21, 32, 0.82) !important;
   color: #e4ecf8 !important;
   box-shadow: 0 10px 22px rgba(5, 11, 20, 0.28);
+}
+
+.post-admin-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-admin-actions .button {
+  min-height: 42px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.post-admin-action-delete {
+  border-color: rgba(241, 142, 142, 0.42) !important;
+  color: #f3b0b0 !important;
+}
+
+.post-admin-action-delete:hover {
+  border-color: rgba(241, 142, 142, 0.7) !important;
+  color: #ffd6d6 !important;
+}
+
+.post-admin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.post-admin-modal[hidden] {
+  display: none;
+}
+
+.post-admin-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(2, 6, 12, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.post-admin-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: min(460px, 100%);
+  padding: 1.1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(141, 160, 184, 0.26);
+  background: rgba(11, 18, 28, 0.98);
+  display: grid;
+  gap: 0.8rem;
+}
+
+.post-admin-modal-panel h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.post-admin-modal-description {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.post-admin-modal-feedback {
+  margin: 0;
+  min-height: 1.2rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.post-admin-modal-feedback[data-state="error"] {
+  color: #f18e8e;
+}
+
+.post-admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.post-admin-danger {
+  border: 1px solid rgba(241, 142, 142, 0.62);
+  background: rgba(147, 38, 38, 0.35);
+  color: #ffdede;
+}
+
+.post-admin-danger:hover {
+  background: rgba(167, 45, 45, 0.46);
 }
 
 .post-back-link {
@@ -484,6 +582,16 @@
 
   .blog-archive-grid {
     grid-template-columns: 1fr;
+  }
+
+  .post-top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .post-admin-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .post-back-link {

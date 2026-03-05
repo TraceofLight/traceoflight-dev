@@ -1,16 +1,16 @@
 import type { AdminPostPayload, AdminTagOption } from "./types";
 import type { SubmitPayload, SubmitRequestInfo } from "./submit";
 
-export type DraftLoadFailureKind = "not_found" | "http_error" | "network_error";
+export type PostLoadFailureKind = "not_found" | "http_error" | "network_error";
 
-export type DraftLoadResult =
+export type PostLoadResult =
   | {
       ok: true;
       payload: Partial<AdminPostPayload>;
     }
   | {
       ok: false;
-      reason: DraftLoadFailureKind;
+      reason: PostLoadFailureKind;
     };
 
 export type DraftListResult =
@@ -49,7 +49,24 @@ export type SubmitPostResult =
   | { ok: true; created: SubmitCreatedPost }
   | { ok: false; status: number; errorPayload: unknown };
 
-export async function requestDraftBySlug(slug: string): Promise<DraftLoadResult> {
+export async function requestPostBySlug(slug: string): Promise<PostLoadResult> {
+  try {
+    const response = await fetch(`/internal-api/posts/${encodeURIComponent(slug)}`);
+    if (response.status === 404) {
+      return { ok: false, reason: "not_found" };
+    }
+    if (!response.ok) {
+      return { ok: false, reason: "http_error" };
+    }
+    const rawPayload = (await response.json()) as unknown;
+    const payload = normalizeDraftPayload(rawPayload);
+    return { ok: true, payload };
+  } catch {
+    return { ok: false, reason: "network_error" };
+  }
+}
+
+export async function requestDraftBySlug(slug: string): Promise<PostLoadResult> {
   try {
     const response = await fetch(
       `/internal-api/posts/${encodeURIComponent(slug)}?status=draft`,

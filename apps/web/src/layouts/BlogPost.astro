@@ -16,9 +16,24 @@ interface DbPostData {
   heroImage?: string;
 }
 
-type Props = MarkdownPostData | DbPostData;
+interface BlogPostAdminProps {
+  adminPostSlug?: string;
+  showAdminActions?: boolean;
+}
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+type Props = (MarkdownPostData | DbPostData) & BlogPostAdminProps;
+
+const {
+  title,
+  description,
+  pubDate,
+  updatedDate,
+  heroImage,
+  adminPostSlug = '',
+  showAdminActions = false,
+} = Astro.props;
+const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
+const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) : '';
 ---
 
 <BaseLayout title={title} description={description} image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}>
@@ -28,6 +43,18 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
         <span aria-hidden="true">‹</span>
         <span>블로그로 돌아가기</span>
       </a>
+      {
+        shouldRenderAdminActions && (
+          <div id="post-admin-actions" class="post-admin-actions">
+            <a class="button button-ghost post-admin-action-edit" href={`/admin/posts/${encodedAdminPostSlug}/edit`}>
+              수정
+            </a>
+            <button id="post-admin-delete-trigger" class="button button-ghost post-admin-action-delete" type="button">
+              삭제
+            </button>
+          </div>
+        )
+      }
     </nav>
 
     {
@@ -66,4 +93,116 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
       </a>
     </nav>
   </article>
+
+  {
+    shouldRenderAdminActions && (
+      <div id="post-admin-delete-modal" class="post-admin-modal" data-open="false" hidden>
+        <button
+          id="post-admin-delete-backdrop"
+          class="post-admin-modal-backdrop"
+          type="button"
+          aria-label="삭제 확인 닫기"
+        />
+        <section class="post-admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="post-admin-delete-title">
+          <h2 id="post-admin-delete-title">게시글 삭제</h2>
+          <p class="post-admin-modal-description">
+            <strong>{adminPostSlug}</strong> 게시글을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+          </p>
+          <p id="post-admin-delete-feedback" class="post-admin-modal-feedback" data-state="info"></p>
+          <div class="post-admin-modal-actions">
+            <button id="post-admin-delete-cancel" class="button button-ghost" type="button">취소</button>
+            <button id="post-admin-delete-confirm" class="button post-admin-danger" type="button">삭제</button>
+          </div>
+        </section>
+      </div>
+    )
+  }
 </BaseLayout>
+
+{
+  shouldRenderAdminActions && (
+    <script is:inline define:vars={{ adminPostSlug }}>
+      const slug = typeof adminPostSlug === 'string' ? adminPostSlug.trim() : '';
+      if (slug) {
+        const modal = document.querySelector('#post-admin-delete-modal');
+        const openButton = document.querySelector('#post-admin-delete-trigger');
+        const closeButton = document.querySelector('#post-admin-delete-cancel');
+        const backdropButton = document.querySelector('#post-admin-delete-backdrop');
+        const confirmButton = document.querySelector('#post-admin-delete-confirm');
+        const feedback = document.querySelector('#post-admin-delete-feedback');
+
+        const setFeedback = (message, state = 'info') => {
+          if (!(feedback instanceof HTMLElement)) return;
+          feedback.textContent = message;
+          feedback.dataset.state = state;
+        };
+
+        const setModalOpen = (nextOpen) => {
+          if (!(modal instanceof HTMLElement)) return;
+          modal.hidden = !nextOpen;
+          modal.dataset.open = nextOpen ? 'true' : 'false';
+          if (!nextOpen) {
+            setFeedback('', 'info');
+          }
+        };
+
+        const handleClose = () => setModalOpen(false);
+
+        if (openButton instanceof HTMLButtonElement) {
+          openButton.addEventListener('click', () => {
+            setModalOpen(true);
+          });
+        }
+
+        if (closeButton instanceof HTMLButtonElement) {
+          closeButton.addEventListener('click', handleClose);
+        }
+
+        if (backdropButton instanceof HTMLButtonElement) {
+          backdropButton.addEventListener('click', handleClose);
+        }
+
+        if (confirmButton instanceof HTMLButtonElement) {
+          confirmButton.addEventListener('click', async () => {
+            confirmButton.disabled = true;
+            setFeedback('삭제 처리 중...', 'info');
+            try {
+              const response = await fetch(`/internal-api/posts/${encodeURIComponent(adminPostSlug)}`, {
+                method: 'DELETE',
+              });
+
+              if (response.ok || response.status === 404) {
+                window.location.assign('/blog/');
+                return;
+              }
+
+              if (response.status === 401) {
+                setFeedback('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.', 'error');
+                return;
+              }
+
+              if (response.status === 503) {
+                setFeedback('백엔드 연결 상태가 불안정합니다. 잠시 후 다시 시도해 주세요.', 'error');
+                return;
+              }
+
+              setFeedback('게시글 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+            } catch {
+              setFeedback('네트워크 오류로 게시글 삭제에 실패했습니다.', 'error');
+            } finally {
+              confirmButton.disabled = false;
+            }
+          });
+        }
+
+        window.addEventListener('keydown', (event) => {
+          if (event.key !== 'Escape') return;
+          if (!(modal instanceof HTMLElement)) return;
+          if (modal.dataset.open !== 'true') return;
+          event.preventDefault();
+          setModalOpen(false);
+        });
+      }
+    </script>
+  )
+}

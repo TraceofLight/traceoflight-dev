@@ -36,7 +36,7 @@ if (markdownPost) {
 
 {
   markdownPost && Content ? (
-    <BlogPost {...markdownPost.data}>
+    <BlogPost {...markdownPost.data} showAdminActions={false}>
       <Content />
     </BlogPost>
   ) : dbPost && dbPostHtml ? (
@@ -46,6 +46,8 @@ if (markdownPost) {
       pubDate={dbPost.publishedAt}
       updatedDate={dbPost.updatedAt}
       heroImage={dbPost.coverImageUrl}
+      adminPostSlug={dbPost.slug}
+      showAdminActions={isAdminViewer}
     >
       <div set:html={dbPostHtml} />
     </BlogPost>
