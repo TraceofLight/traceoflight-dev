@@ -1,6 +1,6 @@
 import rss from '@astrojs/rss';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
-import { listPublishedDbPosts } from '../lib/blog-db';
+import { listAllPublishedDbPosts } from '../lib/blog-db';
 import { getBlogSource, getContentProvider } from '../lib/content-source';
 
 export async function GET(context) {
@@ -8,7 +8,7 @@ export async function GET(context) {
 	let items = [];
 	if (provider === 'db') {
 		try {
-			const posts = await listPublishedDbPosts(100);
+			const posts = await listAllPublishedDbPosts();
 			items = posts.map((post) => ({
 				title: post.title,
 				description: post.description,

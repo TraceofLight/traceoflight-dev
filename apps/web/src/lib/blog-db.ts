@@ -64,6 +64,8 @@ interface PublishedQueryOptions {
   includePrivate?: boolean;
 }
 
+const POSTS_PAGE_SIZE = 100;
+
 function toDbBlogPost(post: DbPost): DbBlogPost {
   const publishedDate = post.published_at ?? post.created_at;
   return {
@@ -92,11 +94,15 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
   };
 }
 
-function buildPublishedPostsQuery(limit: number, options: PublishedQueryOptions = {}): string {
+function buildPublishedPostsQuery(
+  limit: number,
+  options: PublishedQueryOptions = {},
+  offset = 0,
+): string {
   const params = new URLSearchParams({
     status: 'published',
     limit: String(limit),
-    offset: '0',
+    offset: String(offset),
   });
 
   if (!options.includePrivate) {
@@ -114,6 +120,31 @@ export async function listPublishedDbPosts(limit = 50, options: PublishedQueryOp
 
   const posts = (await response.json()) as DbPost[];
   return posts.map(toDbBlogPost);
+}
+
+export async function listAllPublishedDbPosts(
+  options: PublishedQueryOptions = {},
+): Promise<DbBlogPost[]> {
+  const allPosts: DbBlogPost[] = [];
+  let offset = 0;
+
+  while (true) {
+    const response = await requestBackend(buildPublishedPostsQuery(POSTS_PAGE_SIZE, options, offset));
+    if (!response.ok) {
+      throw new Error(`failed to fetch posts: ${response.status}`);
+    }
+
+    const posts = (await response.json()) as DbPost[];
+    allPosts.push(...posts.map(toDbBlogPost));
+
+    if (posts.length < POSTS_PAGE_SIZE) {
+      break;
+    }
+
+    offset += POSTS_PAGE_SIZE;
+  }
+
+  return allPosts;
 }
 
 export async function getPublishedDbPostBySlug(

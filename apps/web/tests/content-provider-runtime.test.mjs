@@ -25,6 +25,6 @@ test('rss route supports db provider posts', async () => {
   const source = await readFile(rssPath, 'utf8');
 
   assert.match(source, /getContentProvider/);
-  assert.match(source, /listPublishedDbPosts/);
+  assert.match(source, /listAllPublishedDbPosts/);
   assert.match(source, /provider === ["']db["']/);
 });

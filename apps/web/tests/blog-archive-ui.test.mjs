@@ -65,6 +65,13 @@ test("blog archive script filters cards using data attributes rather than class-
   assert.match(source, /toggleAttribute\(["']hidden["'], !isVisible\)/);
 });
 
+test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", async () => {
+  const source = await readFile(blogIndexPath, "utf8");
+
+  assert.match(source, /listAllPublishedDbPosts\(/);
+  assert.doesNotMatch(source, /listPublishedDbPosts\(50,\s*\{/);
+});
+
 test("post card supports archive variant markup and styles", async () => {
   const [cardSource, styleSource] = await Promise.all([
     readFile(postCardPath, "utf8"),
