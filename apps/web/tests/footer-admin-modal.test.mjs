@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 const footerPath = new URL("../src/components/Footer.astro", import.meta.url);
 
-test("footer admin modal supports login view and admin import management view", async () => {
+test("footer admin modal supports login view and admin backup management view", async () => {
   const source = await readFile(footerPath, "utf8");
 
   assert.match(source, /id="footer-admin-trigger"/);
@@ -16,16 +16,13 @@ test("footer admin modal supports login view and admin import management view", 
   assert.match(source, /data-admin-viewer=\{isAdminViewer \? "true" : "false"\}/);
   assert.match(source, /id="footer-admin-login-form"/);
   assert.match(source, /id="footer-admin-import-panel"/);
-  assert.match(source, /id="footer-admin-import-username"/);
-  assert.match(source, /id="footer-admin-import-snapshot-id"/);
-  assert.match(source, /id="footer-admin-import-build"/);
-  assert.match(source, /id="footer-admin-import-apply"/);
-  assert.match(source, /traceoflight\.velog\.import\.snapshot-id/);
-  assert.match(source, /\/internal-api\/imports\/snapshots\/velog/);
-  assert.match(
-    source,
-    /\/internal-api\/imports\/snapshots\/\$\{encodeURIComponent\(snapshotId\)\}\/jobs/,
-  );
+  assert.match(source, /id="footer-admin-backup-download"/);
+  assert.match(source, /id="footer-admin-backup-file"/);
+  assert.match(source, /id="footer-admin-backup-load"/);
+  assert.match(source, /\/internal-api\/imports\/backups\/posts\.zip/);
+  assert.match(source, /\/internal-api\/imports\/backups\/load/);
+  assert.doesNotMatch(source, /Velog 사용자명/);
+  assert.doesNotMatch(source, /Snapshot ID/);
   assert.doesNotMatch(source, /const toggleAdminView =/);
   assert.doesNotMatch(source, /#header-admin-logout/);
 });

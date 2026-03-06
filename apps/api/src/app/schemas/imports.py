@@ -64,3 +64,9 @@ class SnapshotImportRunRead(BaseModel):
     updated_items: int
     failed_items: int
     errors: list[SnapshotImportErrorItem] = Field(default_factory=list)
+
+
+class BackupLoadRead(BaseModel):
+    restored_posts: int
+    restored_media: int
+    restored_series_overrides: int

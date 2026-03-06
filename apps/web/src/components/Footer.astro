@@ -31,7 +31,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
         id="footer-admin-trigger"
         class="icon-link footer-icon-link"
         type="button"
-        aria-label={isAdminViewer ? "Admin Import" : "Admin Login"}
+        aria-label={isAdminViewer ? "Admin Backup" : "Admin Login"}
       >
         <span
           class="footer-icon-glyph"
@@ -106,43 +106,29 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
           id="footer-admin-import-panel"
           class="auth-panel footer-admin-import-panel"
         >
-          <p id="footer-admin-login-title" class="kicker auth-login-kicker">ADMIN IMPORT</p>
-          <label class="footer-admin-import-field" for="footer-admin-import-username">
-            <span>Velog 사용자명</span>
+          <p id="footer-admin-login-title" class="kicker auth-login-kicker">ADMIN BACKUP</p>
+          <label class="footer-admin-import-field" for="footer-admin-backup-file">
+            <span>백업 ZIP 파일</span>
             <input
-              id="footer-admin-import-username"
-              type="text"
-              value="traceoflight"
-              placeholder="traceoflight"
-              autocomplete="off"
-            />
-          </label>
-          <label
-            class="footer-admin-import-field"
-            for="footer-admin-import-snapshot-id"
-          >
-            <span>Snapshot ID</span>
-            <input
-              id="footer-admin-import-snapshot-id"
-              type="text"
-              placeholder="스냅샷 생성 후 자동 입력"
-              autocomplete="off"
+              id="footer-admin-backup-file"
+              type="file"
+              accept=".zip,application/zip"
             />
           </label>
           <div class="footer-admin-import-actions">
             <button
-              id="footer-admin-import-build"
+              id="footer-admin-backup-download"
               class="button button-ghost"
               type="button"
             >
-              Velog 크롤링 + ZIP 저장
+              DB 저장 ZIP 다운로드
             </button>
             <button
-              id="footer-admin-import-apply"
+              id="footer-admin-backup-load"
               class="button button-brand"
               type="button"
             >
-              ZIP에서 DB 반영
+              ZIP 불러와 DB 복원
             </button>
           </div>
           <p
@@ -150,7 +136,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
             class="auth-feedback"
             data-state="info"
           >
-            스냅샷을 생성하거나 기존 Snapshot ID로 DB 반영을 실행하세요.
+            현재 DB의 게시글/미디어를 ZIP으로 저장하거나 ZIP 파일로 복원하세요.
           </p>
         </section>
       )
@@ -167,18 +153,11 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
     const usernameInput = document.querySelector("#footer-admin-username");
     const passwordInput = document.querySelector("#footer-admin-password");
     const feedback = document.querySelector("#footer-admin-feedback");
-    const importUsernameInput = document.querySelector(
-      "#footer-admin-import-username",
+    const backupFileInput = document.querySelector("#footer-admin-backup-file");
+    const backupDownloadButton = document.querySelector(
+      "#footer-admin-backup-download",
     );
-    const importSnapshotIdInput = document.querySelector(
-      "#footer-admin-import-snapshot-id",
-    );
-    const importBuildButton = document.querySelector(
-      "#footer-admin-import-build",
-    );
-    const importApplyButton = document.querySelector(
-      "#footer-admin-import-apply",
-    );
+    const backupLoadButton = document.querySelector("#footer-admin-backup-load");
     const importFeedback = document.querySelector("#footer-admin-import-feedback");
 
     if (!(trigger instanceof HTMLButtonElement)) return;
@@ -186,7 +165,6 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
     if (!(backdrop instanceof HTMLButtonElement)) return;
 
     const isAdminViewer = modal.dataset.adminViewer === "true";
-    const importSnapshotStorageKey = "traceoflight.velog.import.snapshot-id";
     const nextPath = form instanceof HTMLFormElement ? form.dataset.next || "/" : "/";
     const setFeedback = (message, state = "info") => {
       if (!(feedback instanceof HTMLElement)) return;
@@ -199,10 +177,15 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       importFeedback.dataset.state = state;
     };
     const setImportBusy = (busy) => {
-      if (!(importBuildButton instanceof HTMLButtonElement)) return;
-      if (!(importApplyButton instanceof HTMLButtonElement)) return;
-      importBuildButton.disabled = busy;
-      importApplyButton.disabled = busy;
+      if (backupDownloadButton instanceof HTMLButtonElement) {
+        backupDownloadButton.disabled = busy;
+      }
+      if (backupLoadButton instanceof HTMLButtonElement) {
+        backupLoadButton.disabled = busy;
+      }
+      if (backupFileInput instanceof HTMLInputElement) {
+        backupFileInput.disabled = busy;
+      }
     };
     const readJsonSafe = async (response) => {
       try {
@@ -222,17 +205,8 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       }
       return fallback;
     };
-    const restoreSnapshotId = () => {
-      if (!(importSnapshotIdInput instanceof HTMLInputElement)) return;
-      const stored = window.localStorage.getItem(importSnapshotStorageKey) ?? "";
-      if (stored.trim() && !importSnapshotIdInput.value.trim()) {
-        importSnapshotIdInput.value = stored.trim();
-      }
-    };
-
     const openModal = () => {
       modal.dataset.mode = isAdminViewer ? "admin" : "login";
-      if (isAdminViewer) restoreSnapshotId();
       modal.hidden = false;
       modal.dataset.open = "true";
     };
@@ -244,10 +218,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
         setFeedback("로그인 정보를 입력해 주세요.", "info");
         return;
       }
-      setImportFeedback(
-        "스냅샷을 생성하거나 기존 Snapshot ID로 DB 반영을 실행하세요.",
-        "info",
-      );
+      setImportFeedback("현재 DB의 게시글/미디어를 ZIP으로 저장하거나 ZIP 파일로 복원하세요.", "info");
     };
 
     if (modal.dataset.bound !== "true") {
@@ -297,109 +268,92 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       }
 
       if (
-        importUsernameInput instanceof HTMLInputElement &&
-        importSnapshotIdInput instanceof HTMLInputElement &&
-        importBuildButton instanceof HTMLButtonElement &&
-        importApplyButton instanceof HTMLButtonElement &&
+        backupDownloadButton instanceof HTMLButtonElement &&
+        backupLoadButton instanceof HTMLButtonElement &&
         importFeedback instanceof HTMLElement
       ) {
-        importBuildButton.addEventListener("click", async () => {
-          const username = importUsernameInput.value.trim().replace(/^@+/, "");
-          if (!username) {
-            setImportFeedback("Velog 사용자명을 입력해 주세요.", "error");
-            return;
-          }
-
+        backupDownloadButton.addEventListener("click", async () => {
           setImportBusy(true);
-          setImportFeedback("Velog 글을 수집해 ZIP 스냅샷을 생성 중입니다...", "pending");
+          setImportFeedback("DB 백업 ZIP을 생성 중입니다...", "pending");
           try {
-            const response = await fetch("/internal-api/imports/snapshots/velog", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ username }),
-            });
-            const payload = await readJsonSafe(response);
+            const response = await fetch("/internal-api/imports/backups/posts.zip");
             if (!response.ok) {
+              const payload = await readJsonSafe(response);
               setImportFeedback(
-                resolveErrorMessage(payload, "스냅샷 생성에 실패했습니다."),
+                resolveErrorMessage(payload, "백업 ZIP 다운로드에 실패했습니다."),
                 "error",
               );
               return;
             }
 
-            const snapshotId =
-              payload && typeof payload.snapshot_id === "string"
-                ? payload.snapshot_id.trim()
-                : "";
-            const totalItems =
-              payload && typeof payload.total_items === "number"
-                ? payload.total_items
-                : 0;
-            if (snapshotId) {
-              importSnapshotIdInput.value = snapshotId;
-              window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
-            }
-            setImportFeedback(
-              `스냅샷 생성 완료: ${snapshotId || "-"} (${totalItems}개 포스트)`,
-              "ok",
-            );
+            const binary = await response.blob();
+            const disposition = response.headers.get("content-disposition") ?? "";
+            const matchedName = disposition.match(/filename=\"?([^\";]+)\"?/i);
+            const fileName = matchedName?.[1]?.trim() || "traceoflight-posts-backup.zip";
+            const url = URL.createObjectURL(binary);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = fileName;
+            document.body.append(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+            setImportFeedback("DB 백업 ZIP 다운로드를 시작했습니다.", "ok");
           } catch {
-            setImportFeedback("스냅샷 요청 중 네트워크 오류가 발생했습니다.", "error");
+            setImportFeedback("백업 ZIP 다운로드 중 네트워크 오류가 발생했습니다.", "error");
           } finally {
             setImportBusy(false);
           }
         });
 
-        importApplyButton.addEventListener("click", async () => {
-          const snapshotId = importSnapshotIdInput.value.trim();
-          if (!snapshotId) {
-            setImportFeedback(
-              "먼저 스냅샷을 생성하거나 Snapshot ID를 입력해 주세요.",
-              "error",
-            );
+        backupLoadButton.addEventListener("click", async () => {
+          if (!(backupFileInput instanceof HTMLInputElement)) {
+            setImportFeedback("백업 파일 입력 UI를 찾을 수 없습니다.", "error");
+            return;
+          }
+          const selectedFile = backupFileInput.files?.[0];
+          if (!(selectedFile instanceof File)) {
+            setImportFeedback("복원할 ZIP 파일을 선택해 주세요.", "error");
             return;
           }
 
           setImportBusy(true);
-          setImportFeedback("스냅샷에서 DB 반영을 실행 중입니다...", "pending");
+          setImportFeedback("백업 ZIP에서 DB 복원을 실행 중입니다...", "pending");
           try {
-            const response = await fetch(
-              `/internal-api/imports/snapshots/${encodeURIComponent(snapshotId)}/jobs`,
-              {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ mode: "apply" }),
-              },
-            );
+            const payloadBody = new FormData();
+            payloadBody.set("file", selectedFile, selectedFile.name);
+            const response = await fetch("/internal-api/imports/backups/load", {
+              method: "POST",
+              body: payloadBody,
+            });
             const payload = await readJsonSafe(response);
             if (!response.ok) {
               setImportFeedback(
-                resolveErrorMessage(payload, "DB 반영 실행에 실패했습니다."),
+                resolveErrorMessage(payload, "DB 복원 실행에 실패했습니다."),
                 "error",
               );
               return;
             }
 
-            const created =
-              payload && typeof payload.created_items === "number"
-                ? payload.created_items
+            const restoredPosts =
+              payload && typeof payload.restored_posts === "number"
+                ? payload.restored_posts
                 : 0;
-            const updated =
-              payload && typeof payload.updated_items === "number"
-                ? payload.updated_items
+            const restoredMedia =
+              payload && typeof payload.restored_media === "number"
+                ? payload.restored_media
                 : 0;
-            const failed =
-              payload && typeof payload.failed_items === "number"
-                ? payload.failed_items
+            const restoredSeriesOverrides =
+              payload && typeof payload.restored_series_overrides === "number"
+                ? payload.restored_series_overrides
                 : 0;
-            const statusText =
-              failed > 0
-                ? `DB 반영 완료(일부 실패): 생성 ${created}, 수정 ${updated}, 실패 ${failed}`
-                : `DB 반영 완료: 생성 ${created}, 수정 ${updated}`;
-            setImportFeedback(statusText, failed > 0 ? "error" : "ok");
-            window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
+            backupFileInput.value = "";
+            setImportFeedback(
+              `DB 복원 완료: 게시글 ${restoredPosts}, 미디어 ${restoredMedia}, 시리즈 썸네일 ${restoredSeriesOverrides}`,
+              "ok",
+            );
           } catch {
-            setImportFeedback("DB 반영 요청 중 네트워크 오류가 발생했습니다.", "error");
+            setImportFeedback("DB 복원 요청 중 네트워크 오류가 발생했습니다.", "error");
           } finally {
             setImportBusy(false);
           }

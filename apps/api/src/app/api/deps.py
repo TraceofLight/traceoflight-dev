@@ -40,4 +40,4 @@ def get_series_service(db: Session = Depends(get_db)) -> SeriesService:
 def get_import_service(db: Session = Depends(get_db)) -> ImportService:
     storage = MinioStorageClient()
     post_service = PostService(repo=PostRepository(db))
-    return ImportService(storage=storage, post_service=post_service)
+    return ImportService(storage=storage, post_service=post_service, db=db)

@@ -2,34 +2,31 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const snapshotRoutePath = new URL(
-  "../src/pages/internal-api/imports/snapshots/velog.ts",
+const downloadRoutePath = new URL(
+  "../src/pages/internal-api/imports/backups/posts.zip.ts",
   import.meta.url,
 );
-const applyRoutePath = new URL(
-  "../src/pages/internal-api/imports/snapshots/[snapshotId]/jobs.ts",
+const loadRoutePath = new URL(
+  "../src/pages/internal-api/imports/backups/load.ts",
   import.meta.url,
 );
 
-test("internal-api import routes proxy snapshot build and apply calls", async () => {
-  const [snapshotSource, applySource] = await Promise.all([
-    readFile(snapshotRoutePath, "utf8"),
-    readFile(applyRoutePath, "utf8"),
+test("internal-api import routes proxy backup download and load calls", async () => {
+  const [downloadSource, loadSource] = await Promise.all([
+    readFile(downloadRoutePath, "utf8"),
+    readFile(loadRoutePath, "utf8"),
   ]);
 
-  assert.match(snapshotSource, /ADMIN_ACCESS_COOKIE/);
-  assert.match(snapshotSource, /verifyAccessToken/);
-  assert.match(snapshotSource, /export const POST/);
-  assert.match(snapshotSource, /requestBackend\(["']\/imports\/snapshots\/velog["']/);
-  assert.match(snapshotSource, /Unauthorized/);
+  assert.match(downloadSource, /ADMIN_ACCESS_COOKIE/);
+  assert.match(downloadSource, /verifyAccessToken/);
+  assert.match(downloadSource, /export const GET/);
+  assert.match(downloadSource, /requestBackend\(["']\/imports\/backups\/posts\.zip["']/);
+  assert.match(downloadSource, /Unauthorized/);
 
-  assert.match(applySource, /ADMIN_ACCESS_COOKIE/);
-  assert.match(applySource, /verifyAccessToken/);
-  assert.match(applySource, /export const POST/);
-  assert.match(
-    applySource,
-    /requestBackend\(\s*`\/imports\/snapshots\/\$\{encodeURIComponent\(snapshotId\)\}\/jobs`/,
-  );
-  assert.match(applySource, /snapshot id is required/);
-  assert.match(applySource, /Unauthorized/);
+  assert.match(loadSource, /ADMIN_ACCESS_COOKIE/);
+  assert.match(loadSource, /verifyAccessToken/);
+  assert.match(loadSource, /export const POST/);
+  assert.match(loadSource, /requestBackend\(["']\/imports\/backups\/load["']/);
+  assert.match(loadSource, /file is required/);
+  assert.match(loadSource, /Unauthorized/);
 });

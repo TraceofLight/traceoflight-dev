@@ -6,12 +6,19 @@ import io
 import json
 import re
 from urllib.error import HTTPError, URLError
+from urllib.parse import unquote, urlparse
 from urllib.request import Request, urlopen
 import uuid
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from app.models.post import PostStatus, PostVisibility
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session, selectinload
+
+from app.models.media import AssetKind, MediaAsset
+from app.models.post import Post, PostStatus, PostVisibility
+from app.models.series import Series
 from app.schemas.imports import (
+    BackupLoadRead,
     ImportJobStatus,
     ImportMode,
     SnapshotCreateRead,
@@ -22,11 +29,14 @@ from app.schemas.imports import (
 )
 from app.schemas.post import PostCreate
 from app.services.post_service import PostService
+from app.services.series_projection_cache import rebuild_series_projection_cache
 from app.storage.minio_client import MinioStorageClient
 
 VELOG_GRAPHQL_URL = "https://v2.velog.io/graphql"
 SNAPSHOT_OBJECT_PREFIX = "imports/snapshots"
 VELOG_POSTS_PAGE_SIZE = 50
+MEDIA_URL_PATH_PREFIX = "/media/"
+BACKUP_SCHEMA_VERSION = "backup-v1"
 
 POSTS_QUERY = """
 query Posts($username: String, $limit: Int, $cursor: ID) {
@@ -184,10 +194,56 @@ def _to_iso_utc(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _extract_internal_object_key(raw_value: str | None) -> str | None:
+    if raw_value is None:
+        return None
+    value = raw_value.strip()
+    if not value:
+        return None
+
+    parsed = urlparse(value)
+    path = parsed.path if parsed.scheme or parsed.netloc else value
+    media_index = path.find(MEDIA_URL_PATH_PREFIX)
+    if media_index < 0:
+        return None
+    object_key = unquote(path[media_index + len(MEDIA_URL_PATH_PREFIX):].lstrip("/"))
+    return object_key or None
+
+
+def _extract_markdown_media_object_keys(markdown_source: str) -> list[str]:
+    matches = re.findall(
+        r"""(?:https?://[^\s"')>]+/media/[^\s"')>]+|/media/[^\s"')>]+)""",
+        markdown_source,
+    )
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw_match in matches:
+        object_key = _extract_internal_object_key(raw_match)
+        if object_key is None or object_key in seen:
+            continue
+        seen.add(object_key)
+        normalized.append(object_key)
+    return normalized
+
+
+def _guess_asset_kind(object_key: str, mime_type: str) -> AssetKind:
+    if mime_type.startswith("image/") or object_key.startswith("image/"):
+        return AssetKind.IMAGE
+    if mime_type.startswith("video/") or object_key.startswith("video/"):
+        return AssetKind.VIDEO
+    return AssetKind.FILE
+
+
 class ImportService:
-    def __init__(self, storage: MinioStorageClient, post_service: PostService) -> None:
+    def __init__(
+        self,
+        storage: MinioStorageClient,
+        post_service: PostService,
+        db: Session | None = None,
+    ) -> None:
         self.storage = storage
         self.post_service = post_service
+        self.db = db
 
     def create_velog_snapshot(self, username: str) -> SnapshotCreateRead:
         normalized_username = _normalize_username(username)
@@ -216,6 +272,173 @@ class ImportService:
             artifact_object_key=object_key,
             created_at=now,
             updated_at=now,
+        )
+
+    def download_posts_backup(self) -> tuple[str, bytes]:
+        if self.db is None:
+            raise ImportValidationError("database session is required")
+
+        posts = list(
+            self.db.scalars(
+                select(Post)
+                .options(selectinload(Post.tags))
+                .order_by(Post.published_at.asc().nulls_last(), Post.created_at.asc(), Post.slug.asc())
+            )
+        )
+        media_object_keys: set[str] = set()
+        for post in posts:
+            cover_key = _extract_internal_object_key(post.cover_image_url)
+            if cover_key is not None:
+                media_object_keys.add(cover_key)
+            media_object_keys.update(_extract_markdown_media_object_keys(post.body_markdown))
+
+        series_rows = list(self.db.scalars(select(Series).where(Series.cover_image_url.is_not(None))))
+        series_overrides: list[dict[str, str]] = []
+        for series in series_rows:
+            if not (series.cover_image_url or "").strip():
+                continue
+            series_overrides.append(
+                {
+                    "series_title": series.title,
+                    "cover_image_url": series.cover_image_url.strip(),
+                }
+            )
+            cover_key = _extract_internal_object_key(series.cover_image_url)
+            if cover_key is not None:
+                media_object_keys.add(cover_key)
+
+        media_rows = list(
+            self.db.scalars(
+                select(MediaAsset).where(MediaAsset.object_key.in_(sorted(media_object_keys)))
+            )
+        )
+        media_by_object_key = {row.object_key: row for row in media_rows}
+
+        manifest = {
+            "schema_version": BACKUP_SCHEMA_VERSION,
+            "generated_at": _to_iso_utc(_utcnow()),
+            "post_count": len(posts),
+            "media_count": len(media_object_keys),
+            "series_override_count": len(series_overrides),
+            "slugs": [post.slug for post in posts],
+        }
+        media_manifest = []
+        for object_key in sorted(media_object_keys):
+            media = media_by_object_key.get(object_key)
+            if media is None:
+                raise ImportValidationError(f"media metadata is missing for object key: {object_key}")
+            media_manifest.append(
+                {
+                    "object_key": media.object_key,
+                    "kind": media.kind.value,
+                    "original_filename": media.original_filename,
+                    "mime_type": media.mime_type,
+                    "size_bytes": media.size_bytes,
+                    "width": media.width,
+                    "height": media.height,
+                    "duration_seconds": media.duration_seconds,
+                }
+            )
+
+        memory = io.BytesIO()
+        self.storage.ensure_bucket()
+        with ZipFile(memory, mode="w", compression=ZIP_DEFLATED) as archive:
+            archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+            archive.writestr(
+                "media-manifest.json",
+                json.dumps(media_manifest, ensure_ascii=False, indent=2),
+            )
+            archive.writestr(
+                "series_overrides.json",
+                json.dumps(series_overrides, ensure_ascii=False, indent=2),
+            )
+
+            for post in posts:
+                base_path = f"posts/{post.slug}"
+                archive.writestr(
+                    f"{base_path}/meta.json",
+                    json.dumps(
+                        {
+                            "slug": post.slug,
+                            "title": post.title,
+                            "excerpt": post.excerpt,
+                            "status": post.status.value,
+                            "visibility": post.visibility.value,
+                            "published_at": _to_iso_utc(post.published_at),
+                            "tags": [tag.slug for tag in post.tags],
+                            "series_title": post.series_title,
+                            "cover_image_url": post.cover_image_url,
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                )
+                archive.writestr(f"{base_path}/content.md", post.body_markdown)
+
+            for media in media_manifest:
+                object_key = str(media["object_key"])
+                try:
+                    binary = self.storage.get_bytes(object_key)
+                except Exception as exc:  # pragma: no cover - storage dependent
+                    raise ImportValidationError(
+                        f"failed to read media object for backup: {object_key}"
+                    ) from exc
+                archive.writestr(f"media/{object_key}", binary)
+
+        file_name = f"traceoflight-posts-backup-{_utcnow().strftime('%Y%m%d-%H%M%S')}.zip"
+        return file_name, memory.getvalue()
+
+    def load_posts_backup(self, filename: str, data: bytes) -> BackupLoadRead:
+        if self.db is None:
+            raise ImportValidationError("database session is required")
+        if not filename.strip():
+            raise ImportValidationError("backup filename is required")
+        if not data:
+            raise ImportValidationError("backup file is empty")
+
+        parsed = self._parse_posts_backup_zip(data)
+        self.storage.ensure_bucket()
+        for media in parsed["media_manifest"]:
+            self.storage.put_bytes(
+                object_key=str(media["object_key"]),
+                data=parsed["media_bytes"][str(media["object_key"])],
+                content_type=str(media["mime_type"]),
+            )
+
+        self.post_service.clear_all_posts()
+        self.db.execute(delete(MediaAsset))
+        self.db.commit()
+
+        for media in parsed["media_manifest"]:
+            self.db.add(
+                MediaAsset(
+                    kind=_guess_asset_kind(str(media["object_key"]), str(media["mime_type"])),
+                    bucket=self.storage.bucket,
+                    object_key=str(media["object_key"]),
+                    original_filename=str(media["original_filename"]),
+                    mime_type=str(media["mime_type"]),
+                    size_bytes=int(media["size_bytes"]),
+                    width=media.get("width"),
+                    height=media.get("height"),
+                    duration_seconds=media.get("duration_seconds"),
+                    owner_post_id=None,
+                )
+            )
+        self.db.commit()
+
+        restored_posts = 0
+        for bundle in parsed["bundles"]:
+            self.post_service.create_post(self._bundle_to_post_create(bundle))
+            restored_posts += 1
+
+        rebuild_series_projection_cache()
+        self.db.expire_all()
+        overrides_applied = self._apply_series_cover_overrides(parsed["series_overrides"])
+
+        return BackupLoadRead(
+            restored_posts=restored_posts,
+            restored_media=len(parsed["media_manifest"]),
+            restored_series_overrides=overrides_applied,
         )
 
     def run_snapshot_import(self, snapshot_id: str, mode: ImportMode) -> SnapshotImportRunRead:
@@ -279,6 +502,124 @@ class ImportService:
             failed_items=failed_items,
             errors=errors,
         )
+
+    def _parse_posts_backup_zip(self, backup_data: bytes) -> dict[str, object]:
+        try:
+            archive = ZipFile(io.BytesIO(backup_data))
+        except Exception as exc:
+            raise ImportValidationError("backup zip is invalid") from exc
+
+        with archive:
+            try:
+                manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+                media_manifest = json.loads(archive.read("media-manifest.json").decode("utf-8"))
+                series_overrides = json.loads(archive.read("series_overrides.json").decode("utf-8"))
+            except KeyError as exc:
+                raise ImportValidationError("backup archive is incomplete") from exc
+            except ValueError as exc:
+                raise ImportValidationError("backup archive metadata is invalid") from exc
+
+            if not isinstance(manifest, dict) or manifest.get("schema_version") != BACKUP_SCHEMA_VERSION:
+                raise ImportValidationError("backup manifest schema is invalid")
+            slugs = manifest.get("slugs")
+            if not isinstance(slugs, list):
+                raise ImportValidationError("backup manifest slugs are invalid")
+            if not isinstance(media_manifest, list):
+                raise ImportValidationError("backup media manifest is invalid")
+            if not isinstance(series_overrides, list):
+                raise ImportValidationError("backup series overrides are invalid")
+
+            media_bytes: dict[str, bytes] = {}
+            normalized_media_manifest: list[dict[str, object]] = []
+            for item in media_manifest:
+                if not isinstance(item, dict):
+                    raise ImportValidationError("backup media manifest entry is invalid")
+                object_key = str(item.get("object_key", "")).strip()
+                mime_type = str(item.get("mime_type", "")).strip()
+                if not object_key or not mime_type:
+                    raise ImportValidationError("backup media manifest entry is invalid")
+                try:
+                    media_bytes[object_key] = archive.read(f"media/{object_key}")
+                except KeyError as exc:
+                    raise ImportValidationError(
+                        f"backup media payload is missing for object key: {object_key}"
+                    ) from exc
+                normalized_media_manifest.append(
+                    {
+                        "object_key": object_key,
+                        "kind": str(item.get("kind", "")),
+                        "original_filename": str(item.get("original_filename", "")).strip() or object_key.rsplit("/", 1)[-1],
+                        "mime_type": mime_type,
+                        "size_bytes": int(item.get("size_bytes", len(media_bytes[object_key])) or len(media_bytes[object_key])),
+                        "width": item.get("width"),
+                        "height": item.get("height"),
+                        "duration_seconds": item.get("duration_seconds"),
+                    }
+                )
+
+            bundles: list[SnapshotBundle] = []
+            for raw_slug in slugs:
+                slug = str(raw_slug).strip()
+                if not slug:
+                    continue
+                base_path = f"posts/{slug}"
+                try:
+                    meta = json.loads(archive.read(f"{base_path}/meta.json").decode("utf-8"))
+                    body_markdown = archive.read(f"{base_path}/content.md").decode("utf-8")
+                except KeyError as exc:
+                    raise ImportValidationError(f"backup post entry for {slug} is incomplete") from exc
+                except ValueError as exc:
+                    raise ImportValidationError(f"backup post meta for {slug} is invalid") from exc
+
+                if not isinstance(meta, dict):
+                    raise ImportValidationError(f"backup post meta for {slug} is invalid")
+
+                title = str(meta.get("title", "")).strip() or slug
+                bundles.append(
+                    SnapshotBundle(
+                        external_post_id=f"backup-{slug}",
+                        external_slug=slug,
+                        source_url=f"/blog/{slug}",
+                        slug=_normalize_slug(str(meta.get("slug", slug)), title),
+                        title=title,
+                        excerpt=str(meta.get("excerpt")).strip() if isinstance(meta.get("excerpt"), str) else None,
+                        body_markdown=body_markdown,
+                        cover_image_url=str(meta.get("cover_image_url")).strip() if isinstance(meta.get("cover_image_url"), str) else None,
+                        status="draft" if str(meta.get("status", "published")).strip().lower() == "draft" else "published",
+                        visibility="private" if str(meta.get("visibility", "public")).strip().lower() == "private" else "public",
+                        published_at=str(meta.get("published_at")).strip() if isinstance(meta.get("published_at"), str) else None,
+                        tags=_normalize_tags(meta.get("tags")),
+                        series_title=str(meta.get("series_title")).strip() if isinstance(meta.get("series_title"), str) else None,
+                        order_key=str(meta.get("published_at")).strip() if isinstance(meta.get("published_at"), str) else slug,
+                    )
+                )
+
+        bundles.sort(key=lambda item: (item.order_key, item.external_post_id))
+        return {
+            "bundles": bundles,
+            "media_manifest": normalized_media_manifest,
+            "media_bytes": media_bytes,
+            "series_overrides": series_overrides,
+        }
+
+    def _apply_series_cover_overrides(self, series_overrides: list[object]) -> int:
+        if self.db is None:
+            return 0
+        applied = 0
+        for item in series_overrides:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("series_title", "")).strip()
+            cover_image_url = str(item.get("cover_image_url", "")).strip()
+            if not title or not cover_image_url:
+                continue
+            series = self.db.scalar(select(Series).where(Series.title == title))
+            if series is None:
+                continue
+            series.cover_image_url = cover_image_url
+            applied += 1
+        self.db.commit()
+        return applied
 
     def _collect_velog_bundles(self, username: str) -> list[SnapshotBundle]:
         bundles: list[SnapshotBundle] = []
