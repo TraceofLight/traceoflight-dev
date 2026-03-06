@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import io
 import json
 import uuid
 
 from minio import Minio
+from minio.error import S3Error
 
 from app.core.config import settings
 
@@ -59,3 +61,29 @@ class MinioStorageClient:
             object_name=object_key,
             expires=timedelta(seconds=expires_seconds),
         )
+
+    def put_bytes(self, object_key: str, data: bytes, content_type: str = 'application/octet-stream') -> None:
+        self.client.put_object(
+            bucket_name=self.bucket,
+            object_name=object_key,
+            data=io.BytesIO(data),
+            length=len(data),
+            content_type=content_type,
+        )
+
+    def get_bytes(self, object_key: str) -> bytes:
+        response = self.client.get_object(self.bucket, object_key)
+        try:
+            return response.read()
+        finally:
+            response.close()
+            response.release_conn()
+
+    def object_exists(self, object_key: str) -> bool:
+        try:
+            self.client.stat_object(self.bucket, object_key)
+            return True
+        except S3Error as exc:
+            if exc.code in {'NoSuchKey', 'NoSuchObject', 'NoSuchBucket'}:
+                return False
+            raise

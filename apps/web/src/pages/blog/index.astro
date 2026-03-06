@@ -104,6 +104,54 @@ const selectedTagsFromQuery = Astro.url.searchParams
             </div>
           </section>
 
+          {
+            isAdminViewer && (
+              <section class="blog-import-panel" id="blog-import-panel">
+                <p class="blog-import-title">Velog Import</p>
+                <div class="blog-import-grid">
+                  <label class="blog-import-field" for="blog-import-username">
+                    <span>Velog 사용자명</span>
+                    <input
+                      id="blog-import-username"
+                      type="text"
+                      value="traceoflight"
+                      placeholder="traceoflight"
+                      autocomplete="off"
+                    />
+                  </label>
+                  <label class="blog-import-field" for="blog-import-snapshot-id">
+                    <span>Snapshot ID</span>
+                    <input
+                      id="blog-import-snapshot-id"
+                      type="text"
+                      placeholder="스냅샷 생성 후 자동 입력"
+                      autocomplete="off"
+                    />
+                  </label>
+                </div>
+                <div class="blog-import-actions">
+                  <button
+                    id="blog-import-build"
+                    class="button button-ghost"
+                    type="button"
+                  >
+                    Velog 크롤링 + ZIP 저장
+                  </button>
+                  <button
+                    id="blog-import-apply"
+                    class="button button-brand"
+                    type="button"
+                  >
+                    ZIP에서 DB 반영
+                  </button>
+                </div>
+                <p id="blog-import-feedback" class="blog-import-feedback">
+                  대기 중
+                </p>
+              </section>
+            )
+          }
+
           <section class="blog-archive-filter-panel" id="blog-filter-panel">
             <p class="blog-archive-filter-label">게시글 필터</p>
             <div class="blog-archive-filter-chips">
@@ -176,6 +224,14 @@ const selectedTagsFromQuery = Astro.url.searchParams
     const sortSelect = document.querySelector("#blog-sort");
     const postCountText = document.querySelector("#blog-post-count");
     const postGrid = document.querySelector("#blog-post-grid");
+    const importUsernameInput = document.querySelector("#blog-import-username");
+    const importSnapshotIdInput = document.querySelector(
+      "#blog-import-snapshot-id",
+    );
+    const importBuildButton = document.querySelector("#blog-import-build");
+    const importApplyButton = document.querySelector("#blog-import-apply");
+    const importFeedback = document.querySelector("#blog-import-feedback");
+    const importSnapshotStorageKey = "traceoflight.velog.import.snapshot-id";
 
     if (!(postGrid instanceof HTMLElement)) return;
     if (postGrid.dataset.archiveBound === "true") return;
@@ -204,6 +260,48 @@ const selectedTagsFromQuery = Astro.url.searchParams
         .split(",")
         .map((tag) => normalize(tag))
         .filter(Boolean);
+    const setImportFeedback = (message, state = "idle") => {
+      if (!(importFeedback instanceof HTMLElement)) return;
+      importFeedback.textContent = message;
+      importFeedback.dataset.state = state;
+    };
+
+    const setImportBusy = (busy) => {
+      if (importBuildButton instanceof HTMLButtonElement) {
+        importBuildButton.disabled = busy;
+      }
+      if (importApplyButton instanceof HTMLButtonElement) {
+        importApplyButton.disabled = busy;
+      }
+    };
+
+    const readJsonSafe = async (response) => {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    };
+
+    const resolveErrorMessage = (payload, fallback) => {
+      if (payload && typeof payload === "object") {
+        if (typeof payload.detail === "string" && payload.detail.trim()) {
+          return payload.detail.trim();
+        }
+        if (typeof payload.message === "string" && payload.message.trim()) {
+          return payload.message.trim();
+        }
+      }
+      return fallback;
+    };
+
+    const restoreSnapshotId = () => {
+      if (!(importSnapshotIdInput instanceof HTMLInputElement)) return;
+      const stored = window.localStorage.getItem(importSnapshotStorageKey) ?? "";
+      if (stored.trim() && !importSnapshotIdInput.value.trim()) {
+        importSnapshotIdInput.value = stored.trim();
+      }
+    };
 
     const sortCards = (visibleCards) => {
       const selectedSort =
@@ -334,6 +432,118 @@ const selectedTagsFromQuery = Astro.url.searchParams
 
     if (searchInput instanceof HTMLInputElement) {
       searchInput.addEventListener("input", applyFiltersAndSort);
+    }
+
+    if (
+      importBuildButton instanceof HTMLButtonElement &&
+      importApplyButton instanceof HTMLButtonElement
+    ) {
+      restoreSnapshotId();
+
+      importBuildButton.addEventListener("click", async () => {
+        const username =
+          importUsernameInput instanceof HTMLInputElement
+            ? importUsernameInput.value.trim().replace(/^@+/, "")
+            : "";
+        if (!username) {
+          setImportFeedback("Velog 사용자명을 입력해 주세요.", "error");
+          return;
+        }
+
+        setImportBusy(true);
+        setImportFeedback("Velog 글을 수집해 ZIP 스냅샷을 생성 중입니다...", "pending");
+        try {
+          const response = await fetch("/internal-api/imports/snapshots/velog", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ username }),
+          });
+          const payload = await readJsonSafe(response);
+          if (!response.ok) {
+            setImportFeedback(
+              resolveErrorMessage(payload, "스냅샷 생성에 실패했습니다."),
+              "error",
+            );
+            return;
+          }
+
+          const snapshotId =
+            payload && typeof payload.snapshot_id === "string"
+              ? payload.snapshot_id.trim()
+              : "";
+          const totalItems =
+            payload && typeof payload.total_items === "number"
+              ? payload.total_items
+              : 0;
+          if (snapshotId && importSnapshotIdInput instanceof HTMLInputElement) {
+            importSnapshotIdInput.value = snapshotId;
+            window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
+          }
+          setImportFeedback(
+            `스냅샷 생성 완료: ${snapshotId || "-"} (${totalItems}개 포스트)`,
+            "ok",
+          );
+        } catch {
+          setImportFeedback("스냅샷 요청 중 네트워크 오류가 발생했습니다.", "error");
+        } finally {
+          setImportBusy(false);
+        }
+      });
+
+      importApplyButton.addEventListener("click", async () => {
+        const snapshotId =
+          importSnapshotIdInput instanceof HTMLInputElement
+            ? importSnapshotIdInput.value.trim()
+            : "";
+        if (!snapshotId) {
+          setImportFeedback("먼저 스냅샷을 생성하거나 Snapshot ID를 입력해 주세요.", "error");
+          return;
+        }
+
+        setImportBusy(true);
+        setImportFeedback("스냅샷에서 DB 반영을 실행 중입니다...", "pending");
+        try {
+          const response = await fetch(
+            `/internal-api/imports/snapshots/${encodeURIComponent(snapshotId)}/jobs`,
+            {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ mode: "apply" }),
+            },
+          );
+          const payload = await readJsonSafe(response);
+          if (!response.ok) {
+            setImportFeedback(
+              resolveErrorMessage(payload, "DB 반영 실행에 실패했습니다."),
+              "error",
+            );
+            return;
+          }
+
+          const created =
+            payload && typeof payload.created_items === "number"
+              ? payload.created_items
+              : 0;
+          const updated =
+            payload && typeof payload.updated_items === "number"
+              ? payload.updated_items
+              : 0;
+          const failed =
+            payload && typeof payload.failed_items === "number"
+              ? payload.failed_items
+              : 0;
+          const statusText =
+            failed > 0
+              ? `DB 반영 완료(일부 실패): 생성 ${created}, 수정 ${updated}, 실패 ${failed}`
+              : `DB 반영 완료: 생성 ${created}, 수정 ${updated}`;
+          setImportFeedback(statusText, failed > 0 ? "error" : "ok");
+          window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
+        } catch {
+          setImportFeedback("DB 반영 요청 중 네트워크 오류가 발생했습니다.", "error");
+        } finally {
+          setImportBusy(false);
+        }
+      });
     }
 
     initializeTagFilterFromQuery();

@@ -463,6 +463,82 @@
   gap: 0.55rem;
 }
 
+.blog-import-panel {
+  display: grid;
+  gap: 0.68rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(141, 160, 184, 0.2);
+  background: rgba(11, 17, 27, 0.84);
+}
+
+.blog-import-title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.blog-import-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem;
+}
+
+.blog-import-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.blog-import-field span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.blog-import-field input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.62rem 0.74rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(141, 160, 184, 0.24);
+  background: rgba(13, 20, 31, 0.82);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.blog-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.blog-import-actions .button {
+  min-height: 42px;
+  padding: 0.58rem 0.86rem;
+}
+
+.blog-import-feedback {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.blog-import-feedback[data-state="ok"] {
+  color: #43e3aa;
+}
+
+.blog-import-feedback[data-state="error"] {
+  color: #f18e8e;
+}
+
+.blog-import-feedback[data-state="pending"] {
+  color: #9bc8ff;
+}
+
 .blog-admin-write {
   min-height: 46px;
   padding: 0.72rem 0.95rem;
@@ -1180,6 +1256,10 @@
   .blog-archive-control-actions select,
   .blog-archive-control-actions button {
     flex: 1 1 0;
+  }
+
+  .blog-import-grid {
+    grid-template-columns: 1fr;
   }
 
   .blog-archive-grid {

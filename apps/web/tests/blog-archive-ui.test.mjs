@@ -28,6 +28,12 @@ test("blog archive page provides search, sort, and visibility filters", async ()
     source,
     /isAdminViewer && \([\s\S]*id="blog-admin-write"[\s\S]*href="\/admin\/posts\/new"/,
   );
+  assert.match(
+    source,
+    /isAdminViewer && \([\s\S]*id="blog-import-build"[\s\S]*id="blog-import-apply"/,
+  );
+  assert.match(source, /id="blog-import-username"/);
+  assert.match(source, /id="blog-import-snapshot-id"/);
   assert.doesNotMatch(source, /id="blog-filter-toggle"/);
   assert.match(source, /variant="archive"/);
   assert.match(source, /id="blog-post-grid"/);
@@ -46,6 +52,12 @@ test("blog archive page includes client script for filtering and sorting cards",
     /const sortSelect = document\.querySelector\(["']#blog-sort["']\)/,
   );
   assert.match(source, /applyFiltersAndSort/);
+  assert.match(source, /traceoflight\.velog\.import\.snapshot-id/);
+  assert.match(source, /\/internal-api\/imports\/snapshots\/velog/);
+  assert.match(
+    source,
+    /\/internal-api\/imports\/snapshots\/\$\{encodeURIComponent\(snapshotId\)\}\/jobs/,
+  );
   assert.match(
     source,
     /document\.addEventListener\(["']astro:page-load["'], initializeBlogArchivePage\)/,
