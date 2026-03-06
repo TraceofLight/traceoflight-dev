@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import io
 import json
+import mimetypes
 import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import unquote, urlparse
@@ -234,6 +235,21 @@ def _guess_asset_kind(object_key: str, mime_type: str) -> AssetKind:
     return AssetKind.FILE
 
 
+def _fallback_media_manifest_entry(object_key: str, binary: bytes) -> dict[str, object]:
+    original_filename = object_key.rsplit("/", 1)[-1]
+    mime_type = mimetypes.guess_type(original_filename)[0] or "application/octet-stream"
+    return {
+        "object_key": object_key,
+        "kind": _guess_asset_kind(object_key, mime_type).value,
+        "original_filename": original_filename,
+        "mime_type": mime_type,
+        "size_bytes": len(binary),
+        "width": None,
+        "height": None,
+        "duration_seconds": None,
+    }
+
+
 class ImportService:
     def __init__(
         self,
@@ -313,6 +329,7 @@ class ImportService:
             )
         )
         media_by_object_key = {row.object_key: row for row in media_rows}
+        media_payloads: dict[str, bytes] = {}
 
         manifest = {
             "schema_version": BACKUP_SCHEMA_VERSION,
@@ -324,16 +341,26 @@ class ImportService:
         }
         media_manifest = []
         for object_key in sorted(media_object_keys):
+            try:
+                media_payloads[object_key] = self.storage.get_bytes(object_key)
+            except Exception as exc:  # pragma: no cover - storage dependent
+                raise ImportValidationError(
+                    f"failed to read media object for backup: {object_key}"
+                ) from exc
+
             media = media_by_object_key.get(object_key)
             if media is None:
-                raise ImportValidationError(f"media metadata is missing for object key: {object_key}")
+                media_manifest.append(
+                    _fallback_media_manifest_entry(object_key, media_payloads[object_key])
+                )
+                continue
             media_manifest.append(
                 {
                     "object_key": media.object_key,
                     "kind": media.kind.value,
                     "original_filename": media.original_filename,
                     "mime_type": media.mime_type,
-                    "size_bytes": media.size_bytes,
+                    "size_bytes": media.size_bytes or len(media_payloads[object_key]),
                     "width": media.width,
                     "height": media.height,
                     "duration_seconds": media.duration_seconds,
@@ -377,13 +404,7 @@ class ImportService:
 
             for media in media_manifest:
                 object_key = str(media["object_key"])
-                try:
-                    binary = self.storage.get_bytes(object_key)
-                except Exception as exc:  # pragma: no cover - storage dependent
-                    raise ImportValidationError(
-                        f"failed to read media object for backup: {object_key}"
-                    ) from exc
-                archive.writestr(f"media/{object_key}", binary)
+                archive.writestr(f"media/{object_key}", media_payloads[object_key])
 
         file_name = f"traceoflight-posts-backup-{_utcnow().strftime('%Y%m%d-%H%M%S')}.zip"
         return file_name, memory.getvalue()

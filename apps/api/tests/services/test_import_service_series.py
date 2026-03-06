@@ -1,21 +1,39 @@
 from __future__ import annotations
 
+import io
+import json
+from zipfile import ZipFile
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.db.base import Base
+from app.models.post import Post, PostStatus, PostVisibility
 from app.services import import_service as import_service_module
 from app.services.import_service import ImportService, SnapshotBundle
 from app.schemas.imports import ImportMode
 
 
 class _StorageStub:
-    def __init__(self, snapshot_data: bytes | None = None) -> None:
+    def __init__(
+        self,
+        snapshot_data: bytes | None = None,
+        object_bytes: dict[str, bytes] | None = None,
+    ) -> None:
         self.snapshot_data = snapshot_data
+        self.object_bytes = object_bytes or {}
 
     def ensure_bucket(self) -> None:
         return None
 
     def object_exists(self, object_key: str) -> bool:
-        return self.snapshot_data is not None and object_key.endswith(".zip")
+        return object_key in self.object_bytes or (
+            self.snapshot_data is not None and object_key.endswith(".zip")
+        )
 
     def get_bytes(self, object_key: str) -> bytes:
+        if object_key in self.object_bytes:
+            return self.object_bytes[object_key]
         assert self.snapshot_data is not None
         return self.snapshot_data
 
@@ -332,3 +350,53 @@ def test_run_snapshot_import_dry_run_does_not_clear_existing_posts() -> None:
     service.run_snapshot_import("snapshot-1", ImportMode.DRY_RUN)
 
     assert post_service.cleared == 0
+
+
+def test_download_posts_backup_falls_back_when_media_metadata_row_is_missing() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, expire_on_commit=False)()
+    session.add(
+        Post(
+            slug="backup-target",
+            title="Backup target",
+            excerpt="excerpt",
+            body_markdown="body",
+            cover_image_url="/media/image/5c6b1114-3c21-4614-98d7-81c1d51506bc-mendenhallcave.jpg",
+            series_title=None,
+            status=PostStatus.PUBLISHED,
+            visibility=PostVisibility.PUBLIC,
+            published_at=None,
+        )
+    )
+    session.commit()
+
+    storage = _StorageStub(
+        object_bytes={
+            "image/5c6b1114-3c21-4614-98d7-81c1d51506bc-mendenhallcave.jpg": b"image-bytes"
+        }
+    )
+    service = ImportService(storage=storage, post_service=_PostServiceStub(), db=session)  # type: ignore[arg-type]
+
+    _, archive_bytes = service.download_posts_backup()
+
+    with ZipFile(io.BytesIO(archive_bytes)) as archive:
+        media_manifest = json.loads(archive.read("media-manifest.json").decode("utf-8"))
+        assert media_manifest == [
+            {
+                "object_key": "image/5c6b1114-3c21-4614-98d7-81c1d51506bc-mendenhallcave.jpg",
+                "kind": "image",
+                "original_filename": "5c6b1114-3c21-4614-98d7-81c1d51506bc-mendenhallcave.jpg",
+                "mime_type": "image/jpeg",
+                "size_bytes": 11,
+                "width": None,
+                "height": None,
+                "duration_seconds": None,
+            }
+        ]
+        assert (
+            archive.read(
+                "media/image/5c6b1114-3c21-4614-98d7-81c1d51506bc-mendenhallcave.jpg"
+            )
+            == b"image-bytes"
+        )
