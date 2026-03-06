@@ -92,6 +92,8 @@ pipeline {
 
   post {
     always {
+      sh 'docker image prune -f || true'
+      sh 'docker builder prune -f || true'
       sh 'rm -f infra/docker/api/.env || true'
     }
   }

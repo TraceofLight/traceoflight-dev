@@ -79,6 +79,9 @@ pipeline {
 
   post {
     always {
+      dir('infra/docker/api') {
+        sh 'docker compose --env-file .env rm -f minio-init || true'
+      }
       sh 'rm -f infra/docker/api/.env || true'
     }
   }
