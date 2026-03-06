@@ -89,3 +89,8 @@ class PostService:
         if deleted and had_series is not None:
             request_series_projection_refresh("post-deleted-series-assigned")
         return deleted
+
+    def clear_all_posts(self) -> int:
+        deleted = self.repo.clear_all()
+        request_series_projection_refresh("posts-cleared")
+        return deleted

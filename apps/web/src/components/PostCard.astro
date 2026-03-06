@@ -3,6 +3,7 @@ import { Image } from "astro:assets";
 
 import FormattedDate from "./FormattedDate.astro";
 import type { PostCard as PostCardData } from "../lib/content-source";
+import { formatReadingTimeLabel } from "../lib/reading-time.ts";
 
 interface Props {
   post: PostCardData;
@@ -27,15 +28,7 @@ const postTags = (post.tags ?? [])
   .filter(Boolean);
 const hasTags = postTags.length > 0;
 const fallbackHeroImage = '/images/empty-article-image.png';
-const readingMinutes = Math.max(
-  1,
-  Math.round(
-    `${post.title} ${descriptionText}`
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean).length / 180,
-  ),
-);
+const readingLabel = formatReadingTimeLabel(post.body ?? "");
 const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-card';
 ---
 
@@ -83,7 +76,7 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
             <p class="post-card-archive-meta">
               <span><FormattedDate date={post.pubDate} /></span>
               <span aria-hidden="true">•</span>
-              <span>약 {readingMinutes}분</span>
+              <span>{readingLabel}</span>
             </p>
           </div>
         </a>

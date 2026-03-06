@@ -7,6 +7,7 @@ export interface PostCard {
     slug: string;
     title: string;
     description: string;
+    body?: string;
     pubDate: Date;
     updatedDate?: Date;
     heroImage?: ImageMetadata | string;
@@ -63,6 +64,7 @@ export function toPostCard(post: BlogEntry): PostCard {
         slug: post.id,
         title: post.data.title,
         description: post.data.description,
+        body: post.body,
         pubDate: post.data.pubDate,
         updatedDate: post.data.updatedDate,
         heroImage: post.data.heroImage,

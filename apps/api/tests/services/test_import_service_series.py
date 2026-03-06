@@ -2,14 +2,41 @@ from __future__ import annotations
 
 from app.services import import_service as import_service_module
 from app.services.import_service import ImportService, SnapshotBundle
+from app.schemas.imports import ImportMode
 
 
 class _StorageStub:
-    pass
+    def __init__(self, snapshot_data: bytes | None = None) -> None:
+        self.snapshot_data = snapshot_data
+
+    def ensure_bucket(self) -> None:
+        return None
+
+    def object_exists(self, object_key: str) -> bool:
+        return self.snapshot_data is not None and object_key.endswith(".zip")
+
+    def get_bytes(self, object_key: str) -> bytes:
+        assert self.snapshot_data is not None
+        return self.snapshot_data
 
 
 class _PostServiceStub:
-    pass
+    def __init__(self) -> None:
+        self.cleared = 0
+        self.created_payloads = []
+
+    def clear_all_posts(self) -> None:
+        self.cleared += 1
+
+    def get_post_by_slug(self, slug: str):  # type: ignore[no-untyped-def]
+        return None
+
+    def create_post(self, payload):  # type: ignore[no-untyped-def]
+        self.created_payloads.append(payload)
+        return payload
+
+    def update_post_by_slug(self, slug: str, payload):  # type: ignore[no-untyped-def]
+        raise AssertionError("apply import should recreate posts after clearing all rows")
 
 
 def _service() -> ImportService:
@@ -170,6 +197,54 @@ def test_snapshot_zip_roundtrip_preserves_series_title() -> None:
     assert bundles[0].series_title == "Imported Series"
 
 
+def test_read_snapshot_bundles_dedupes_duplicate_slugs() -> None:
+    service = _service()
+    snapshot = service._build_snapshot_zip(  # noqa: SLF001
+        "traceoflight",
+        [
+            SnapshotBundle(
+                external_post_id="post-1-duplicate",
+                external_slug="same-slug",
+                source_url="https://velog.io/@traceoflight/same-slug",
+                slug="same-slug",
+                title="First duplicated post",
+                excerpt="Summary",
+                body_markdown="# Imported body",
+                cover_image_url=None,
+                status="published",
+                visibility="public",
+                published_at="2026-03-06T00:00:00Z",
+                tags=[],
+                series_title=None,
+                order_key="2026-03-06T00:00:00Z",
+            ),
+            SnapshotBundle(
+                external_post_id="post-2-duplicate",
+                external_slug="same-slug",
+                source_url="https://velog.io/@traceoflight/same-slug",
+                slug="same-slug",
+                title="Second duplicated post",
+                excerpt="Summary",
+                body_markdown="# Imported body",
+                cover_image_url=None,
+                status="published",
+                visibility="public",
+                published_at="2026-03-07T00:00:00Z",
+                tags=[],
+                series_title=None,
+                order_key="2026-03-07T00:00:00Z",
+            ),
+        ],
+    )
+
+    bundles = service._read_snapshot_bundles(snapshot)  # noqa: SLF001
+
+    assert [bundle.slug for bundle in bundles] == [
+        "same-slug",
+        "same-slug-post-2-d",
+    ]
+
+
 def test_bundle_to_post_create_sets_series_title() -> None:
     service = _service()
     bundle = SnapshotBundle(
@@ -192,3 +267,68 @@ def test_bundle_to_post_create_sets_series_title() -> None:
     payload = service._bundle_to_post_create(bundle)  # noqa: SLF001
 
     assert payload.series_title == "Imported Series"
+
+
+def test_run_snapshot_import_apply_clears_all_posts_before_recreating_rows() -> None:
+    snapshot_service = _service()
+    snapshot = snapshot_service._build_snapshot_zip(  # noqa: SLF001
+        "traceoflight",
+        [
+            SnapshotBundle(
+                external_post_id="post-1",
+                external_slug="series-article",
+                source_url="https://velog.io/@traceoflight/series-article",
+                slug="series-article",
+                title="Series article",
+                excerpt="Summary",
+                body_markdown="# Imported body",
+                cover_image_url="https://example.com/cover.png",
+                status="published",
+                visibility="public",
+                published_at="2026-03-06T00:00:00Z",
+                tags=["tag"],
+                series_title="Imported Series",
+                order_key="2026-03-06T00:00:00Z",
+            )
+        ],
+    )
+    post_service = _PostServiceStub()
+    service = ImportService(storage=_StorageStub(snapshot), post_service=post_service)  # type: ignore[arg-type]
+
+    result = service.run_snapshot_import("snapshot-1", ImportMode.APPLY)
+
+    assert post_service.cleared == 1
+    assert len(post_service.created_payloads) == 1
+    assert result.created_items == 1
+    assert result.updated_items == 0
+
+
+def test_run_snapshot_import_dry_run_does_not_clear_existing_posts() -> None:
+    snapshot_service = _service()
+    snapshot = snapshot_service._build_snapshot_zip(  # noqa: SLF001
+        "traceoflight",
+        [
+            SnapshotBundle(
+                external_post_id="post-1",
+                external_slug="series-article",
+                source_url="https://velog.io/@traceoflight/series-article",
+                slug="series-article",
+                title="Series article",
+                excerpt="Summary",
+                body_markdown="# Imported body",
+                cover_image_url="https://example.com/cover.png",
+                status="published",
+                visibility="public",
+                published_at="2026-03-06T00:00:00Z",
+                tags=["tag"],
+                series_title="Imported Series",
+                order_key="2026-03-06T00:00:00Z",
+            )
+        ],
+    )
+    post_service = _PostServiceStub()
+    service = ImportService(storage=_StorageStub(snapshot), post_service=post_service)  # type: ignore[arg-type]
+
+    service.run_snapshot_import("snapshot-1", ImportMode.DRY_RUN)
+
+    assert post_service.cleared == 0

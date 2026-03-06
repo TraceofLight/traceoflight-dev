@@ -109,6 +109,33 @@ def _normalize_slug(value: str, fallback: str) -> str:
     return fallback_value or f"velog-{uuid.uuid4().hex[:8]}"
 
 
+def _suffix_slug(base_slug: str, external_post_id: str, index: int = 0) -> str:
+    suffix_seed = external_post_id[:8] if external_post_id else f"item-{index + 1}"
+    suffix = _normalize_slug(suffix_seed, f"item-{index + 1}")
+    candidate = f"{base_slug}-{suffix}".strip("-")
+    if candidate != base_slug:
+        return candidate
+    return f"{base_slug}-{index + 2}"
+
+
+def _ensure_unique_bundle_slugs(bundles: list["SnapshotBundle"]) -> list["SnapshotBundle"]:
+    seen_slugs: set[str] = set()
+    for index, bundle in enumerate(bundles):
+        base_slug = bundle.slug
+        if base_slug not in seen_slugs:
+            seen_slugs.add(base_slug)
+            continue
+
+        candidate = _suffix_slug(base_slug, bundle.external_post_id, index)
+        while candidate in seen_slugs:
+            candidate = _suffix_slug(candidate, bundle.external_post_id, index + 1)
+
+        bundle.slug = candidate
+        seen_slugs.add(candidate)
+
+    return bundles
+
+
 def _normalize_tags(raw: object) -> list[str]:
     if not isinstance(raw, list):
         return []
@@ -202,29 +229,29 @@ class ImportService:
 
         snapshot_data = self.storage.get_bytes(object_key)
         bundles = self._read_snapshot_bundles(snapshot_data)
+        is_apply_mode = mode == ImportMode.APPLY
 
         created_items = 0
         updated_items = 0
         failed_items = 0
         errors: list[SnapshotImportErrorItem] = []
 
+        if is_apply_mode:
+            self.post_service.clear_all_posts()
+
         for bundle in bundles:
             try:
                 payload = self._bundle_to_post_create(bundle)
-                existing = self.post_service.get_post_by_slug(payload.slug)
-                if mode == ImportMode.DRY_RUN:
+                if not is_apply_mode:
+                    existing = self.post_service.get_post_by_slug(payload.slug)
                     if existing is None:
                         created_items += 1
                     else:
                         updated_items += 1
                     continue
 
-                if existing is None:
-                    self.post_service.create_post(payload)
-                    created_items += 1
-                else:
-                    self.post_service.update_post_by_slug(existing.slug, payload)
-                    updated_items += 1
+                self.post_service.create_post(payload)
+                created_items += 1
             except Exception as exc:  # pragma: no cover - defensive branch
                 failed_items += 1
                 errors.append(
@@ -337,7 +364,7 @@ class ImportService:
             cursor = last_cursor
 
         bundles.sort(key=lambda item: (item.order_key, item.external_post_id))
-        return bundles
+        return _ensure_unique_bundle_slugs(bundles)
 
     def _request_velog_graphql(self, query: str, variables: dict[str, object]) -> dict[str, object]:
         payload = json.dumps({"query": query, "variables": variables}).encode("utf-8")
@@ -508,7 +535,7 @@ class ImportService:
                 )
 
         bundles.sort(key=lambda item: (item.order_key, item.external_post_id))
-        return bundles
+        return _ensure_unique_bundle_slugs(bundles)
 
     def _bundle_to_post_create(self, bundle: SnapshotBundle) -> PostCreate:
         status = PostStatus.DRAFT if bundle.status == "draft" else PostStatus.PUBLISHED

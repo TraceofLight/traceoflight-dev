@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime, timezone
 
-from sqlalchemy import distinct, func, select
+from sqlalchemy import delete, distinct, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -216,3 +216,8 @@ class PostRepository:
         self.db.delete(post)
         self.db.commit()
         return True
+
+    def clear_all(self) -> int:
+        result = self.db.execute(delete(Post))
+        self.db.commit()
+        return int(result.rowcount or 0)

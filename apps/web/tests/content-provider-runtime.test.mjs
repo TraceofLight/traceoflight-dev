@@ -19,6 +19,7 @@ test('home page supports db provider posts', async () => {
   assert.match(source, /getContentProvider/);
   assert.match(source, /listPublishedDbPosts/);
   assert.match(source, /provider === ["']db["']/);
+  assert.match(source, /pubDate:\s*post\.publishedAt/);
 });
 
 test('rss route supports db provider posts', async () => {
@@ -27,4 +28,10 @@ test('rss route supports db provider posts', async () => {
   assert.match(source, /getContentProvider/);
   assert.match(source, /listAllPublishedDbPosts/);
   assert.match(source, /provider === ["']db["']/);
+});
+
+test('blog archive page maps db card dates from publishedAt', async () => {
+  const source = await readFile(new URL('../src/pages/blog/index.astro', import.meta.url), 'utf8');
+
+  assert.match(source, /pubDate:\s*post\.publishedAt/);
 });
