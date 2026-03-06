@@ -1,7 +1,6 @@
 ---
-import { Image } from "astro:assets";
-
 import FormattedDate from "./FormattedDate.astro";
+import HeroMediaImage from "./HeroMediaImage.astro";
 import type { PostCard as PostCardData } from "../lib/content-source";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
 
@@ -47,12 +46,8 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
         <a class="post-card-archive-anchor" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
           <div class="thumb post-card-archive-thumb">
             {
-              post.heroImage ? (
-                typeof post.heroImage === 'string' ? (
-                  <img src={post.heroImage} alt={post.title} loading="lazy" />
-                ) : (
-                  <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
-                )
+              post.heroMedia ? (
+                <HeroMediaImage media={post.heroMedia} alt={post.title} width={imageWidth} height={imageHeight} />
               ) : (
                 <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
               )
@@ -86,12 +81,8 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
         <a class="post-card-default-anchor" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
           <div class="thumb post-card-default-thumb">
             {
-              post.heroImage ? (
-                typeof post.heroImage === 'string' ? (
-                  <img src={post.heroImage} alt={post.title} loading="lazy" />
-                ) : (
-                  <Image src={post.heroImage} alt={post.title} width={imageWidth} height={imageHeight} />
-                )
+              post.heroMedia ? (
+                <HeroMediaImage media={post.heroMedia} alt={post.title} width={imageWidth} height={imageHeight} />
               ) : (
                 <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
               )

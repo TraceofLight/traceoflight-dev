@@ -28,7 +28,7 @@ if (provider === "db") {
       body: post.bodyMarkdown,
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
-      heroImage: post.coverImageUrl,
+      heroMedia: post.heroMedia,
       visibility: post.visibility,
       tags: post.tags.map((tag) => tag.slug),
     }));

@@ -1,10 +1,10 @@
 ---
-import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
-import type { ImageMetadata } from 'astro';
 
 import FormattedDate from '../components/FormattedDate.astro';
+import HeroMediaImage from '../components/HeroMediaImage.astro';
 import BaseLayout from './BaseLayout.astro';
+import { getHeroMediaMetadata, normalizeHeroMedia, type HeroMediaSource } from '../lib/hero-media';
 
 type MarkdownPostData = CollectionEntry<'blog'>['data'];
 
@@ -13,7 +13,7 @@ interface DbPostData {
   description: string;
   pubDate: Date;
   updatedDate?: Date;
-  heroImage?: string;
+  heroImage?: HeroMediaSource;
 }
 
 interface SeriesContext {
@@ -60,12 +60,13 @@ const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) : '';
 const defaultSeriesPostCoverImage = '/images/empty-series-image.png';
 const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
+const heroMedia = normalizeHeroMedia(heroImage);
 ---
 
 <BaseLayout
   title={title}
   description={description}
-  image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}
+  image={getHeroMediaMetadata(heroMedia)}
   bodyClass="page-blog-post"
 >
   <div class={`post-layout${hasSeriesSidebar ? ' has-series-sidebar' : ''}`}>
@@ -90,12 +91,7 @@ const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
       </nav>
 
       {
-        heroImage &&
-          (typeof heroImage === 'string' ? (
-            <img class="post-hero" src={heroImage} alt={title} loading="lazy" />
-          ) : (
-            <Image class="post-hero" src={heroImage} alt={title} width={1200} height={630} />
-          ))
+        heroMedia && <HeroMediaImage className="post-hero" media={heroMedia} alt={title} width={1200} height={630} />
       }
 
       <header class="post-header">

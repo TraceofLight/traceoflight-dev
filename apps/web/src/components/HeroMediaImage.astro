@@ -1,0 +1,34 @@
+---
+import { Image } from "astro:assets";
+
+import type { HeroMedia } from "../lib/hero-media";
+
+interface Props {
+  media: HeroMedia;
+  alt: string;
+  className?: string;
+  width?: number;
+  height?: number;
+  loading?: "lazy" | "eager";
+  sizes?: string;
+}
+
+const { media, alt, className, width, height, loading = "lazy", sizes } = Astro.props;
+const normalizedClassName = className?.trim() || undefined;
+---
+
+{
+  media.kind === "optimized" ? (
+    <Image
+      class={normalizedClassName}
+      src={media.src}
+      alt={alt}
+      width={width ?? media.src.width}
+      height={height ?? media.src.height}
+      loading={loading}
+      sizes={sizes}
+    />
+  ) : (
+    <img class={normalizedClassName} src={media.src} alt={alt} loading={loading} decoding="async" />
+  )
+}

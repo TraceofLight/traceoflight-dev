@@ -1,5 +1,5 @@
 import {getCollection, type CollectionEntry} from 'astro:content';
-import type {ImageMetadata} from 'astro';
+import { normalizeHeroMedia, type HeroMedia } from './hero-media';
 
 export type BlogEntry = CollectionEntry<'blog'>;
 
@@ -10,7 +10,7 @@ export interface PostCard {
     body?: string;
     pubDate: Date;
     updatedDate?: Date;
-    heroImage?: ImageMetadata | string;
+    heroMedia?: HeroMedia;
     visibility?: 'public' | 'private';
     tags?: string[];
 }
@@ -67,7 +67,7 @@ export function toPostCard(post: BlogEntry): PostCard {
         body: post.body,
         pubDate: post.data.pubDate,
         updatedDate: post.data.updatedDate,
-        heroImage: post.data.heroImage,
+        heroMedia: normalizeHeroMedia(post.data.heroImage),
         visibility: 'public',
         tags: [],
     };
