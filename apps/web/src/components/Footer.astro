@@ -1,5 +1,6 @@
 ---
 import adminIcon from "../assets/icons/footer/admin.svg?raw";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { sanitizeNextPath } from "../lib/admin-redirect";
 import FooterIconLink from "./FooterIconLink.astro";
 import { GITHUB_URL, SITE_TITLE } from "../consts";
@@ -7,6 +8,8 @@ import { GITHUB_URL, SITE_TITLE } from "../consts";
 const currentYear = new Date().getFullYear();
 const shouldOpenAdminLogin = Astro.url.searchParams.get("admin_login") === "1";
 const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 ---
 
 <footer class="site-footer">
@@ -28,7 +31,7 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
         id="footer-admin-trigger"
         class="icon-link footer-icon-link"
         type="button"
-        aria-label="Admin Login"
+        aria-label={isAdminViewer ? "Admin Import" : "Admin Login"}
       >
         <span
           class="footer-icon-glyph"
@@ -44,6 +47,7 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
   id="footer-admin-login-modal"
   class="footer-admin-login-modal"
   data-open="false"
+  data-admin-viewer={isAdminViewer ? "true" : "false"}
   data-open-on-load={shouldOpenAdminLogin ? "true" : "false"}
   hidden
 >
@@ -58,92 +62,99 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
     aria-modal="true"
     aria-labelledby="footer-admin-login-title"
   >
-    <form
-      id="footer-admin-login-form"
-      class="auth-form auth-shell"
-      data-next={adminNextPath}
-    >
-      <p id="footer-admin-login-title" class="kicker auth-login-kicker">
-        ADMIN LOGIN
-      </p>
-      <label>
-        <span>아이디</span>
-        <input
-          id="footer-admin-username"
-          name="username"
-          type="text"
-          autocomplete="username"
-          required
-        />
-      </label>
-      <label>
-        <span>비밀번호</span>
-        <input
-          id="footer-admin-password"
-          name="password"
-          type="password"
-          autocomplete="current-password"
-          required
-        />
-      </label>
-      <button class="button" type="submit">로그인</button>
-      <p id="footer-admin-feedback" class="auth-feedback" data-state="info">
-        로그인 정보를 입력해 주세요.
-      </p>
-    </form>
+    {
+      !isAdminViewer && (
+        <form
+          id="footer-admin-login-form"
+          class="auth-form auth-shell"
+          data-next={adminNextPath}
+        >
+          <p id="footer-admin-login-title" class="kicker auth-login-kicker">
+            ADMIN LOGIN
+          </p>
+          <label>
+            <span>아이디</span>
+            <input
+              id="footer-admin-username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              required
+            />
+          </label>
+          <label>
+            <span>비밀번호</span>
+            <input
+              id="footer-admin-password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button class="button" type="submit">로그인</button>
+          <p id="footer-admin-feedback" class="auth-feedback" data-state="info">
+            로그인 정보를 입력해 주세요.
+          </p>
+        </form>
+      )
+    }
 
-    <section
-      id="footer-admin-import-panel"
-      class="auth-panel footer-admin-import-panel"
-      hidden
-    >
-      <p class="kicker auth-login-kicker">ADMIN IMPORT</p>
-      <label class="footer-admin-import-field" for="footer-admin-import-username">
-        <span>Velog 사용자명</span>
-        <input
-          id="footer-admin-import-username"
-          type="text"
-          value="traceoflight"
-          placeholder="traceoflight"
-          autocomplete="off"
-        />
-      </label>
-      <label
-        class="footer-admin-import-field"
-        for="footer-admin-import-snapshot-id"
-      >
-        <span>Snapshot ID</span>
-        <input
-          id="footer-admin-import-snapshot-id"
-          type="text"
-          placeholder="스냅샷 생성 후 자동 입력"
-          autocomplete="off"
-        />
-      </label>
-      <div class="footer-admin-import-actions">
-        <button
-          id="footer-admin-import-build"
-          class="button button-ghost"
-          type="button"
+    {
+      isAdminViewer && (
+        <section
+          id="footer-admin-import-panel"
+          class="auth-panel footer-admin-import-panel"
         >
-          Velog 크롤링 + ZIP 저장
-        </button>
-        <button
-          id="footer-admin-import-apply"
-          class="button button-brand"
-          type="button"
-        >
-          ZIP에서 DB 반영
-        </button>
-      </div>
-      <p
-        id="footer-admin-import-feedback"
-        class="auth-feedback"
-        data-state="info"
-      >
-        스냅샷을 생성하거나 기존 Snapshot ID로 DB 반영을 실행하세요.
-      </p>
-    </section>
+          <p id="footer-admin-login-title" class="kicker auth-login-kicker">ADMIN IMPORT</p>
+          <label class="footer-admin-import-field" for="footer-admin-import-username">
+            <span>Velog 사용자명</span>
+            <input
+              id="footer-admin-import-username"
+              type="text"
+              value="traceoflight"
+              placeholder="traceoflight"
+              autocomplete="off"
+            />
+          </label>
+          <label
+            class="footer-admin-import-field"
+            for="footer-admin-import-snapshot-id"
+          >
+            <span>Snapshot ID</span>
+            <input
+              id="footer-admin-import-snapshot-id"
+              type="text"
+              placeholder="스냅샷 생성 후 자동 입력"
+              autocomplete="off"
+            />
+          </label>
+          <div class="footer-admin-import-actions">
+            <button
+              id="footer-admin-import-build"
+              class="button button-ghost"
+              type="button"
+            >
+              Velog 크롤링 + ZIP 저장
+            </button>
+            <button
+              id="footer-admin-import-apply"
+              class="button button-brand"
+              type="button"
+            >
+              ZIP에서 DB 반영
+            </button>
+          </div>
+          <p
+            id="footer-admin-import-feedback"
+            class="auth-feedback"
+            data-state="info"
+          >
+            스냅샷을 생성하거나 기존 Snapshot ID로 DB 반영을 실행하세요.
+          </p>
+        </section>
+      )
+    }
   </section>
 </div>
 
@@ -156,7 +167,6 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
     const usernameInput = document.querySelector("#footer-admin-username");
     const passwordInput = document.querySelector("#footer-admin-password");
     const feedback = document.querySelector("#footer-admin-feedback");
-    const importPanel = document.querySelector("#footer-admin-import-panel");
     const importUsernameInput = document.querySelector(
       "#footer-admin-import-username",
     );
@@ -174,30 +184,23 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
     if (!(trigger instanceof HTMLButtonElement)) return;
     if (!(modal instanceof HTMLElement)) return;
     if (!(backdrop instanceof HTMLButtonElement)) return;
-    if (!(form instanceof HTMLFormElement)) return;
-    if (!(usernameInput instanceof HTMLInputElement)) return;
-    if (!(passwordInput instanceof HTMLInputElement)) return;
-    if (!(feedback instanceof HTMLElement)) return;
-    if (!(importPanel instanceof HTMLElement)) return;
-    if (!(importUsernameInput instanceof HTMLInputElement)) return;
-    if (!(importSnapshotIdInput instanceof HTMLInputElement)) return;
-    if (!(importBuildButton instanceof HTMLButtonElement)) return;
-    if (!(importApplyButton instanceof HTMLButtonElement)) return;
-    if (!(importFeedback instanceof HTMLElement)) return;
 
+    const isAdminViewer = modal.dataset.adminViewer === "true";
     const importSnapshotStorageKey = "traceoflight.velog.import.snapshot-id";
-    const nextPath = form.dataset.next || "/";
-    const getIsAdminViewer = () =>
-      document.querySelector("#header-admin-logout") instanceof HTMLButtonElement;
+    const nextPath = form instanceof HTMLFormElement ? form.dataset.next || "/" : "/";
     const setFeedback = (message, state = "info") => {
+      if (!(feedback instanceof HTMLElement)) return;
       feedback.textContent = message;
       feedback.dataset.state = state;
     };
     const setImportFeedback = (message, state = "info") => {
+      if (!(importFeedback instanceof HTMLElement)) return;
       importFeedback.textContent = message;
       importFeedback.dataset.state = state;
     };
     const setImportBusy = (busy) => {
+      if (!(importBuildButton instanceof HTMLButtonElement)) return;
+      if (!(importApplyButton instanceof HTMLButtonElement)) return;
       importBuildButton.disabled = busy;
       importApplyButton.disabled = busy;
     };
@@ -220,24 +223,16 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
       return fallback;
     };
     const restoreSnapshotId = () => {
+      if (!(importSnapshotIdInput instanceof HTMLInputElement)) return;
       const stored = window.localStorage.getItem(importSnapshotStorageKey) ?? "";
       if (stored.trim() && !importSnapshotIdInput.value.trim()) {
         importSnapshotIdInput.value = stored.trim();
       }
     };
-    const toggleAdminView = (isAdminViewer) => {
-      form.hidden = isAdminViewer;
-      importPanel.hidden = !isAdminViewer;
-      modal.dataset.mode = isAdminViewer ? "admin" : "login";
-      trigger.setAttribute(
-        "aria-label",
-        isAdminViewer ? "Admin Import" : "Admin Login",
-      );
-    };
 
     const openModal = () => {
-      toggleAdminView(getIsAdminViewer());
-      restoreSnapshotId();
+      modal.dataset.mode = isAdminViewer ? "admin" : "login";
+      if (isAdminViewer) restoreSnapshotId();
       modal.hidden = false;
       modal.dataset.open = "true";
     };
@@ -245,7 +240,10 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
     const closeModal = () => {
       modal.hidden = true;
       modal.dataset.open = "false";
-      setFeedback("로그인 정보를 입력해 주세요.", "info");
+      if (!isAdminViewer) {
+        setFeedback("로그인 정보를 입력해 주세요.", "info");
+        return;
+      }
       setImportFeedback(
         "스냅샷을 생성하거나 기존 Snapshot ID로 DB 반영을 실행하세요.",
         "info",
@@ -265,136 +263,149 @@ const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
         closeModal();
       });
 
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        setFeedback("로그인 처리 중...", "info");
+      if (
+        form instanceof HTMLFormElement &&
+        usernameInput instanceof HTMLInputElement &&
+        passwordInput instanceof HTMLInputElement &&
+        feedback instanceof HTMLElement
+      ) {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          setFeedback("로그인 처리 중...", "info");
 
-        try {
-          const response = await fetch("/internal-api/auth/login", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              username: usernameInput.value.trim(),
-              password: passwordInput.value,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorJson = await response.json().catch(() => ({}));
-            setFeedback(errorJson.detail || "로그인에 실패했습니다.", "error");
-            return;
-          }
-
-          window.location.assign(nextPath);
-        } catch {
-          setFeedback("네트워크 오류가 발생했습니다.", "error");
-        }
-      });
-
-      importBuildButton.addEventListener("click", async () => {
-        const username = importUsernameInput.value.trim().replace(/^@+/, "");
-        if (!username) {
-          setImportFeedback("Velog 사용자명을 입력해 주세요.", "error");
-          return;
-        }
-
-        setImportBusy(true);
-        setImportFeedback("Velog 글을 수집해 ZIP 스냅샷을 생성 중입니다...", "pending");
-        try {
-          const response = await fetch("/internal-api/imports/snapshots/velog", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ username }),
-          });
-          const payload = await readJsonSafe(response);
-          if (!response.ok) {
-            setImportFeedback(
-              resolveErrorMessage(payload, "스냅샷 생성에 실패했습니다."),
-              "error",
-            );
-            return;
-          }
-
-          const snapshotId =
-            payload && typeof payload.snapshot_id === "string"
-              ? payload.snapshot_id.trim()
-              : "";
-          const totalItems =
-            payload && typeof payload.total_items === "number"
-              ? payload.total_items
-              : 0;
-          if (snapshotId) {
-            importSnapshotIdInput.value = snapshotId;
-            window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
-          }
-          setImportFeedback(
-            `스냅샷 생성 완료: ${snapshotId || "-"} (${totalItems}개 포스트)`,
-            "ok",
-          );
-        } catch {
-          setImportFeedback("스냅샷 요청 중 네트워크 오류가 발생했습니다.", "error");
-        } finally {
-          setImportBusy(false);
-        }
-      });
-
-      importApplyButton.addEventListener("click", async () => {
-        const snapshotId = importSnapshotIdInput.value.trim();
-        if (!snapshotId) {
-          setImportFeedback(
-            "먼저 스냅샷을 생성하거나 Snapshot ID를 입력해 주세요.",
-            "error",
-          );
-          return;
-        }
-
-        setImportBusy(true);
-        setImportFeedback("스냅샷에서 DB 반영을 실행 중입니다...", "pending");
-        try {
-          const response = await fetch(
-            `/internal-api/imports/snapshots/${encodeURIComponent(snapshotId)}/jobs`,
-            {
+          try {
+            const response = await fetch("/internal-api/auth/login", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ mode: "apply" }),
-            },
-          );
-          const payload = await readJsonSafe(response);
-          if (!response.ok) {
+              body: JSON.stringify({
+                username: usernameInput.value.trim(),
+                password: passwordInput.value,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorJson = await response.json().catch(() => ({}));
+              setFeedback(errorJson.detail || "로그인에 실패했습니다.", "error");
+              return;
+            }
+
+            window.location.assign(nextPath);
+          } catch {
+            setFeedback("네트워크 오류가 발생했습니다.", "error");
+          }
+        });
+      }
+
+      if (
+        importUsernameInput instanceof HTMLInputElement &&
+        importSnapshotIdInput instanceof HTMLInputElement &&
+        importBuildButton instanceof HTMLButtonElement &&
+        importApplyButton instanceof HTMLButtonElement &&
+        importFeedback instanceof HTMLElement
+      ) {
+        importBuildButton.addEventListener("click", async () => {
+          const username = importUsernameInput.value.trim().replace(/^@+/, "");
+          if (!username) {
+            setImportFeedback("Velog 사용자명을 입력해 주세요.", "error");
+            return;
+          }
+
+          setImportBusy(true);
+          setImportFeedback("Velog 글을 수집해 ZIP 스냅샷을 생성 중입니다...", "pending");
+          try {
+            const response = await fetch("/internal-api/imports/snapshots/velog", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ username }),
+            });
+            const payload = await readJsonSafe(response);
+            if (!response.ok) {
+              setImportFeedback(
+                resolveErrorMessage(payload, "스냅샷 생성에 실패했습니다."),
+                "error",
+              );
+              return;
+            }
+
+            const snapshotId =
+              payload && typeof payload.snapshot_id === "string"
+                ? payload.snapshot_id.trim()
+                : "";
+            const totalItems =
+              payload && typeof payload.total_items === "number"
+                ? payload.total_items
+                : 0;
+            if (snapshotId) {
+              importSnapshotIdInput.value = snapshotId;
+              window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
+            }
             setImportFeedback(
-              resolveErrorMessage(payload, "DB 반영 실행에 실패했습니다."),
+              `스냅샷 생성 완료: ${snapshotId || "-"} (${totalItems}개 포스트)`,
+              "ok",
+            );
+          } catch {
+            setImportFeedback("스냅샷 요청 중 네트워크 오류가 발생했습니다.", "error");
+          } finally {
+            setImportBusy(false);
+          }
+        });
+
+        importApplyButton.addEventListener("click", async () => {
+          const snapshotId = importSnapshotIdInput.value.trim();
+          if (!snapshotId) {
+            setImportFeedback(
+              "먼저 스냅샷을 생성하거나 Snapshot ID를 입력해 주세요.",
               "error",
             );
             return;
           }
 
-          const created =
-            payload && typeof payload.created_items === "number"
-              ? payload.created_items
-              : 0;
-          const updated =
-            payload && typeof payload.updated_items === "number"
-              ? payload.updated_items
-              : 0;
-          const failed =
-            payload && typeof payload.failed_items === "number"
-              ? payload.failed_items
-              : 0;
-          const statusText =
-            failed > 0
-              ? `DB 반영 완료(일부 실패): 생성 ${created}, 수정 ${updated}, 실패 ${failed}`
-              : `DB 반영 완료: 생성 ${created}, 수정 ${updated}`;
-          setImportFeedback(statusText, failed > 0 ? "error" : "ok");
-          window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
-        } catch {
-          setImportFeedback("DB 반영 요청 중 네트워크 오류가 발생했습니다.", "error");
-        } finally {
-          setImportBusy(false);
-        }
-      });
-    }
+          setImportBusy(true);
+          setImportFeedback("스냅샷에서 DB 반영을 실행 중입니다...", "pending");
+          try {
+            const response = await fetch(
+              `/internal-api/imports/snapshots/${encodeURIComponent(snapshotId)}/jobs`,
+              {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ mode: "apply" }),
+              },
+            );
+            const payload = await readJsonSafe(response);
+            if (!response.ok) {
+              setImportFeedback(
+                resolveErrorMessage(payload, "DB 반영 실행에 실패했습니다."),
+                "error",
+              );
+              return;
+            }
 
-    toggleAdminView(getIsAdminViewer());
+            const created =
+              payload && typeof payload.created_items === "number"
+                ? payload.created_items
+                : 0;
+            const updated =
+              payload && typeof payload.updated_items === "number"
+                ? payload.updated_items
+                : 0;
+            const failed =
+              payload && typeof payload.failed_items === "number"
+                ? payload.failed_items
+                : 0;
+            const statusText =
+              failed > 0
+                ? `DB 반영 완료(일부 실패): 생성 ${created}, 수정 ${updated}, 실패 ${failed}`
+                : `DB 반영 완료: 생성 ${created}, 수정 ${updated}`;
+            setImportFeedback(statusText, failed > 0 ? "error" : "ok");
+            window.localStorage.setItem(importSnapshotStorageKey, snapshotId);
+          } catch {
+            setImportFeedback("DB 반영 요청 중 네트워크 오류가 발생했습니다.", "error");
+          } finally {
+            setImportBusy(false);
+          }
+        });
+      }
+    }
 
     if (modal.dataset.openOnLoad === "true") {
       openModal();

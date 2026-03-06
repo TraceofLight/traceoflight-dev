@@ -42,12 +42,17 @@ def _series_detail_payload(slug: str) -> dict[str, object]:
 
 class _StubSeriesService:
     def __init__(self) -> None:
-        self.list_calls: list[bool] = []
+        self.list_calls: list[tuple[bool, int, int]] = []
         self.get_calls: list[tuple[str, bool]] = []
         self.write_calls: list[str] = []
 
-    def list_series(self, include_private: bool = False):  # type: ignore[no-untyped-def]
-        self.list_calls.append(include_private)
+    def list_series(
+        self,
+        include_private: bool = False,
+        limit: int = 50,
+        offset: int = 0,
+    ):  # type: ignore[no-untyped-def]
+        self.list_calls.append((include_private, limit, offset))
         return [_series_payload("my-series")]
 
     def get_series_by_slug(self, slug: str, include_private: bool = False):  # type: ignore[no-untyped-def]
@@ -107,7 +112,7 @@ def test_series_list_and_detail_apply_public_fallback_without_internal_secret(mo
     app.dependency_overrides.clear()
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
-    assert service.list_calls == [False]
+    assert service.list_calls == [(False, 50, 0)]
     assert service.get_calls == [("my-series", False)]
 
 
@@ -123,7 +128,7 @@ def test_series_list_and_detail_allow_internal_secret(monkeypatch) -> None:
     app.dependency_overrides.clear()
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
-    assert service.list_calls == [True]
+    assert service.list_calls == [(True, 50, 0)]
     assert service.get_calls == [("my-series", True)]
 
 

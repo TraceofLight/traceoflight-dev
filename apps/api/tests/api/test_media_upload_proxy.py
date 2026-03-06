@@ -39,7 +39,11 @@ def test_media_upload_proxy_forwards_binary_upload(monkeypatch) -> None:
     def fake_urlopen(request, timeout):  # type: ignore[no-untyped-def]
         captured['url'] = request.full_url
         captured['method'] = request.get_method()
-        captured['content_type'] = request.headers.get('Content-Type', '')
+        captured['content_type'] = (
+            request.get_header('Content-type')
+            or request.headers.get('Content-type')
+            or request.headers.get('Content-Type', '')
+        )
         captured['timeout'] = str(timeout)
         return _DummyResponse(200)
 
@@ -85,4 +89,3 @@ def test_media_upload_proxy_returns_502_on_network_error(monkeypatch) -> None:
 
     assert response.status_code == 502
     assert response.json() == {'detail': 'object storage upload request failed: no route to host'}
-

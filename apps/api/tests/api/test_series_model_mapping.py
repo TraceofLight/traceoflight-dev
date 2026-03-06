@@ -23,12 +23,17 @@ def test_series_tables_and_uniques_exist() -> None:
     series_table = Base.metadata.tables["series"]
     series_posts_table = Base.metadata.tables["series_posts"]
 
-    unique_sets = {
+    constraint_unique_sets = {
         tuple(sorted(constraint.columns.keys()))
         for constraint in series_table.constraints
         if constraint.__class__.__name__ == "UniqueConstraint"
     }
-    assert ("slug",) in unique_sets
+    index_unique_sets = {
+        tuple(sorted(index.columns.keys()))
+        for index in series_table.indexes
+        if index.unique
+    }
+    assert ("slug",) in (constraint_unique_sets | index_unique_sets)
 
     mapping_unique_sets = {
         tuple(sorted(constraint.columns.keys()))

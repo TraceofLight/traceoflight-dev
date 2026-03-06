@@ -251,6 +251,10 @@ html.page-blog-post .container {
   display: grid;
 }
 
+.footer-admin-login-panel [hidden] {
+  display: none !important;
+}
+
 .footer-admin-import-field {
   display: grid;
   gap: 0.35rem;

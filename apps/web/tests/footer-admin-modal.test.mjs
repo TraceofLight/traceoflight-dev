@@ -9,6 +9,11 @@ test("footer admin modal supports login view and admin import management view", 
 
   assert.match(source, /id="footer-admin-trigger"/);
   assert.match(source, /id="footer-admin-login-modal"/);
+  assert.match(source, /ADMIN_ACCESS_COOKIE/);
+  assert.match(source, /verifyAccessToken/);
+  assert.match(source, /!\s*isAdminViewer && \(/);
+  assert.match(source, /isAdminViewer && \(/);
+  assert.match(source, /data-admin-viewer=\{isAdminViewer \? "true" : "false"\}/);
   assert.match(source, /id="footer-admin-login-form"/);
   assert.match(source, /id="footer-admin-import-panel"/);
   assert.match(source, /id="footer-admin-import-username"/);
@@ -21,6 +26,6 @@ test("footer admin modal supports login view and admin import management view", 
     source,
     /\/internal-api\/imports\/snapshots\/\$\{encodeURIComponent\(snapshotId\)\}\/jobs/,
   );
-  assert.match(source, /toggleAdminView\(/);
-  assert.doesNotMatch(source, /if \(isAdminViewer\) \{[\s\S]*return;/);
+  assert.doesNotMatch(source, /const toggleAdminView =/);
+  assert.doesNotMatch(source, /#header-admin-logout/);
 });

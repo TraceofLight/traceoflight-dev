@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../../lib/admin-auth";
 import { requestBackend } from "../../../../lib/backend-api";
 
 export const prerender = false;
@@ -11,7 +12,19 @@ function backendUnavailableResponse(): Response {
   });
 }
 
-export const POST: APIRoute = async ({ request }) => {
+function unauthorizedResponse(): Response {
+  return new Response(JSON.stringify({ detail: "Unauthorized" }), {
+    status: 401,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+export const POST: APIRoute = async ({ request, cookies }) => {
+  const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+  if (!accessToken || !verifyAccessToken(accessToken)) {
+    return unauthorizedResponse();
+  }
+
   const body = await request.text();
   let response: Response;
   try {

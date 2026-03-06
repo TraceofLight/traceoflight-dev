@@ -26,10 +26,11 @@ from app.storage.minio_client import MinioStorageClient
 
 VELOG_GRAPHQL_URL = "https://v2.velog.io/graphql"
 SNAPSHOT_OBJECT_PREFIX = "imports/snapshots"
+VELOG_POSTS_PAGE_SIZE = 50
 
 POSTS_QUERY = """
-query Posts($username: String) {
-  posts(username: $username) {
+query Posts($username: String, $limit: Int, $cursor: ID) {
+  posts(username: $username, limit: $limit, cursor: $cursor) {
     id
     title
     short_description
@@ -253,64 +254,87 @@ class ImportService:
         )
 
     def _collect_velog_bundles(self, username: str) -> list[SnapshotBundle]:
-        data = self._request_velog_graphql(POSTS_QUERY, {"username": username})
-        posts = data.get("posts")
-        if not isinstance(posts, list):
-            raise ImportSourceError("velog posts payload is invalid")
-
         bundles: list[SnapshotBundle] = []
-        for post in posts:
-            if not isinstance(post, dict):
-                continue
-            external_post_id = str(post.get("id", "")).strip()
-            external_slug = str(post.get("url_slug", "")).strip()
-            if not external_post_id or not external_slug:
-                continue
+        seen_post_ids: set[str] = set()
+        cursor: str | None = None
 
-            detail = self._request_velog_graphql(
-                POST_DETAIL_QUERY,
-                {"username": username, "url_slug": external_slug},
+        while True:
+            data = self._request_velog_graphql(
+                POSTS_QUERY,
+                {
+                    "username": username,
+                    "limit": VELOG_POSTS_PAGE_SIZE,
+                    "cursor": cursor,
+                },
             )
-            detail_post = detail.get("post")
-            if not isinstance(detail_post, dict):
-                continue
+            posts = data.get("posts")
+            if not isinstance(posts, list):
+                raise ImportSourceError("velog posts payload is invalid")
+            if not posts:
+                break
 
-            body_markdown = str(detail_post.get("body", "")).strip()
-            if not body_markdown:
-                continue
+            last_cursor: str | None = None
+            for post in posts:
+                if not isinstance(post, dict):
+                    continue
+                external_post_id = str(post.get("id", "")).strip()
+                external_slug = str(post.get("url_slug", "")).strip()
+                if not external_post_id or not external_slug or external_post_id in seen_post_ids:
+                    continue
 
-            title = str(post.get("title", "")).strip() or external_slug
-            excerpt = post.get("short_description")
-            excerpt_value = excerpt.strip() if isinstance(excerpt, str) else None
-            is_private = bool(post.get("is_private"))
-            is_temp = bool(post.get("is_temp"))
-            released_at = post.get("released_at")
-            updated_at = post.get("updated_at")
-            published_at = released_at if isinstance(released_at, str) else None
-            order_key = published_at or (updated_at if isinstance(updated_at, str) else None)
-            order_key = order_key or _to_iso_utc(_utcnow()) or ""
+                seen_post_ids.add(external_post_id)
+                last_cursor = external_post_id
 
-            slug = _normalize_slug(external_slug, title)
-            bundles.append(
-                SnapshotBundle(
-                    external_post_id=external_post_id,
-                    external_slug=external_slug,
-                    source_url=f"https://velog.io/@{username}/{external_slug}",
-                    slug=slug,
-                    title=title,
-                    excerpt=excerpt_value,
-                    body_markdown=body_markdown,
-                    cover_image_url=post.get("thumbnail")
-                    if isinstance(post.get("thumbnail"), str)
-                    else None,
-                    status="draft" if is_temp else "published",
-                    visibility="private" if is_private else "public",
-                    published_at=published_at,
-                    tags=_normalize_tags(post.get("tags")),
-                    series_title=_normalize_series_title(post.get("series")),
-                    order_key=order_key,
+                detail = self._request_velog_graphql(
+                    POST_DETAIL_QUERY,
+                    {"username": username, "url_slug": external_slug},
                 )
-            )
+                detail_post = detail.get("post")
+                if not isinstance(detail_post, dict):
+                    continue
+
+                body_markdown = str(detail_post.get("body", "")).strip()
+                if not body_markdown:
+                    continue
+
+                title = str(post.get("title", "")).strip() or external_slug
+                excerpt = post.get("short_description")
+                excerpt_value = excerpt.strip() if isinstance(excerpt, str) else None
+                is_private = bool(post.get("is_private"))
+                is_temp = bool(post.get("is_temp"))
+                released_at = post.get("released_at")
+                updated_at = post.get("updated_at")
+                published_at = released_at if isinstance(released_at, str) else None
+                order_key = published_at or (updated_at if isinstance(updated_at, str) else None)
+                order_key = order_key or _to_iso_utc(_utcnow()) or ""
+
+                slug = _normalize_slug(external_slug, title)
+                bundles.append(
+                    SnapshotBundle(
+                        external_post_id=external_post_id,
+                        external_slug=external_slug,
+                        source_url=f"https://velog.io/@{username}/{external_slug}",
+                        slug=slug,
+                        title=title,
+                        excerpt=excerpt_value,
+                        body_markdown=body_markdown,
+                        cover_image_url=post.get("thumbnail")
+                        if isinstance(post.get("thumbnail"), str)
+                        else None,
+                        status="draft" if is_temp else "published",
+                        visibility="private" if is_private else "public",
+                        published_at=published_at,
+                        tags=_normalize_tags(post.get("tags")),
+                        series_title=_normalize_series_title(post.get("series")),
+                        order_key=order_key,
+                    )
+                )
+
+            if len(posts) < VELOG_POSTS_PAGE_SIZE:
+                break
+            if not last_cursor or last_cursor == cursor:
+                break
+            cursor = last_cursor
 
         bundles.sort(key=lambda item: (item.order_key, item.external_post_id))
         return bundles

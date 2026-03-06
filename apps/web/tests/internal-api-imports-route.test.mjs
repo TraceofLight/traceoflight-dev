@@ -17,13 +17,19 @@ test("internal-api import routes proxy snapshot build and apply calls", async ()
     readFile(applyRoutePath, "utf8"),
   ]);
 
+  assert.match(snapshotSource, /ADMIN_ACCESS_COOKIE/);
+  assert.match(snapshotSource, /verifyAccessToken/);
   assert.match(snapshotSource, /export const POST/);
   assert.match(snapshotSource, /requestBackend\(["']\/imports\/snapshots\/velog["']/);
+  assert.match(snapshotSource, /Unauthorized/);
 
+  assert.match(applySource, /ADMIN_ACCESS_COOKIE/);
+  assert.match(applySource, /verifyAccessToken/);
   assert.match(applySource, /export const POST/);
   assert.match(
     applySource,
     /requestBackend\(\s*`\/imports\/snapshots\/\$\{encodeURIComponent\(snapshotId\)\}\/jobs`/,
   );
   assert.match(applySource, /snapshot id is required/);
+  assert.match(applySource, /Unauthorized/);
 });
