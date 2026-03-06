@@ -1,6 +1,7 @@
 ---
 import { Image } from "astro:assets";
 
+import FormattedDate from "../components/FormattedDate.astro";
 import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import profileImage from "../assets/traceoflight-profile.png";
@@ -15,6 +16,7 @@ import {
   type PostCard as PostCardData,
 } from "../lib/content-source";
 import { getProjects } from "../lib/projects";
+import { getSeriesBySlug, listSeries } from "../lib/series-db";
 import "../styles/components/home.css";
 
 const provider = getContentProvider();
@@ -43,6 +45,7 @@ if (provider === "db") {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
 const projects = getProjects().slice(0, 3);
+const defaultSeriesCoverImage = "/images/empty-series-image.png";
 
 const profile = {
   name: "Hi there, I'm TraceofLight!",
@@ -209,7 +212,55 @@ const techStackGroups: TechStackGroup[] = [
   },
 ];
 
-const featuredSeriesCards: Array<{ title: string; summary: string }> = [];
+type FeaturedSeriesCard = {
+  slug: string;
+  title: string;
+  summary: string;
+  postCount: number;
+  latestPostAt: Date;
+  coverImageUrl?: string;
+};
+
+const featuredSeriesCards: FeaturedSeriesCard[] = provider === "db"
+  ? (
+      await (async () => {
+        try {
+          const seriesList = await listSeries({ includePrivate: isAdminViewer, limit: 100 });
+          const detailRows = await Promise.all(
+            seriesList.map(async (series) => {
+              const detail = await getSeriesBySlug(series.slug, {
+                includePrivate: isAdminViewer,
+              }).catch(() => null);
+              if (!detail) {
+                return null;
+              }
+
+              const latestPostAt = detail.posts.reduce<Date>((latest, post) => {
+                const candidate = post.publishedAt ?? series.updatedAt;
+                return candidate.getTime() > latest.getTime() ? candidate : latest;
+              }, series.updatedAt);
+
+              return {
+                slug: series.slug,
+                title: series.title,
+                summary: series.description,
+                postCount: detail.postCount,
+                latestPostAt,
+                coverImageUrl: series.coverImageUrl,
+              } satisfies FeaturedSeriesCard;
+            }),
+          );
+
+          return detailRows
+            .filter((row): row is FeaturedSeriesCard => row !== null)
+            .sort((a, b) => b.latestPostAt.getTime() - a.latestPostAt.getTime())
+            .slice(0, 3);
+        } catch {
+          return [];
+        }
+      })()
+    )
+  : [];
 
 const connectLinks = [
   { label: "GitHub", href: "https://github.com/TraceofLight", external: true },
@@ -470,15 +521,27 @@ const connectLinks = [
     >
       <div class="home-section-head">
         <h2 id="home-series-heading">Featured Series</h2>
-        <a href="/blog">View All Series</a>
+        <a href="/series">View All Series</a>
       </div>
       {
         featuredSeriesCards.length > 0 ? (
           <div class="home-series-grid">
             {featuredSeriesCards.map((card) => (
               <article class="home-series-card">
-                <h3>{card.title}</h3>
-                <p>{card.summary}</p>
+                <a class="home-series-card-anchor" href={`/series/${card.slug}`}>
+                  <div class="home-series-card-thumb">
+                    <img src={card.coverImageUrl ?? defaultSeriesCoverImage} alt={card.title} loading="lazy" />
+                  </div>
+                  <div class="home-series-card-body">
+                    <h3>{card.title}</h3>
+                    <p>{card.summary}</p>
+                    <p class="home-series-card-meta">
+                      <span>{card.postCount} posts</span>
+                      <span>·</span>
+                      <FormattedDate date={card.latestPostAt} />
+                    </p>
+                  </div>
+                </a>
               </article>
             ))}
           </div>

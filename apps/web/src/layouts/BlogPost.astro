@@ -62,7 +62,12 @@ const defaultSeriesPostCoverImage = '/images/empty-series-image.png';
 const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 ---
 
-<BaseLayout title={title} description={description} image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}>
+<BaseLayout
+  title={title}
+  description={description}
+  image={typeof heroImage === 'string' ? undefined : (heroImage as ImageMetadata | undefined)}
+  bodyClass="page-blog-post"
+>
   <div class={`post-layout${hasSeriesSidebar ? ' has-series-sidebar' : ''}`}>
     <article class="post-shell">
       <nav class="post-top-nav" aria-label="Post navigation">

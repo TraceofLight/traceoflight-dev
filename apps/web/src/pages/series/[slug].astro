@@ -71,23 +71,29 @@ if (!series) {
             >
               <h2>시리즈 관리</h2>
               <div class="series-admin-grid">
-                <label class="series-admin-field">
-                  <span>설명</span>
+                <div class="series-admin-field">
+                  <label for="series-admin-description">설명</label>
                   <textarea id="series-admin-description" rows="3" maxlength="300">{series.description}</textarea>
-                </label>
-                <label class="series-admin-field">
-                  <span>썸네일 URL</span>
-                  <div id="series-admin-cover-dropzone" class="series-admin-cover-dropzone">
+                </div>
+                <div class="series-admin-field">
+                  <label for="series-admin-cover-image-url">썸네일 URL</label>
+                  <div
+                    id="series-admin-cover-dropzone"
+                    class="series-admin-cover-dropzone"
+                    tabindex="0"
+                    role="button"
+                    aria-label="썸네일 파일 드롭 또는 업로드"
+                  >
                     <input id="series-admin-cover-image-url" type="url" placeholder="https://..." value={series.coverImageUrl ?? ''} />
                     <div class="series-admin-cover-controls">
                       <button id="series-admin-cover-upload-trigger" class="button button-ghost" type="button">
                         파일 업로드
                       </button>
-                      <input id="series-admin-cover-upload-input" type="file" accept="image/*" hidden />
+                      <input id="series-admin-cover-upload-input" class="series-admin-cover-upload-input" type="file" accept="image/*" />
                       <small>이미지를 드래그/드롭하거나 업로드 버튼으로 추가하세요.</small>
                     </div>
                   </div>
-                </label>
+                </div>
               </div>
               <div class="series-admin-actions">
                 <button id="series-admin-save-meta" class="button button-ghost" type="button">
@@ -155,16 +161,14 @@ if (!series) {
   }
 </BaseLayout>
 
-<script type="module">
+<script>
   import { createUploadBundle } from "../../lib/admin/new-post-page/upload";
 
   function initializeSeriesAdminControls() {
     const panel = document.querySelector("#series-admin-panel");
-    const postList = document.querySelector("#series-post-list");
     if (!(panel instanceof HTMLElement)) return;
-    if (!(postList instanceof HTMLOListElement)) return;
     if (panel.dataset.bound === "true") return;
-    panel.dataset.bound = "true";
+    const postList = document.querySelector("#series-post-list");
 
     const slug = panel.dataset.seriesSlug || "";
     const title = panel.dataset.seriesTitle || "";
@@ -185,10 +189,9 @@ if (!series) {
     if (!(descriptionInput instanceof HTMLTextAreaElement)) return;
     if (!(coverInput instanceof HTMLInputElement)) return;
     if (!(coverDropzone instanceof HTMLElement)) return;
-    if (!(coverUploadTrigger instanceof HTMLButtonElement)) return;
+    if (!(coverUploadTrigger instanceof HTMLElement)) return;
     if (!(coverUploadInput instanceof HTMLInputElement)) return;
     if (!(saveMetaButton instanceof HTMLButtonElement)) return;
-    if (!(heroVisual instanceof HTMLElement)) return;
 
     const defaultCoverImage =
       typeof panel.dataset.defaultCoverImage === "string" &&
@@ -255,9 +258,11 @@ if (!series) {
     };
 
     const getOrderedItems = () =>
-      Array.from(postList.querySelectorAll(".series-post-item")).filter(
+      postList instanceof HTMLOListElement
+        ? Array.from(postList.querySelectorAll(".series-post-item")).filter(
         (item) => item instanceof HTMLLIElement,
-      );
+      )
+        : [];
 
     const refreshOrderIndices = () => {
       const items = getOrderedItems();
@@ -291,35 +296,44 @@ if (!series) {
       });
     };
 
-    postList.addEventListener("click", (event) => {
-      const moveButton =
-        event.target instanceof HTMLElement
-          ? event.target.closest("[data-series-move]")
-          : null;
-      if (!(moveButton instanceof HTMLButtonElement)) return;
+    if (postList instanceof HTMLOListElement) {
+      postList.addEventListener("click", (event) => {
+        const moveButton =
+          event.target instanceof HTMLElement
+            ? event.target.closest("[data-series-move]")
+            : null;
+        if (!(moveButton instanceof HTMLButtonElement)) return;
 
-      const direction = moveButton.dataset.seriesMove;
-      const currentItem = moveButton.closest(".series-post-item");
-      if (!(currentItem instanceof HTMLLIElement)) return;
+        const direction = moveButton.dataset.seriesMove;
+        const currentItem = moveButton.closest(".series-post-item");
+        if (!(currentItem instanceof HTMLLIElement)) return;
 
-      if (direction === "up") {
-        const prevItem = currentItem.previousElementSibling;
-        if (prevItem instanceof HTMLLIElement) {
-          postList.insertBefore(currentItem, prevItem);
+        if (direction === "up") {
+          const prevItem = currentItem.previousElementSibling;
+          if (prevItem instanceof HTMLLIElement) {
+            postList.insertBefore(currentItem, prevItem);
+          }
+        } else if (direction === "down") {
+          const nextItem = currentItem.nextElementSibling;
+          if (nextItem instanceof HTMLLIElement) {
+            postList.insertBefore(nextItem, currentItem);
+          }
         }
-      } else if (direction === "down") {
-        const nextItem = currentItem.nextElementSibling;
-        if (nextItem instanceof HTMLLIElement) {
-          postList.insertBefore(nextItem, currentItem);
-        }
-      }
 
-      refreshOrderIndices();
-      refreshMoveButtons();
-      setFeedback(orderFeedback, "순서가 변경되었습니다. 저장 버튼으로 반영하세요.", "info");
-    });
+        refreshOrderIndices();
+        refreshMoveButtons();
+        setFeedback(orderFeedback, "순서가 변경되었습니다. 저장 버튼으로 반영하세요.", "info");
+      });
+    }
 
     const mediaBaseUrl = `${window.location.origin}/media`;
+    const openCoverFilePicker = () => {
+      if (typeof coverUploadInput.showPicker === "function") {
+        coverUploadInput.showPicker();
+        return;
+      }
+      coverUploadInput.click();
+    };
 
     const uploadSeriesCover = async (file) => {
       if (!(file instanceof File)) return;
@@ -361,11 +375,19 @@ if (!series) {
       if (target instanceof HTMLInputElement || target instanceof HTMLButtonElement) {
         return;
       }
-      coverUploadInput.click();
+      openCoverFilePicker();
     });
 
-    coverUploadTrigger.addEventListener("click", () => {
-      coverUploadInput.click();
+    coverDropzone.addEventListener("keydown", (event) => {
+      if (!(event instanceof KeyboardEvent)) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openCoverFilePicker();
+    });
+
+    coverUploadTrigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      openCoverFilePicker();
     });
 
     coverUploadInput.addEventListener("change", async () => {
@@ -523,6 +545,7 @@ if (!series) {
     refreshOrderIndices();
     refreshMoveButtons();
     ensureCoverPreview(normalizeCover(coverInput.value));
+    panel.dataset.bound = "true";
   }
 
   if (document.readyState === "loading") {
