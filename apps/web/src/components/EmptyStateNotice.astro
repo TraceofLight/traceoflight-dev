@@ -1,0 +1,39 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  href: string;
+  actionLabel: string;
+}
+
+const { title, description, href, actionLabel } = Astro.props;
+---
+
+<div class="empty-state empty-state-notice">
+  <h2>{title}</h2>
+  <p>{description}</p>
+  <a class="button" href={href}>{actionLabel}</a>
+</div>
+
+<style>
+  .empty-state-notice {
+    display: grid;
+    gap: 0.9rem;
+    justify-items: center;
+    max-width: 38rem;
+    margin: 0 auto;
+  }
+
+  .empty-state-notice h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.2;
+  }
+
+  .empty-state-notice p {
+    margin: 0;
+    max-width: 34rem;
+    line-height: 1.6;
+  }
+</style>

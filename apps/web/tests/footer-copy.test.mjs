@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const footerPath = new URL("../src/components/Footer.astro", import.meta.url);
+const constsPath = new URL("../src/consts.ts", import.meta.url);
+const blogPostPagePath = new URL("../src/pages/blog/[...slug].astro", import.meta.url);
 
 test("footer uses single-line rights copy with auto year and styled copyright format", async () => {
   const source = await readFile(footerPath, "utf8");
@@ -19,4 +21,17 @@ test("footer uses single-line rights copy with auto year and styled copyright fo
   assert.match(source, /\/internal-api\/auth\/login/);
   assert.match(source, /data-admin-viewer=\{isAdminViewer \? "true" : "false"\}/);
   assert.doesNotMatch(source, /href="\/admin"/);
+});
+
+test("site metadata and missing blog fallback use real copy instead of lorem ipsum", async () => {
+  const [constsSource, blogFallbackSource] = await Promise.all([
+    readFile(constsPath, "utf8"),
+    readFile(blogPostPagePath, "utf8"),
+  ]);
+
+  assert.doesNotMatch(constsSource, /Lorem ipsum/i);
+  assert.doesNotMatch(blogFallbackSource, /Lorem ipsum/i);
+  assert.match(blogFallbackSource, /게시글을 찾을 수 없습니다/);
+  assert.match(blogFallbackSource, /삭제되었거나 비공개로 전환된 글일 수 있습니다/);
+  assert.match(blogFallbackSource, /블로그로 돌아가기/);
 });

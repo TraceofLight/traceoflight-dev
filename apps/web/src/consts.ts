@@ -1,6 +1,6 @@
 export const SITE_TITLE = 'TraceofLight';
 export const SITE_DESCRIPTION =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.';
+  'TraceofLight의 개발과 다양한 이야기를 기록하는 아카이브입니다.';
 export const SITE_URL = 'https://traceoflight.dev';
 
 export const NAV_LINKS = [
