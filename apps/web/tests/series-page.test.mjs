@@ -13,6 +13,8 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(source, /data-series-card/);
   assert.match(source, /href=\{`\/series\/\$\{series\.slug\}`\}/);
   assert.match(source, /\/images\/empty-series-image\.png/);
+  assert.match(source, /TraceofLight의 다양한 이야기를 주제별로 엮은 서고/);
+  assert.doesNotMatch(source, /연결된 글 흐름으로 묶은 학습\/구현 기록입니다\./);
   assert.match(source, /아직 등록된 시리즈가 없습니다/);
 });
 

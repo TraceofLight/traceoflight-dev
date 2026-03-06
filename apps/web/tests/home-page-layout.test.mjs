@@ -42,6 +42,13 @@ test("home page uses cruzlab-like modular home sections", async () => {
   assert.match(source, /home-series-empty/);
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
+  assert.match(source, /"Game Development"/);
+  assert.match(source, /"Graphics Programming"/);
+  assert.match(source, /"Database Engineering"/);
+  assert.doesNotMatch(source, /"Cloud-Native Database"/);
+  assert.doesNotMatch(source, /"Backend API"/);
+  assert.doesNotMatch(source, /"Frontend Engineering"/);
+  assert.doesNotMatch(source, /"Technical Writing"/);
 
   const expIndex = source.indexOf('id="home-experience-education"');
   const stackIndex = source.indexOf('id="home-tech-stack"');
