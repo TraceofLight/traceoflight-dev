@@ -10,5 +10,8 @@ export default defineConfig({
 	site: process.env.SITE_URL ?? 'https://traceoflight.dev',
 	output: 'server',
 	adapter: node({ mode: 'standalone' }),
+	security: {
+		checkOrigin: false,
+	},
 	integrations: [mdx(), sitemap()],
 });
