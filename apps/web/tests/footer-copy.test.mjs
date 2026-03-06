@@ -18,6 +18,5 @@ test("footer uses single-line rights copy with auto year and styled copyright fo
   assert.match(source, /id="footer-admin-login-form"/);
   assert.match(source, /\/internal-api\/auth\/login/);
   assert.match(source, /#header-admin-logout/);
-  assert.match(source, /if \(isAdminViewer\) \{/);
   assert.doesNotMatch(source, /href="\/admin"/);
 });

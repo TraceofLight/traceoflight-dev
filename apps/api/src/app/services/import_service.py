@@ -40,6 +40,10 @@ query Posts($username: String) {
     is_private
     is_temp
     tags
+    series {
+      id
+      name
+    }
   }
 }
 """.strip()
@@ -84,6 +88,7 @@ class SnapshotBundle:
     visibility: str
     published_at: str | None
     tags: list[str]
+    series_title: str | None
     order_key: str
 
 
@@ -120,6 +125,16 @@ def _normalize_tags(raw: object) -> list[str]:
         seen.add(value)
         normalized_tags.append(value)
     return normalized_tags
+
+
+def _normalize_series_title(raw: object) -> str | None:
+    if not isinstance(raw, dict):
+        return None
+    name = raw.get("name")
+    if not isinstance(name, str):
+        return None
+    normalized = name.strip()
+    return normalized or None
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
@@ -292,6 +307,7 @@ class ImportService:
                     visibility="private" if is_private else "public",
                     published_at=published_at,
                     tags=_normalize_tags(post.get("tags")),
+                    series_title=_normalize_series_title(post.get("series")),
                     order_key=order_key,
                 )
             )
@@ -356,6 +372,7 @@ class ImportService:
                     "visibility": bundle.visibility,
                     "published_at": bundle.published_at,
                     "tags": bundle.tags,
+                    "series_title": bundle.series_title,
                     "cover_image_url": bundle.cover_image_url,
                     "order_key": bundle.order_key,
                 }
@@ -431,6 +448,11 @@ class ImportService:
                     else ""
                 )
                 tags = _normalize_tags(meta.get("tags"))
+                series_title = (
+                    str(meta.get("series_title")).strip()
+                    if isinstance(meta.get("series_title"), str)
+                    else None
+                )
                 external_slug_value = (
                     str(meta.get("external_slug")).strip()
                     if isinstance(meta.get("external_slug"), str)
@@ -456,6 +478,7 @@ class ImportService:
                         visibility="private" if visibility_value == "private" else "public",
                         published_at=published_value,
                         tags=tags,
+                        series_title=series_title or None,
                         order_key=order_key_value or (published_value or ""),
                     )
                 )
@@ -476,6 +499,7 @@ class ImportService:
             visibility=visibility,
             published_at=_parse_datetime(bundle.published_at),
             tags=bundle.tags,
+            series_title=bundle.series_title,
         )
 
     def _snapshot_object_key(self, snapshot_id: str) -> str:

@@ -133,6 +133,7 @@ Out of scope (v1):
    - Velog username crawler, or
    - uploaded ZIP package.
 2. Normalize source content into canonical bundle items.
+   - Preserve `series_title` when the source provides series metadata.
 3. Validate and order items.
 4. Package into ZIP artifact with manifest.
 5. Store artifact in object storage.

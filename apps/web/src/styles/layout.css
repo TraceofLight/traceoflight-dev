@@ -241,9 +241,47 @@ html.page-blog-post .container {
   width: min(480px, 100%);
 }
 
-.footer-admin-login-panel .auth-form {
+.footer-admin-login-panel .auth-form,
+.footer-admin-login-panel .auth-panel {
   gap: 0.9rem;
   padding: 1rem;
+}
+
+.footer-admin-import-panel {
+  display: grid;
+}
+
+.footer-admin-import-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.footer-admin-import-field span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.footer-admin-import-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.62rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(8, 14, 22, 0.8);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.footer-admin-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.footer-admin-import-actions .button {
+  min-height: 42px;
+  padding: 0.58rem 0.86rem;
 }
 
 .footer-links .footer-icon-link .footer-icon-glyph {

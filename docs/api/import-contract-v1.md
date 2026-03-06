@@ -85,6 +85,7 @@ Every snapshot item must normalize to this shape before import apply:
   "visibility": "public",
   "published_at": "2025-07-28T14:13:37.454Z",
   "tags": ["til"],
+  "series_title": "C++ TIL",
   "order_key": "2025-07-28T14:13:37.454Z"
 }
 ```
@@ -114,6 +115,7 @@ Required:
 - `status` <- `is_temp ? "draft" : "published"`
 - `published_at` <- `released_at` when published, else `null`
 - `tags` <- normalized and deduplicated `tags[]`
+- `series_title` <- `series.name`, preserve source case as-is
 - `order_key` <- `published_at` if present, else fallback source updated time
 
 ### ZIP to Bundle
@@ -443,6 +445,7 @@ posts/<external_post_id>/media/*
   "visibility": "public",
   "published_at": "2025-01-01T00:00:00Z",
   "tags": ["example"],
+  "series_title": "Example Series",
   "cover_image_path": "media/cover.png"
 }
 ```
