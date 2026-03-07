@@ -18,6 +18,8 @@ test("post card uses reading-time helper instead of title-and-excerpt minute tex
 
   assert.match(source, /formatReadingTimeLabel/);
   assert.match(source, /\{readingLabel\}/);
+  assert.match(source, /text-xs text-muted-foreground/);
+  assert.doesNotMatch(source, /post-card-archive-meta/);
   assert.doesNotMatch(source, /약 \{readingMinutes\}분/);
   assert.doesNotMatch(source, /`\$\{post\.title\} \$\{descriptionText\}`/);
 });

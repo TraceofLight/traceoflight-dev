@@ -26,7 +26,9 @@ test("blog detail layout renders in-series navigation block", async () => {
 
   assert.match(source, /interface SeriesContext/);
   assert.match(source, /seriesContext\?: SeriesContext/);
-  assert.match(source, /class="post-series-nav"/);
-  assert.match(source, /post-series-prev/);
-  assert.match(source, /post-series-next/);
+  assert.match(source, /aria-label="시리즈 탐색"/);
+  assert.match(source, /seriesPosts\.map/);
+  assert.match(source, /relationLabel/);
+  assert.doesNotMatch(source, /post-series-prev/);
+  assert.doesNotMatch(source, /post-series-next/);
 });

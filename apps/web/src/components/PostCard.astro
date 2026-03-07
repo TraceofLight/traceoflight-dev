@@ -1,12 +1,12 @@
 ---
-import FormattedDate from "./FormattedDate.astro";
 import HeroMediaImage from "./HeroMediaImage.astro";
 import type { PostCard as PostCardData } from "../lib/content-source";
+import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
 
 interface Props {
   post: PostCardData;
-  variant?: 'default' | 'archive';
+  variant?: "default" | "archive";
   imageWidth?: number;
   imageHeight?: number;
   showVisibility?: boolean;
@@ -14,62 +14,88 @@ interface Props {
 
 const {
   post,
-  variant = 'default',
+  variant = "default",
   imageWidth = 1200,
   imageHeight = 630,
   showVisibility = false,
 } = Astro.props;
-const normalizedVisibility = post.visibility === 'private' ? 'private' : 'public';
-const descriptionText = post.description?.trim() ?? '';
+const normalizedVisibility = post.visibility === "private" ? "private" : "public";
+const descriptionText = post.description?.trim() ?? "";
 const hasDescription = descriptionText.length > 0;
 const postTags = (post.tags ?? [])
   .map((tag) => tag.trim().toLowerCase())
   .filter(Boolean);
 const hasTags = postTags.length > 0;
-const fallbackHeroImage = '/images/empty-article-image.png';
+const fallbackHeroImage = "/images/empty-article-image.png";
+const formattedPubDate = formatDateLabel(post.pubDate);
+const pubDateIso = toIsoDateTime(post.pubDate);
 const readingLabel = formatReadingTimeLabel(post.body ?? "");
-const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-card';
+const anchorClass =
+  variant === "archive"
+    ? "flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
+    : "flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg";
 ---
 
 <article
-  class={cardClass}
+  class="group h-full"
   data-title={post.title.toLowerCase()}
   data-description={descriptionText.toLowerCase()}
   data-visibility={normalizedVisibility}
-  data-tags={postTags.join(',')}
+  data-tags={postTags.join(",")}
   data-published-at={String(post.pubDate.valueOf())}
   data-sort-title={post.title.toLowerCase()}
 >
   {
-    variant === 'archive' ? (
+    variant === "archive" ? (
       <>
-        <a class="post-card-archive-anchor" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
-          <div class="thumb post-card-archive-thumb">
+        <a class={anchorClass} href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
+          <div class="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted">
             {
               post.heroMedia ? (
-                <HeroMediaImage media={post.heroMedia} alt={post.title} width={imageWidth} height={imageHeight} />
+                <HeroMediaImage
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                  media={post.heroMedia}
+                  alt={post.title}
+                  width={imageWidth}
+                  height={imageHeight}
+                />
               ) : (
-                <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
+                <img
+                  class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                  src={fallbackHeroImage}
+                  alt={post.title}
+                  loading="lazy"
+                />
               )
             }
           </div>
-          <div class="post-card-archive-body">
+          <div class="flex flex-1 flex-col gap-4 p-5">
             {
               showVisibility && (
-                <p class="post-card-archive-kicker">
-                  {normalizedVisibility === 'private' ? '비공개 포스트' : '공개 포스트'}
-                </p>
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{normalizedVisibility === "private" ? "비공개 포스트" : "공개 포스트"}</span>
+                </div>
               )
             }
-            <h3>{post.title}</h3>
-            <p class={`post-card-archive-description${hasDescription ? '' : ' is-empty'}`}>
-              {hasDescription ? descriptionText : ' '}
-            </p>
-            <ul class={`post-card-tag-list${hasTags ? '' : ' is-empty'}`} aria-hidden={hasTags ? undefined : 'true'}>
-              {postTags.map((tag) => <li class="post-card-tag-chip">{tag}</li>)}
-            </ul>
-            <p class="post-card-archive-meta">
-              <span><FormattedDate date={post.pubDate} /></span>
+            <div class="space-y-2">
+              <h3 class="text-xl font-semibold tracking-tight">{post.title}</h3>
+              <p class="line-clamp-2 text-sm text-muted-foreground">
+                {hasDescription ? descriptionText : " "}
+              </p>
+            </div>
+            {
+              hasTags && (
+                <div class="flex flex-wrap gap-2">
+                  {postTags.map((tag) => (
+                    <span class="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )
+            }
+            <p class="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
+              <time datetime={pubDateIso}>{formattedPubDate}</time>
               <span aria-hidden="true">•</span>
               <span>{readingLabel}</span>
             </p>
@@ -78,30 +104,55 @@ const cardClass = variant === 'archive' ? 'post-card post-card-archive' : 'post-
       </>
     ) : (
       <>
-        <a class="post-card-default-anchor" href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
-          <div class="thumb post-card-default-thumb">
+        <a class={anchorClass} href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
+          <div class="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted">
             {
               post.heroMedia ? (
-                <HeroMediaImage media={post.heroMedia} alt={post.title} width={imageWidth} height={imageHeight} />
+                <HeroMediaImage
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                  media={post.heroMedia}
+                  alt={post.title}
+                  width={imageWidth}
+                  height={imageHeight}
+                />
               ) : (
-                <img src={fallbackHeroImage} alt={post.title} loading="lazy" />
+                <img
+                  class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                  src={fallbackHeroImage}
+                  alt={post.title}
+                  loading="lazy"
+                />
               )
             }
           </div>
-          <div class="post-card-default-body">
-            <p class="post-meta">
-              <FormattedDate date={post.pubDate} />
+          <div class="flex flex-1 flex-col gap-4 p-5">
+            <p class="flex items-center gap-2 text-xs text-muted-foreground">
+              <time datetime={pubDateIso}>{formattedPubDate}</time>
               {
-                showVisibility && post.visibility === 'private' && <span class="post-visibility-badge">Private</span>
+                showVisibility && post.visibility === 'private' && (
+                  <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[0.72rem] font-medium text-amber-700">
+                    Private
+                  </span>
+                )
               }
             </p>
-            <h3>{post.title}</h3>
-            <p class={`post-card-default-description${hasDescription ? '' : ' is-empty'}`}>
-              {hasDescription ? descriptionText : ' '}
-            </p>
-            <ul class={`post-card-tag-list${hasTags ? '' : ' is-empty'}`} aria-hidden={hasTags ? undefined : 'true'}>
-              {postTags.map((tag) => <li class="post-card-tag-chip">{tag}</li>)}
-            </ul>
+            <div class="space-y-2">
+              <h3 class="text-xl font-semibold tracking-tight">{post.title}</h3>
+              <p class="line-clamp-2 text-sm text-muted-foreground">
+                {hasDescription ? descriptionText : " "}
+              </p>
+            </div>
+            {
+              hasTags && (
+                <div class="mt-auto flex flex-wrap gap-2">
+                  {postTags.map((tag) => (
+                    <span class="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )
+            }
           </div>
         </a>
       </>

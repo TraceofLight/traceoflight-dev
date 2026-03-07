@@ -9,31 +9,23 @@ interface Props {
 const { title, description, href, actionLabel } = Astro.props;
 ---
 
-<div class="empty-state empty-state-notice">
-  <h2>{title}</h2>
-  <p>{description}</p>
-  <a class="button" href={href}>{actionLabel}</a>
+<div
+  class="mx-auto grid max-w-2xl gap-4 rounded-3xl border border-dashed border-border/70 bg-card/80 px-6 py-10 text-center shadow-sm"
+>
+  <h2
+    class="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+  >
+    {title}
+  </h2>
+  <p
+    class="mx-auto max-w-xl text-sm leading-7 text-muted-foreground sm:text-base"
+  >
+    {description}
+  </p>
+  <a
+    class="inline-flex justify-self-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+    href={href}
+  >
+    {actionLabel}
+  </a>
 </div>
-
-<style>
-  .empty-state-notice {
-    display: grid;
-    gap: 0.9rem;
-    justify-items: center;
-    max-width: 38rem;
-    margin: 0 auto;
-  }
-
-  .empty-state-notice h2 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    line-height: 1.2;
-  }
-
-  .empty-state-notice p {
-    margin: 0;
-    max-width: 34rem;
-    line-height: 1.6;
-  }
-</style>

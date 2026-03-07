@@ -15,11 +15,9 @@ test("footer uses single-line rights copy with auto year and styled copyright fo
     /ⓒ \{currentYear\}\. \{SITE_TITLE\} All rights reserved\./,
   );
   assert.doesNotMatch(source, /\{SITE_DESCRIPTION\}/);
-  assert.match(source, /id="footer-admin-trigger"/);
-  assert.match(source, /id="footer-admin-login-modal"/);
-  assert.match(source, /id="footer-admin-login-form"/);
-  assert.match(source, /\/internal-api\/auth\/login/);
-  assert.match(source, /data-admin-viewer=\{isAdminViewer \? "true" : "false"\}/);
+  assert.match(source, /FooterAdminModal/);
+  assert.match(source, /shouldOpenOnLoad=\{shouldOpenAdminLogin\}/);
+  assert.match(source, /adminNextPath=\{adminNextPath\}/);
   assert.doesNotMatch(source, /href="\/admin"/);
 });
 

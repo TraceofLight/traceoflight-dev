@@ -1,5 +1,5 @@
 ---
-import PostCard from "../../components/PostCard.astro";
+import BlogArchiveFilters from "../../components/public/BlogArchiveFilters";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
@@ -10,6 +10,7 @@ import {
   toPostCard,
   type PostCard as PostCardData,
 } from "../../lib/content-source";
+import { formatReadingTimeLabel } from "../../lib/reading-time";
 
 const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
@@ -61,285 +62,38 @@ const selectedTagsFromQuery = Astro.url.searchParams
   .getAll("tag")
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
+
+function resolveHeroImageSrc(post: PostCardData) {
+  if (!post.heroMedia) {
+    return "/images/empty-article-image.png";
+  }
+
+  return post.heroMedia.kind === "optimized"
+    ? post.heroMedia.src.src
+    : post.heroMedia.src;
+}
+
+const archivePosts = posts.map((post) => ({
+  slug: post.slug,
+  title: post.title,
+  description: post.description,
+  visibility: post.visibility === "private" ? "private" : "public",
+  tags: (post.tags ?? [])
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean),
+  publishedAt: post.pubDate.toISOString(),
+  publishedAtValue: post.pubDate.valueOf(),
+  readingLabel: formatReadingTimeLabel(post.body ?? ""),
+  heroImageSrc: resolveHeroImageSrc(post),
+}));
 ---
 
 <BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
-  <section class="blog-archive">
-    <header class="blog-archive-hero">
-      <h1>Blog</h1>
-      <p>TraceofLight의 개발과 다양한 이야기 Archive</p>
-    </header>
-
-    {
-      posts.length > 0 ? (
-        <>
-          <section
-            class="blog-archive-control-bar"
-            aria-label="Blog archive controls"
-          >
-            <label class="blog-archive-search" for="blog-search">
-              <span class="sr-only">포스트 검색</span>
-              <input
-                id="blog-search"
-                type="search"
-                placeholder="포스트 검색..."
-                autocomplete="off"
-              />
-            </label>
-
-            <div class="blog-archive-control-actions">
-              {isAdminViewer && (
-                <a
-                  id="blog-admin-write"
-                  class="button button-ghost blog-admin-write"
-                  href="/admin/posts/new"
-                >
-                  글 작성
-                </a>
-              )}
-              <select id="blog-sort" aria-label="정렬 방식">
-                <option value="latest">최신순</option>
-                <option value="oldest">오래된순</option>
-                <option value="title">제목순</option>
-              </select>
-            </div>
-          </section>
-
-          <section class="blog-archive-filter-panel" id="blog-filter-panel">
-            <p class="blog-archive-filter-label">게시글 필터</p>
-            <div class="blog-archive-filter-chips">
-              <button
-                class="is-active"
-                type="button"
-                data-visibility-filter="all"
-                aria-pressed="true"
-              >
-                전체 ({posts.length})
-              </button>
-              {isAdminViewer && (
-                <>
-                  <button
-                    type="button"
-                    data-visibility-filter="public"
-                    aria-pressed="false"
-                  >
-                    공개 ({publicCount})
-                  </button>
-                  <button
-                    type="button"
-                    data-visibility-filter="private"
-                    aria-pressed="false"
-                  >
-                    비공개 ({privateCount})
-                  </button>
-                </>
-              )}
-              {tagFilters.map((tag) => {
-                const isActive = selectedTagsFromQuery.includes(tag.slug);
-                return (
-                  <button
-                    class={isActive ? "is-active" : undefined}
-                    type="button"
-                    data-tag-filter={tag.slug}
-                    aria-pressed={isActive ? "true" : "false"}
-                  >
-                    {tag.slug} ({tag.count})
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <p id="blog-post-count" class="blog-archive-count">
-            총 {posts.length}개의 포스트
-          </p>
-
-          <section id="blog-post-grid" class="blog-archive-grid">
-            {posts.map((post) => (
-              <PostCard
-                post={post}
-                variant="archive"
-                showVisibility={isAdminViewer}
-              />
-            ))}
-          </section>
-        </>
-      ) : (
-        <div class="empty-state">게시글이 아직 없습니다.</div>
-      )
-    }
-  </section>
+  <BlogArchiveFilters
+    client:load
+    initialSelectedTags={selectedTagsFromQuery}
+    isAdminViewer={isAdminViewer}
+    posts={archivePosts}
+    tagFilters={tagFilters}
+  />
 </BaseLayout>
-
-<script type="module">
-  function initializeBlogArchivePage() {
-    const searchInput = document.querySelector("#blog-search");
-    const sortSelect = document.querySelector("#blog-sort");
-    const postCountText = document.querySelector("#blog-post-count");
-    const postGrid = document.querySelector("#blog-post-grid");
-
-    if (!(postGrid instanceof HTMLElement)) return;
-    if (postGrid.dataset.archiveBound === "true") return;
-    postGrid.dataset.archiveBound = "true";
-
-    const archiveRoot = postGrid.closest(".blog-archive");
-    const filterScope =
-      archiveRoot instanceof HTMLElement ? archiveRoot : document;
-    const getCards = () =>
-      Array.from(postGrid.querySelectorAll("[data-visibility]")).filter(
-        (card) => card instanceof HTMLElement,
-      );
-    const filterButtons = Array.from(
-      filterScope.querySelectorAll("[data-visibility-filter]"),
-    ).filter((button) => button instanceof HTMLButtonElement);
-    const tagButtons = Array.from(
-      filterScope.querySelectorAll("[data-tag-filter]"),
-    ).filter((button) => button instanceof HTMLButtonElement);
-    let activeVisibility = "all";
-    let activeTags = new Set();
-
-    const normalize = (value) =>
-      typeof value === "string" ? value.trim().toLowerCase() : "";
-    const parseCardTags = (value) =>
-      (typeof value === "string" ? value : "")
-        .split(",")
-        .map((tag) => normalize(tag))
-        .filter(Boolean);
-    const sortCards = (visibleCards) => {
-      const selectedSort =
-        sortSelect instanceof HTMLSelectElement ? sortSelect.value : "latest";
-
-      return [...visibleCards].sort((left, right) => {
-        const leftTimestamp = Number(left.dataset.publishedAt || 0);
-        const rightTimestamp = Number(right.dataset.publishedAt || 0);
-        const leftTitle = left.dataset.sortTitle || "";
-        const rightTitle = right.dataset.sortTitle || "";
-
-        if (selectedSort === "oldest") return leftTimestamp - rightTimestamp;
-        if (selectedSort === "title")
-          return leftTitle.localeCompare(rightTitle, "ko-KR");
-        return rightTimestamp - leftTimestamp;
-      });
-    };
-
-    const applyFiltersAndSort = () => {
-      const cards = getCards();
-      const searchTerm = normalize(
-        searchInput instanceof HTMLInputElement ? searchInput.value : "",
-      );
-      const visibleCards = [];
-      const hiddenCards = [];
-
-      cards.forEach((card) => {
-        const cardVisibility = normalize(card.dataset.visibility || "public");
-        const title = normalize(card.dataset.title || "");
-        const description = normalize(card.dataset.description || "");
-        const cardTags = parseCardTags(card.dataset.tags || "");
-        const matchesVisibility =
-          activeVisibility === "all" || cardVisibility === activeVisibility;
-        const matchesSearch =
-          !searchTerm ||
-          title.includes(searchTerm) ||
-          description.includes(searchTerm);
-        const matchesTag =
-          activeTags.size === 0 || cardTags.some((tag) => activeTags.has(tag));
-        const isVisible = matchesVisibility && matchesSearch && matchesTag;
-
-        card.toggleAttribute("hidden", !isVisible);
-        if (isVisible) {
-          visibleCards.push(card);
-          return;
-        }
-        hiddenCards.push(card);
-      });
-
-      const sorted = sortCards(visibleCards);
-      [...sorted, ...hiddenCards].forEach((card) => postGrid.append(card));
-
-      if (postCountText instanceof HTMLElement) {
-        postCountText.textContent = `총 ${visibleCards.length}개의 포스트`;
-      }
-    };
-
-    const syncTagFilterButtons = () => {
-      tagButtons.forEach((button) => {
-        const tagValue = normalize(button.dataset.tagFilter || "");
-        const isActive = tagValue ? activeTags.has(tagValue) : false;
-        button.classList.toggle("is-active", isActive);
-        button.setAttribute("aria-pressed", isActive ? "true" : "false");
-      });
-    };
-
-    const syncTagQuery = () => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("tag");
-      const firstTag = Array.from(activeTags)[0];
-      if (firstTag) {
-        url.searchParams.set("tag", firstTag);
-      }
-      window.history.replaceState(
-        {},
-        "",
-        `${url.pathname}${url.search}${url.hash}`,
-      );
-    };
-
-    const setActiveFilter = (value) => {
-      activeVisibility = normalize(value || "all") || "all";
-      filterButtons.forEach((button) => {
-        const isActive =
-          normalize(button.dataset.visibilityFilter) === activeVisibility;
-        button.classList.toggle("is-active", isActive);
-        button.setAttribute("aria-pressed", isActive ? "true" : "false");
-      });
-      applyFiltersAndSort();
-    };
-
-    const initializeTagFilterFromQuery = () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const initialTags = searchParams
-        .getAll("tag")
-        .map((value) => normalize(value))
-        .filter(Boolean);
-      activeTags = new Set(initialTags.slice(0, 1));
-      syncTagFilterButtons();
-    };
-
-    filterButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        setActiveFilter(button.dataset.visibilityFilter || "all");
-      });
-    });
-
-    tagButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const tagValue = normalize(button.dataset.tagFilter || "");
-        if (!tagValue) {
-          return;
-        }
-        if (activeTags.has(tagValue)) {
-          activeTags.clear();
-        } else {
-          activeTags = new Set([tagValue]);
-        }
-        syncTagFilterButtons();
-        syncTagQuery();
-        applyFiltersAndSort();
-      });
-    });
-
-    if (sortSelect instanceof HTMLSelectElement) {
-      sortSelect.addEventListener("change", applyFiltersAndSort);
-    }
-
-    if (searchInput instanceof HTMLInputElement) {
-      searchInput.addEventListener("input", applyFiltersAndSort);
-    }
-
-    initializeTagFilterFromQuery();
-    setActiveFilter("all");
-  }
-
-  initializeBlogArchivePage();
-  document.addEventListener("astro:page-load", initializeBlogArchivePage);
-</script>

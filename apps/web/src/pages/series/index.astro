@@ -17,28 +17,58 @@ try {
 }
 ---
 
-<BaseLayout title={`Series | ${SITE_TITLE}`} description="TraceofLight series archive">
-  <section id="series-archive" class="series-archive">
-    <header class="series-archive-hero">
-      <h1>Series</h1>
-      <p>TraceofLight의 다양한 이야기를 주제별로 엮은 서고</p>
+<BaseLayout
+  title={`Series | ${SITE_TITLE}`}
+  description="TraceofLight series archive"
+>
+  <section
+    id="series-archive"
+    class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12"
+  >
+    <header
+      class="rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm lg:p-8"
+    >
+      <div class="space-y-4">
+        <h1
+          class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+        >
+          Series
+        </h1>
+        <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
+          TraceofLight의 다양한 이야기를 주제별로 엮은 서고
+        </p>
+      </div>
     </header>
 
     {
       series.length > 0 ? (
-        <div class="series-grid">
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {series.map((series) => (
-            <article class="series-card" data-series-card>
-              <a class="series-card-anchor" href={`/series/${series.slug}`}>
-                <div class="series-card-thumb">
-                  <img src={series.coverImageUrl ?? defaultSeriesCoverImage} alt={series.title} loading="lazy" />
+            <article class="group h-full">
+              <a
+                class="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
+                href={`/series/${series.slug}`}
+              >
+                <div class="aspect-[16/10] overflow-hidden border-b border-border/60 bg-muted">
+                  <img
+                    alt={series.title}
+                    class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    loading="lazy"
+                    src={series.coverImageUrl ?? defaultSeriesCoverImage}
+                  />
                 </div>
-                <div class="series-card-body">
-                  <h2>{series.title}</h2>
-                  <p>{series.description}</p>
-                  <p class="series-card-meta">
+                <div class="flex flex-1 flex-col gap-4 p-5">
+                  <div class="space-y-2">
+                    <h2 class="text-xl font-semibold tracking-tight text-foreground">
+                      {series.title}
+                    </h2>
+                    <p class="line-clamp-3 text-sm text-muted-foreground">
+                      {series.description}
+                    </p>
+                  </div>
+                  <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{series.postCount} posts</span>
-                    <span>·</span>
+                    <span aria-hidden="true">•</span>
                     <FormattedDate date={series.updatedAt} />
                   </p>
                 </div>
@@ -47,7 +77,9 @@ try {
           ))}
         </div>
       ) : (
-        <div class="empty-state">아직 등록된 시리즈가 없습니다.</div>
+        <div class="rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-10 text-center text-sm text-muted-foreground">
+          아직 등록된 시리즈가 없습니다.
+        </div>
       )
     }
   </section>

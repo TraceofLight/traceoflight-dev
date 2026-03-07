@@ -19,6 +19,10 @@ body {
   line-height: 1.65;
 }
 
+#root {
+  isolation: isolate;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

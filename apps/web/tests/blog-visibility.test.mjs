@@ -29,6 +29,6 @@ test('blog detail enables private visibility for authenticated admin viewer', as
 test('post card renders private badge for private visibility post', async () => {
   const source = await readFile(postCardPath, 'utf8');
   assert.match(source, /post\.visibility\s*===\s*'private'/);
-  assert.match(source, /post-visibility-badge/);
+  assert.match(source, /rounded-full border border-amber-500\/30 bg-amber-500\/10/);
   assert.match(source, /Private/);
 });

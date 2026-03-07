@@ -54,11 +54,17 @@ test("post cards consume the shared hero media renderer instead of inline branch
 test("blog post layout reuses shared hero media helpers for rendering and og image fallback", async () => {
   const source = await readFile(blogPostLayoutPath, "utf8");
 
-  assert.match(source, /import HeroMediaImage from '\.\.\/components\/HeroMediaImage\.astro';/);
-  assert.match(source, /import \{[\s\S]*getHeroMediaMetadata[\s\S]*normalizeHeroMedia[\s\S]*\} from '\.\.\/lib\/hero-media';/);
+  assert.match(
+    source,
+    /import HeroMediaImage from ["']\.\.\/components\/HeroMediaImage\.astro["'];/,
+  );
+  assert.match(
+    source,
+    /import \{[\s\S]*getHeroMediaMetadata[\s\S]*normalizeHeroMedia[\s\S]*\} from ["']\.\.\/lib\/hero-media["'];/,
+  );
   assert.match(source, /const heroMedia = normalizeHeroMedia\(heroImage\);/);
   assert.match(source, /image=\{getHeroMediaMetadata\(heroMedia\)\}/);
-  assert.match(source, /<HeroMediaImage className="post-hero" media=\{heroMedia\} alt=\{title\}/);
+  assert.match(source, /<HeroMediaImage[\s\S]*media=\{heroMedia\}[\s\S]*alt=\{title\}/);
   assert.doesNotMatch(source, /typeof heroImage === 'string'/);
 });
 

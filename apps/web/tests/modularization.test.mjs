@@ -31,6 +31,7 @@ test("blog source slug lookup avoids listPosts indirection", async () => {
 test("blog and project list markup is extracted to shared components", async () => {
   await exists("src/components/PostCard.astro");
   await exists("src/components/ProjectCard.astro");
+  await exists("src/components/public/BlogArchiveFilters.tsx");
 
   const homePage = await read("src/pages/index.astro");
   const blogIndex = await read("src/pages/blog/index.astro");
@@ -38,7 +39,8 @@ test("blog and project list markup is extracted to shared components", async () 
 
   assert.match(homePage, /import PostCard from/);
   assert.match(homePage, /import ProjectCard from/);
-  assert.match(blogIndex, /import PostCard from/);
+  assert.match(blogIndex, /import BlogArchiveFilters from/);
+  assert.doesNotMatch(blogIndex, /import PostCard from/);
   assert.match(projectIndex, /import ProjectCard from/);
 });
 
@@ -56,16 +58,37 @@ test("global stylesheet is split into modular imports", async () => {
 });
 
 test("component stylesheet is split by domain modules", async () => {
-  await exists("src/styles/components/common.css");
-  await exists("src/styles/components/blog.css");
-  await exists("src/styles/components/admin.css");
   await exists("src/styles/components/writer.css");
 
   const componentsCss = await read("src/styles/components.css");
-  assert.match(componentsCss, /@import ["']\.\/components\/common\.css["'];/);
-  assert.match(componentsCss, /@import ["']\.\/components\/blog\.css["'];/);
-  assert.match(componentsCss, /@import ["']\.\/components\/admin\.css["'];/);
   assert.match(componentsCss, /@import ["']\.\/components\/writer\.css["'];/);
+  assert.doesNotMatch(
+    componentsCss,
+    /@import ["']\.\/components\/common\.css["'];/,
+  );
+  assert.doesNotMatch(
+    componentsCss,
+    /@import ["']\.\/components\/blog\.css["'];/,
+  );
+  assert.doesNotMatch(
+    componentsCss,
+    /@import ["']\.\/components\/admin\.css["'];/,
+  );
+});
+
+test("legacy public css hooks are removed while writer css stays wired", async () => {
+  const [layoutCss, blogSlugPage, emptyStateNotice] = await Promise.all([
+    read("src/styles/layout.css"),
+    read("src/pages/blog/[...slug].astro"),
+    read("src/components/EmptyStateNotice.astro"),
+  ]);
+
+  assert.doesNotMatch(layoutCss, /\.site-header\s*\{/);
+  assert.doesNotMatch(layoutCss, /\.site-footer\s*\{/);
+  assert.doesNotMatch(layoutCss, /\.hero\s*\{/);
+  assert.doesNotMatch(layoutCss, /\.section\s*\{/);
+  assert.doesNotMatch(blogSlugPage, /class="section"/);
+  assert.doesNotMatch(emptyStateNotice, /class="button"/);
 });
 
 test("writer stylesheet is split by concern modules", async () => {
@@ -118,10 +141,16 @@ test("admin writer script delegates helper concerns to sub-modules", async () =>
   assert.match(writerScript, /from ["']\.\/new-post-page\/drafts["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/preview["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/submit-events["']/);
-  assert.match(writerScript, /from ["']\.\/new-post-page\/draft-layer-events["']/);
+  assert.match(
+    writerScript,
+    /from ["']\.\/new-post-page\/draft-layer-events["']/,
+  );
   assert.match(writerScript, /from ["']\.\/new-post-page\/drag-drop["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/posts-api["']/);
-  assert.match(writerScript, /from ["']\.\/new-post-page\/link-normalization["']/);
+  assert.match(
+    writerScript,
+    /from ["']\.\/new-post-page\/link-normalization["']/,
+  );
   assert.match(writerScript, /from ["']\.\/new-post-page\/editor-markdown["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/upload["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/editor-bridge["']/);

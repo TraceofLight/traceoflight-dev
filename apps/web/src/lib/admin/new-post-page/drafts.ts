@@ -17,18 +17,20 @@ export function buildDraftMetaLabel(post: AdminDraftListItem): string {
 
 export function normalizeDraftList(posts: unknown): AdminDraftListItem[] {
   if (!Array.isArray(posts)) return [];
-  return posts
-    .filter(
-      (post): post is AdminDraftListItem =>
-        Boolean(
-          post &&
-            typeof post === "object" &&
-            (post as { status?: unknown }).status === "draft" &&
-            typeof (post as { slug?: unknown }).slug === "string",
-        ),
+  return post
+    .filter((post): post is AdminDraftListItem =>
+      Boolean(
+        post &&
+        typeof post === "object" &&
+        (post as { status?: unknown }).status === "draft" &&
+        typeof (post as { slug?: unknown }).slug === "string",
+      ),
     )
     .sort((a, b) => {
-      const titleOrder = getTrimmedTitle(a).localeCompare(getTrimmedTitle(b), "ko");
+      const titleOrder = getTrimmedTitle(a).localeCompare(
+        getTrimmedTitle(b),
+        "ko",
+      );
       if (titleOrder !== 0) return titleOrder;
       return (a.slug || "").localeCompare(b.slug || "", "ko");
     });

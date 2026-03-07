@@ -1,12 +1,17 @@
 ---
-import type { CollectionEntry } from 'astro:content';
+import type { CollectionEntry } from "astro:content";
 
-import FormattedDate from '../components/FormattedDate.astro';
-import HeroMediaImage from '../components/HeroMediaImage.astro';
-import BaseLayout from './BaseLayout.astro';
-import { getHeroMediaMetadata, normalizeHeroMedia, type HeroMediaSource } from '../lib/hero-media';
+import HeroMediaImage from "../components/HeroMediaImage.astro";
+import PostAdminActions from "../components/public/PostAdminActions";
+import BaseLayout from "./BaseLayout.astro";
+import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
+import {
+  getHeroMediaMetadata,
+  normalizeHeroMedia,
+  type HeroMediaSource,
+} from "../lib/hero-media";
 
-type MarkdownPostData = CollectionEntry<'blog'>['data'];
+type MarkdownPostData = CollectionEntry<"blog">["data"];
 
 interface DbPostData {
   title: string;
@@ -32,7 +37,7 @@ interface SeriesPostItem {
   title: string;
   excerpt?: string;
   coverImageUrl?: string;
-  relation: 'prev' | 'next';
+  relation: "prev" | "next";
 }
 
 interface BlogPostAdminProps {
@@ -51,16 +56,19 @@ const {
   pubDate,
   updatedDate,
   heroImage,
-  adminPostSlug = '',
+  adminPostSlug = "",
   showAdminActions = false,
   seriesContext,
   seriesPosts = [],
 } = Astro.props;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
-const encodedAdminPostSlug = adminPostSlug ? encodeURIComponent(adminPostSlug) : '';
-const defaultSeriesPostCoverImage = '/images/empty-series-image.png';
+const defaultSeriesPostCoverImage = "/images/empty-series-image.png";
 const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 const heroMedia = normalizeHeroMedia(heroImage);
+const pubDateLabel = formatDateLabel(pubDate);
+const pubDateIso = toIsoDateTime(pubDate);
+const updatedDateLabel = updatedDate ? formatDateLabel(updatedDate) : "";
+const updatedDateIso = updatedDate ? toIsoDateTime(updatedDate) : "";
 ---
 
 <BaseLayout
@@ -69,53 +77,81 @@ const heroMedia = normalizeHeroMedia(heroImage);
   image={getHeroMediaMetadata(heroMedia)}
   bodyClass="page-blog-post"
 >
-  <div class={`post-layout${hasSeriesSidebar ? ' has-series-sidebar' : ''}`}>
-    <article class="post-shell">
-      <nav class="post-top-nav" aria-label="Post navigation">
-        <a class="post-back-link button button-ghost" href="/blog/">
+  <div
+    class:list={[
+      "mx-auto grid w-full gap-8",
+      hasSeriesSidebar
+        ? "max-w-6xl xl:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]"
+        : "max-w-3xl",
+    ]}
+  >
+    <article class="min-w-0">
+      <nav
+        class="flex flex-wrap items-center justify-between gap-3"
+        aria-label="Post navigation"
+      >
+        <a
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          href="/blog/"
+        >
           <span aria-hidden="true">‹</span>
           <span>블로그로 돌아가기</span>
         </a>
         {
           shouldRenderAdminActions && (
-            <div id="post-admin-actions" class="post-admin-actions">
-              <a class="button button-ghost post-admin-action-edit" href={`/admin/posts/${encodedAdminPostSlug}/edit`}>
-                수정
-              </a>
-              <button id="post-admin-delete-trigger" class="button button-ghost post-admin-action-delete" type="button">
-                삭제
-              </button>
-            </div>
+            <PostAdminActions client:load adminPostSlug={adminPostSlug} />
           )
         }
       </nav>
 
       {
-        heroMedia && <HeroMediaImage className="post-hero" media={heroMedia} alt={title} width={1200} height={630} />
+        heroMedia && (
+          <HeroMediaImage
+            className="mt-8 aspect-[16/9] w-full rounded-3xl border border-border/60 object-cover shadow-sm"
+            media={heroMedia}
+            alt={title}
+            width={1200}
+            height={630}
+          />
+        )
       }
 
-      <header class="post-header">
-        <p class="post-meta">
-          <FormattedDate date={pubDate} />
+      <header class="mt-8 space-y-4">
+        <p
+          class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+        >
+          <time datetime={pubDateIso}>{pubDateLabel}</time>
           {
             updatedDate && (
               <>
-                {' '}
-                / updated <FormattedDate date={updatedDate} />
+                <span aria-hidden="true">/</span>
+                <span>
+                  updated{" "}
+                  <time datetime={updatedDateIso}>{updatedDateLabel}</time>
+                </span>
               </>
             )
           }
         </p>
-        <h1>{title}</h1>
-        <p class="post-description">{description}</p>
+        <h1
+          class="text-balance text-4xl font-semibold tracking-tight sm:text-5xl"
+        >
+          {title}
+        </h1>
+        <p class="max-w-2xl text-lg text-muted-foreground">{description}</p>
       </header>
 
-      <section class="post-content">
+      <section
+        class="mt-10 text-base leading-8 text-foreground/90 [&_blockquote]:mb-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_figcaption]:mt-2 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_figure]:mb-5 [&_figure>img]:block [&_h2]:mt-10 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-lg [&_h4]:font-semibold [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-border/60 [&_li]:leading-8 [&_ol]:mb-5 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_ul]:mb-5 [&_ul]:list-disc [&_ul]:pl-6 [&_video]:mb-5 [&_video]:block [&_video]:max-w-full [&_video]:rounded-2xl [&_video]:border [&_video]:border-border/60"
+      >
         <slot />
       </section>
 
-      <nav class="post-bottom-nav" aria-label="Blog archive">
-        <a class="post-archive-link button button-ghost" href="/blog/">
+      <nav class="mt-12 flex justify-center" aria-label="Blog archive">
+        <a
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          href="/blog/"
+        >
           <span aria-hidden="true">☰</span>
           <span>모든 글 보기</span>
         </a>
@@ -124,33 +160,54 @@ const heroMedia = normalizeHeroMedia(heroImage);
 
     {
       hasSeriesSidebar && seriesContext && (
-        <aside class="post-series-sidebar" aria-label="시리즈 탐색">
-          <section class="post-series-nav">
-            <p class="post-series-kicker">
-              <a href={`/series/${seriesContext.seriesSlug}`}>{seriesContext.seriesTitle}</a>
+        <aside
+          class="xl:sticky xl:top-24 xl:self-start"
+          aria-label="시리즈 탐색"
+        >
+          <section class="rounded-3xl border border-border/60 bg-card p-5 shadow-sm">
+            <p class="text-sm text-muted-foreground">
+              <a
+                class="font-medium text-foreground transition-colors hover:text-primary"
+                href={`/series/${seriesContext.seriesSlug}`}
+              >
+                {seriesContext.seriesTitle}
+              </a>
               <span>
-                {' '}
+                {" "}
                 · {seriesContext.orderIndex}/{seriesContext.totalPosts}
               </span>
             </p>
-            <ol class="post-series-links post-series-sidebar-list">
+            <ol class="mt-4 grid gap-3">
               {seriesPosts.map((seriesPost) => {
-                const relationClass = seriesPost.relation === 'prev' ? 'post-series-prev' : 'post-series-next';
-                const previewText = (seriesPost.excerpt ?? '').trim();
-                const relationLabel = seriesPost.relation === 'prev' ? '이전 글' : '다음 글';
+                const previewText = (seriesPost.excerpt ?? "").trim();
+                const relationLabel =
+                  seriesPost.relation === "prev" ? "이전 글" : "다음 글";
+
                 return (
-                  <li class="post-series-sidebar-item">
-                    <a class={`post-series-sidebar-link ${relationClass}`} href={`/blog/${seriesPost.slug}`}>
+                  <li>
+                    <a
+                      class="group grid grid-cols-[112px_minmax(0,1fr)] gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 transition hover:border-foreground/15 hover:bg-accent/40"
+                      href={`/blog/${seriesPost.slug}`}
+                    >
                       <img
-                        class="post-series-sidebar-thumb"
-                        src={seriesPost.coverImageUrl ?? defaultSeriesPostCoverImage}
+                        class="aspect-[16/9] w-full rounded-xl border border-border/60 bg-muted object-cover"
+                        src={
+                          seriesPost.coverImageUrl ??
+                          defaultSeriesPostCoverImage
+                        }
                         alt={seriesPost.title}
                         loading="lazy"
                       />
-                      <span class="post-series-sidebar-content">
-                        <small>{relationLabel}</small>
-                        <strong>{seriesPost.title}</strong>
-                        <em>{previewText.length > 0 ? previewText : '요약 없음'}</em>
+                      <span class="grid min-w-0 content-start gap-1">
+                        <small class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {relationLabel}
+                        </small>
+                        <strong class="text-sm font-semibold leading-6 text-foreground">
+                          {seriesPost.title}
+                        </strong>
+                        <em class="line-clamp-2 text-sm not-italic text-muted-foreground">
+                          {previewText.length > 0 ? previewText : "요약 없음"}
+                        </em>
                       </span>
                     </a>
                   </li>
@@ -162,122 +219,4 @@ const heroMedia = normalizeHeroMedia(heroImage);
       )
     }
   </div>
-
-  {
-    shouldRenderAdminActions && (
-      <div id="post-admin-delete-modal" class="post-admin-modal" data-open="false" data-post-slug={adminPostSlug} hidden>
-        <button
-          id="post-admin-delete-backdrop"
-          class="post-admin-modal-backdrop"
-          type="button"
-          aria-label="삭제 확인 닫기"
-        />
-        <section class="post-admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="post-admin-delete-title">
-          <h2 id="post-admin-delete-title">게시글 삭제</h2>
-          <p class="post-admin-modal-description">
-            <strong>{adminPostSlug}</strong> 게시글을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
-          </p>
-          <p id="post-admin-delete-feedback" class="post-admin-modal-feedback" data-state="info"></p>
-          <div class="post-admin-modal-actions">
-            <button id="post-admin-delete-cancel" class="button button-ghost" type="button">취소</button>
-            <button id="post-admin-delete-confirm" class="button post-admin-danger" type="button">삭제</button>
-          </div>
-        </section>
-      </div>
-    )
-  }
 </BaseLayout>
-
-{
-  shouldRenderAdminActions && (
-    <script type="module">
-      const initializePostAdminDeleteModal = () => {
-        const modal = document.querySelector('#post-admin-delete-modal');
-        if (!(modal instanceof HTMLElement)) return;
-        if (modal.dataset.deleteModalBound === 'true') return;
-
-        const slug = typeof modal.dataset.postSlug === 'string' ? modal.dataset.postSlug.trim() : '';
-        if (!slug) return;
-
-        const openButton = document.querySelector('#post-admin-delete-trigger');
-        const closeButton = document.querySelector('#post-admin-delete-cancel');
-        const backdropButton = document.querySelector('#post-admin-delete-backdrop');
-        const confirmButton = document.querySelector('#post-admin-delete-confirm');
-        const feedback = document.querySelector('#post-admin-delete-feedback');
-        if (!(openButton instanceof HTMLButtonElement)) return;
-        if (!(closeButton instanceof HTMLButtonElement)) return;
-        if (!(backdropButton instanceof HTMLButtonElement)) return;
-        if (!(confirmButton instanceof HTMLButtonElement)) return;
-
-        const setFeedback = (message, state = 'info') => {
-          if (!(feedback instanceof HTMLElement)) return;
-          feedback.textContent = message;
-          feedback.dataset.state = state;
-        };
-
-        const setModalOpen = (nextOpen) => {
-          modal.hidden = !nextOpen;
-          modal.dataset.open = nextOpen ? 'true' : 'false';
-          if (!nextOpen) {
-            setFeedback('', 'info');
-          }
-        };
-
-        const handleClose = () => setModalOpen(false);
-        modal.dataset.deleteModalBound = 'true';
-        openButton.addEventListener('click', () => setModalOpen(true));
-        closeButton.addEventListener('click', handleClose);
-        backdropButton.addEventListener('click', handleClose);
-
-        confirmButton.addEventListener('click', async () => {
-          confirmButton.disabled = true;
-          setFeedback('삭제 처리 중...', 'info');
-          try {
-            const postPath = `/internal-api/posts/${encodeURIComponent(slug)}`;
-            let response = await fetch(postPath, {
-              method: 'DELETE',
-            });
-            if (response.status === 403) {
-              response = await fetch(postPath, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ action: 'delete' }),
-              });
-            }
-
-            if (response.ok || response.status === 404) {
-              window.location.assign('/blog/');
-              return;
-            }
-
-            if (response.status === 401) {
-              setFeedback('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.', 'error');
-              return;
-            }
-
-            if (response.status === 503) {
-              setFeedback('백엔드 연결 상태가 불안정합니다. 잠시 후 다시 시도해 주세요.', 'error');
-              return;
-            }
-
-            setFeedback('게시글 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
-          } catch {
-            setFeedback('네트워크 오류로 게시글 삭제에 실패했습니다.', 'error');
-          } finally {
-            confirmButton.disabled = false;
-          }
-        });
-
-        window.addEventListener('keydown', (event) => {
-          if (event.key !== 'Escape') return;
-          if (modal.dataset.open !== 'true') return;
-          event.preventDefault();
-          setModalOpen(false);
-        });
-      };
-
-      initializePostAdminDeleteModal();
-      document.addEventListener('astro:page-load', initializePostAdminDeleteModal);
-    </script>
-  )
-}

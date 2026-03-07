@@ -2,23 +2,24 @@
 import { NAV_LINKS, SITE_TITLE } from "../consts";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import HeaderLink from "./HeaderLink.astro";
+import MobileNavSheet from "./public/MobileNavSheet";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 ---
 
-<header class="site-header">
-  <div class="container header-inner">
-    <div class="header-brand-group">
-      <a href="/" class="brand">
-        <span class="brand-name">{SITE_TITLE}</span>
+<header class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+  <div class="container flex min-h-16 items-center justify-between gap-4 py-3">
+    <div class="flex items-center gap-3">
+      <a href="/" class="text-base font-semibold tracking-tight text-foreground">
+        {SITE_TITLE}
       </a>
       {
         isAdminViewer && (
-          <div class="header-admin-tools">
+          <div class="hidden items-center gap-2 md:flex">
             <span
               id="header-admin-link"
-              class="header-admin-link"
+              class="inline-flex rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"
               aria-disabled="true"
             >
               Admin
@@ -26,7 +27,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
             <form method="POST" action="/internal-api/auth/logout?next=/">
               <button
                 id="header-admin-logout"
-                class="header-admin-logout"
+                class="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 type="submit"
               >
                 Logout
@@ -37,12 +38,16 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       }
     </div>
 
-    <nav class="main-nav" aria-label="Main navigation">
+    <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
       {
         NAV_LINKS.map((item) => (
           <HeaderLink href={item.href}>{item.label}</HeaderLink>
         ))
       }
     </nav>
+
+    <div class="md:hidden">
+      <MobileNavSheet client:load items={NAV_LINKS} isAdminViewer={isAdminViewer} />
+    </div>
   </div>
 </header>

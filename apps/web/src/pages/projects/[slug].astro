@@ -1,10 +1,11 @@
 ---
-import { Image } from 'astro:assets';
+import { Image } from "astro:assets";
 
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getProjectBySlug } from '../../lib/projects';
+import { SITE_TITLE } from "../../consts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getProjectBySlug } from "../../lib/projects";
 
-const slug = Astro.params.slug ?? '';
+const slug = Astro.params.slug ?? "";
 const project = getProjectBySlug(slug);
 
 if (!project) {
@@ -14,55 +15,116 @@ if (!project) {
 
 {
   project ? (
-    <BaseLayout title={project.title} description={project.summary} image={project.coverImage}>
-      <section class="hero">
-        <p class="kicker">PROJECT DETAIL</p>
-        <h1>{project.title}</h1>
-        <p class="lead">{project.summary}</p>
-      </section>
+    <BaseLayout
+      title={`${project.title} | Projects | ${SITE_TITLE}`}
+      description={project.summary}
+      image={project.coverImage}
+    >
+      <section class="mx-auto flex max-w-5xl flex-col gap-8 py-10 sm:py-12">
+        <header class="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8">
+          <div class="space-y-5">
+            <div class="space-y-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
+                PROJECT DETAIL
+              </p>
+              <h1 class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                {project.title}
+              </h1>
+              <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
+                {project.summary}
+              </p>
+            </div>
 
-      <section class="section">
-        <article class="surface-card">
-          <Image src={project.coverImage} alt={project.title} width={1400} height={780} />
-          <p>{project.description}</p>
-          <div class="card-tags">
-            {project.stack.map((skill) => <span>{skill}</span>)}
+            <div class="flex flex-wrap items-center gap-2">
+              {project.stack.map((skill) => (
+                <span class="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {skill}
+                </span>
+              ))}
+            </div>
           </div>
-        </article>
-      </section>
 
-      <section class="section card-grid">
-        <article class="surface-card">
-          <h3>Lorem ipsum</h3>
-          <p>{project.role}</p>
-          <p class="meta">{project.period}</p>
-        </article>
+          <div class="rounded-3xl border border-border/60 bg-card p-5 shadow-sm">
+            <h2 class="text-xl font-semibold tracking-tight text-foreground">
+              Lorem ipsum
+            </h2>
+            <p class="mt-4 text-base leading-8 text-foreground/85">
+              {project.role}
+            </p>
+            <p class="mt-2 text-sm text-muted-foreground">{project.period}</p>
+          </div>
+        </header>
 
-        <article class="surface-card">
-          <h3>Dolor sit amet</h3>
-          <ul>
-            {project.highlights.map((item) => <li>{item}</li>)}
-          </ul>
-        </article>
-      </section>
-
-      <section class="section">
-        <div class="hero-actions">
-          {project.links.map((link) => (
-            <a class="button button-ghost" href={link.href} target="_blank" rel="noreferrer">
-              {link.label}
-            </a>
-          ))}
-          <a class="button" href="/projects">Lorem back</a>
+        <div class="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-sm">
+          <Image
+            alt={project.title}
+            class="aspect-[16/9] h-full w-full object-cover"
+            height={780}
+            src={project.coverImage}
+            width={1400}
+          />
         </div>
+
+        <section class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <article class="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
+            <p class="mt-4 text-base leading-8 text-foreground/85">
+              {project.description}
+            </p>
+          </article>
+
+          <article class="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
+            <h2 class="text-xl font-semibold tracking-tight text-foreground">
+              Dolor sit amet
+            </h2>
+            <ul class="mt-4 grid gap-3 text-sm leading-7 text-muted-foreground">
+              {project.highlights.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </article>
+        </section>
+
+        <section class="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
+          <div class="flex flex-wrap gap-3">
+            {project.links.map((link) => {
+              const isExternal = /^https?:\/\//.test(link.href);
+              return (
+                <a
+                  class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                  href={link.href}
+                  rel={isExternal ? "noreferrer" : undefined}
+                  target={isExternal ? "_blank" : undefined}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
+            <a
+              class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+              href="/projects"
+            >
+              Lorem back
+            </a>
+          </div>
+        </section>
       </section>
     </BaseLayout>
   ) : (
-    <BaseLayout title="Project not found" description="Requested project was not found.">
-      <section class="section">
-        <div class="empty-state">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-          <a class="button" href="/projects">Lorem ipsum</a>
+    <BaseLayout
+      title={`Project not found | ${SITE_TITLE}`}
+      description="Requested project was not found."
+    >
+      <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
+        <div class="rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-12 text-center shadow-sm">
+          <p class="text-base text-muted-foreground">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+          </p>
+          <a
+            class="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            href="/projects"
+          >
+            Lorem ipsum
+          </a>
         </div>
       </section>
     </BaseLayout>

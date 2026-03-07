@@ -3,19 +3,26 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 const baseLayoutPath = new URL('../src/layouts/BaseLayout.astro', import.meta.url);
-const layoutCssPath = new URL('../src/styles/layout.css', import.meta.url);
 const baseCssPath = new URL('../src/styles/base.css', import.meta.url);
+const headerPath = new URL('../src/components/Header.astro', import.meta.url);
+const footerPath = new URL('../src/components/Footer.astro', import.meta.url);
 
 test('base layout uses site-shell body for sticky footer layout', async () => {
-  const [layoutSource, cssSource] = await Promise.all([
+  const [layoutSource, cssSource, headerSource, footerSource] = await Promise.all([
     readFile(baseLayoutPath, 'utf8'),
-    readFile(layoutCssPath, 'utf8'),
+    readFile(baseCssPath, 'utf8'),
+    readFile(headerPath, 'utf8'),
+    readFile(footerPath, 'utf8'),
   ]);
 
   assert.match(layoutSource, /<body class="site-shell">/);
-  assert.match(cssSource, /\.site-shell\s*\{/);
-  assert.match(cssSource, /flex-direction:\s*column/);
-  assert.match(cssSource, /\.page\s*\{[\s\S]*flex:\s*1 0 auto/);
+  assert.match(layoutSource, /<Header transition:persist \/>/);
+  assert.match(layoutSource, /<Footer transition:persist \/>/);
+  assert.match(cssSource, /body\s*\{/);
+  assert.doesNotMatch(headerSource, /class="site-header"/);
+  assert.doesNotMatch(footerSource, /class="site-footer"/);
+  assert.match(headerSource, /border-b/);
+  assert.match(footerSource, /FooterAdminModal/);
 });
 
 test('base stylesheet includes sr-only utility class', async () => {

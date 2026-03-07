@@ -1,9 +1,8 @@
 ---
-import adminIcon from "../assets/icons/footer/admin.svg?raw";
 import githubIcon from "../assets/icons/footer/github.svg?raw";
 import mailIcon from "../assets/icons/footer/mail.svg?raw";
 
-type FooterIconName = "mail" | "github" | "admin";
+type FooterIconName = "mail" | "github";
 
 type Props = {
   href: string;
@@ -17,7 +16,6 @@ const { href, label, icon, external = false } = Astro.props as Props;
 const iconSvgs: Record<FooterIconName, string> = {
   mail: mailIcon,
   github: githubIcon,
-  admin: adminIcon,
 };
 ---
 
@@ -25,9 +23,9 @@ const iconSvgs: Record<FooterIconName, string> = {
   href={href}
   target={external ? "_blank" : undefined}
   rel={external ? "noreferrer" : undefined}
-  class="icon-link footer-icon-link"
+  class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
   data-icon={icon}
   aria-label={label}
 >
-  <span class="footer-icon-glyph" aria-hidden="true" set:html={iconSvgs[icon]}></span>
+  <span class="h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={iconSvgs[icon]}></span>
 </a>

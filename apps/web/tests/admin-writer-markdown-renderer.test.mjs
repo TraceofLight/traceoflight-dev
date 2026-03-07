@@ -12,7 +12,10 @@ const rendererPath = new URL(
   "../src/lib/markdown-renderer.ts",
   import.meta.url,
 );
-const stylePath = new URL("../src/styles/components/blog.css", import.meta.url);
+const blogLayoutPath = new URL(
+  "../src/layouts/BlogPost.astro",
+  import.meta.url,
+);
 const writerStylePath = new URL(
   "../src/styles/components/writer.css",
   import.meta.url,
@@ -33,12 +36,12 @@ test("writer and blog db share markdown renderer with figure caption output", as
 });
 
 test("writer preview figcaption style is isolated from blog styles", async () => {
-  const [blogStyleSource, writerStyleSource] = await Promise.all([
-    readFile(stylePath, "utf8"),
+  const [blogLayoutSource, writerStyleSource] = await Promise.all([
+    readFile(blogLayoutPath, "utf8"),
     readCssModule(writerStylePath),
   ]);
 
-  assert.match(blogStyleSource, /\.post-content figcaption/);
-  assert.doesNotMatch(blogStyleSource, /\.writer-preview-content figcaption/);
+  assert.match(blogLayoutSource, /\[\&_figcaption\]:text-muted-foreground/);
+  assert.doesNotMatch(blogLayoutSource, /\.writer-preview-content figcaption/);
   assert.match(writerStyleSource, /\.writer-preview-content figcaption/);
 });

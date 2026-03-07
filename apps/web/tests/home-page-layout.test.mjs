@@ -3,17 +3,17 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const homePagePath = new URL("../src/pages/index.astro", import.meta.url);
-const homeStylePath = new URL(
-  "../src/styles/components/home.css",
-  import.meta.url,
-);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
 
-test("home page uses cruzlab-like modular home sections", async () => {
+test("home page uses tailwind sections while keeping the curated resume content", async () => {
   const source = await readFile(homePagePath, "utf8");
 
-  assert.match(source, /class="home-resume"/);
-  assert.match(source, /class="home-panel home-profile"/);
+  assert.match(source, /max-w-6xl/);
+  assert.match(source, /rounded-3xl border border-border\/60 bg-card/);
+  assert.match(source, /inline-flex items-center gap-2 rounded-full/);
+  assert.doesNotMatch(source, /class="home-resume"/);
+  assert.doesNotMatch(source, /class="home-panel home-profile"/);
+  assert.doesNotMatch(source, /import "\.\.\/styles\/components\/home\.css";/);
   assert.match(source, /id="home-experience-education"/);
   assert.match(source, /id="home-featured-projects"/);
   assert.match(source, /id="home-tech-stack"/);
@@ -29,17 +29,26 @@ test("home page uses cruzlab-like modular home sections", async () => {
   assert.match(source, /\/icons\/tech\/react\.svg/);
   assert.match(source, /\/icons\/tech\/fastapi\.svg/);
   assert.match(source, /\/icons\/tech\/vim\.svg/);
-  assert.match(source, /home-stack-icon/);
-  assert.match(source, /home-resume-grid/);
-  assert.match(source, /home-resume-badges/);
-  assert.match(source, /home-post-list/);
-  assert.match(source, /home-stack-divider/);
-  assert.match(source, /home-stack-card-language/);
-  assert.match(source, /home-stack-items-inline/);
-  assert.match(source, /home-profile-icon/);
   assert.match(source, /featuredSeriesCards\.length > 0/);
   assert.match(source, /아직 등록된 시리즈가 없습니다\./);
-  assert.match(source, /home-series-empty/);
+  assert.match(
+    source,
+    /id="home-experience-heading"[\s\S]*?>\s*Profile\s*<\/h2>/,
+  );
+  assert.match(source, /id="home-tech-heading"[\s\S]*?>\s*Skill\s*<\/h2>/);
+  assert.match(
+    source,
+    /id="home-connect-heading"[\s\S]*?>\s*Connect\s*<\/h2>/,
+  );
+  assert.doesNotMatch(source, /경험과 이력/);
+  assert.doesNotMatch(source, /기술 스택/);
+  assert.doesNotMatch(source, /함께 만들 이야기/);
+  assert.doesNotMatch(source, /<p[\s\S]*?>\s*Work\s*<\/p>/);
+  assert.doesNotMatch(source, /<p[\s\S]*?>\s*Series\s*<\/p>/);
+  assert.doesNotMatch(source, /<p[\s\S]*?>\s*Blog\s*<\/p>/);
+  assert.doesNotMatch(source, /<p[\s\S]*?>\s*Profile\s*<\/p>/);
+  assert.doesNotMatch(source, /<p[\s\S]*?>\s*Skill\s*<\/p>/);
+  assert.doesNotMatch(source, /<p[\s\S]*?>\s*Connect\s*<\/p>/);
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
   assert.match(source, /"Game Development"/);
@@ -92,59 +101,30 @@ test("home page uses cruzlab-like modular home sections", async () => {
   assert.match(source, /sub:\s*"[^"]*\\n: [^"]*"/);
 });
 
-test("home page imports dedicated home component style module", async () => {
+test("home page no longer depends on dedicated home css hooks", async () => {
   const source = await readFile(homePagePath, "utf8");
-  assert.match(source, /import "\.\.\/styles\/components\/home\.css";/);
+  assert.doesNotMatch(source, /home-resume-grid/);
+  assert.doesNotMatch(source, /home-resume-badges/);
+  assert.doesNotMatch(source, /home-post-list/);
+  assert.doesNotMatch(source, /home-stack-divider/);
+  assert.doesNotMatch(source, /home-stack-card-language/);
+  assert.doesNotMatch(source, /home-section/);
+  assert.doesNotMatch(source, /home-stack-groups/);
+  assert.doesNotMatch(source, /home-stack-items-inline/);
+  assert.doesNotMatch(source, /home-contact-links/);
+  assert.doesNotMatch(source, /home-profile-icon/);
+  assert.doesNotMatch(source, /home-series-empty/);
 });
 
 test("site header brand uses text-only mark without avatar image", async () => {
   const source = await readFile(headerPath, "utf8");
-  assert.match(source, /class="brand"/);
-  assert.match(source, /class="brand-name"/);
+  assert.match(source, /SITE_TITLE/);
   assert.match(source, /ADMIN_ACCESS_COOKIE/);
   assert.match(source, /verifyAccessToken/);
   assert.match(source, /id="header-admin-link"/);
   assert.match(source, /id="header-admin-logout"/);
   assert.match(source, /\/internal-api\/auth\/logout/);
+  assert.match(source, /MobileNavSheet/);
   assert.doesNotMatch(source, /brand-avatar/);
   assert.doesNotMatch(source, /traceoflight-profile\.png/);
-});
-
-test("home style module defines resume layout sections and responsive grid", async () => {
-  const source = await readFile(homeStylePath, "utf8");
-
-  assert.match(source, /\.home-panel/);
-  assert.match(source, /\.home-resume-grid/);
-  assert.match(source, /\.home-stack-groups/);
-  assert.match(source, /\.home-stack-item/);
-  assert.match(source, /\.home-stack-icon/);
-  assert.match(source, /\.home-stack-divider/);
-  assert.match(
-    source,
-    /\.home-stack-card-language\s*{[\s\S]*grid-column:\s*1 \/ -1/,
-  );
-  assert.match(
-    source,
-    /\.home-stack-items-inline\s*{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
-  );
-  assert.match(source, /\.home-resume-sub\s*{[\s\S]*white-space:\s*pre-line/);
-  assert.match(source, /\.home-resume-main-split/);
-  assert.match(source, /\.home-resume-period/);
-  assert.match(source, /\.home-resume-badges/);
-  assert.match(source, /\.home-resume-badge-icon/);
-  assert.match(source, /\.home-stack-item\s*{[\s\S]*min-height:\s*34px/);
-  assert.doesNotMatch(source, /min-height:\s*236px/);
-  assert.match(source, /\.home-series-grid/);
-  assert.match(source, /\.home-contact-links/);
-  assert.match(
-    source,
-    /\.home-profile\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.3fr\)\s*minmax\(250px,\s*0\.7fr\)/,
-  );
-  assert.match(
-    source,
-    /\.home-profile-visual\s*{[\s\S]*justify-content:\s*center/,
-  );
-  assert.match(source, /\.home-profile-icon\s*{[\s\S]*border-radius:\s*50%/);
-  assert.match(source, /\.home-profile-icon\s*{[\s\S]*border:\s*0/);
-  assert.match(source, /@media \(max-width: 760px\)/);
 });

@@ -6,26 +6,24 @@ const blogPostLayoutPath = new URL(
   "../src/layouts/BlogPost.astro",
   import.meta.url,
 );
-const componentsStylePath = new URL(
-  "../src/styles/components/blog.css",
-  import.meta.url,
-);
 
-test("blog post layout includes top back link and bottom archive link", async () => {
+test("blog post layout keeps top and bottom archive navigation in the new shell", async () => {
   const source = await readFile(blogPostLayoutPath, "utf8");
 
-  assert.match(source, /class="post-back-link button button-ghost"/);
+  assert.match(source, /aria-label="Post navigation"/);
   assert.match(source, /href="\/blog\/"/);
   assert.match(source, /블로그로 돌아가기/);
-  assert.match(source, /class="post-archive-link button button-ghost"/);
   assert.match(source, /모든 글 보기/);
+  assert.match(source, /inline-flex items-center gap-2 rounded-full border/);
+  assert.doesNotMatch(source, /button button-ghost/);
 });
 
-test("blog post navigation classes have dedicated styling hooks", async () => {
-  const source = await readFile(componentsStylePath, "utf8");
+test("blog post layout no longer depends on legacy navigation hook classes", async () => {
+  const source = await readFile(blogPostLayoutPath, "utf8");
 
-  assert.match(source, /\.post-top-nav/);
-  assert.match(source, /\.post-bottom-nav/);
-  assert.match(source, /\.post-back-link/);
-  assert.match(source, /\.post-archive-link/);
+  assert.doesNotMatch(source, /post-top-nav/);
+  assert.doesNotMatch(source, /post-bottom-nav/);
+  assert.doesNotMatch(source, /post-back-link/);
+  assert.doesNotMatch(source, /post-archive-link/);
+  assert.match(source, /모든 글 보기/);
 });

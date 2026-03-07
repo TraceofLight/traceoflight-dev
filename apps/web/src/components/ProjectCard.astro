@@ -22,21 +22,45 @@ const visibleStack =
     : project.stack;
 ---
 
-<article class="surface-card">
-  <a class="thumb" href={`/projects/${project.slug}`}>
-    <Image
-      src={project.coverImage}
-      alt={project.title}
-      width={imageWidth}
-      height={imageHeight}
-    />
+<article class="group h-full">
+  <a
+    class="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
+    href={`/projects/${project.slug}`}
+  >
+    <div
+      class="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted"
+    >
+      <Image
+        alt={project.title}
+        class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+        height={imageHeight}
+        src={project.coverImage}
+        width={imageWidth}
+      />
+    </div>
+    <div class="flex flex-1 flex-col gap-4 p-5">
+      <p
+        class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+      >
+        {project.period}
+      </p>
+      <div class="space-y-2">
+        <h3 class="text-xl font-semibold tracking-tight text-foreground">
+          {project.title}
+        </h3>
+        <p class="line-clamp-3 text-sm text-muted-foreground">
+          {project.summary}
+        </p>
+      </div>
+      <div class="mt-auto flex flex-wrap gap-2">
+        {
+          visibleStack.map((skill) => (
+            <span class="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
+              {skill}
+            </span>
+          ))
+        }
+      </div>
+    </div>
   </a>
-  <p class="meta">{project.period}</p>
-  <h3>
-    <a href={`/projects/${project.slug}`}>{project.title}</a>
-  </h3>
-  <p>{project.summary}</p>
-  <div class="card-tags">
-    {visibleStack.map((skill) => <span>{skill}</span>)}
-  </div>
 </article>

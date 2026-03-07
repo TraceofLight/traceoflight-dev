@@ -1,7 +1,6 @@
 ---
 import { Image } from "astro:assets";
 
-import FormattedDate from "../components/FormattedDate.astro";
 import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import profileImage from "../assets/traceoflight-profile.png";
@@ -15,9 +14,9 @@ import {
   toPostCard,
   type PostCard as PostCardData,
 } from "../lib/content-source";
+import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { getProjects } from "../lib/projects";
 import { getSeriesBySlug, listSeries } from "../lib/series-db";
-import "../styles/components/home.css";
 
 const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
@@ -47,6 +46,10 @@ if (provider === "db") {
 }
 const projects = getProjects().slice(0, 3);
 const defaultSeriesCoverImage = "/images/empty-series-image.png";
+const sectionShellClass =
+  "rounded-3xl border border-border/60 bg-card p-6 shadow-sm";
+const pillClass =
+  "inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground";
 
 const profile = {
   name: "Hi there, I'm TraceofLight!",
@@ -221,11 +224,14 @@ type FeaturedSeriesCard = {
   coverImageUrl?: string;
 };
 
-const featuredSeriesCards: FeaturedSeriesCard[] = provider === "db"
-  ? (
-      await (async () => {
+const featuredSeriesCards: FeaturedSeriesCard[] =
+  provider === "db"
+    ? await (async () => {
         try {
-          const seriesList = await listSeries({ includePrivate: isAdminViewer, limit: 100 });
+          const seriesList = await listSeries({
+            includePrivate: isAdminViewer,
+            limit: 100,
+          });
           const detailRows = await Promise.all(
             seriesList.map(async (series) => {
               const detail = await getSeriesBySlug(series.slug, {
@@ -237,7 +243,9 @@ const featuredSeriesCards: FeaturedSeriesCard[] = provider === "db"
 
               const latestPostAt = detail.posts.reduce<Date>((latest, post) => {
                 const candidate = post.publishedAt ?? series.updatedAt;
-                return candidate.getTime() > latest.getTime() ? candidate : latest;
+                return candidate.getTime() > latest.getTime()
+                  ? candidate
+                  : latest;
               }, series.updatedAt);
 
               return {
@@ -259,8 +267,7 @@ const featuredSeriesCards: FeaturedSeriesCard[] = provider === "db"
           return [];
         }
       })()
-    )
-  : [];
+    : [];
 
 const connectLinks = [
   { label: "GitHub", href: "https://github.com/TraceofLight", external: true },
@@ -271,87 +278,124 @@ const connectLinks = [
 ---
 
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
-  <section class="home-resume">
+  <div class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
     <section
-      class="home-panel home-profile"
+      class="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm lg:grid-cols-[minmax(0,1.2fr)_280px] lg:p-8"
       aria-labelledby="home-profile-title"
     >
-      <div class="home-profile-content">
-        <p class="home-eyebrow">About Me</p>
-        <h1 id="home-profile-title">{profile.name}</h1>
-        <div class="home-intro-copy">
-          <p class="home-long-copy">{longIntroTop}</p>
-          <p class="home-long-copy">{longIntroBottom}</p>
+      <div class="space-y-6">
+        <div class="space-y-4">
+          <p class={pillClass}>About Me</p>
+          <h1
+            id="home-profile-title"
+            class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+          >
+            {profile.name}
+          </h1>
+          <div class="space-y-3 text-base text-muted-foreground sm:text-lg">
+            <p>{longIntroTop}</p>
+            <p>{longIntroBottom}</p>
+          </div>
         </div>
-        <ul class="home-role-list">
-          {heroRoleTokens.map((role) => <li>{role}</li>)}
+
+        <ul class="flex flex-wrap gap-3">
+          {heroRoleTokens.map((role) => <li class={pillClass}>{role}</li>)}
         </ul>
-        <div class="home-profile-actions">
-          <a class="button" href="/projects">프로젝트 보기</a>
-          <a class="button button-ghost" href="/blog">블로그 보기</a>
+
+        <div class="flex flex-wrap gap-3">
+          <a
+            class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            href="/projects"
+          >
+            프로젝트 보기
+          </a>
+          <a
+            class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            href="/blog"
+          >
+            블로그 보기
+          </a>
         </div>
       </div>
-      <div class="home-profile-visual" aria-hidden="true">
-        <Image
-          src={profileImage}
-          alt=""
-          width={264}
-          height={264}
-          class="home-profile-icon"
-        />
+
+      <div class="flex items-center justify-center">
+        <div
+          class="overflow-hidden rounded-[2rem] border border-border/60 bg-muted shadow-sm"
+        >
+          <Image
+            src={profileImage}
+            alt=""
+            width={320}
+            height={320}
+            class="h-full w-full object-cover"
+          />
+        </div>
       </div>
     </section>
 
     <section
-      class="home-section"
       id="home-experience-education"
+      class={sectionShellClass}
       aria-labelledby="home-experience-heading"
     >
-      <div class="home-section-head">
-        <h2 id="home-experience-heading">Profile</h2>
+      <div class="space-y-2">
+        <h2
+          id="home-experience-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Profile
+        </h2>
       </div>
-      <div class="home-resume-grid">
-        <div class="home-resume-column">
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <div class="grid gap-4">
           {
             resumeLeftSections.map((section) => (
-              <article class="home-resume-block">
-                <h3>{section.title}</h3>
-                <ul>
+              <article class="rounded-2xl border border-border/60 bg-background/70 p-5">
+                <h3 class="text-lg font-semibold tracking-tight text-foreground">
+                  {section.title}
+                </h3>
+                <ul class="mt-4 grid gap-4">
                   {section.items.map((item) => {
                     const display = toResumeDisplay(item);
                     return (
-                      <li>
+                      <li class="space-y-3">
                         {display.period ? (
-                          <div class="home-resume-main-split">
-                            <p class="home-resume-main home-resume-period">
+                          <div class="grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3">
+                            <p class="text-sm font-medium text-foreground">
                               {display.period}
                             </p>
-                            <p class="home-resume-main home-resume-main-text">
+                            <div class="space-y-1">
+                              <p class="text-sm leading-7 text-muted-foreground">
+                                {display.text}
+                              </p>
+                              {item.sub ? (
+                                <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                                  {item.sub}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div class="space-y-1">
+                            <p class="text-sm leading-7 text-muted-foreground">
                               {display.text}
                             </p>
                             {item.sub ? (
-                              <p class="home-resume-sub home-resume-sub-split">
+                              <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
                                 {item.sub}
                               </p>
                             ) : null}
                           </div>
-                        ) : (
-                          <>
-                            <p class="home-resume-main">{display.text}</p>
-                            {item.sub ? (
-                              <p class="home-resume-sub">{item.sub}</p>
-                            ) : null}
-                          </>
                         )}
                         {item.badges?.length ? (
                           <ul
-                            class="home-resume-badges"
+                            class="flex flex-wrap gap-2"
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li>
+                              <li class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-2.5 py-1 text-xs text-muted-foreground">
                                 <img
-                                  class="home-resume-badge-icon"
                                   src={badge.icon}
                                   alt=""
                                   loading="lazy"
@@ -372,47 +416,54 @@ const connectLinks = [
           }
         </div>
 
-        <div class="home-resume-column">
+        <div class="grid gap-4">
           {
             resumeRightSections.map((section) => (
-              <article class="home-resume-block">
-                <h3>{section.title}</h3>
-                <ul>
+              <article class="rounded-2xl border border-border/60 bg-background/70 p-5">
+                <h3 class="text-lg font-semibold tracking-tight text-foreground">
+                  {section.title}
+                </h3>
+                <ul class="mt-4 grid gap-4">
                   {section.items.map((item) => {
                     const display = toResumeDisplay(item);
                     return (
-                      <li>
+                      <li class="space-y-3">
                         {display.period ? (
-                          <div class="home-resume-main-split">
-                            <p class="home-resume-main home-resume-period">
+                          <div class="grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3">
+                            <p class="text-sm font-medium text-foreground">
                               {display.period}
                             </p>
-                            <p class="home-resume-main home-resume-main-text">
+                            <div class="space-y-1">
+                              <p class="text-sm leading-7 text-muted-foreground">
+                                {display.text}
+                              </p>
+                              {item.sub ? (
+                                <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                                  {item.sub}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div class="space-y-1">
+                            <p class="text-sm leading-7 text-muted-foreground">
                               {display.text}
                             </p>
                             {item.sub ? (
-                              <p class="home-resume-sub home-resume-sub-split">
+                              <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
                                 {item.sub}
                               </p>
                             ) : null}
                           </div>
-                        ) : (
-                          <>
-                            <p class="home-resume-main">{display.text}</p>
-                            {item.sub ? (
-                              <p class="home-resume-sub">{item.sub}</p>
-                            ) : null}
-                          </>
                         )}
                         {item.badges?.length ? (
                           <ul
-                            class="home-resume-badges"
+                            class="flex flex-wrap gap-2"
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li>
+                              <li class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-2.5 py-1 text-xs text-muted-foreground">
                                 <img
-                                  class="home-resume-badge-icon"
                                   src={badge.icon}
                                   alt=""
                                   loading="lazy"
@@ -436,39 +487,38 @@ const connectLinks = [
     </section>
 
     <section
-      class="home-section"
       id="home-tech-stack"
+      class={sectionShellClass}
       aria-labelledby="home-tech-heading"
     >
-      <div class="home-section-head">
-        <h2 id="home-tech-heading">Skill</h2>
+      <div class="space-y-2">
+        <h2
+          id="home-tech-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Skill
+        </h2>
       </div>
-      <div class="home-stack-groups">
+
+      <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {
           techStackGroups.map((group) => (
-            <article
-              class={`home-stack-card ${
-                group.title === "Language" ? "home-stack-card-language" : ""
-              }`.trim()}
-            >
-              <h3>{group.title}</h3>
-              <ul
-                class={`home-stack-items ${
-                  group.title === "Language" ? "home-stack-items-inline" : ""
-                }`.trim()}
-              >
+            <article class="rounded-2xl border border-border/60 bg-background/70 p-5">
+              <h3 class="text-lg font-semibold tracking-tight text-foreground">
+                {group.title}
+              </h3>
+              <ul class="mt-4 flex flex-wrap gap-2">
                 {group.items.map((item) =>
                   "divider" in item ? (
                     <li
-                      class="home-stack-divider"
+                      class="mx-1 hidden h-6 w-px self-center bg-border sm:block"
                       role="separator"
                       aria-hidden="true"
                     />
                   ) : (
-                    <li class="home-stack-item">
+                    <li class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
                       {item.icon ? (
                         <img
-                          class="home-stack-icon"
                           src={item.icon}
                           alt={`${item.label} logo`}
                           loading="lazy"
@@ -476,9 +526,7 @@ const connectLinks = [
                           height="18"
                         />
                       ) : (
-                        <span class="home-stack-fallback" aria-hidden="true">
-                          {item.fallback}
-                        </span>
+                        <span aria-hidden="true">{item.fallback}</span>
                       )}
                       <span>{item.label}</span>
                     </li>
@@ -492,15 +540,26 @@ const connectLinks = [
     </section>
 
     <section
-      class="home-section"
       id="home-featured-projects"
+      class={sectionShellClass}
       aria-labelledby="home-projects-heading"
     >
-      <div class="home-section-head">
-        <h2 id="home-projects-heading">Featured Projects</h2>
-        <a href="/projects">View All Projects</a>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h2
+          id="home-projects-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Featured Projects
+        </h2>
+        <a
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          href="/projects"
+        >
+          View All Projects
+        </a>
       </div>
-      <div class="card-grid home-project-grid">
+
+      <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {
           projects.map((project) => (
             <ProjectCard
@@ -515,30 +574,57 @@ const connectLinks = [
     </section>
 
     <section
-      class="home-section"
       id="home-featured-series"
+      class={sectionShellClass}
       aria-labelledby="home-series-heading"
     >
-      <div class="home-section-head">
-        <h2 id="home-series-heading">Featured Series</h2>
-        <a href="/series">View All Series</a>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h2
+          id="home-series-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Featured Series
+        </h2>
+        <a
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          href="/series"
+        >
+          View All Series
+        </a>
       </div>
+
       {
         featuredSeriesCards.length > 0 ? (
-          <div class="home-series-grid">
+          <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {featuredSeriesCards.map((card) => (
-              <article class="home-series-card">
-                <a class="home-series-card-anchor" href={`/series/${card.slug}`}>
-                  <div class="home-series-card-thumb">
-                    <img src={card.coverImageUrl ?? defaultSeriesCoverImage} alt={card.title} loading="lazy" />
+              <article class="group h-full">
+                <a
+                  class="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
+                  href={`/series/${card.slug}`}
+                >
+                  <div class="aspect-[16/10] overflow-hidden border-b border-border/60 bg-muted">
+                    <img
+                      src={card.coverImageUrl ?? defaultSeriesCoverImage}
+                      alt={card.title}
+                      loading="lazy"
+                      class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
                   </div>
-                  <div class="home-series-card-body">
-                    <h3>{card.title}</h3>
-                    <p>{card.summary}</p>
-                    <p class="home-series-card-meta">
+                  <div class="flex flex-1 flex-col gap-4 p-5">
+                    <div class="space-y-2">
+                      <h3 class="text-xl font-semibold tracking-tight text-foreground">
+                        {card.title}
+                      </h3>
+                      <p class="line-clamp-3 text-sm text-muted-foreground">
+                        {card.summary}
+                      </p>
+                    </div>
+                    <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{card.postCount} posts</span>
-                      <span>·</span>
-                      <FormattedDate date={card.latestPostAt} />
+                      <span aria-hidden="true">•</span>
+                      <time datetime={toIsoDateTime(card.latestPostAt)}>
+                        {formatDateLabel(card.latestPostAt)}
+                      </time>
                     </p>
                   </div>
                 </a>
@@ -546,7 +632,7 @@ const connectLinks = [
             ))}
           </div>
         ) : (
-          <div class="empty-state home-series-empty">
+          <div class="mt-6 rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-10 text-center text-sm text-muted-foreground">
             아직 등록된 시리즈가 없습니다.
           </div>
         )
@@ -554,42 +640,66 @@ const connectLinks = [
     </section>
 
     <section
-      class="home-section"
       id="home-latest-posts"
+      class={sectionShellClass}
       aria-labelledby="home-posts-heading"
     >
-      <div class="home-section-head">
-        <h2 id="home-posts-heading">Latest Posts</h2>
-        <a href="/blog">View All Posts</a>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h2
+          id="home-posts-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Latest Posts
+        </h2>
+        <a
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          href="/blog"
+        >
+          View All Posts
+        </a>
       </div>
+
       {
         posts.length > 0 ? (
-          <div class="post-list home-post-list">
+          <div class="mt-6 grid gap-6 lg:grid-cols-3">
             {posts.map((post) => (
               <PostCard post={post} imageWidth={960} imageHeight={540} />
             ))}
           </div>
         ) : (
-          <div class="empty-state">아직 공개된 글이 없습니다.</div>
+          <div class="mt-6 rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-10 text-center text-sm text-muted-foreground">
+            아직 공개된 글이 없습니다.
+          </div>
         )
       }
     </section>
 
     <section
-      class="home-section"
       id="home-connect"
+      class={sectionShellClass}
       aria-labelledby="home-connect-heading"
     >
-      <div class="home-connect-panel">
-        <h2 id="home-connect-heading">Connect</h2>
-        <p class="home-long-copy">
-          협업이나 프로젝트 문의는 메일로 부탁드립니다. 이력서는 PDF로
-          제공됩니다.
-        </p>
-        <div class="home-contact-links">
+      <div
+        class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:items-end"
+      >
+        <div class="space-y-3">
+          <h2
+            id="home-connect-heading"
+            class="text-2xl font-semibold tracking-tight text-foreground"
+          >
+            Connect
+          </h2>
+          <p class="max-w-2xl text-base text-muted-foreground">
+            협업이나 프로젝트 문의는 메일로 부탁드립니다. 이력서는 PDF로
+            제공됩니다.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-3 lg:justify-end">
           {
             connectLinks.map((link) => (
               <a
+                class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
                 href={link.href}
                 target={link.external ? "_blank" : undefined}
                 rel={link.external ? "noreferrer" : undefined}
@@ -601,5 +711,5 @@ const connectLinks = [
         </div>
       </div>
     </section>
-  </section>
+  </div>
 </BaseLayout>
