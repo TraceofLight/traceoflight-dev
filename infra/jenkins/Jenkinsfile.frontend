@@ -4,6 +4,7 @@ pipeline {
   options {
     timestamps()
     disableConcurrentBuilds()
+    skipDefaultCheckout(true)
   }
 
   triggers {
@@ -52,8 +53,6 @@ pipeline {
 
   post {
     always {
-      sh 'docker image prune -f || true'
-      sh 'docker builder prune -f || true'
       sh 'rm -f apps/web/.env || true'
     }
   }

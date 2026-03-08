@@ -14,9 +14,7 @@ Use `Pipeline script from SCM` and set script paths per job:
 - File content: backend runtime env (based on `infra/docker/api/.env.example`)
 
 Backend pipeline deploys only the `api` service (`--no-deps api`) to avoid unintended restarts of `postgres` and `minio`.
-- After each backend run, Jenkins prunes dangling Docker images and unused builder cache with:
-  - `docker image prune -f`
-  - `docker builder prune -f`
+- Backend/Frontend deploy jobs should not prune Docker images during `post` steps. Concurrent prune operations can remove legacy builder intermediates while another pipeline is still building.
 
 `Jenkinsfile.infra` uses the same credential and manages only infra services (`postgres`, `minio`, `minio-init`) via `ACTION` parameter.
 - After each infra run, Jenkins removes the exited one-shot `minio-init` container with:
@@ -34,9 +32,6 @@ Note:
 - File content: frontend runtime env (based on `apps/web/.env.example`)
 - Jenkins copies this file to `apps/web/.env` at deploy time, then runs:
   - `docker compose --env-file .env up -d --build --remove-orphans`
-- After each frontend run, Jenkins prunes dangling Docker images and unused builder cache with:
-  - `docker image prune -f`
-  - `docker builder prune -f`
 - Required keys:
   - `SITE_URL`
   - `ADMIN_LOGIN_ID`

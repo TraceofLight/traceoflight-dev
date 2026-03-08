@@ -1,26 +1,15 @@
-FROM node:20-bookworm-slim AS deps
+FROM node:20-bookworm-slim
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
-
-FROM node:20-bookworm-slim AS build
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run build
-RUN npm prune --omit=dev
-
-FROM node:20-bookworm-slim AS runtime
-WORKDIR /app
-
-ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=6543
 
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+ENV NODE_ENV=production
+RUN npm prune --omit=dev && npm cache clean --force
 
 EXPOSE 6543
 

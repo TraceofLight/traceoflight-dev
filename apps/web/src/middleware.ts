@@ -15,6 +15,7 @@ function isProtectedPath(pathname: string): boolean {
 
 function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/internal-api/auth/")) return true;
+  if (pathname.startsWith("/internal-api/media/browser-image")) return true;
   return false;
 }
 

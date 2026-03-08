@@ -1,0 +1,77 @@
+---
+import FormattedDate from "./FormattedDate.astro";
+import {
+  buildImageFallbackOnError,
+  toBrowserImageUrl,
+} from "../lib/cover-media";
+
+interface SeriesCardData {
+  slug: string;
+  title: string;
+  description: string;
+  postCount: number;
+  updatedAt: Date;
+  coverImageUrl?: string;
+}
+
+interface Props {
+  series: SeriesCardData;
+  imageWidth?: number;
+  imageHeight?: number;
+  fallbackCoverImageSrc?: string;
+}
+
+const {
+  series,
+  imageWidth = 1200,
+  imageHeight = 640,
+  fallbackCoverImageSrc,
+} = Astro.props;
+const fallbackCoverImage = "/images/empty-series-image.png";
+const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl(fallbackCoverImage, {
+  width: imageWidth,
+  height: imageHeight,
+  fit: "cover",
+});
+const coverImageFallbackOnError = buildImageFallbackOnError(resolvedFallbackCoverImageSrc);
+const resolvedCoverImageSrc = series.coverImageUrl
+  ? toBrowserImageUrl(series.coverImageUrl, {
+      width: imageWidth,
+      height: imageHeight,
+    })
+  : resolvedFallbackCoverImageSrc;
+const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
+---
+
+<article class="group h-full">
+  <a
+    class="flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]"
+    href={`/series/${series.slug}`}
+  >
+    <div class={mediaFrameClass}>
+      <img
+        alt={series.title}
+        class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
+        decoding="async"
+        loading="lazy"
+        onerror={coverImageFallbackOnError}
+        src={resolvedCoverImageSrc}
+      />
+    </div>
+    <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
+      <div class="space-y-2">
+        <h2 class="text-xl font-semibold tracking-tight text-foreground">
+          {series.title}
+        </h2>
+        <p class="line-clamp-2 text-sm text-muted-foreground">
+          {series.description.trim().length > 0 ? series.description : " "}
+        </p>
+      </div>
+      <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>{series.postCount} posts</span>
+        <span aria-hidden="true">•</span>
+        <FormattedDate date={series.updatedAt} />
+      </p>
+    </div>
+  </a>
+</article>

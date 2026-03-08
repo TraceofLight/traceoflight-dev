@@ -17,7 +17,13 @@ describe("FooterAdminModal", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Admin Login" }));
+    const trigger = screen.getByRole("button", { name: "Admin Login" });
+    expect(trigger).toHaveClass("border-white/80");
+    expect(trigger).toHaveClass("bg-white/88");
+    expect(trigger).toHaveClass("shadow-[0_10px_30px_rgba(15,23,42,0.08)]");
+    expect(trigger).toHaveClass("hover:-translate-y-0.5");
+
+    fireEvent.click(trigger);
 
     expect(await screen.findByText("ADMIN LOGIN")).toBeInTheDocument();
     expect(screen.getByLabelText("아이디")).toBeInTheDocument();
@@ -37,6 +43,9 @@ describe("FooterAdminModal", () => {
       />,
     );
 
+    expect(
+      screen.getByRole("button", { name: "Admin Backup", hidden: true }),
+    ).toHaveClass("text-muted-foreground");
     expect(await screen.findByText("ADMIN BACKUP")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ZIP 불러와 DB 복원" })).toBeInTheDocument();

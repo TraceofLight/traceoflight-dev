@@ -57,7 +57,7 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 {
   ga4MeasurementId && (
     <>
-      <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`}></script>
+      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`}></script>
       <script is:inline define:vars={{ ga4MeasurementId }}>
         window.dataLayer = window.dataLayer || [];
         function gtag() {

@@ -1,6 +1,10 @@
-import { requestBackend } from './backend-api';
+import { requestBackend, resolveBackendAssetUrl } from './backend-api';
 import { createMarkdownRenderer } from './markdown-renderer';
-import { normalizeHeroMedia, type HeroMedia } from './hero-media';
+import {
+  normalizeCoverMedia,
+  normalizeOptionalImageUrl,
+  type CoverMedia,
+} from './cover-media';
 
 export interface DbPost {
   id: string;
@@ -30,7 +34,7 @@ export interface DbBlogPost {
   description: string;
   bodyMarkdown: string;
   coverImageUrl?: string;
-  heroMedia?: HeroMedia;
+  coverMedia?: CoverMedia;
   visibility: 'public' | 'private';
   tags: DbTag[];
   seriesContext?: DbSeriesContext;
@@ -70,14 +74,16 @@ const POSTS_PAGE_SIZE = 100;
 
 function toDbBlogPost(post: DbPost): DbBlogPost {
   const publishedDate = post.published_at ?? post.created_at;
+  const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
+  const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
   return {
     id: post.id,
     slug: post.slug,
     title: post.title,
     description: post.excerpt?.trim() ?? '',
     bodyMarkdown: post.body_markdown,
-    coverImageUrl: post.cover_image_url ?? undefined,
-    heroMedia: normalizeHeroMedia(post.cover_image_url),
+    coverImageUrl: resolvedCoverImageUrl,
+    coverMedia: normalizeCoverMedia(resolvedCoverImageUrl),
     visibility: post.visibility === 'private' ? 'private' : 'public',
     tags: Array.isArray(post.tags) ? post.tags : [],
     seriesContext: post.series_context

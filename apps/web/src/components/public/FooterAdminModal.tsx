@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DownloadIcon, LogInIcon, ShieldIcon, UploadIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ type FooterAdminModalProps = {
 };
 
 type FeedbackState = "info" | "pending" | "ok" | "error";
+type FormSubmitEvent = Parameters<
+  NonNullable<React.ComponentProps<"form">["onSubmit"]>
+>[0];
 
 function resolveErrorMessage(payload: unknown, fallback: string) {
   if (payload && typeof payload === "object") {
@@ -94,7 +97,7 @@ export function FooterAdminModal({
     });
   }, [open]);
 
-  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleLoginSubmit = async (event: FormSubmitEvent) => {
     event.preventDefault();
     setLoginFeedback({ message: "로그인 처리 중...", state: "pending" });
 
@@ -124,7 +127,7 @@ export function FooterAdminModal({
         state: "error",
       });
     }
-  }
+  };
 
   async function handleBackupDownload() {
     setBusy(true);
@@ -233,18 +236,17 @@ export function FooterAdminModal({
   return (
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
-        <Button
+        <button
           aria-label={isAdminViewer ? "Admin Backup" : "Admin Login"}
-          className="rounded-full"
-          size="icon"
-          variant="outline"
+          className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/80 bg-white/88 text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-white hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          type="button"
         >
           {isAdminViewer ? (
             <DownloadIcon className="h-4 w-4" />
           ) : (
             <ShieldIcon className="h-4 w-4" />
           )}
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent aria-describedby={undefined} className="max-w-md">
         {!isAdminViewer ? (

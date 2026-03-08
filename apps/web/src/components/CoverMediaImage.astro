@@ -1,0 +1,54 @@
+---
+import { Image } from "astro:assets";
+
+import {
+  buildImageFallbackOnError,
+  toBrowserImageUrl,
+  type CoverMedia,
+} from "../lib/cover-media";
+
+interface Props {
+  media: CoverMedia;
+  alt: string;
+  className?: string;
+  width?: number;
+  height?: number;
+  loading?: "lazy" | "eager";
+  sizes?: string;
+  fallbackSrc?: string;
+  position?: "top" | "centre";
+  zoom?: number;
+}
+
+const { media, alt, className, width, height, loading = "lazy", sizes, fallbackSrc, position, zoom } = Astro.props;
+const normalizedClassName = className?.trim() || undefined;
+const browserSizedSrc =
+  media.kind === "native" ? toBrowserImageUrl(media.src, { width, height, position, zoom }) : undefined;
+const nativeFallbackOnError = buildImageFallbackOnError(fallbackSrc);
+---
+
+{
+  media.kind === "optimized" ? (
+    <Image
+      class={normalizedClassName}
+      src={media.src}
+      alt={alt}
+      width={width ?? media.src.width}
+      height={height ?? media.src.height}
+      loading={loading}
+      sizes={sizes}
+    />
+  ) : (
+    <img
+      class={normalizedClassName}
+      src={browserSizedSrc ?? media.src}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={loading}
+      decoding="async"
+      sizes={sizes}
+      onerror={nativeFallbackOnError}
+    />
+  )
+}

@@ -9,7 +9,10 @@ test("home page uses tailwind sections while keeping the curated resume content"
   const source = await readFile(homePagePath, "utf8");
 
   assert.match(source, /max-w-6xl/);
-  assert.match(source, /rounded-3xl border border-border\/60 bg-card/);
+  assert.match(
+    source,
+    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+  );
   assert.match(source, /inline-flex items-center gap-2 rounded-full/);
   assert.doesNotMatch(source, /class="home-resume"/);
   assert.doesNotMatch(source, /class="home-panel home-profile"/);
@@ -29,6 +32,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /\/icons\/tech\/react\.svg/);
   assert.match(source, /\/icons\/tech\/fastapi\.svg/);
   assert.match(source, /\/icons\/tech\/vim\.svg/);
+  assert.match(source, /import SeriesCard from "\.\.\/components\/SeriesCard\.astro";/);
   assert.match(source, /featuredSeriesCards\.length > 0/);
   assert.match(source, /아직 등록된 시리즈가 없습니다\./);
   assert.match(
@@ -51,6 +55,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /<p[\s\S]*?>\s*Connect\s*<\/p>/);
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
+  assert.match(source, /<SeriesCard series=\{card\} imageWidth=\{960\} imageHeight=\{640\} \/>/);
   assert.match(source, /"Game Development"/);
   assert.match(source, /"Graphics Programming"/);
   assert.match(source, /"Database Engineering"/);
@@ -91,6 +96,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.ok(rightExperienceIndex < rightAwardIndex);
 
   assert.match(source, /title:\s*"Web"/);
+  assert.doesNotMatch(source, /divider:\s*true/);
   assert.doesNotMatch(source, /title:\s*"Backend"/);
   assert.doesNotMatch(source, /title:\s*"Frontend"/);
   assert.match(source, /title:\s*"Language"/);

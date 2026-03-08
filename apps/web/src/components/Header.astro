@@ -8,7 +8,7 @@ const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 ---
 
-<header class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+<header class="sticky top-0 z-40 border-b border-white/60 bg-white/78 backdrop-blur-xl supports-[backdrop-filter]:bg-white/64">
   <div class="container flex min-h-16 items-center justify-between gap-4 py-3">
     <div class="flex items-center gap-3">
       <a href="/" class="text-base font-semibold tracking-tight text-foreground">
@@ -19,7 +19,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
           <div class="hidden items-center gap-2 md:flex">
             <span
               id="header-admin-link"
-              class="inline-flex rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"
+              class="inline-flex rounded-full border border-white/80 bg-white/88 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
               aria-disabled="true"
             >
               Admin
@@ -27,7 +27,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
             <form method="POST" action="/internal-api/auth/logout?next=/">
               <button
                 id="header-admin-logout"
-                class="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                class="inline-flex items-center rounded-full border border-white/80 bg-white/88 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
                 type="submit"
               >
                 Logout
@@ -37,7 +37,6 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
         )
       }
     </div>
-
     <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
       {
         NAV_LINKS.map((item) => (

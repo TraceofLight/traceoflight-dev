@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
 
 export type BlogArchivePost = {
@@ -14,7 +15,7 @@ export type BlogArchivePost = {
   publishedAt: string;
   publishedAtValue: number;
   readingLabel: string;
-  heroImageSrc: string;
+  coverImageSrc: string;
 };
 
 export type BlogArchiveTagFilter = {
@@ -37,9 +38,18 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function getHeroImageAlt(title: string) {
+function getCoverImageAlt(title: string) {
   return `${title} 대표 이미지`;
 }
+
+const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png", {
+  width: 960,
+  height: 640,
+  fit: "cover",
+});
+const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
+const anchorClass =
+  "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
 
 export function BlogArchiveFilters({
   initialSelectedTags,
@@ -223,18 +233,23 @@ export function BlogArchiveFilters({
             <article key={post.slug} className="group h-full">
               <a
                 aria-label={`${post.title} 읽기`}
-                className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
+                className={anchorClass}
                 href={`/blog/${post.slug}/`}
               >
-                <div className="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted">
+                <div className={mediaFrameClass}>
                   <img
-                    alt={getHeroImageAlt(post.title)}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    alt={getCoverImageAlt(post.title)}
+                    className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-300 group-hover:scale-[1.06]"
                     loading="lazy"
-                    src={post.heroImageSrc}
+                    onError={(event) => {
+                      if (event.currentTarget.src !== fallbackCoverImageSrc) {
+                        event.currentTarget.src = fallbackCoverImageSrc;
+                      }
+                    }}
+                    src={post.coverImageSrc}
                   />
                 </div>
-                <div className="flex flex-1 flex-col gap-4 p-5">
+                <div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{formatDateLabel(post.publishedAt)}</span>
                     <span aria-hidden="true">•</span>

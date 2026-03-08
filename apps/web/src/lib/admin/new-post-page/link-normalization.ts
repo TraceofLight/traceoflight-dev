@@ -177,7 +177,7 @@ export function normalizeMarkdownLinks(
   );
   return normalizedEscaped.replace(
     /(!?\[[^\]]*]\()([\s\S]*?)(\))/g,
-    (full, prefix, rawUrl, suffix) => {
+    (_full, prefix, rawUrl, suffix) => {
       const normalized = normalizeMarkdownLinkRawTarget(rawUrl, pageProtocol);
       return `${prefix}${normalized}${suffix}`;
     },

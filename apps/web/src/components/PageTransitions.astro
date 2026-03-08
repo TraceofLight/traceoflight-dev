@@ -1,5 +1,5 @@
 ---
-import { ViewTransitions } from 'astro:transitions';
+import { ClientRouter } from 'astro:transitions';
 
 import { createPageTransitionStyles } from '../lib/page-transition';
 
@@ -10,5 +10,5 @@ const transitionStyles = createPageTransitionStyles({
 });
 ---
 
-<ViewTransitions fallback="swap" />
+<ClientRouter fallback="swap" />
 <style is:global set:html={transitionStyles} />

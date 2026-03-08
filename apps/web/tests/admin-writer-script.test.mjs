@@ -184,6 +184,19 @@ test("writer script can load draft by slug query", async () => {
   assert.match(source, /editorBridge\.setMarkdown/);
 });
 
+test("writer draft helpers normalize the posts array and keep only the public api exports", async () => {
+  const draftsSource = await readFile(draftsPath, "utf8");
+
+  assert.match(draftsSource, /function getTrimmedTitle\(post: AdminDraftListItem\)/);
+  assert.match(draftsSource, /function formatDraftDateLabel\(isoValue: string \| null \| undefined\)/);
+  assert.match(draftsSource, /function buildDraftMetaLabel\(post: AdminDraftListItem\)/);
+  assert.match(draftsSource, /return posts\s*\.filter\(/);
+  assert.doesNotMatch(draftsSource, /return post\s*\.filter\(/);
+  assert.match(draftsSource, /\.sort\(\(left,\s*right\) =>/);
+  assert.doesNotMatch(draftsSource, /export function formatDateLabel/);
+  assert.doesNotMatch(draftsSource, /export function buildDraftMetaLabel/);
+});
+
 test("writer script supports draft modal list and delete actions", async () => {
   const [source, domSource, draftsSource, draftLayerEventsSource, postsApiSource] =
     await Promise.all([

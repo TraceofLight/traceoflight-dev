@@ -1,8 +1,8 @@
 ---
 import { Image } from "astro:assets";
-
 import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
+import SeriesCard from "../components/SeriesCard.astro";
 import profileImage from "../assets/traceoflight-profile.png";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
@@ -14,7 +14,6 @@ import {
   toPostCard,
   type PostCard as PostCardData,
 } from "../lib/content-source";
-import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { getProjects } from "../lib/projects";
 import { getSeriesBySlug, listSeries } from "../lib/series-db";
 
@@ -34,7 +33,7 @@ if (provider === "db") {
       body: post.bodyMarkdown,
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
-      heroMedia: post.heroMedia,
+      coverMedia: post.coverMedia,
       visibility: post.visibility,
       tags: post.tags.map((tag) => tag.slug),
     }));
@@ -45,11 +44,10 @@ if (provider === "db") {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
 const projects = getProjects().slice(0, 3);
-const defaultSeriesCoverImage = "/images/empty-series-image.png";
 const sectionShellClass =
-  "rounded-3xl border border-border/60 bg-card p-6 shadow-sm";
+  "rounded-[2.25rem] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]";
 const pillClass =
-  "inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground";
+  "inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
 
 const profile = {
   name: "Hi there, I'm TraceofLight!",
@@ -77,15 +75,11 @@ type ResumeDisplay = {
   text: string;
 };
 
-type TechStackItem =
-  | {
-      divider: true;
-    }
-  | {
-      label: string;
-      icon?: string;
-      fallback?: string;
-    };
+type TechStackItem = {
+  label: string;
+  icon?: string;
+  fallback?: string;
+};
 
 type TechStackGroup = {
   title: string;
@@ -118,12 +112,11 @@ const toResumeDisplay = (item: ResumeItem): ResumeDisplay => {
   return inferResumePeriod(item.main);
 };
 
-const heroRoleTokens = [
+const introRoleTokens = [
   "Game Development",
   "Graphics Programming",
   "Database Engineering",
 ];
-
 const longIntroTop =
   "상상을 현실로, 가상 세계에 생동감을 불어넣는 개발자 TraceofLight입니다.";
 const longIntroBottom =
@@ -209,7 +202,6 @@ const techStackGroups: TechStackGroup[] = [
     items: [
       { label: "FastAPI", icon: "/icons/tech/fastapi.svg" },
       { label: "Spring Boot", icon: "/icons/tech/springboot.svg" },
-      { divider: true },
       { label: "React", icon: "/icons/tech/react.svg" },
     ],
   },
@@ -218,11 +210,17 @@ const techStackGroups: TechStackGroup[] = [
 type FeaturedSeriesCard = {
   slug: string;
   title: string;
-  summary: string;
+  description: string;
   postCount: number;
-  latestPostAt: Date;
-  coverImageUrl?: string;
+  updatedAt: Date;
+  coverImageUrl: string | undefined;
 };
+
+function isFeaturedSeriesCard(
+  row: FeaturedSeriesCard | null,
+): row is FeaturedSeriesCard {
+  return row !== null;
+}
 
 const featuredSeriesCards: FeaturedSeriesCard[] =
   provider === "db"
@@ -233,7 +231,7 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
             limit: 100,
           });
           const detailRows = await Promise.all(
-            seriesList.map(async (series) => {
+            seriesList.map(async (series): Promise<FeaturedSeriesCard | null> => {
               const detail = await getSeriesBySlug(series.slug, {
                 includePrivate: isAdminViewer,
               }).catch(() => null);
@@ -241,7 +239,7 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
                 return null;
               }
 
-              const latestPostAt = detail.posts.reduce<Date>((latest, post) => {
+              const updatedAt = detail.posts.reduce<Date>((latest, post) => {
                 const candidate = post.publishedAt ?? series.updatedAt;
                 return candidate.getTime() > latest.getTime()
                   ? candidate
@@ -251,17 +249,17 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
               return {
                 slug: series.slug,
                 title: series.title,
-                summary: series.description,
+                description: series.description,
                 postCount: detail.postCount,
-                latestPostAt,
+                updatedAt,
                 coverImageUrl: series.coverImageUrl,
               } satisfies FeaturedSeriesCard;
             }),
           );
 
           return detailRows
-            .filter((row): row is FeaturedSeriesCard => row !== null)
-            .sort((a, b) => b.latestPostAt.getTime() - a.latestPostAt.getTime())
+            .filter(isFeaturedSeriesCard)
+            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
             .slice(0, 3);
         } catch {
           return [];
@@ -280,10 +278,13 @@ const connectLinks = [
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
   <div class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
     <section
-      class="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm lg:grid-cols-[minmax(0,1.2fr)_280px] lg:p-8"
+      class="grid gap-6 rounded-[2.5rem] border border-white/80 bg-white/92 p-5 shadow-[0_32px_80px_rgba(15,23,42,0.10)] lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6"
       aria-labelledby="home-profile-title"
     >
-      <div class="space-y-6">
+      <div
+        id="home-intro-copy-panel"
+        class="grid h-full content-center gap-6 rounded-[2.1rem] border border-white/80 bg-white px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.06)] sm:px-8 sm:py-8"
+      >
         <div class="space-y-4">
           <p class={pillClass}>About Me</p>
           <h1
@@ -292,25 +293,25 @@ const connectLinks = [
           >
             {profile.name}
           </h1>
-          <div class="space-y-3 text-base text-muted-foreground sm:text-lg">
+          <div class="space-y-2.5 text-base leading-[1.65] text-muted-foreground sm:text-lg sm:leading-[1.7]">
             <p>{longIntroTop}</p>
             <p>{longIntroBottom}</p>
           </div>
         </div>
 
         <ul class="flex flex-wrap gap-3">
-          {heroRoleTokens.map((role) => <li class={pillClass}>{role}</li>)}
+          {introRoleTokens.map((role) => <li class={pillClass}>{role}</li>)}
         </ul>
 
         <div class="flex flex-wrap gap-3">
           <a
-            class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            class="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/96 px-5 py-2.5 text-sm font-medium text-sky-700 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]"
             href="/projects"
           >
             프로젝트 보기
           </a>
           <a
-            class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-5 py-2.5 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
             href="/blog"
           >
             블로그 보기
@@ -318,16 +319,20 @@ const connectLinks = [
         </div>
       </div>
 
-      <div class="flex items-center justify-center">
+      <div
+        id="home-intro-profile-panel"
+        class="flex h-full items-center justify-center px-4 py-2 sm:px-6 sm:py-4"
+      >
         <div
-          class="overflow-hidden rounded-[2rem] border border-border/60 bg-muted shadow-sm"
+          id="home-intro-profile-frame"
+          class="aspect-square w-full max-w-[18rem] sm:max-w-[19rem]"
         >
           <Image
             src={profileImage}
-            alt=""
+            alt="TraceofLight profile logo"
             width={320}
             height={320}
-            class="h-full w-full object-cover"
+            class="h-full w-full object-contain"
           />
         </div>
       </div>
@@ -351,7 +356,7 @@ const connectLinks = [
         <div class="grid gap-4">
           {
             resumeLeftSections.map((section) => (
-              <article class="rounded-2xl border border-border/60 bg-background/70 p-5">
+              <article class="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
                 <h3 class="text-lg font-semibold tracking-tight text-foreground">
                   {section.title}
                 </h3>
@@ -394,7 +399,7 @@ const connectLinks = [
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-2.5 py-1 text-xs text-muted-foreground">
+                              <li class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-1 text-xs text-muted-foreground">
                                 <img
                                   src={badge.icon}
                                   alt=""
@@ -419,7 +424,7 @@ const connectLinks = [
         <div class="grid gap-4">
           {
             resumeRightSections.map((section) => (
-              <article class="rounded-2xl border border-border/60 bg-background/70 p-5">
+              <article class="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
                 <h3 class="text-lg font-semibold tracking-tight text-foreground">
                   {section.title}
                 </h3>
@@ -462,7 +467,7 @@ const connectLinks = [
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-2.5 py-1 text-xs text-muted-foreground">
+                              <li class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-1 text-xs text-muted-foreground">
                                 <img
                                   src={badge.icon}
                                   alt=""
@@ -503,20 +508,13 @@ const connectLinks = [
       <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {
           techStackGroups.map((group) => (
-            <article class="rounded-2xl border border-border/60 bg-background/70 p-5">
+            <article class="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
               <h3 class="text-lg font-semibold tracking-tight text-foreground">
                 {group.title}
               </h3>
               <ul class="mt-4 flex flex-wrap gap-2">
-                {group.items.map((item) =>
-                  "divider" in item ? (
-                    <li
-                      class="mx-1 hidden h-6 w-px self-center bg-border sm:block"
-                      role="separator"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <li class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                {group.items.map((item) => (
+                    <li class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-slate-100/88 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                       {item.icon ? (
                         <img
                           src={item.icon}
@@ -530,8 +528,7 @@ const connectLinks = [
                       )}
                       <span>{item.label}</span>
                     </li>
-                  ),
-                )}
+                  ))}
               </ul>
             </article>
           ))
@@ -552,7 +549,7 @@ const connectLinks = [
           Featured Projects
         </h2>
         <a
-          class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
           href="/projects"
         >
           View All Projects
@@ -565,7 +562,7 @@ const connectLinks = [
             <ProjectCard
               project={project}
               imageWidth={960}
-              imageHeight={540}
+              imageHeight={640}
               stackLimit={3}
             />
           ))
@@ -597,42 +594,11 @@ const connectLinks = [
         featuredSeriesCards.length > 0 ? (
           <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {featuredSeriesCards.map((card) => (
-              <article class="group h-full">
-                <a
-                  class="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
-                  href={`/series/${card.slug}`}
-                >
-                  <div class="aspect-[16/10] overflow-hidden border-b border-border/60 bg-muted">
-                    <img
-                      src={card.coverImageUrl ?? defaultSeriesCoverImage}
-                      alt={card.title}
-                      loading="lazy"
-                      class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                    />
-                  </div>
-                  <div class="flex flex-1 flex-col gap-4 p-5">
-                    <div class="space-y-2">
-                      <h3 class="text-xl font-semibold tracking-tight text-foreground">
-                        {card.title}
-                      </h3>
-                      <p class="line-clamp-3 text-sm text-muted-foreground">
-                        {card.summary}
-                      </p>
-                    </div>
-                    <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span>{card.postCount} posts</span>
-                      <span aria-hidden="true">•</span>
-                      <time datetime={toIsoDateTime(card.latestPostAt)}>
-                        {formatDateLabel(card.latestPostAt)}
-                      </time>
-                    </p>
-                  </div>
-                </a>
-              </article>
+              <SeriesCard series={card} imageWidth={960} imageHeight={640} />
             ))}
           </div>
         ) : (
-          <div class="mt-6 rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-10 text-center text-sm text-muted-foreground">
+          <div class="mt-6 rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
             아직 등록된 시리즈가 없습니다.
           </div>
         )
@@ -652,7 +618,7 @@ const connectLinks = [
           Latest Posts
         </h2>
         <a
-          class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
           href="/blog"
         >
           View All Posts
@@ -663,11 +629,11 @@ const connectLinks = [
         posts.length > 0 ? (
           <div class="mt-6 grid gap-6 lg:grid-cols-3">
             {posts.map((post) => (
-              <PostCard post={post} imageWidth={960} imageHeight={540} />
+              <PostCard post={post} imageWidth={960} imageHeight={640} />
             ))}
           </div>
         ) : (
-          <div class="mt-6 rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-10 text-center text-sm text-muted-foreground">
+          <div class="mt-6 rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
             아직 공개된 글이 없습니다.
           </div>
         )
@@ -699,7 +665,7 @@ const connectLinks = [
           {
             connectLinks.map((link) => (
               <a
-                class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
                 href={link.href}
                 target={link.external ? "_blank" : undefined}
                 rel={link.external ? "noreferrer" : undefined}

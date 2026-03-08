@@ -15,6 +15,28 @@ export function buildBackendApiUrl(path: string): string {
   return `${getBackendApiBaseUrl()}${normalizedPath}`;
 }
 
+export function resolveBackendAssetUrl(path: string | undefined): string | undefined {
+  const normalizedPath = path?.trim();
+  if (!normalizedPath) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(normalizedPath)) {
+    const parsed = new URL(normalizedPath);
+    const backendBaseUrl = new URL(getBackendApiBaseUrl());
+    if (parsed.pathname.startsWith("/media/") && parsed.host === backendBaseUrl.host) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return normalizedPath;
+  }
+
+  if (normalizedPath.startsWith("/")) {
+    return normalizedPath;
+  }
+
+  return normalizedPath;
+}
+
 function buildBackendRequestHeaders(existing: HeadersInit | undefined): HeadersInit | undefined {
   const sharedSecret = process.env.INTERNAL_API_SECRET?.trim() ?? '';
   if (!sharedSecret) return existing;

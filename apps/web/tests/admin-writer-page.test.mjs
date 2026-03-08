@@ -156,7 +156,7 @@ test("admin writer has editor-side bottom bar and publish layer style", async ()
   );
   assert.match(
     source,
-    /\.writer-publish-actions[\s\S]*border-top:\s*1px\s+solid\s+#e3e9f1/,
+    /\.writer-publish-actions[\s\S]*border-top:\s*1px\s+solid\s+var\(--writer-border\)/,
   );
   assert.match(source, /\.writer-slug-input-wrap[\s\S]*display:\s*flex/);
   assert.match(source, /\.writer-publish-layer\[data-open=["']true["']]/);

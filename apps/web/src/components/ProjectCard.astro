@@ -13,32 +13,33 @@ interface Props {
 const {
   project,
   imageWidth = 1200,
-  imageHeight = 630,
+  imageHeight = 640,
   stackLimit,
 } = Astro.props;
 const visibleStack =
   typeof stackLimit === "number"
     ? project.stack.slice(0, stackLimit)
     : project.stack;
+const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
+const anchorClass =
+  "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 text-card-foreground shadow-[0_28px_80px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
 ---
 
 <article class="group h-full">
   <a
-    class="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
+    class={anchorClass}
     href={`/projects/${project.slug}`}
   >
-    <div
-      class="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted"
-    >
+    <div class={mediaFrameClass}>
       <Image
         alt={project.title}
-        class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+        class="block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
         height={imageHeight}
         src={project.coverImage}
         width={imageWidth}
       />
     </div>
-    <div class="flex flex-1 flex-col gap-4 p-5">
+    <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
       <p
         class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
       >
@@ -55,7 +56,7 @@ const visibleStack =
       <div class="mt-auto flex flex-wrap gap-2">
         {
           visibleStack.map((skill) => (
-            <span class="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
+            <span class="rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
               {skill}
             </span>
           ))

@@ -1,15 +1,21 @@
 ---
-import FormattedDate from "../../components/FormattedDate.astro";
+import SeriesCard from "../../components/SeriesCard.astro";
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
+import { toBrowserImageUrl } from "../../lib/cover-media";
 import { listSeries } from "../../lib/series-db";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 const defaultSeriesCoverImage = "/images/empty-series-image.png";
+const defaultSeriesCoverImageSrc = toBrowserImageUrl(defaultSeriesCoverImage, {
+  width: 960,
+  height: 640,
+  fit: "cover",
+});
 
-let series = [];
+let series: Awaited<ReturnType<typeof listSeries>> = [];
 try {
   series = await listSeries({ includePrivate: isAdminViewer, limit: 100 });
 } catch {
@@ -26,7 +32,7 @@ try {
     class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12"
   >
     <header
-      class="rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm lg:p-8"
+      class="rounded-[2.25rem] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] lg:p-8"
     >
       <div class="space-y-4">
         <h1
@@ -44,40 +50,16 @@ try {
       series.length > 0 ? (
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {series.map((series) => (
-            <article class="group h-full">
-              <a
-                class="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
-                href={`/series/${series.slug}`}
-              >
-                <div class="aspect-[16/10] overflow-hidden border-b border-border/60 bg-muted">
-                  <img
-                    alt={series.title}
-                    class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                    loading="lazy"
-                    src={series.coverImageUrl ?? defaultSeriesCoverImage}
-                  />
-                </div>
-                <div class="flex flex-1 flex-col gap-4 p-5">
-                  <div class="space-y-2">
-                    <h2 class="text-xl font-semibold tracking-tight text-foreground">
-                      {series.title}
-                    </h2>
-                    <p class="line-clamp-3 text-sm text-muted-foreground">
-                      {series.description}
-                    </p>
-                  </div>
-                  <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span>{series.postCount} posts</span>
-                    <span aria-hidden="true">•</span>
-                    <FormattedDate date={series.updatedAt} />
-                  </p>
-                </div>
-              </a>
-            </article>
+            <SeriesCard
+              series={series}
+              imageWidth={960}
+              imageHeight={640}
+              fallbackCoverImageSrc={defaultSeriesCoverImageSrc}
+            />
           ))}
         </div>
       ) : (
-        <div class="rounded-3xl border border-dashed border-border/60 bg-background/70 px-6 py-10 text-center text-sm text-muted-foreground">
+        <div class="rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
           아직 등록된 시리즈가 없습니다.
         </div>
       )

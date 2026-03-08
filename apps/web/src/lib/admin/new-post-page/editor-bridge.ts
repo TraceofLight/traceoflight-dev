@@ -21,7 +21,7 @@ export async function createEditorBridge(
       getMarkdown: async () => {
         const markdown = editor.getMarkdown();
         if (typeof markdown === "string") return markdown;
-        return await markdown;
+        return markdown;
       },
       setMarkdown: async (markdown: string) => {
         editor.editor.action(replaceAll(markdown));

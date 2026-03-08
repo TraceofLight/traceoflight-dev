@@ -1,4 +1,5 @@
-import { requestBackend } from "./backend-api";
+import { normalizeOptionalImageUrl } from "./cover-media";
+import { requestBackend, resolveBackendAssetUrl } from "./backend-api";
 
 export interface DbSeriesSummary {
   id: string;
@@ -57,12 +58,13 @@ interface SeriesQueryOptions {
 }
 
 function toSeriesSummary(row: DbSeriesSummary): SeriesSummary {
+  const normalizedCoverImageUrl = normalizeOptionalImageUrl(row.cover_image_url);
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     description: row.description,
-    coverImageUrl: row.cover_image_url ?? undefined,
+    coverImageUrl: resolveBackendAssetUrl(normalizedCoverImageUrl),
     postCount: row.post_count,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
@@ -70,11 +72,12 @@ function toSeriesSummary(row: DbSeriesSummary): SeriesSummary {
 }
 
 function toSeriesPost(row: DbSeriesPost): SeriesPost {
+  const normalizedCoverImageUrl = normalizeOptionalImageUrl(row.cover_image_url);
   return {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt?.trim() ?? "",
-    coverImageUrl: row.cover_image_url ?? undefined,
+    coverImageUrl: resolveBackendAssetUrl(normalizedCoverImageUrl),
     orderIndex: row.order_index,
     publishedAt: row.published_at ? new Date(row.published_at) : undefined,
     visibility: row.visibility === "private" ? "private" : "public",

@@ -30,11 +30,16 @@ test("web package is configured for React, Tailwind, shadcn, and UI tests", asyn
   };
 
   assert.equal(typeof packageJson.scripts?.["test:ui"], "string");
+  assert.equal(typeof packageJson.scripts?.typecheck, "string");
+  assert.match(packageJson.scripts?.typecheck ?? "", /astro check/);
   assert.match(packageJson.scripts?.test ?? "", /test:ui/);
+  assert.match(packageJson.scripts?.test ?? "", /typecheck/);
   assert.equal(typeof allDependencies["@astrojs/react"], "string");
+  assert.equal(typeof allDependencies["@astrojs/check"], "string");
   assert.equal(typeof allDependencies.react, "string");
   assert.equal(typeof allDependencies["react-dom"], "string");
   assert.equal(typeof allDependencies.tailwindcss, "string");
+  assert.equal(typeof allDependencies.typescript, "string");
   assert.equal(typeof allDependencies["@tailwindcss/vite"], "string");
   assert.equal(typeof allDependencies["class-variance-authority"], "string");
   assert.equal(typeof allDependencies.clsx, "string");

@@ -10,9 +10,10 @@
     "test:guards": "node --test tests/**/*.test.mjs",
     "test:ui": "vitest run tests/ui",
     "test:auth": "node --import tsx --test tests/admin-auth/**/*.test.ts",
-    "test": "npm run test:guards && npm run test:ui && npm run test:auth",
+    "test": "npm run typecheck && npm run test:guards && npm run test:ui && npm run test:auth",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "typecheck": "astro check"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.13",
@@ -41,9 +42,11 @@
   },
   "private": true,
   "devDependencies": {
+    "@astrojs/check": "^0.9.6",
     "@tailwindcss/vite": "^4.2.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "jsdom": "^28.1.0",
@@ -51,6 +54,7 @@
     "prettier-plugin-astro": "^0.14.1",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
 }

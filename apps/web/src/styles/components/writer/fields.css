@@ -11,9 +11,9 @@
   display: flex;
   align-items: center;
   min-height: 40px;
-  border: 1px solid #d7e0ea;
+  border: 1px solid var(--writer-border);
   border-radius: 0.64rem;
-  background: #fbfdff;
+  background: var(--writer-surface-soft);
 }
 
 .writer-slug-prefix {
@@ -21,8 +21,8 @@
   align-items: center;
   min-height: 100%;
   padding: 0 0.65rem;
-  border-right: 1px solid #e4eaf1;
-  color: #66768a;
+  border-right: 1px solid var(--writer-border);
+  color: var(--writer-text-muted);
   font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
@@ -43,12 +43,12 @@
 
 .writer-field-cover-drop[data-drop-state="active"] {
   padding: 0.7rem;
-  border: 2px dashed #1ab889;
-  background: linear-gradient(180deg, #f4fdf9, #effaf6);
+  border: 2px dashed var(--writer-primary);
+  background: linear-gradient(180deg, #f7fbff, #eef5ff);
 }
 
 .writer-field-cover-drop[data-drop-state="active"] input {
-  border-color: #8bdec4;
+  border-color: color-mix(in srgb, var(--writer-primary) 32%, white);
 }
 
 .writer-field-cover-drop[data-drop-state="active"]
@@ -58,15 +58,15 @@
   justify-content: center;
   min-height: 112px;
   border-radius: 0.65rem;
-  border: 1px dashed #8bdec4;
+  border: 1px dashed color-mix(in srgb, var(--writer-primary) 32%, white);
   background: rgba(255, 255, 255, 0.86);
-  color: #11906a;
+  color: var(--writer-primary-strong);
   font-size: 0.84rem;
   font-weight: 700;
 }
 
 .writer-field span {
-  color: #5d6b7c;
+  color: var(--writer-text-muted);
   font-size: 0.77rem;
   font-weight: 700;
 }
@@ -78,9 +78,9 @@
   min-height: 38px;
   padding: 0.52rem 0.64rem;
   border-radius: 0.55rem;
-  border: 1px solid #d7e0ea;
-  background: #fbfdff;
-  color: #1f2937;
+  border: 1px solid var(--writer-border);
+  background: var(--writer-surface-soft);
+  color: var(--writer-text);
   font: inherit;
 }
 
@@ -108,7 +108,7 @@
 
 .writer-helper {
   margin: 0;
-  color: #7a8899;
+  color: color-mix(in srgb, var(--writer-text-muted) 88%, white);
   font-size: 0.76rem;
 }
 
@@ -133,18 +133,18 @@
   min-height: 1.8rem;
   padding: 0.24rem 0.62rem;
   border-radius: 999px;
-  border: 1px solid #d5deea;
-  background: #f8fbff;
-  color: #526274;
+  border: 1px solid var(--writer-border);
+  background: var(--writer-surface-soft);
+  color: var(--writer-text-muted);
   font-size: 0.76rem;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .writer-meta-chip.writer-meta-chip-system {
-  border-color: #b9d7cc;
-  background: #edf9f3;
-  color: #0f8a64;
+  border-color: color-mix(in srgb, var(--writer-primary) 24%, white);
+  background: color-mix(in srgb, var(--writer-primary-soft) 86%, white);
+  color: var(--writer-primary-strong);
 }
 
 .writer-meta-chip.writer-meta-chip-tag {
@@ -158,8 +158,8 @@
 }
 
 .writer-slug-input-wrap:focus-within {
-  border-color: #4fc8a2;
-  box-shadow: 0 0 0 2px rgba(79, 200, 162, 0.18);
+  border-color: var(--writer-primary);
+  box-shadow: 0 0 0 2px var(--writer-primary-soft);
 }
 
 .writer-field-feedback {
@@ -178,8 +178,8 @@
 .writer-field textarea:focus,
 .writer-field select:focus {
   outline: none;
-  border-color: #4fc8a2;
-  box-shadow: 0 0 0 2px rgba(79, 200, 162, 0.18);
+  border-color: var(--writer-primary);
+  box-shadow: 0 0 0 2px var(--writer-primary-soft);
 }
 
 .writer-field.writer-field-slug input:focus {
@@ -189,5 +189,5 @@
 
 .writer-field input::placeholder,
 .writer-field textarea::placeholder {
-  color: rgba(93, 107, 124, 0.66);
+  color: color-mix(in srgb, var(--writer-text-muted) 66%, white);
 }
