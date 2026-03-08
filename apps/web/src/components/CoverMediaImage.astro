@@ -1,10 +1,10 @@
 ---
 import { Image } from "astro:assets";
 
-import type { HeroMedia } from "../lib/hero-media";
+import { toBrowserImageUrl, type CoverMedia } from "../lib/cover-media";
 
 interface Props {
-  media: HeroMedia;
+  media: CoverMedia;
   alt: string;
   className?: string;
   width?: number;
@@ -15,6 +15,8 @@ interface Props {
 
 const { media, alt, className, width, height, loading = "lazy", sizes } = Astro.props;
 const normalizedClassName = className?.trim() || undefined;
+const browserSizedSrc =
+  media.kind === "native" ? toBrowserImageUrl(media.src, { width, height }) : undefined;
 ---
 
 {
@@ -29,6 +31,15 @@ const normalizedClassName = className?.trim() || undefined;
       sizes={sizes}
     />
   ) : (
-    <img class={normalizedClassName} src={media.src} alt={alt} loading={loading} decoding="async" />
+    <img
+      class={normalizedClassName}
+      src={browserSizedSrc ?? media.src}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={loading}
+      decoding="async"
+      sizes={sizes}
+    />
   )
 }

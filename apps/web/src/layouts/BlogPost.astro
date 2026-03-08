@@ -1,15 +1,16 @@
 ---
 import type { CollectionEntry } from "astro:content";
 
-import HeroMediaImage from "../components/HeroMediaImage.astro";
+import CoverMediaImage from "../components/CoverMediaImage.astro";
 import PostAdminActions from "../components/public/PostAdminActions";
 import BaseLayout from "./BaseLayout.astro";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import {
-  getHeroMediaMetadata,
-  normalizeHeroMedia,
-  type HeroMediaSource,
-} from "../lib/hero-media";
+  getCoverMediaMetadata,
+  normalizeCoverMedia,
+  toBrowserImageUrl,
+  type CoverMediaSource,
+} from "../lib/cover-media";
 
 type MarkdownPostData = CollectionEntry<"blog">["data"];
 
@@ -18,7 +19,7 @@ interface DbPostData {
   description: string;
   pubDate: Date;
   updatedDate?: Date;
-  heroImage?: HeroMediaSource;
+  coverImage?: CoverMediaSource;
 }
 
 interface SeriesContext {
@@ -55,7 +56,7 @@ const {
   description,
   pubDate,
   updatedDate,
-  heroImage,
+  coverImage,
   adminPostSlug = "",
   showAdminActions = false,
   seriesContext,
@@ -63,8 +64,12 @@ const {
 } = Astro.props;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const defaultSeriesPostCoverImage = "/images/empty-series-image.png";
+const defaultSeriesPostCoverImageSrc = toBrowserImageUrl(defaultSeriesPostCoverImage, {
+  width: 224,
+  height: 126,
+});
 const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
-const heroMedia = normalizeHeroMedia(heroImage);
+const coverMedia = normalizeCoverMedia(coverImage);
 const pubDateLabel = formatDateLabel(pubDate);
 const pubDateIso = toIsoDateTime(pubDate);
 const updatedDateLabel = updatedDate ? formatDateLabel(updatedDate) : "";
@@ -74,7 +79,7 @@ const updatedDateIso = updatedDate ? toIsoDateTime(updatedDate) : "";
 <BaseLayout
   title={title}
   description={description}
-  image={getHeroMediaMetadata(heroMedia)}
+  image={getCoverMediaMetadata(coverMedia)}
   bodyClass="page-blog-post"
 >
   <div
@@ -105,10 +110,10 @@ const updatedDateIso = updatedDate ? toIsoDateTime(updatedDate) : "";
       </nav>
 
       {
-        heroMedia && (
-          <HeroMediaImage
+        coverMedia && (
+          <CoverMediaImage
             className="mt-8 aspect-[16/9] w-full rounded-3xl border border-border/60 object-cover shadow-sm"
-            media={heroMedia}
+            media={coverMedia}
             alt={title}
             width={1200}
             height={630}
@@ -193,7 +198,7 @@ const updatedDateIso = updatedDate ? toIsoDateTime(updatedDate) : "";
                         class="aspect-[16/9] w-full rounded-xl border border-border/60 bg-muted object-cover"
                         src={
                           seriesPost.coverImageUrl ??
-                          defaultSeriesPostCoverImage
+                          defaultSeriesPostCoverImageSrc
                         }
                         alt={seriesPost.title}
                         loading="lazy"

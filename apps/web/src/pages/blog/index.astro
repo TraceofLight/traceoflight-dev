@@ -1,5 +1,7 @@
 ---
-import BlogArchiveFilters from "../../components/public/BlogArchiveFilters";
+import BlogArchiveFilters, {
+  type BlogArchivePost,
+} from "../../components/public/BlogArchiveFilters";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
@@ -10,6 +12,7 @@ import {
   toPostCard,
   type PostCard as PostCardData,
 } from "../../lib/content-source";
+import { toBrowserImageUrl } from "../../lib/cover-media";
 import { formatReadingTimeLabel } from "../../lib/reading-time";
 
 const provider = getContentProvider();
@@ -29,7 +32,7 @@ if (provider === "db") {
       body: post.bodyMarkdown,
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
-      heroMedia: post.heroMedia,
+      coverMedia: post.coverMedia,
       visibility: post.visibility,
       tags: post.tags.map((tag) => tag.slug),
     }));
@@ -40,12 +43,6 @@ if (provider === "db") {
   posts = (await getBlogSource().listPosts()).map(toPostCard);
 }
 
-const publicCount = posts.filter(
-  (post) => post.visibility !== "private",
-).length;
-const privateCount = posts.filter(
-  (post) => post.visibility === "private",
-).length;
 const tagCountMap = new Map<string, number>();
 for (const post of posts) {
   const normalizedTags = new Set(
@@ -63,17 +60,24 @@ const selectedTagsFromQuery = Astro.url.searchParams
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
 
-function resolveHeroImageSrc(post: PostCardData) {
-  if (!post.heroMedia) {
-    return "/images/empty-article-image.png";
+function resolveCoverImageSrc(
+  post: PostCardData,
+  width: number,
+  height: number,
+) {
+  if (!post.coverMedia) {
+    return toBrowserImageUrl("/images/empty-article-image.png", {
+      width,
+      height,
+    });
   }
 
-  return post.heroMedia.kind === "optimized"
-    ? post.heroMedia.src.src
-    : post.heroMedia.src;
+  return post.coverMedia.kind === "optimized"
+    ? post.coverMedia.src.src
+    : toBrowserImageUrl(post.coverMedia.src, { width, height });
 }
 
-const archivePosts = posts.map((post) => ({
+const archivePosts: BlogArchivePost[] = posts.map((post) => ({
   slug: post.slug,
   title: post.title,
   description: post.description,
@@ -84,7 +88,7 @@ const archivePosts = posts.map((post) => ({
   publishedAt: post.pubDate.toISOString(),
   publishedAtValue: post.pubDate.valueOf(),
   readingLabel: formatReadingTimeLabel(post.body ?? ""),
-  heroImageSrc: resolveHeroImageSrc(post),
+  coverImageSrc: resolveCoverImageSrc(post, 960, 1200),
 }));
 ---
 

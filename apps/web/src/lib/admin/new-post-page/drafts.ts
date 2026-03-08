@@ -4,35 +4,38 @@ function getTrimmedTitle(post: AdminDraftListItem): string {
   return post.title?.trim() || "제목 없음";
 }
 
-export function formatDateLabel(isoValue: string | null | undefined): string {
+function formatDraftDateLabel(isoValue: string | null | undefined): string {
   if (!isoValue) return "";
   const parsed = new Date(isoValue);
   if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toLocaleString();
 }
 
-export function buildDraftMetaLabel(post: AdminDraftListItem): string {
-  return `${post.slug} · ${formatDateLabel(post.updated_at || post.created_at)}`;
+function buildDraftMetaLabel(post: AdminDraftListItem): string {
+  return `${post.slug} · ${formatDraftDateLabel(post.updated_at || post.created_at)}`;
+}
+
+function isDraftListItem(post: unknown): post is AdminDraftListItem {
+  return Boolean(
+    post &&
+    typeof post === "object" &&
+    (post as { status?: unknown }).status === "draft" &&
+    typeof (post as { slug?: unknown }).slug === "string",
+  );
 }
 
 export function normalizeDraftList(posts: unknown): AdminDraftListItem[] {
   if (!Array.isArray(posts)) return [];
-  return post
-    .filter((post): post is AdminDraftListItem =>
-      Boolean(
-        post &&
-        typeof post === "object" &&
-        (post as { status?: unknown }).status === "draft" &&
-        typeof (post as { slug?: unknown }).slug === "string",
-      ),
-    )
-    .sort((a, b) => {
-      const titleOrder = getTrimmedTitle(a).localeCompare(
-        getTrimmedTitle(b),
+
+  return posts
+    .filter(isDraftListItem)
+    .sort((left, right) => {
+      const titleOrder = getTrimmedTitle(left).localeCompare(
+        getTrimmedTitle(right),
         "ko",
       );
       if (titleOrder !== 0) return titleOrder;
-      return (a.slug || "").localeCompare(b.slug || "", "ko");
+      return left.slug.localeCompare(right.slug, "ko");
     });
 }
 

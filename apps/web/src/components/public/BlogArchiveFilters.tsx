@@ -14,7 +14,7 @@ export type BlogArchivePost = {
   publishedAt: string;
   publishedAtValue: number;
   readingLabel: string;
-  heroImageSrc: string;
+  coverImageSrc: string;
 };
 
 export type BlogArchiveTagFilter = {
@@ -37,7 +37,7 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function getHeroImageAlt(title: string) {
+function getCoverImageAlt(title: string) {
   return `${title} 대표 이미지`;
 }
 
@@ -226,12 +226,12 @@ export function BlogArchiveFilters({
                 className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
                 href={`/blog/${post.slug}/`}
               >
-                <div className="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted">
+                <div className="aspect-[4/5] min-h-[18rem] overflow-hidden border-b border-border/60 bg-muted sm:min-h-[22rem]">
                   <img
-                    alt={getHeroImageAlt(post.title)}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    alt={getCoverImageAlt(post.title)}
+                    className="block h-full w-full object-cover object-top transition duration-300 group-hover:scale-[1.02]"
                     loading="lazy"
-                    src={post.heroImageSrc}
+                    src={post.coverImageSrc}
                   />
                 </div>
                 <div className="flex flex-1 flex-col gap-4 p-5">

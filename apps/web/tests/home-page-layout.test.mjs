@@ -9,7 +9,10 @@ test("home page uses tailwind sections while keeping the curated resume content"
   const source = await readFile(homePagePath, "utf8");
 
   assert.match(source, /max-w-6xl/);
-  assert.match(source, /rounded-3xl border border-border\/60 bg-card/);
+  assert.match(
+    source,
+    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+  );
   assert.match(source, /inline-flex items-center gap-2 rounded-full/);
   assert.doesNotMatch(source, /class="home-resume"/);
   assert.doesNotMatch(source, /class="home-panel home-profile"/);

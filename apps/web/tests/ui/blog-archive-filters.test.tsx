@@ -13,7 +13,7 @@ const posts = [
     publishedAt: "2025-03-04T00:00:00.000Z",
     publishedAtValue: new Date("2025-03-04T00:00:00.000Z").valueOf(),
     readingLabel: "3 min read",
-    heroImageSrc: "/images/empty-article-image.png",
+    coverImageSrc: "/images/empty-article-image.png",
   },
   {
     slug: "react-patterns",
@@ -24,7 +24,7 @@ const posts = [
     publishedAt: "2025-03-06T00:00:00.000Z",
     publishedAtValue: new Date("2025-03-06T00:00:00.000Z").valueOf(),
     readingLabel: "5 min read",
-    heroImageSrc: "/images/empty-article-image.png",
+    coverImageSrc: "/images/empty-article-image.png",
   },
   {
     slug: "astro-layouts",
@@ -35,7 +35,7 @@ const posts = [
     publishedAt: "2025-03-01T00:00:00.000Z",
     publishedAtValue: new Date("2025-03-01T00:00:00.000Z").valueOf(),
     readingLabel: "4 min read",
-    heroImageSrc: "/images/empty-article-image.png",
+    coverImageSrc: "/images/empty-article-image.png",
   },
 ];
 

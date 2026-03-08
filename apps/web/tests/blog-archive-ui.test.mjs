@@ -20,7 +20,7 @@ test("blog archive page mounts a React filter island and passes server data", as
 
   assert.match(
     pageSource,
-    /import BlogArchiveFilters from ["']\.\.\/\.\.\/components\/public\/BlogArchiveFilters["']/,
+    /import BlogArchiveFilters(?:,\s*\{[\s\S]*type BlogArchivePost[\s\S]*\})? from ["']\.\.\/\.\.\/components\/public\/BlogArchiveFilters["']/,
   );
   assert.match(pageSource, /<BlogArchiveFilters[\s\S]*client:load/);
   assert.match(pageSource, /posts=\{archivePosts\}/);
@@ -34,6 +34,8 @@ test("blog archive page mounts a React filter island and passes server data", as
 
   assert.match(islandSource, /type BlogArchivePost/);
   assert.match(islandSource, /window\.history\.replaceState/);
+  assert.match(pageSource, /toBrowserImageUrl\(/);
+  assert.match(pageSource, /coverImageSrc: resolveCoverImageSrc\(post,\s*960,\s*1200\)/);
 });
 
 test("blog archive filter island provides search, sort, and admin visibility controls", async () => {
@@ -44,6 +46,10 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /글 작성/);
   assert.match(source, /비공개/);
   assert.match(source, /총 \{filteredPosts\.length\}개의 포스트/);
+  assert.match(source, /aspect-\[4\/5\]/);
+  assert.match(source, /min-h-\[18rem\]/);
+  assert.match(source, /sm:min-h-\[22rem\]/);
+  assert.match(source, /object-cover object-top/);
 });
 
 test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", async () => {
@@ -53,10 +59,15 @@ test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", 
   assert.doesNotMatch(source, /listPublishedDbPosts\(50,\s*\{/);
 });
 
-test("post card uses a tailwind-based public card structure", async () => {
+test("post card uses a tall image-led public card structure", async () => {
   const source = await readFile(postCardPath, "utf8");
 
-  assert.match(source, /rounded-3xl border border-border\/60 bg-card/);
+  assert.match(
+    source,
+    /rounded-\[2rem\] border border-white\/80 bg-white\/95 p-3 shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\] text-card-foreground/,
+  );
+  assert.match(source, /aspect-\[4\/5\]/);
+  assert.match(source, /object-cover object-top/);
   assert.match(source, /line-clamp-2 text-sm text-muted-foreground/);
   assert.match(source, /data-visibility=/);
   assert.match(source, /data-tags=/);

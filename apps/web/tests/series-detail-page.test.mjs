@@ -15,7 +15,7 @@ const seriesReorderListPath = new URL(
   import.meta.url,
 );
 
-test("series detail page mounts a React admin panel while keeping the public series hero", async () => {
+test("series detail page mounts a React admin panel while keeping the public series cover section", async () => {
   const source = await readFile(detailPagePath, "utf8");
 
   assert.match(source, /const slug = Astro\.params\.slug \?\? (?:''|"")/);
@@ -24,7 +24,10 @@ test("series detail page mounts a React admin panel while keeping the public ser
   assert.match(source, /getSeriesBySlug/);
   assert.match(source, /series\.posts/);
   assert.match(source, /id="series-start-link"/);
-  assert.match(source, /rounded-\[2rem\] border border-border\/60 bg-card/);
+  assert.match(
+    source,
+    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+  );
   assert.match(source, /시리즈 시작하기/);
   assert.match(source, />\s*시리즈 목록\s*</);
   assert.match(
@@ -38,7 +41,7 @@ test("series detail page mounts a React admin panel while keeping the public ser
   assert.match(source, /\/images\/empty-series-image\.png/);
   assert.doesNotMatch(source, /function initializeSeriesAdminControls\(\)/);
   assert.doesNotMatch(source, /createUploadBundle/);
-  assert.doesNotMatch(source, /class="series-detail-hero-card"/);
+  assert.doesNotMatch(source, /class="series-detail-h\u0065ro-card"/);
   assert.doesNotMatch(source, /updated\s*\{/);
   assert.doesNotMatch(source, /Series Posts/);
   assert.doesNotMatch(

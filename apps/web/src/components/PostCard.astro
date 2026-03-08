@@ -1,6 +1,7 @@
 ---
-import HeroMediaImage from "./HeroMediaImage.astro";
+import CoverMediaImage from "./CoverMediaImage.astro";
 import type { PostCard as PostCardData } from "../lib/content-source";
+import { toBrowserImageUrl } from "../lib/cover-media";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
 
@@ -26,14 +27,18 @@ const postTags = (post.tags ?? [])
   .map((tag) => tag.trim().toLowerCase())
   .filter(Boolean);
 const hasTags = postTags.length > 0;
-const fallbackHeroImage = "/images/empty-article-image.png";
+const fallbackCoverImage = "/images/empty-article-image.png";
+const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
+  width: imageWidth,
+  height: imageHeight,
+});
 const formattedPubDate = formatDateLabel(post.pubDate);
 const pubDateIso = toIsoDateTime(post.pubDate);
 const readingLabel = formatReadingTimeLabel(post.body ?? "");
 const anchorClass =
   variant === "archive"
-    ? "flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg"
-    : "flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:border-foreground/15 hover:shadow-lg";
+    ? "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]"
+    : "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
 ---
 
 <article
@@ -49,27 +54,28 @@ const anchorClass =
     variant === "archive" ? (
       <>
         <a class={anchorClass} href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
-          <div class="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted">
+          <div class="aspect-[4/5] min-h-[18rem] overflow-hidden rounded-[1.5rem] bg-slate-100 sm:min-h-[22rem]">
             {
-              post.heroMedia ? (
-                <HeroMediaImage
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                  media={post.heroMedia}
+              post.coverMedia ? (
+                <CoverMediaImage
+                  className="block h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.04]"
+                  media={post.coverMedia}
                   alt={post.title}
                   width={imageWidth}
                   height={imageHeight}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                 />
               ) : (
                 <img
-                  class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                  src={fallbackHeroImage}
+                  class="block h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.04]"
+                  src={fallbackCoverImageSrc}
                   alt={post.title}
                   loading="lazy"
                 />
               )
             }
           </div>
-          <div class="flex flex-1 flex-col gap-4 p-5">
+          <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
             {
               showVisibility && (
                 <div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -87,7 +93,7 @@ const anchorClass =
               hasTags && (
                 <div class="flex flex-wrap gap-2">
                   {postTags.map((tag) => (
-                    <span class="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
+                    <span class="rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
                       {tag}
                     </span>
                   ))}
@@ -105,27 +111,28 @@ const anchorClass =
     ) : (
       <>
         <a class={anchorClass} href={`/blog/${post.slug}/`} aria-label={`${post.title} 읽기`}>
-          <div class="aspect-[16/9] overflow-hidden border-b border-border/60 bg-muted">
+          <div class="aspect-[4/5] min-h-[18rem] overflow-hidden rounded-[1.5rem] bg-slate-100 sm:min-h-[22rem]">
             {
-              post.heroMedia ? (
-                <HeroMediaImage
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                  media={post.heroMedia}
+              post.coverMedia ? (
+                <CoverMediaImage
+                  className="block h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.04]"
+                  media={post.coverMedia}
                   alt={post.title}
                   width={imageWidth}
                   height={imageHeight}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                 />
               ) : (
                 <img
-                  class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                  src={fallbackHeroImage}
+                  class="block h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.04]"
+                  src={fallbackCoverImageSrc}
                   alt={post.title}
                   loading="lazy"
                 />
               )
             }
           </div>
-          <div class="flex flex-1 flex-col gap-4 p-5">
+          <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
             <p class="flex items-center gap-2 text-xs text-muted-foreground">
               <time datetime={pubDateIso}>{formattedPubDate}</time>
               {
@@ -146,7 +153,7 @@ const anchorClass =
               hasTags && (
                 <div class="mt-auto flex flex-wrap gap-2">
                   {postTags.map((tag) => (
-                    <span class="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
+                    <span class="rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
                       {tag}
                     </span>
                   ))}

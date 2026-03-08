@@ -1,5 +1,5 @@
 .container {
-  width: min(var(--max-width), calc(100% - 2.4rem));
+  width: min(1180px, calc(100% - 2.4rem));
   margin-inline: auto;
 }
 
@@ -15,7 +15,7 @@ html.page-blog-post .container {
 
 .page {
   flex: 1 0 auto;
-  padding: 3.2rem 0 5.6rem;
+  padding: 4rem 0 6rem;
 }
 
 .skip-link {
@@ -24,9 +24,11 @@ html.page-blog-post .container {
   top: 0;
   z-index: 1000;
   padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--brand);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+  color: hsl(var(--primary));
 }
 
 .skip-link:focus {
@@ -36,7 +38,7 @@ html.page-blog-post .container {
 
 @media (max-width: 840px) {
   .page {
-    padding-top: 2.2rem;
+    padding-top: 2.8rem;
   }
 }
 

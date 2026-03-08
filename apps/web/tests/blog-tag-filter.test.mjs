@@ -36,7 +36,7 @@ test("post card exports normalized tag data and chips for the new card layout", 
   assert.match(source, /data-tags=/);
   assert.match(
     source,
-    /rounded-full border border-border\/60 bg-muted px-2\.5 py-0\.5 text-\[0\.72rem\]/,
+    /rounded-full border border-white\/80 bg-slate-100\/88 px-2\.5 py-0\.5 text-\[0\.72rem\]/,
   );
   assert.match(source, /empty-article-image\.png/);
   assert.match(source, /postTags =/);

@@ -235,7 +235,7 @@ export function FooterAdminModal({
       <DialogTrigger asChild>
         <Button
           aria-label={isAdminViewer ? "Admin Backup" : "Admin Login"}
-          className="rounded-full"
+          className="rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
           size="icon"
           variant="outline"
         >

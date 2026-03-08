@@ -14,19 +14,23 @@ const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay ref={ref} className={cn("fixed inset-0 z-50 bg-black/80", className)} {...props} />
+  <SheetPrimitive.Overlay
+    ref={ref}
+    className={cn("fixed inset-0 z-50 bg-slate-950/16 backdrop-blur-sm", className)}
+    {...props}
+  />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out",
+  "fixed z-50 gap-4 border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl transition ease-in-out",
   {
     variants: {
       side: {
-        top: "inset-x-0 top-0 border-b",
-        bottom: "inset-x-0 bottom-0 border-t",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
-        right: "inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
+        top: "inset-x-3 top-3 rounded-[2rem]",
+        bottom: "inset-x-3 bottom-3 rounded-[2rem]",
+        left: "inset-y-3 left-3 h-[calc(100%-1.5rem)] w-[min(24rem,calc(100%-1.5rem))] rounded-[2rem]",
+        right: "inset-y-3 right-3 h-[calc(100%-1.5rem)] w-[min(24rem,calc(100%-1.5rem))] rounded-[2rem]",
       },
     },
     defaultVariants: {
@@ -47,7 +51,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
       {children}
-      <SheetClose className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+      <SheetClose className="absolute right-4 top-4 rounded-full border border-white/80 bg-white/90 p-1.5 opacity-70 shadow-sm transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
         <XIcon className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </SheetClose>

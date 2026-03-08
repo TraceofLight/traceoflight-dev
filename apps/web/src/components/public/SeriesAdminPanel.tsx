@@ -125,14 +125,14 @@ export function SeriesAdminPanel({ series }: SeriesAdminPanelProps) {
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
-    const heroDescription = document.querySelector("#series-hero-description");
-    if (heroDescription instanceof HTMLElement) {
-      heroDescription.textContent = description;
+    const summaryText = document.querySelector("#series-summary-text");
+    if (summaryText instanceof HTMLElement) {
+      summaryText.textContent = description;
     }
 
-    const heroImage = document.querySelector("#series-hero-cover-image");
-    if (heroImage instanceof HTMLImageElement) {
-      heroImage.src =
+    const coverImage = document.querySelector("#series-cover-image");
+    if (coverImage instanceof HTMLImageElement) {
+      coverImage.src =
         normalizeCoverImageUrl(coverImageUrl) ?? defaultCoverImage;
     }
 

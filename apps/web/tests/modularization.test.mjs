@@ -39,7 +39,7 @@ test("blog and project list markup is extracted to shared components", async () 
 
   assert.match(homePage, /import PostCard from/);
   assert.match(homePage, /import ProjectCard from/);
-  assert.match(blogIndex, /import BlogArchiveFilters from/);
+  assert.match(blogIndex, /import BlogArchiveFilters(?:,\s*\{[\s\S]*type BlogArchivePost[\s\S]*\})? from/);
   assert.doesNotMatch(blogIndex, /import PostCard from/);
   assert.match(projectIndex, /import ProjectCard from/);
 });
@@ -85,7 +85,7 @@ test("legacy public css hooks are removed while writer css stays wired", async (
 
   assert.doesNotMatch(layoutCss, /\.site-header\s*\{/);
   assert.doesNotMatch(layoutCss, /\.site-footer\s*\{/);
-  assert.doesNotMatch(layoutCss, /\.hero\s*\{/);
+  assert.doesNotMatch(layoutCss, /\.surface-card\s*\{/);
   assert.doesNotMatch(layoutCss, /\.section\s*\{/);
   assert.doesNotMatch(blogSlugPage, /class="section"/);
   assert.doesNotMatch(emptyStateNotice, /class="button"/);

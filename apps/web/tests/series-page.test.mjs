@@ -13,7 +13,10 @@ test("series index page renders archive list and links to detail route", async (
   const source = await readFile(seriesPagePath, "utf8");
 
   assert.match(source, /id="series-archive"/);
-  assert.match(source, /rounded-3xl border border-border\/60 bg-card/);
+  assert.match(
+    source,
+    /rounded-3xl border border-white\/80 bg-white\/92 text-card-foreground shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+  );
   assert.match(source, /<h1[\s\S]*?>\s*Series\s*<\/h1>/);
   assert.match(source, /FormattedDate/);
   assert.match(source, /href=\{`\/series\/\$\{series\.slug\}`\}/);
