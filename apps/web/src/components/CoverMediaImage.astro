@@ -16,14 +16,12 @@ interface Props {
   loading?: "lazy" | "eager";
   sizes?: string;
   fallbackSrc?: string;
-  position?: "top" | "centre";
-  zoom?: number;
 }
 
-const { media, alt, className, width, height, loading = "lazy", sizes, fallbackSrc, position, zoom } = Astro.props;
+const { media, alt, className, width, height, loading = "lazy", sizes, fallbackSrc } = Astro.props;
 const normalizedClassName = className?.trim() || undefined;
 const browserSizedSrc =
-  media.kind === "native" ? toBrowserImageUrl(media.src, { width, height, position, zoom }) : undefined;
+  media.kind === "native" ? toBrowserImageUrl(media.src, { width, height }) : undefined;
 const nativeFallbackOnError = buildImageFallbackOnError(fallbackSrc);
 ---
 

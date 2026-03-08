@@ -38,19 +38,6 @@ function clampInteger(value: string | null, fallback: number, max: number): numb
   return Math.min(parsed, max);
 }
 
-function clampFloat(value: string | null, fallback: number, min: number, max: number): number {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  return Math.min(max, Math.max(min, parsed));
-}
-
 function isBlockedHostname(hostname: string): boolean {
   const normalized = hostname.trim().toLowerCase();
   if (!normalized) {
@@ -188,15 +175,7 @@ export const GET: APIRoute = async ({ request }) => {
   const height = clampInteger(requestUrl.searchParams.get("h"), 900, MAX_IMAGE_HEIGHT);
   const quality = clampInteger(requestUrl.searchParams.get("q"), DEFAULT_QUALITY, 100);
   const fit = requestUrl.searchParams.get("fit");
-  const position = requestUrl.searchParams.get("position");
-  const zoom = clampFloat(requestUrl.searchParams.get("zoom"), 1, 1, 2);
   const resizeFit = fit === "contain" || fit === "inside" ? fit : "cover";
-  const isPlaceholderImage = sourceParam?.trim().startsWith("/images/empty-") ?? false;
-  const resizePosition = position === "top"
-    ? "top"
-    : resizeFit === "cover" && !isPlaceholderImage
-      ? "attention"
-      : "centre";
   const relativeAssetBuffer = sourceParam && sourceParam.trim().startsWith("/")
     ? await loadRelativeAssetBuffer(sourceParam)
     : null;
@@ -238,37 +217,13 @@ export const GET: APIRoute = async ({ request }) => {
   const metadata = await imagePipeline.metadata();
 
   imagePipeline = imagePipeline.trim();
-
-  if (resizeFit === "cover" && zoom > 1) {
-    const zoomedWidth = Math.max(width, Math.round(width * zoom));
-    const zoomedHeight = Math.max(height, Math.round(height * zoom));
-    const extractLeft = Math.max(0, Math.floor((zoomedWidth - width) / 2));
-    const extractTop = resizePosition === "top"
-      ? 0
-      : Math.max(0, Math.floor((zoomedHeight - height) / 2));
-
-    imagePipeline = imagePipeline
-      .resize({
-        width: zoomedWidth,
-        height: zoomedHeight,
-        fit: resizeFit,
-        position: resizePosition,
-      })
-      .extract({
-        left: extractLeft,
-        top: extractTop,
-        width,
-        height,
-      });
-  } else {
-    imagePipeline = imagePipeline.resize({
-      width,
-      height,
-      fit: resizeFit,
-      position: resizePosition,
-      background: resizeFit === "cover" ? undefined : DEFAULT_BACKGROUND,
-    });
-  }
+  imagePipeline = imagePipeline.resize({
+    width,
+    height,
+    fit: resizeFit,
+    position: "centre",
+    background: resizeFit === "cover" ? undefined : DEFAULT_BACKGROUND,
+  });
 
   if (metadata.hasAlpha || resizeFit !== "cover") {
     imagePipeline = imagePipeline.flatten({

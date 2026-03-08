@@ -72,8 +72,8 @@ test("cover media lib exposes a browser-sized URL helper for native images", asy
   assert.match(source, /pathname:\s*["']\/internal-api\/media\/browser-image["']/);
   assert.match(source, /params\.set\(["']w["']/);
   assert.match(source, /params\.set\(["']h["']/);
-  assert.match(source, /params\.set\(["']position["']/);
-  assert.match(source, /params\.set\(["']zoom["']/);
+  assert.doesNotMatch(source, /params\.set\(["']position["']/);
+  assert.doesNotMatch(source, /params\.set\(["']zoom["']/);
 });
 
 test("cover media component routes native images through the browser cache endpoint", async () => {
@@ -86,9 +86,9 @@ test("cover media component routes native images through the browser cache endpo
   assert.match(source, /const browserSizedSrc =/);
   assert.match(source, /const nativeFallbackOnError =/);
   assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{/);
-  assert.match(source, /position\?: "top" \| "centre";/);
-  assert.match(source, /zoom\?: number;/);
-  assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{\s*width,\s*height,\s*position,\s*zoom\s*\}\)/);
+  assert.doesNotMatch(source, /position\?: "top" \| "centre";/);
+  assert.doesNotMatch(source, /zoom\?: number;/);
+  assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{\s*width,\s*height\s*\}\)/);
   assert.match(source, /onerror=\{nativeFallbackOnError\}/);
   assert.match(source, /decoding="async"/);
   assert.match(source, /width=\{width\}/);
@@ -104,22 +104,14 @@ test("browser image route resizes remote originals with cache headers", async ()
   assert.match(source, /sharp\(Buffer\.from\(arrayBuffer\)\)/);
   assert.match(source, /\.trim\(/);
   assert.match(source, /const fit = requestUrl\.searchParams\.get\("fit"\)/);
-  assert.match(source, /const position = requestUrl\.searchParams\.get\("position"\)/);
-  assert.match(source, /const zoom = clampFloat\(requestUrl\.searchParams\.get\("zoom"\), 1, 1, 2\)/);
   assert.match(source, /resize\(\{/);
   assert.match(source, /const resizeFit = fit === "contain" \|\| fit === "inside" \? fit : "cover"/);
   assert.match(source, /fit:\s*resizeFit/);
-  assert.match(source, /const isPlaceholderImage = sourceParam\?\.trim\(\)\.startsWith\("\/images\/empty-"\) \?\? false;/);
-  assert.match(source, /const resizePosition = position === "top"/);
-  assert.match(source, /\? "top"/);
-  assert.match(source, /resizeFit === "cover" && !isPlaceholderImage/);
-  assert.match(source, /"attention"/);
-  assert.match(source, /"centre"/);
-  assert.match(source, /position:\s*resizePosition/);
-  assert.match(source, /if \(resizeFit === "cover" && zoom > 1\)/);
-  assert.match(source, /const zoomedWidth = Math\.max\(width, Math\.round\(width \* zoom\)\)/);
-  assert.match(source, /const zoomedHeight = Math\.max\(height, Math\.round\(height \* zoom\)\)/);
-  assert.match(source, /\.extract\(\{/);
+  assert.doesNotMatch(source, /const position = requestUrl\.searchParams\.get\("position"\)/);
+  assert.doesNotMatch(source, /const zoom = clampFloat\(requestUrl\.searchParams\.get\("zoom"\), 1, 1, 2\)/);
+  assert.doesNotMatch(source, /attention/);
+  assert.doesNotMatch(source, /\.extract\(\{/);
+  assert.match(source, /position:\s*"centre"/);
   assert.match(source, /const metadata = await imagePipeline\.metadata\(\)/);
   assert.match(source, /if \(metadata\.hasAlpha \|\| resizeFit !== "cover"\)/);
   assert.match(source, /const DEFAULT_BACKGROUND = \{ r: 248, g: 250, b: 252, alpha: 1 \};/);
@@ -265,10 +257,10 @@ test("post card uses a toss-team-like wide media block and fully filled imagery"
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
   assert.match(source, /overflow-hidden rounded-\[1\.5rem\]/);
-  assert.match(source, /const imagePosition = "top";/);
-  assert.match(source, /const imageZoom = 1\.2;/);
-  assert.match(source, /position=\{imagePosition\}/);
-  assert.match(source, /zoom=\{imageZoom\}/);
+  assert.doesNotMatch(source, /const imagePosition = "top";/);
+  assert.doesNotMatch(source, /const imageZoom = 1\.2;/);
+  assert.doesNotMatch(source, /position=\{imagePosition\}/);
+  assert.doesNotMatch(source, /zoom=\{imageZoom\}/);
   assert.match(source, /toBrowserImageUrl\(fallbackCoverImage,\s*\{[\s\S]*fit = "cover"|fit:\s*"cover"/);
   assert.doesNotMatch(source, /aspect-\[4\/5\]/);
 });

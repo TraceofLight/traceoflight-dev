@@ -67,26 +67,17 @@ interface BrowserImageOptions {
   height?: number;
   quality?: number;
   fit?: "cover" | "contain" | "inside";
-  position?: "top" | "centre";
-  zoom?: number;
 }
 
 export function toBrowserImageUrl(
   source: string,
-  { width, height, quality, fit = "cover", position, zoom }: BrowserImageOptions = {},
+  { width, height, quality, fit = "cover" }: BrowserImageOptions = {},
 ): string {
   const normalizedSource = source.trim();
   const params = new URLSearchParams();
 
   params.set("url", normalizedSource);
   params.set("fit", fit);
-  if (position) {
-    params.set("position", position);
-  }
-
-  if (Number.isFinite(zoom) && (zoom ?? 0) > 1) {
-    params.set("zoom", String(zoom));
-  }
 
   if (Number.isFinite(width) && (width ?? 0) > 0) {
     params.set("w", String(Math.round(width!)));

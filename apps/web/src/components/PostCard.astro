@@ -31,14 +31,10 @@ const postTags = (post.tags ?? [])
   .filter(Boolean);
 const hasTags = postTags.length > 0;
 const fallbackCoverImage = "/images/empty-article-image.png";
-const imagePosition = "top";
-const imageZoom = 1.2;
 const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   width: imageWidth,
   height: imageHeight,
   fit: "cover",
-  position: imagePosition,
-  zoom: imageZoom,
 });
 const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
 const formattedPubDate = formatDateLabel(post.pubDate);
@@ -73,8 +69,6 @@ const anchorClass =
                   height={imageHeight}
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                   fallbackSrc={fallbackCoverImageSrc}
-                  position={imagePosition}
-                  zoom={imageZoom}
                 />
               ) : (
                 <img
@@ -134,8 +128,6 @@ const anchorClass =
                   height={imageHeight}
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                   fallbackSrc={fallbackCoverImageSrc}
-                  position={imagePosition}
-                  zoom={imageZoom}
                 />
               ) : (
                 <img
