@@ -77,7 +77,7 @@ test("home intro section uses separate copy and profile panels with centered pro
   assert.match(source, /id="home-intro-profile-panel"/);
   assert.match(source, /id="home-intro-profile-frame"/);
   assert.match(source, /lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\]/);
-  assert.match(source, /class="grid h-full content-center gap-6/);
+  assert.match(source, /id="home-intro-copy-panel"[\s\S]*class="grid h-full content-center gap-6 rounded-\[2\.1rem\] border border-white\/80 bg-white\/92 px-6 py-7/);
   assert.match(source, /class="flex h-full items-center justify-center px-4 py-2 sm:px-6 sm:py-4"/);
   assert.match(source, /space-y-2\.5 text-base leading-\[1\.65\] text-muted-foreground sm:text-lg sm:leading-\[1\.7\]/);
   assert.match(source, /id="home-intro-profile-frame"[\s\S]*class="aspect-square w-full max-w-\[18rem\] sm:max-w-\[19rem\]"/);

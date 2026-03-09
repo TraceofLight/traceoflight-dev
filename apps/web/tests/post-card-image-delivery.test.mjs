@@ -88,7 +88,7 @@ test("cover media component routes native images through the browser cache endpo
   assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{/);
   assert.doesNotMatch(source, /position\?: "top" \| "centre";/);
   assert.doesNotMatch(source, /zoom\?: number;/);
-  assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{\s*width,\s*height\s*\}\)/);
+  assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{\s*width,\s*height,\s*fit\s*\}\)/);
   assert.match(source, /onerror=\{nativeFallbackOnError\}/);
   assert.match(source, /decoding="async"/);
   assert.match(source, /width=\{width\}/);
@@ -102,11 +102,11 @@ test("browser image route resizes remote originals with cache headers", async ()
   assert.match(source, /export const GET: APIRoute/);
   assert.match(source, /fetch\(sourceUrl/);
   assert.match(source, /sharp\(Buffer\.from\(arrayBuffer\)\)/);
-  assert.match(source, /\.trim\(/);
   assert.match(source, /const fit = requestUrl\.searchParams\.get\("fit"\)/);
   assert.match(source, /resize\(\{/);
   assert.match(source, /const resizeFit = fit === "contain" \|\| fit === "inside" \? fit : "cover"/);
   assert.match(source, /fit:\s*resizeFit/);
+  assert.doesNotMatch(source, /imagePipeline = imagePipeline\.trim\(/);
   assert.doesNotMatch(source, /const position = requestUrl\.searchParams\.get\("position"\)/);
   assert.doesNotMatch(source, /const zoom = clampFloat\(requestUrl\.searchParams\.get\("zoom"\), 1, 1, 2\)/);
   assert.doesNotMatch(source, /attention/);
@@ -116,6 +116,24 @@ test("browser image route resizes remote originals with cache headers", async ()
   assert.match(source, /if \(metadata\.hasAlpha \|\| resizeFit !== "cover"\)/);
   assert.match(source, /const DEFAULT_BACKGROUND = \{ r: 248, g: 250, b: 252, alpha: 1 \};/);
   assert.match(source, /"cache-control":\s*"public, max-age=31536000, immutable"/);
+});
+
+test("browser image route keeps opaque source dimensions intact before cover resize", async () => {
+  const url = "https://velog.velcdn.com/images/traceoflight/post/567ce22e-b558-45ed-890b-23d063acbd4c/image.png";
+  const response = await fetch(url);
+  assert.equal(response.ok, true);
+
+  const sourceBuffer = Buffer.from(await response.arrayBuffer());
+  const originalMeta = await (await import("sharp")).default(sourceBuffer).metadata();
+  const transformedBuffer = await invokeBrowserImageRoute({
+    cwd: appRootPath,
+    requestUrl: `http://127.0.0.1:4321/internal-api/media/browser-image?url=${encodeURIComponent(url)}&fit=cover&w=1400&h=1000`,
+    siteUrl: "https://traceoflight.dev",
+  });
+
+  assert.equal(transformedBuffer.status, 200);
+  assert.equal(originalMeta.width, 1748);
+  assert.equal(originalMeta.height, 1240);
 });
 
 test("browser image route can load fallback assets even when the process starts from the repo root", async () => {

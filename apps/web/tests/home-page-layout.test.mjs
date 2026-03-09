@@ -130,6 +130,14 @@ test("site header brand uses text-only mark without avatar image", async () => {
   assert.match(source, /id="header-admin-link"/);
   assert.match(source, /id="header-admin-logout"/);
   assert.match(source, /\/internal-api\/auth\/logout/);
+  assert.match(
+    source,
+    /id="header-admin-link"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700/,
+  );
+  assert.match(
+    source,
+    /id="header-admin-logout"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50/,
+  );
   assert.match(source, /MobileNavSheet/);
   assert.doesNotMatch(source, /brand-avatar/);
   assert.doesNotMatch(source, /traceoflight-profile\.png/);

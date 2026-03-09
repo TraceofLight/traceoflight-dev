@@ -20,6 +20,13 @@ body {
   line-height: 1.65;
 }
 
+html[data-theme='dark'] body {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(59, 130, 246, 0.18), transparent 24%),
+    radial-gradient(circle at 84% 8%, rgba(14, 165, 233, 0.14), transparent 24%),
+    linear-gradient(180deg, #08111f 0%, #0f172a 100%);
+}
+
 #root {
   isolation: isolate;
 }
@@ -71,4 +78,102 @@ pre > code {
   padding: 0;
   border-radius: 0;
   background: transparent;
+}
+
+pre code.hljs {
+  display: block;
+  color: #dbeafe;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #7c8fb0;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: #93c5fd;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+  color: #86efac;
+}
+
+.hljs-number,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-subst,
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+  color: #f9a8d4;
+}
+
+.hljs-function,
+.hljs-title.function_,
+.hljs-title.class_ {
+  color: #fcd34d;
+}
+
+.hljs-params,
+.hljs-built_in,
+.hljs-operator,
+.hljs-punctuation,
+.hljs-deletion {
+  color: #cbd5f5;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] header {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(8, 17, 31, 0.78);
+}
+
+html[data-theme='dark'] .site-footer-surface {
+  border-color: rgba(51, 65, 85, 0.75);
+  background: rgba(2, 8, 23, 0.82);
+}
+
+html[data-theme='dark'] .site-footer-dock {
+  border-color: rgba(51, 65, 85, 0.8);
+  background: rgba(15, 23, 42, 0.88);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.34);
+}
+
+html[data-theme='dark'] [class*='bg-white/96'],
+html[data-theme='dark'] [class*='bg-white/95'],
+html[data-theme='dark'] [class*='bg-white/94'],
+html[data-theme='dark'] [class*='bg-white/92'],
+html[data-theme='dark'] [class*='bg-white/90'],
+html[data-theme='dark'] [class*='bg-white/88'],
+html[data-theme='dark'] [class*='bg-white/72'] {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  color: hsl(var(--foreground));
+}
+
+html[data-theme='dark'] [class*='bg-slate-100'] {
+  background-color: rgba(30, 41, 59, 0.92) !important;
+}
+
+html[data-theme='dark'] [class*='shadow-[0_28px_80px'],
+html[data-theme='dark'] [class*='shadow-[0_28px_70px'],
+html[data-theme='dark'] [class*='shadow-[0_20px_50px'],
+html[data-theme='dark'] [class*='shadow-[0_18px_40px'],
+html[data-theme='dark'] [class*='shadow-[0_12px_34px'],
+html[data-theme='dark'] [class*='shadow-[0_10px_30px'] {
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.38) !important;
 }

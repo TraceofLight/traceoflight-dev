@@ -30,6 +30,10 @@ test("writer and blog db share markdown renderer with figure caption output", as
 
   assert.match(writerSource, /createMarkdownRenderer/);
   assert.match(blogDbSource, /createMarkdownRenderer/);
+  assert.match(rendererSource, /import hljs from 'highlight\.js';/);
+  assert.match(rendererSource, /highlight:\s*\(code,\s*language\)\s*=>/);
+  assert.match(rendererSource, /hljs\.highlight\(code,\s*\{\s*language:\s*normalizedLanguage\s*\}\)/);
+  assert.match(rendererSource, /hljs\.highlightAuto\(code\)/);
   assert.match(rendererSource, /renderer\.rules\.image/);
   assert.match(rendererSource, /<figure/);
   assert.match(rendererSource, /<figcaption/);
@@ -42,6 +46,7 @@ test("writer preview figcaption style is isolated from blog styles", async () =>
   ]);
 
   assert.match(blogLayoutSource, /\[\&_figcaption\]:text-muted-foreground/);
+  assert.doesNotMatch(blogLayoutSource, /\[\&_pre_code\]:text-sky-300/);
   assert.doesNotMatch(blogLayoutSource, /\.writer-preview-content figcaption/);
   assert.match(writerStyleSource, /\.writer-preview-content figcaption/);
 });

@@ -27,3 +27,17 @@ test("blog post layout no longer depends on legacy navigation hook classes", asy
   assert.doesNotMatch(source, /post-archive-link/);
   assert.match(source, /모든 글 보기/);
 });
+
+test("blog post layout gives markdown code blocks a dedicated shell instead of the plain global pre box", async () => {
+  const source = await readFile(blogPostLayoutPath, "utf8");
+
+  assert.match(source, /\[\&_pre\]:overflow-x-auto/);
+  assert.match(source, /\[\&_pre\]:rounded-\[1\.75rem\]/);
+  assert.match(source, /\[\&_pre\]:border/);
+  assert.match(source, /\[\&_pre\]:bg-\[\#07142b\]/);
+  assert.match(source, /\[\&_pre\]:px-6/);
+  assert.match(source, /\[\&_pre\]:py-5/);
+  assert.match(source, /\[\&_pre\]:shadow-\[0_24px_64px_rgba\(2,6,23,0\.2\)\]/);
+  assert.match(source, /\[\&_pre_code\]:bg-transparent/);
+  assert.doesNotMatch(source, /\[\&_pre_code\]:text-sky-300/);
+});

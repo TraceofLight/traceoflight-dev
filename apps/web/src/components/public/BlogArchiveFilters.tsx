@@ -50,6 +50,10 @@ const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png
 const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
 const anchorClass =
   "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
+const filterChipClass =
+  "inline-flex h-10 items-center justify-center rounded-full border border-white/80 bg-slate-100/92 px-4 text-sm font-medium text-foreground/80 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-all duration-200 hover:bg-white hover:text-foreground";
+const filterChipActiveClass =
+  "border-sky-500/70 bg-sky-600 text-white shadow-[0_20px_40px_rgba(37,99,235,0.28)] ring-1 ring-sky-200/70";
 
 export function BlogArchiveFilters({
   initialSelectedTags,
@@ -120,77 +124,83 @@ export function BlogArchiveFilters({
 
       <section
         aria-label="Blog archive controls"
-        className="grid gap-5 rounded-3xl border border-border/60 bg-card p-4 shadow-sm sm:p-6"
+        className="grid gap-5 rounded-[2.25rem] border border-white/80 bg-white/96 p-5 shadow-[0_28px_70px_rgba(15,23,42,0.10)] backdrop-blur-sm sm:p-6"
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <label className="grid flex-1 gap-2" htmlFor="blog-search">
             <span className="sr-only">포스트 검색</span>
-            <Input
-              autoComplete="off"
-              id="blog-search"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="포스트 검색..."
-              value={query}
-            />
+            <div className="rounded-2xl border border-white/80 bg-white/94 p-1 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
+              <Input
+                autoComplete="off"
+                className="border-transparent bg-transparent shadow-none focus-visible:ring-0"
+                id="blog-search"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="포스트 검색..."
+                value={query}
+              />
+            </div>
           </label>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             {isAdminViewer ? (
-              <Button asChild className="rounded-full" variant="outline">
+              <Button
+                asChild
+                className="border-white/80 bg-white/94 shadow-[0_14px_36px_rgba(15,23,42,0.08)] hover:border-sky-200/70 hover:text-sky-700"
+                variant="outline"
+              >
                 <a href={writeHref}>글 작성</a>
               </Button>
             ) : null}
 
             <label className="grid gap-2 text-sm text-muted-foreground">
               <span className="sr-only">정렬 방식</span>
-              <select
-                aria-label="정렬 방식"
-                className="h-10 min-w-36 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
-                onChange={(event) => setSort(event.target.value as SortMode)}
-                value={sort}
-              >
-                <option value="latest">최신순</option>
-                <option value="oldest">오래된순</option>
-                <option value="title">제목순</option>
-              </select>
+              <div className="rounded-2xl border border-white/80 bg-white/94 p-1 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
+                <select
+                  aria-label="정렬 방식"
+                  className="h-10 min-w-36 rounded-xl border border-transparent bg-transparent px-3 text-sm text-foreground outline-none transition focus:border-sky-200 focus:bg-sky-50/70"
+                  onChange={(event) => setSort(event.target.value as SortMode)}
+                  value={sort}
+                >
+                  <option value="latest">최신순</option>
+                  <option value="oldest">오래된순</option>
+                  <option value="title">제목순</option>
+                </select>
+              </div>
             </label>
           </div>
         </div>
 
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Button
+            <button
               aria-pressed={visibility === "all"}
-              className="rounded-full"
+              className={`${filterChipClass} ${visibility === "all" ? filterChipActiveClass : ""}`}
               onClick={() => setVisibility("all")}
-              size="sm"
+              data-active={visibility === "all"}
               type="button"
-              variant={visibility === "all" ? "default" : "outline"}
             >
               전체 ({posts.length})
-            </Button>
+            </button>
             {isAdminViewer ? (
               <>
-                <Button
+                <button
                   aria-pressed={visibility === "public"}
-                  className="rounded-full"
+                  className={`${filterChipClass} ${visibility === "public" ? filterChipActiveClass : ""}`}
                   onClick={() => setVisibility("public")}
-                  size="sm"
+                  data-active={visibility === "public"}
                   type="button"
-                  variant={visibility === "public" ? "default" : "outline"}
                 >
                   공개 ({publicCount})
-                </Button>
-                <Button
+                </button>
+                <button
                   aria-pressed={visibility === "private"}
-                  className="rounded-full"
+                  className={`${filterChipClass} ${visibility === "private" ? filterChipActiveClass : ""}`}
                   onClick={() => setVisibility("private")}
-                  size="sm"
+                  data-active={visibility === "private"}
                   type="button"
-                  variant={visibility === "private" ? "default" : "outline"}
                 >
                   비공개 ({privateCount})
-                </Button>
+                </button>
               </>
             ) : null}
           </div>
@@ -201,21 +211,20 @@ export function BlogArchiveFilters({
                 const isActive = selectedTag === tag.slug;
 
                 return (
-                  <Button
+                  <button
                     key={tag.slug}
                     aria-pressed={isActive}
-                    className="rounded-full"
+                    className={`${filterChipClass} ${isActive ? filterChipActiveClass : ""}`}
                     onClick={() =>
                       setSelectedTag((current) =>
                         current === tag.slug ? "" : tag.slug,
                       )
                     }
-                    size="sm"
+                    data-active={isActive}
                     type="button"
-                    variant={isActive ? "default" : "outline"}
                   >
                     {tag.slug} ({tag.count})
-                  </Button>
+                  </button>
                 );
               })}
             </div>

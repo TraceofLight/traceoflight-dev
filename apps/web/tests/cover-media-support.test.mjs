@@ -42,8 +42,10 @@ test("cover media support is centralized in a shared model and renderer", async 
   assert.match(componentSource, /import \{ Image \} from "astro:assets";/);
   assert.match(componentSource, /media:\s*CoverMedia/);
   assert.match(componentSource, /fallbackSrc\?: string;/);
+  assert.match(componentSource, /fit\?: "cover" \| "contain" \| "inside";/);
   assert.match(componentSource, /const nativeFallbackOnError =/);
   assert.match(componentSource, /onerror=\{nativeFallbackOnError\}/);
+  assert.match(componentSource, /toBrowserImageUrl\(media\.src,\s*\{[\s\S]*fit[\s\S]*\}\)/);
 });
 
 test("post cards consume the shared cover media renderer instead of inline branching", async () => {
@@ -69,6 +71,16 @@ test("blog post layout reuses shared cover media helpers for rendering and og im
   assert.match(source, /const coverMedia = normalizeCoverMedia\(coverImage\);/);
   assert.match(source, /image=\{getCoverMediaMetadata\(coverMedia\)\}/);
   assert.match(source, /<CoverMediaImage[\s\S]*media=\{coverMedia\}[\s\S]*alt=\{title\}/);
+  assert.match(source, /const detailCoverWidth = 1400;/);
+  assert.match(source, /const detailCoverHeight = 1000;/);
+  assert.match(source, /toBrowserImageUrl\("\/images\/empty-article-image\.png",\s*\{[\s\S]*width:\s*detailCoverWidth,[\s\S]*height:\s*detailCoverHeight,[\s\S]*fit:\s*"inside"/);
+  assert.match(source, /className="mt-8 h-auto w-full rounded-3xl shadow-\[0_30px_80px_rgba\(15,23,42,0\.12\)\]"/);
+  assert.match(source, /fit="inside"/);
+  assert.doesNotMatch(source, /className="mt-8 aspect-\[16\/9\] w-full rounded-3xl border/);
+  assert.match(source, /width=\{detailCoverWidth\}/);
+  assert.match(source, /height=\{detailCoverHeight\}/);
+  assert.match(source, /rounded-3xl border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.12\)\]/);
+  assert.match(source, /group grid grid-cols-\[112px_minmax\(0,1fr\)\] gap-3 rounded-2xl border border-white\/80 bg-white\/92 p-3 shadow-\[0_18px_40px_rgba\(15,23,42,0\.08\)\]/);
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });
 

@@ -44,7 +44,7 @@ test("header navigation keeps active and hover states without a heavy shared rai
   );
   assert.match(
     headerLinkSource,
-    /"bg-white text-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\]": isActive/,
+    /"border border-white\/80 bg-white\/92 text-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\]": isActive/,
   );
 });
 
@@ -57,7 +57,7 @@ test("footer icons use the same filled pill treatment as the admin entry button"
 
   assert.match(
     footerSource,
-    /class="flex items-center gap-3 rounded-full border border-white\/70 bg-white\/72 px-3 py-2 shadow-\[0_20px_50px_rgba\(15,23,42,0\.08\)\]"/,
+    /class="site-footer-dock flex items-center gap-3 rounded-full border border-white\/70 bg-white\/72 px-3 py-2 shadow-\[0_20px_50px_rgba\(15,23,42,0\.08\)\]"/,
   );
   assert.match(footerIconSource, /bg-white\/88/);
   assert.match(footerIconSource, /border-white\/80/);
@@ -75,6 +75,7 @@ test("footer icons use the same filled pill treatment as the admin entry button"
     /className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white\/80 bg-white\/88 text-muted-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\] transition-all duration-200 hover:-translate-y-0\.5 hover:border-sky-300 hover:bg-white hover:text-sky-700/,
   );
   assert.match(footerAdminModalSource, /type="button"/);
+  assert.match(footerSource, /class="site-footer-surface border-t border-white\/60 bg-white\/72 backdrop-blur-xl"/);
 });
 
 test("mobile navigation sheet stays compact and drops redundant title copy", async () => {

@@ -112,7 +112,10 @@ export function PostAdminActions({
 
       <AlertDialog onOpenChange={setOpen} open={open}>
         <AlertDialogTrigger asChild>
-          <Button className="rounded-full" variant="destructive">
+          <Button
+            className="rounded-full border-red-200/80 bg-white/88 text-red-700 hover:border-red-300/90 hover:bg-red-50 hover:text-red-800"
+            variant="outline"
+          >
             삭제
           </Button>
         </AlertDialogTrigger>

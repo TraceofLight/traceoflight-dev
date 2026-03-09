@@ -64,6 +64,8 @@ const {
   seriesPosts = [],
 } = Astro.props;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
+const detailCoverWidth = 1400;
+const detailCoverHeight = 1000;
 const defaultSeriesPostCoverImage = "/images/empty-series-image.png";
 const defaultSeriesPostCoverImageSrc = toBrowserImageUrl(defaultSeriesPostCoverImage, {
   width: 224,
@@ -71,9 +73,9 @@ const defaultSeriesPostCoverImageSrc = toBrowserImageUrl(defaultSeriesPostCoverI
   fit: "cover",
 });
 const coverImageFallbackSrc = toBrowserImageUrl("/images/empty-article-image.png", {
-  width: 1200,
-  height: 630,
-  fit: "cover",
+  width: detailCoverWidth,
+  height: detailCoverHeight,
+  fit: "inside",
 });
 const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 const coverMedia = normalizeCoverMedia(coverImage);
@@ -120,12 +122,13 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
       {
         coverMedia && (
           <CoverMediaImage
-            className="mt-8 aspect-[16/9] w-full rounded-3xl border border-border/60 object-cover shadow-sm"
+            className="mt-8 h-auto w-full rounded-3xl shadow-[0_30px_80px_rgba(15,23,42,0.12)]"
             media={coverMedia}
             alt={title}
-            width={1200}
-            height={630}
+            width={detailCoverWidth}
+            height={detailCoverHeight}
             fallbackSrc={coverImageFallbackSrc}
+            fit="inside"
           />
         )
       }
@@ -156,7 +159,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
       </header>
 
       <section
-        class="mt-10 text-base leading-8 text-foreground/90 [&_blockquote]:mb-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_figcaption]:mt-2 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_figure]:mb-5 [&_figure>img]:block [&_h2]:mt-10 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-lg [&_h4]:font-semibold [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-border/60 [&_li]:leading-8 [&_ol]:mb-5 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_ul]:mb-5 [&_ul]:list-disc [&_ul]:pl-6 [&_video]:mb-5 [&_video]:block [&_video]:max-w-full [&_video]:rounded-2xl [&_video]:border [&_video]:border-border/60"
+        class="mt-10 text-base leading-8 text-foreground/90 [&_blockquote]:mb-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_figcaption]:mt-2 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_figure]:mb-5 [&_figure>img]:block [&_h2]:mt-10 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-lg [&_h4]:font-semibold [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-border/60 [&_li]:leading-8 [&_ol]:mb-5 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_pre]:overflow-x-auto [&_pre]:rounded-[1.75rem] [&_pre]:border [&_pre]:border-slate-900/70 [&_pre]:bg-[#07142b] [&_pre]:px-6 [&_pre]:py-5 [&_pre]:shadow-[0_24px_64px_rgba(2,6,23,0.2)] [&_pre_code]:bg-transparent [&_ul]:mb-5 [&_ul]:list-disc [&_ul]:pl-6 [&_video]:mb-5 [&_video]:block [&_video]:max-w-full [&_video]:rounded-2xl [&_video]:border [&_video]:border-border/60"
       >
         <slot />
       </section>
@@ -178,7 +181,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
           class="xl:sticky xl:top-24 xl:self-start"
           aria-label="시리즈 탐색"
         >
-          <section class="rounded-3xl border border-border/60 bg-card p-5 shadow-sm">
+          <section class="rounded-3xl border border-white/80 bg-white/96 p-5 shadow-[0_28px_70px_rgba(15,23,42,0.12)]">
             <p class="text-sm text-muted-foreground">
               <a
                 class="font-medium text-foreground transition-colors hover:text-primary"
@@ -206,11 +209,11 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
                 return (
                   <li>
                     <a
-                      class="group grid grid-cols-[112px_minmax(0,1fr)] gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 transition hover:border-foreground/15 hover:bg-accent/40"
+                      class="group grid grid-cols-[112px_minmax(0,1fr)] gap-3 rounded-2xl border border-white/80 bg-white/92 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-sky-200/70 hover:bg-white"
                       href={`/blog/${seriesPost.slug}`}
                     >
                       <img
-                        class="aspect-[16/9] w-full rounded-xl border border-border/60 bg-muted object-cover"
+                        class="aspect-[16/9] w-full rounded-xl border border-white/70 bg-slate-100 object-cover"
                         src={resolvedSeriesPostCoverImageSrc}
                         alt={seriesPost.title}
                         decoding="async"

@@ -11,7 +11,12 @@ describe("PostAdminActions", () => {
   it("opens and closes the delete confirmation dialog", async () => {
     render(<PostAdminActions adminPostSlug="draft-post" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    const deleteTrigger = screen.getByRole("button", { name: "삭제" });
+    expect(deleteTrigger.className).toContain("border-red-200/80");
+    expect(deleteTrigger.className).toContain("bg-white/88");
+    expect(deleteTrigger.className).toContain("text-red-700");
+
+    fireEvent.click(deleteTrigger);
 
     expect(await screen.findByText("게시글 삭제")).toBeInTheDocument();
 

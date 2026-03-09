@@ -46,6 +46,16 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /글 작성/);
   assert.match(source, /비공개/);
   assert.match(source, /총 \{filteredPosts\.length\}개의 포스트/);
+  assert.match(source, /rounded-\[2\.25rem\] border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.10\)\]/);
+  assert.match(source, /backdrop-blur-sm/);
+  assert.match(source, /const filterChipClass =/);
+  assert.match(source, /const filterChipActiveClass =/);
+  assert.match(
+    source,
+    /border-sky-500\/70 bg-sky-600 text-white shadow-\[0_20px_40px_rgba\(37,99,235,0\.28\)\] ring-1 ring-sky-200\/70/,
+  );
+  assert.match(source, /bg-slate-100\/92[\s\S]*text-foreground\/80[\s\S]*hover:bg-white/);
+  assert.match(source, /rounded-2xl border border-white\/80 bg-white\/94/);
   assert.match(
     source,
     /const anchorClass =[\s\S]*rounded-\[2rem\] border border-white\/80 bg-white\/95 p-3 shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-\[0_38px_90px_rgba\(15,23,42,0\.14\)\]/,

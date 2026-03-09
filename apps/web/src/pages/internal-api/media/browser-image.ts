@@ -216,7 +216,6 @@ export const GET: APIRoute = async ({ request }) => {
   let imagePipeline = sharp(Buffer.from(arrayBuffer));
   const metadata = await imagePipeline.metadata();
 
-  imagePipeline = imagePipeline.trim();
   imagePipeline = imagePipeline.resize({
     width,
     height,

@@ -67,10 +67,15 @@ describe("BlogArchiveFilters", () => {
     expect(screen.queryByText("Journal")).not.toBeInTheDocument();
     expect(screen.getByText("총 3개의 포스트")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "astro (2)" }));
+    const astroTagButton = screen.getByRole("button", { name: "astro (2)" });
+
+    fireEvent.click(astroTagButton);
 
     expect(screen.getByText("총 2개의 포스트")).toBeInTheDocument();
     expect(window.location.search).toBe("?tag=astro");
+    expect(astroTagButton).toHaveAttribute("aria-pressed", "true");
+    expect(astroTagButton.className).toContain("bg-sky-600");
+    expect(astroTagButton.className).toContain("text-white");
     expect(
       screen.queryByRole("link", { name: /React Patterns 읽기/ }),
     ).not.toBeInTheDocument();

@@ -5,6 +5,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import PageTransitions from '../components/PageTransitions.astro';
+import FloatingUtilityButtons from '../components/public/FloatingUtilityButtons';
 
 interface Props {
   title: string;
@@ -30,5 +31,6 @@ const htmlClassName = bodyClass.trim() || undefined;
       <slot />
     </main>
     <Footer transition:persist />
+    <FloatingUtilityButtons client:load />
   </body>
 </html>

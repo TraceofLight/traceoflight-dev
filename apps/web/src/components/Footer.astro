@@ -12,7 +12,7 @@ const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 ---
 
-<footer class="border-t border-white/60 bg-white/72 backdrop-blur-xl">
+<footer class="site-footer-surface border-t border-white/60 bg-white/72 backdrop-blur-xl">
   <div class="container flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
     <div class="space-y-1">
       <p class="text-sm text-muted-foreground">
@@ -20,7 +20,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       </p>
     </div>
 
-    <div class="flex items-center gap-3 rounded-full border border-white/70 bg-white/72 px-3 py-2 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+    <div class="site-footer-dock flex items-center gap-3 rounded-full border border-white/70 bg-white/72 px-3 py-2 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
       <FooterIconLink
         href="mailto:rickyjun96@gmail.com"
         label="Email"

@@ -1,10 +1,20 @@
 import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
 
 export function createMarkdownRenderer(): MarkdownIt {
   const markdown = new MarkdownIt({
     html: true,
     linkify: true,
     breaks: false,
+    highlight: (code, language) => {
+      const normalizedLanguage = language.trim().toLowerCase();
+
+      if (normalizedLanguage && hljs.getLanguage(normalizedLanguage)) {
+        return hljs.highlight(code, { language: normalizedLanguage }).value;
+      }
+
+      return hljs.highlightAuto(code).value;
+    },
   });
 
   const defaultImageRule = markdown.renderer.rules.image;
