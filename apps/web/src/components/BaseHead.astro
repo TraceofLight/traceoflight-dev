@@ -42,15 +42,25 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 <script is:inline>
   (() => {
     const storageKey = "traceoflight-theme";
-    const storedTheme = localStorage.getItem(storageKey);
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const theme = storedTheme === "dark" || storedTheme === "light"
-      ? storedTheme
-      : systemPrefersDark
-        ? "dark"
-        : "light";
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    const applyTheme = () => {
+      const storedTheme = localStorage.getItem(storageKey);
+      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = storedTheme === "dark" || storedTheme === "light"
+        ? storedTheme
+        : systemPrefersDark
+          ? "dark"
+          : "light";
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    };
+
+    applyTheme();
+
+    if (!window.__traceoflightThemeListenerBound) {
+      document.addEventListener("astro:after-swap", applyTheme);
+      document.addEventListener("astro:page-load", applyTheme);
+      window.__traceoflightThemeListenerBound = true;
+    }
   })();
 </script>
 

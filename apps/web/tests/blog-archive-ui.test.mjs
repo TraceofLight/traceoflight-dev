@@ -50,6 +50,11 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /글 작성/);
   assert.match(source, /비공개/);
   assert.match(source, /총 \{filteredPosts\.length\}개의 포스트/);
+  assert.match(source, /const archiveIntroClass =/);
+  assert.match(
+    source,
+    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/90 px-6 py-10 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\] backdrop-blur-sm/,
+  );
   assert.match(source, /rounded-\[2\.25rem\] border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.10\)\]/);
   assert.match(source, /backdrop-blur-sm/);
   assert.match(source, /const filterChipClass =/);

@@ -48,6 +48,11 @@ const sectionShellClass =
   "rounded-[2.25rem] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]";
 const pillClass =
   "inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+const resumeRowClass =
+  "grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3";
+const resumePeriodClass = "text-sm leading-7 font-medium text-foreground";
+const resumeContentClass = "space-y-0.5";
+const resumeTextClass = "text-sm leading-7 text-muted-foreground";
 
 const profile = {
   name: "Hi there, I'm TraceofLight!",
@@ -366,28 +371,28 @@ const connectLinks = [
                     return (
                       <li class="space-y-3">
                         {display.period ? (
-                          <div class="grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3">
-                            <p class="text-sm font-medium text-foreground">
+                          <div class={resumeRowClass}>
+                            <p class={resumePeriodClass}>
                               {display.period}
                             </p>
-                            <div class="space-y-1">
-                              <p class="text-sm leading-7 text-muted-foreground">
+                            <div class={resumeContentClass}>
+                              <p class={resumeTextClass}>
                                 {display.text}
                               </p>
                               {item.sub ? (
-                                <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                                <p class={`whitespace-pre-line ${resumeTextClass}`}>
                                   {item.sub}
                                 </p>
                               ) : null}
                             </div>
                           </div>
                         ) : (
-                          <div class="space-y-1">
-                            <p class="text-sm leading-7 text-muted-foreground">
+                          <div class={resumeContentClass}>
+                            <p class={resumeTextClass}>
                               {display.text}
                             </p>
                             {item.sub ? (
-                              <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                              <p class={`whitespace-pre-line ${resumeTextClass}`}>
                                 {item.sub}
                               </p>
                             ) : null}
@@ -434,28 +439,28 @@ const connectLinks = [
                     return (
                       <li class="space-y-3">
                         {display.period ? (
-                          <div class="grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3">
-                            <p class="text-sm font-medium text-foreground">
+                          <div class={resumeRowClass}>
+                            <p class={resumePeriodClass}>
                               {display.period}
                             </p>
-                            <div class="space-y-1">
-                              <p class="text-sm leading-7 text-muted-foreground">
+                            <div class={resumeContentClass}>
+                              <p class={resumeTextClass}>
                                 {display.text}
                               </p>
                               {item.sub ? (
-                                <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                                <p class={`whitespace-pre-line ${resumeTextClass}`}>
                                   {item.sub}
                                 </p>
                               ) : null}
                             </div>
                           </div>
                         ) : (
-                          <div class="space-y-1">
-                            <p class="text-sm leading-7 text-muted-foreground">
+                          <div class={resumeContentClass}>
+                            <p class={resumeTextClass}>
                               {display.text}
                             </p>
                             {item.sub ? (
-                              <p class="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                              <p class={`whitespace-pre-line ${resumeTextClass}`}>
                                 {item.sub}
                               </p>
                             ) : null}

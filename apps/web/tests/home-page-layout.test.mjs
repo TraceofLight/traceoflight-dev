@@ -102,6 +102,13 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /title:\s*"Language"/);
   assert.match(source, /period:\s*"2023\.10\. ~ 2024\.11\."/);
   assert.match(source, /main:\s*"Cloud-Native 차세대 DB 개발 프로젝트 참여"/);
+  assert.match(
+    source,
+    /const resumeRowClass =\s*"grid gap-1 sm:grid-cols-\[136px_minmax\(0,1fr\)\] sm:items-start sm:gap-3";/,
+  );
+  assert.match(source, /const resumePeriodClass = "text-sm leading-7 font-medium text-foreground";/);
+  assert.match(source, /const resumeContentClass = "space-y-0\.5";/);
+  assert.match(source, /const resumeTextClass = "text-sm leading-7 text-muted-foreground";/);
 
   assert.match(source, /2021\.11\./);
   assert.match(source, /sub:\s*"[^"]*\\n: [^"]*"/);

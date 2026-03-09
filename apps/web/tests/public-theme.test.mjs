@@ -110,6 +110,9 @@ test("base head and base layout provide a persistent global theme toggle in a fl
   assert.match(baseHeadSource, /document\.documentElement\.dataset\.theme/);
   assert.match(baseHeadSource, /const storageKey = "traceoflight-theme";/);
   assert.match(baseHeadSource, /localStorage\.getItem\(storageKey\)/);
+  assert.match(baseHeadSource, /const applyTheme = \(\) => \{/);
+  assert.match(baseHeadSource, /document\.addEventListener\("astro:after-swap", applyTheme\)/);
+  assert.match(baseHeadSource, /document\.addEventListener\("astro:page-load", applyTheme\)/);
   assert.match(baseHeadSource, /window\.matchMedia\("\(prefers-color-scheme: dark\)"\)/);
   assert.doesNotMatch(headerSource, /ThemeToggle/);
   assert.match(baseLayoutSource, /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons['"];/);
