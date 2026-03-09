@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
 
 export type BlogArchivePost = {
   slug: string;
@@ -51,9 +52,11 @@ const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate
 const anchorClass =
   "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
 const filterChipClass =
-  "inline-flex h-10 items-center justify-center rounded-full border border-white/80 bg-slate-100/92 px-4 text-sm font-medium text-foreground/80 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-all duration-200 hover:bg-white hover:text-foreground";
+  "blog-filter-chip inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200";
+const filterChipInactiveClass =
+  "border-white/80 bg-slate-100/92 text-foreground/80 shadow-[0_10px_24px_rgba(15,23,42,0.06)] hover:bg-white hover:text-foreground";
 const filterChipActiveClass =
-  "border-sky-500/70 bg-sky-600 text-white shadow-[0_20px_40px_rgba(37,99,235,0.28)] ring-1 ring-sky-200/70";
+  "border-sky-300/90 bg-sky-200/85 text-sky-950 shadow-[0_18px_36px_rgba(56,189,248,0.16)] ring-1 ring-sky-300/80";
 
 export function BlogArchiveFilters({
   initialSelectedTags,
@@ -174,7 +177,12 @@ export function BlogArchiveFilters({
           <div className="flex flex-wrap items-center gap-2">
             <button
               aria-pressed={visibility === "all"}
-              className={`${filterChipClass} ${visibility === "all" ? filterChipActiveClass : ""}`}
+              className={cn(
+                filterChipClass,
+                visibility === "all"
+                  ? filterChipActiveClass
+                  : filterChipInactiveClass,
+              )}
               onClick={() => setVisibility("all")}
               data-active={visibility === "all"}
               type="button"
@@ -185,7 +193,12 @@ export function BlogArchiveFilters({
               <>
                 <button
                   aria-pressed={visibility === "public"}
-                  className={`${filterChipClass} ${visibility === "public" ? filterChipActiveClass : ""}`}
+                  className={cn(
+                    filterChipClass,
+                    visibility === "public"
+                      ? filterChipActiveClass
+                      : filterChipInactiveClass,
+                  )}
                   onClick={() => setVisibility("public")}
                   data-active={visibility === "public"}
                   type="button"
@@ -194,7 +207,12 @@ export function BlogArchiveFilters({
                 </button>
                 <button
                   aria-pressed={visibility === "private"}
-                  className={`${filterChipClass} ${visibility === "private" ? filterChipActiveClass : ""}`}
+                  className={cn(
+                    filterChipClass,
+                    visibility === "private"
+                      ? filterChipActiveClass
+                      : filterChipInactiveClass,
+                  )}
                   onClick={() => setVisibility("private")}
                   data-active={visibility === "private"}
                   type="button"
@@ -214,7 +232,10 @@ export function BlogArchiveFilters({
                   <button
                     key={tag.slug}
                     aria-pressed={isActive}
-                    className={`${filterChipClass} ${isActive ? filterChipActiveClass : ""}`}
+                    className={cn(
+                      filterChipClass,
+                      isActive ? filterChipActiveClass : filterChipInactiveClass,
+                    )}
                     onClick={() =>
                       setSelectedTag((current) =>
                         current === tag.slug ? "" : tag.slug,

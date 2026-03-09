@@ -80,7 +80,8 @@ test("blog post layout reuses shared cover media helpers for rendering and og im
   assert.match(source, /width=\{detailCoverWidth\}/);
   assert.match(source, /height=\{detailCoverHeight\}/);
   assert.match(source, /rounded-3xl border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.12\)\]/);
-  assert.match(source, /group grid grid-cols-\[112px_minmax\(0,1fr\)\] gap-3 rounded-2xl border border-white\/80 bg-white\/92 p-3 shadow-\[0_18px_40px_rgba\(15,23,42,0\.08\)\]/);
+  assert.match(source, /\{seriesContext\.totalPosts\}개 글 중 \{seriesContext\.orderIndex\}번째/);
+  assert.match(source, /group grid grid-cols-\[124px_minmax\(0,1fr\)\] items-center gap-4 rounded-2xl border border-white\/80 bg-white\/92 p-3\.5 shadow-\[0_18px_40px_rgba\(15,23,42,0\.08\)\]/);
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });
 

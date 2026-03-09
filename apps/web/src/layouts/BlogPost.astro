@@ -96,7 +96,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
     class:list={[
       "mx-auto grid w-full gap-8",
       hasSeriesSidebar
-        ? "max-w-6xl xl:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]"
+        ? "max-w-6xl xl:grid-cols-[minmax(0,3fr)_minmax(336px,1.08fr)]"
         : "max-w-3xl",
     ]}
   >
@@ -182,18 +182,17 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
           aria-label="시리즈 탐색"
         >
           <section class="rounded-3xl border border-white/80 bg-white/96 p-5 shadow-[0_28px_70px_rgba(15,23,42,0.12)]">
-            <p class="text-sm text-muted-foreground">
+            <div class="space-y-1">
               <a
-                class="font-medium text-foreground transition-colors hover:text-primary"
+                class="block font-medium text-foreground transition-colors hover:text-primary"
                 href={`/series/${seriesContext.seriesSlug}`}
               >
                 {seriesContext.seriesTitle}
               </a>
-              <span>
-                {" "}
-                · {seriesContext.orderIndex}/{seriesContext.totalPosts}
-              </span>
-            </p>
+              <p class="text-sm text-muted-foreground">
+                {seriesContext.totalPosts}개 글 중 {seriesContext.orderIndex}번째
+              </p>
+            </div>
             <ol class="mt-4 grid gap-3">
               {seriesPosts.map((seriesPost) => {
                 const previewText = (seriesPost.excerpt ?? "").trim();
@@ -209,18 +208,18 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
                 return (
                   <li>
                     <a
-                      class="group grid grid-cols-[112px_minmax(0,1fr)] gap-3 rounded-2xl border border-white/80 bg-white/92 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-sky-200/70 hover:bg-white"
+                      class="group grid grid-cols-[124px_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-white/80 bg-white/92 p-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-sky-200/70 hover:bg-white"
                       href={`/blog/${seriesPost.slug}`}
                     >
                       <img
-                        class="aspect-[16/9] w-full rounded-xl border border-white/70 bg-slate-100 object-cover"
+                        class="aspect-[16/9] w-full rounded-xl border border-white/70 bg-slate-100 object-cover object-center"
                         src={resolvedSeriesPostCoverImageSrc}
                         alt={seriesPost.title}
                         decoding="async"
                         loading="lazy"
                         onerror={seriesPostCoverImageFallbackOnError}
                       />
-                      <span class="grid min-w-0 content-start gap-1">
+                      <span class="grid min-w-0 content-center gap-1.5">
                         <small class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                           {relationLabel}
                         </small>

@@ -169,6 +169,13 @@ html[data-theme='dark'] [class*='bg-slate-100'] {
   background-color: rgba(30, 41, 59, 0.92) !important;
 }
 
+html[data-theme='dark'] .blog-filter-chip[data-active='true'] {
+  border-color: rgba(119, 212, 255, 0.55) !important;
+  background-color: rgba(0, 188, 254, 0.24) !important;
+  color: #f0f9ff !important;
+  box-shadow: 0 18px 36px rgba(14, 165, 233, 0.16) !important;
+}
+
 html[data-theme='dark'] [class*='shadow-[0_28px_80px'],
 html[data-theme='dark'] [class*='shadow-[0_28px_70px'],
 html[data-theme='dark'] [class*='shadow-[0_20px_50px'],

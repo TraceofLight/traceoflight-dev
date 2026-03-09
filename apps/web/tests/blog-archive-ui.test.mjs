@@ -39,8 +39,12 @@ test("blog archive page mounts a React filter island and passes server data", as
 });
 
 test("blog archive filter island provides search, sort, and admin visibility controls", async () => {
-  const source = await readFile(blogArchiveFiltersPath, "utf8");
+  const [source, baseCssSource] = await Promise.all([
+    readFile(blogArchiveFiltersPath, "utf8"),
+    readFile(new URL("../src/styles/base.css", import.meta.url), "utf8"),
+  ]);
 
+  assert.match(source, /import \{ cn \} from ["']@\/lib\/utils["'];/);
   assert.match(source, /placeholder="포스트 검색/);
   assert.match(source, /aria-label="정렬 방식"/);
   assert.match(source, /글 작성/);
@@ -49,10 +53,23 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /rounded-\[2\.25rem\] border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.10\)\]/);
   assert.match(source, /backdrop-blur-sm/);
   assert.match(source, /const filterChipClass =/);
+  assert.match(source, /const filterChipInactiveClass =/);
   assert.match(source, /const filterChipActiveClass =/);
   assert.match(
     source,
-    /border-sky-500\/70 bg-sky-600 text-white shadow-\[0_20px_40px_rgba\(37,99,235,0\.28\)\] ring-1 ring-sky-200\/70/,
+    /className=\{cn\([\s\S]*filterChipClass,[\s\S]*visibility === "all"[\s\S]*filterChipActiveClass[\s\S]*filterChipInactiveClass[\s\S]*\)\}/,
+  );
+  assert.match(source, /blog-filter-chip/);
+  assert.match(
+    source,
+    /border-sky-300\/90 bg-sky-200\/85 text-sky-950 shadow-\[0_18px_36px_rgba\(56,189,248,0\.16\)\] ring-1 ring-sky-300\/80/,
+  );
+  assert.doesNotMatch(source, /dark:border-sky-300\/55/);
+  assert.doesNotMatch(source, /dark:bg-sky-400\/24/);
+  assert.doesNotMatch(source, /dark:text-sky-50/);
+  assert.match(
+    baseCssSource,
+    /html\[data-theme='dark'\] \.blog-filter-chip\[data-active='true'\] \{/,
   );
   assert.match(source, /bg-slate-100\/92[\s\S]*text-foreground\/80[\s\S]*hover:bg-white/);
   assert.match(source, /rounded-2xl border border-white\/80 bg-white\/94/);

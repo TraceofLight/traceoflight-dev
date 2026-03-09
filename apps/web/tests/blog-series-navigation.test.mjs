@@ -29,6 +29,14 @@ test("blog detail layout renders in-series navigation block", async () => {
   assert.match(source, /aria-label="시리즈 탐색"/);
   assert.match(source, /seriesPosts\.map/);
   assert.match(source, /relationLabel/);
+  assert.match(source, /\{seriesContext\.totalPosts\}개 글 중 \{seriesContext\.orderIndex\}번째/);
+  assert.match(
+    source,
+    /xl:grid-cols-\[minmax\(0,3fr\)_minmax\(336px,1\.08fr\)\]/,
+  );
+  assert.match(source, /grid-cols-\[124px_minmax\(0,1fr\)\]/);
+  assert.match(source, /items-center/);
+  assert.match(source, /content-center/);
   assert.doesNotMatch(source, /post-series-prev/);
   assert.doesNotMatch(source, /post-series-next/);
 });
