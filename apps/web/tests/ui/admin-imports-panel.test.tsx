@@ -11,10 +11,26 @@ describe("AdminImportsPanel", () => {
   it("renders dedicated backup controls", async () => {
     render(<AdminImportsPanel />);
 
-    expect(screen.getByText("IMPORT BACKUP")).toBeInTheDocument();
+    const downloadButton = screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" });
+    const chooseFileButton = screen.getByRole("button", { name: "ZIP 파일 선택" });
+    const restoreButton = screen.getByRole("button", { name: "ZIP 불러와 DB 복원" });
+
+    expect(screen.getByText("저장과 복원을 같은 화면에서 관리합니다")).toBeInTheDocument();
+    expect(screen.getByText("현재 상태 저장")).toBeInTheDocument();
+    expect(screen.getByText("백업 ZIP으로 복원")).toBeInTheDocument();
+    expect(screen.getByText("복원 전 체크")).toBeInTheDocument();
     expect(screen.getByLabelText("백업 ZIP 파일")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ZIP 불러와 DB 복원" })).toBeInTheDocument();
+    expect(chooseFileButton).toBeInTheDocument();
+    expect(screen.getByText("선택된 파일이 없습니다.")).toBeInTheDocument();
+    expect(downloadButton).toBeInTheDocument();
+    expect(restoreButton).toBeInTheDocument();
+    expect(downloadButton).toHaveClass("border-white/80");
+    expect(downloadButton).toHaveClass("hover:border-sky-300/90");
+    expect(chooseFileButton).toHaveClass("border-white/80");
+    expect(chooseFileButton).toHaveClass("hover:border-sky-300/90");
+    expect(restoreButton).toHaveClass("border-white/80");
+    expect(restoreButton).toHaveClass("hover:border-sky-300/90");
+    expect(restoreButton).toHaveClass("hover:text-sky-700");
   });
 
   it("shows restore summary after a successful upload", async () => {
@@ -34,6 +50,7 @@ describe("AdminImportsPanel", () => {
     fireEvent.change(screen.getByLabelText("백업 ZIP 파일"), {
       target: { files: [file] },
     });
+    expect(screen.getByText("backup.zip")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ZIP 불러와 DB 복원" }));
 
     await waitFor(() => {

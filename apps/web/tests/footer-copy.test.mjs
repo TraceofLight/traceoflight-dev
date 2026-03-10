@@ -20,6 +20,10 @@ test("footer uses single-line rights copy with auto year and styled copyright fo
   assert.match(source, /adminNextPath=\{adminNextPath\}/);
   assert.match(source, /ADMIN_IMPORTS_PATH/);
   assert.match(source, /href=\{ADMIN_IMPORTS_PATH\}/);
+  assert.match(source, /label="Admin Console"/);
+  assert.match(source, /icon="admin"/);
+  assert.doesNotMatch(source, /text-red-700/);
+  assert.doesNotMatch(source, />\s*Admin\s*</);
 });
 
 test("site metadata and missing blog fallback use real copy instead of lorem ipsum", async () => {

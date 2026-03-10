@@ -1,8 +1,9 @@
 ---
+import adminIcon from "../assets/icons/footer/admin.svg?raw";
 import githubIcon from "../assets/icons/footer/github.svg?raw";
 import mailIcon from "../assets/icons/footer/mail.svg?raw";
 
-type FooterIconName = "mail" | "github";
+type FooterIconName = "mail" | "github" | "admin";
 
 type Props = {
   href: string;
@@ -14,6 +15,7 @@ type Props = {
 const { href, label, icon, external = false } = Astro.props as Props;
 
 const iconSvgs: Record<FooterIconName, string> = {
+  admin: adminIcon,
   mail: mailIcon,
   github: githubIcon,
 };

@@ -22,6 +22,9 @@ test("footer keeps login modal and routes admin viewers to imports console", asy
   assert.match(footerSource, /adminNextPath=\{adminNextPath\}/);
   assert.match(footerSource, /ADMIN_IMPORTS_PATH/);
   assert.match(footerSource, /href=\{ADMIN_IMPORTS_PATH\}/);
+  assert.match(footerSource, /icon="admin"/);
+  assert.doesNotMatch(footerSource, /border-red-200\/80/);
+  assert.doesNotMatch(footerSource, />\s*Admin\s*</);
   assert.match(modalSource, /footer-admin-login-form/);
   assert.doesNotMatch(modalSource, /footer-admin-import-panel/);
   assert.doesNotMatch(modalSource, /footer-admin-backup-download/);
