@@ -52,7 +52,7 @@ const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate
 const anchorClass =
   "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
 const filterChipClass =
-  "blog-filter-chip inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200";
+  "blog-filter-chip inline-flex h-10 select-none items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200";
 const filterChipInactiveClass =
   "border-white/80 bg-slate-100/92 text-foreground/80 shadow-[0_10px_24px_rgba(15,23,42,0.06)] hover:bg-white hover:text-foreground";
 const filterChipActiveClass =

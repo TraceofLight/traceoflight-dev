@@ -37,7 +37,7 @@ export default function ThemeToggle() {
     <button
       aria-checked={isDark}
       aria-label="다크 모드 전환"
-      className={`group relative inline-flex h-11 w-[5.25rem] cursor-pointer items-center rounded-full border p-1 transition-all duration-300 hover:-translate-y-0.5 ${trackClass}`}
+      className={`group relative inline-flex h-11 w-[5.25rem] cursor-pointer select-none items-center rounded-full border p-1 transition-all duration-300 hover:-translate-y-0.5 ${trackClass}`}
       onClick={() => {
         const nextTheme: ThemeMode = isDark ? "light" : "dark";
         applyTheme(nextTheme);

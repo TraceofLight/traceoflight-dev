@@ -118,7 +118,7 @@ export function FooterAdminModal({
       <DialogTrigger asChild>
         <button
           aria-label="Admin Login"
-          className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/80 bg-white/88 text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-white hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex h-10 w-10 cursor-pointer select-none items-center justify-center rounded-full border border-white/80 bg-white/88 text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-white hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           type="button"
         >
           <ShieldIcon className="h-4 w-4" />

@@ -57,7 +57,7 @@ export default function FloatingUtilityButtons() {
     <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       <button
         aria-label="맨 위로 이동"
-        className={`pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-300 hover:-translate-y-0.5 ${scrollTopClass} ${
+        className={`pointer-events-auto inline-flex h-11 w-11 select-none items-center justify-center rounded-full border transition-all duration-300 hover:-translate-y-0.5 ${scrollTopClass} ${
           showScrollTop
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-2 opacity-0"

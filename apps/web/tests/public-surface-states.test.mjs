@@ -36,7 +36,24 @@ test("header navigation keeps active and hover states without a heavy shared rai
   assert.match(headerSource, /class="text-base font-semibold tracking-tight text-foreground"/);
   assert.doesNotMatch(headerSource, /bg-white\/88 px-4 py-2/);
   assert.match(headerSource, /class="hidden items-center gap-1 md:flex"/);
+  assert.match(
+    headerSource,
+    /id="header-admin-link"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700/,
+  );
+  assert.match(
+    headerSource,
+    /id="header-admin-link"[\s\S]*inline-flex[\s\S]*items-center rounded-full[\s\S]*px-2\.5 py-1 text-xs[\s\S]*leading-none[\s\S]*transition-all duration-200[\s\S]*hover:-translate-y-0\.5[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50[\s\S]*hover:text-red-800/,
+  );
+  assert.match(
+    headerSource,
+    /id="header-admin-logout"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50/,
+  );
+  assert.match(
+    headerSource,
+    /id="header-admin-logout"[\s\S]*inline-flex[\s\S]*items-center rounded-full[\s\S]*px-2\.5 py-1 text-xs[\s\S]*leading-none/,
+  );
   assert.doesNotMatch(headerSource, /rounded-full border border-white\/70 bg-white\/72 p-1\.5/);
+  assert.match(headerLinkSource, /select-none/);
   assert.match(headerLinkSource, /hover:bg-white\/84/);
   assert.match(
     headerLinkSource,
@@ -62,6 +79,7 @@ test("footer icons use the same filled pill treatment as the admin entry button"
   assert.match(footerIconSource, /bg-white\/88/);
   assert.match(footerIconSource, /border-white\/80/);
   assert.match(footerIconSource, /cursor-pointer/);
+  assert.match(footerIconSource, /select-none/);
   assert.match(
     footerIconSource,
     /shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\]/,
@@ -72,7 +90,7 @@ test("footer icons use the same filled pill treatment as the admin entry button"
   assert.match(footerIconSource, /hover:text-sky-700/);
   assert.match(
     footerAdminModalSource,
-    /className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white\/80 bg-white\/88 text-muted-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\] transition-all duration-200 hover:-translate-y-0\.5 hover:border-sky-300 hover:bg-white hover:text-sky-700/,
+    /className="inline-flex h-10 w-10 cursor-pointer select-none items-center justify-center rounded-full border border-white\/80 bg-white\/88 text-muted-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\] transition-all duration-200 hover:-translate-y-0\.5 hover:border-sky-300 hover:bg-white hover:text-sky-700/,
   );
   assert.match(footerAdminModalSource, /type="button"/);
   assert.match(footerSource, /class="site-footer-surface border-t border-white\/60 bg-white\/72 backdrop-blur-xl"/);

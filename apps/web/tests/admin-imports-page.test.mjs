@@ -28,16 +28,27 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /admin-imports-backup-download/);
   assert.match(panelSource, /admin-imports-backup-file/);
   assert.match(panelSource, /admin-imports-backup-load/);
+  assert.doesNotMatch(panelSource, /admin-imports-feedback/);
   assert.match(panelSource, /현재 상태 저장/);
   assert.match(panelSource, /백업 ZIP으로 복원/);
   assert.match(panelSource, /복원 전 체크/);
+  assert.match(panelSource, /서비스 중인 내용 Save & Load/);
   assert.match(panelSource, /ZIP 파일 선택/);
   assert.match(panelSource, /선택된 파일이 없습니다/);
+  assert.doesNotMatch(panelSource, /복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다/);
   assert.match(panelSource, /from ["']@\/lib\/admin\/imports-client["']/);
   assert.match(panelSource, /downloadPostsBackupZip/);
   assert.match(panelSource, /restorePostsBackupZip/);
   assert.match(panelSource, /self-start/);
   assert.match(panelSource, /hover:-translate-y-0\.5/);
+  assert.match(
+    panelSource,
+    /<section className="grid gap-3 rounded-\[1\.75rem\] border border-white\/80 bg-white\/92 p-4 shadow-\[0_14px_36px_rgba\(15,23,42,0\.06\)\] sm:p-5">/,
+  );
+  assert.doesNotMatch(
+    panelSource,
+    /<section className="grid gap-3 rounded-\[1\.75rem\] border border-sky-200\/80 bg-sky-50\/90 p-4 text-sm shadow-\[0_18px_44px_rgba\(56,189,248,0\.10\)\]">/,
+  );
   assert.doesNotMatch(panelSource, /function resolveErrorMessage/);
   assert.doesNotMatch(panelSource, /async function readJsonSafe/);
   assert.match(clientLibSource, /export async function downloadPostsBackupZip/);
