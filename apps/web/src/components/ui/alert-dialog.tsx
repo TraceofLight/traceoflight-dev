@@ -3,6 +3,10 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  PUBLIC_MODAL_OVERLAY_CLASS,
+  PUBLIC_MODAL_SURFACE_CLASS,
+} from "@/lib/ui-effects";
 
 const AlertDialog = AlertDialogPrimitive.Root;
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
@@ -14,7 +18,7 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-slate-950/16 backdrop-blur-sm", className)}
+    className={cn(PUBLIC_MODAL_OVERLAY_CLASS, className)}
     {...props}
   />
 ));
@@ -29,7 +33,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl duration-200 sm:rounded-[2rem]",
+        `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 p-6 duration-200 sm:rounded-[2rem] ${PUBLIC_MODAL_SURFACE_CLASS}`,
         className,
       )}
       {...props}

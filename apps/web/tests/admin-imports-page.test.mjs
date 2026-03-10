@@ -44,6 +44,7 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
   assert.match(panelSource, /PUBLIC_PANEL_SURFACE_CLASS/);
   assert.match(panelSource, /PUBLIC_PANEL_SURFACE_SOFT_CLASS/);
+  assert.match(panelSource, /PUBLIC_FIELD_DISPLAY_CLASS/);
   assert.match(panelSource, /PUBLIC_SURFACE_ACTION_CLASS/);
   assert.doesNotMatch(
     panelSource,

@@ -20,6 +20,9 @@ import {
   PUBLIC_BADGE_CLASS,
   PUBLIC_BADGE_STRONG_CLASS,
   PUBLIC_EMPTY_STATE_CLASS,
+  PUBLIC_HERO_PANEL_SURFACE_CLASS,
+  PUBLIC_HERO_SURFACE_CLASS,
+  PUBLIC_PANEL_SURFACE_CLASS,
   PUBLIC_PILL_CLASS,
   PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
   PUBLIC_SECTION_SURFACE_CLASS,
@@ -53,7 +56,12 @@ if (provider === "db") {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
 const projects = getProjects().slice(0, 3);
+const heroShellClass =
+  `${PUBLIC_HERO_SURFACE_CLASS} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
+const heroCopyPanelClass =
+  `${PUBLIC_HERO_PANEL_SURFACE_CLASS} px-6 py-7 sm:px-8 sm:py-8`;
 const sectionShellClass = `${PUBLIC_SECTION_SURFACE_CLASS} p-6`;
+const panelSurfaceClass = `${PUBLIC_PANEL_SURFACE_CLASS} p-5`;
 const pillClass = PUBLIC_PILL_CLASS;
 const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;
 const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;
@@ -292,12 +300,12 @@ const connectLinks = [
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
   <div class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
     <section
-      class="grid gap-6 rounded-[2.5rem] border border-white/80 bg-white/92 p-5 shadow-[0_32px_80px_rgba(15,23,42,0.10)] lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6"
+      class={`grid gap-6 ${heroShellClass}`}
       aria-labelledby="home-profile-title"
     >
       <div
         id="home-intro-copy-panel"
-        class="grid h-full content-center gap-6 rounded-[2.1rem] border border-white/80 bg-white/92 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.06)] sm:px-8 sm:py-8"
+        class={`grid h-full content-center gap-6 ${heroCopyPanelClass}`}
       >
         <div class="space-y-4">
           <p class={pillClass}>About Me</p>
@@ -364,7 +372,7 @@ const connectLinks = [
         <div class="grid gap-4">
           {
             resumeLeftSections.map((section) => (
-              <article class="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+              <article class={panelSurfaceClass}>
                 <h3 class="text-lg font-semibold tracking-tight text-foreground">
                   {section.title}
                 </h3>
@@ -432,7 +440,7 @@ const connectLinks = [
         <div class="grid gap-4">
           {
             resumeRightSections.map((section) => (
-              <article class="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+              <article class={panelSurfaceClass}>
                 <h3 class="text-lg font-semibold tracking-tight text-foreground">
                   {section.title}
                 </h3>
@@ -475,7 +483,7 @@ const connectLinks = [
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li class="inline-flex select-none items-center gap-2 rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-1 text-xs text-muted-foreground">
+                              <li class={PUBLIC_BADGE_CLASS}>
                                 <img
                                   src={badge.icon}
                                   alt=""
@@ -516,7 +524,7 @@ const connectLinks = [
       <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {
           techStackGroups.map((group) => (
-            <article class="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+            <article class={panelSurfaceClass}>
               <h3 class="text-lg font-semibold tracking-tight text-foreground">
                 {group.title}
               </h3>

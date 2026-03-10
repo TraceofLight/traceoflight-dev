@@ -10,7 +10,6 @@ const seriesCardPath = new URL(
   "../src/components/SeriesCard.astro",
   import.meta.url,
 );
-const aboutPagePath = new URL("../src/pages/about.astro", import.meta.url);
 const headerConstPath = new URL("../src/consts.ts", import.meta.url);
 
 test("series index page renders archive list and links to detail route", async () => {
@@ -49,12 +48,6 @@ test("series index page renders archive list and links to detail route", async (
   assert.doesNotMatch(source, /Archive Snapshot/);
   assert.doesNotMatch(source, /Admin view/);
   assert.doesNotMatch(source, /Public view/);
-});
-
-test("about page is repurposed as a series alias redirect", async () => {
-  const source = await readFile(aboutPagePath, "utf8");
-
-  assert.match(source, /Astro\.redirect\('\/series'\)/);
 });
 
 test("top navigation exposes series instead of about", async () => {

@@ -2,6 +2,11 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
+import {
+  PUBLIC_MODAL_CLOSE_CLASS,
+  PUBLIC_MODAL_OVERLAY_CLASS,
+  PUBLIC_MODAL_SURFACE_CLASS,
+} from "@/lib/ui-effects";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -15,7 +20,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-slate-950/16 backdrop-blur-sm", className)}
+    className={cn(PUBLIC_MODAL_OVERLAY_CLASS, className)}
     {...props}
   />
 ));
@@ -30,13 +35,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl duration-200 sm:rounded-[2rem]",
+        `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 p-6 duration-200 sm:rounded-[2rem] ${PUBLIC_MODAL_SURFACE_CLASS}`,
         className,
       )}
       {...props}
     >
       {children}
-      <DialogClose className="absolute right-4 top-4 rounded-full border border-white/80 bg-white/90 p-1.5 opacity-70 shadow-sm transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+      <DialogClose className={PUBLIC_MODAL_CLOSE_CLASS}>
         <XIcon className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogClose>

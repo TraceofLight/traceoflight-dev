@@ -9,7 +9,6 @@ test("home page uses tailwind sections while keeping the curated resume content"
   const source = await readFile(homePagePath, "utf8");
 
   assert.match(source, /max-w-6xl/);
-  assert.match(source, /inline-flex select-none items-center gap-2 rounded-full/);
   assert.doesNotMatch(source, /class="home-resume"/);
   assert.doesNotMatch(source, /class="home-panel home-profile"/);
   assert.doesNotMatch(source, /import "\.\.\/styles\/components\/home\.css";/);
@@ -57,9 +56,19 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /"Database Engineering"/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_HERO_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_HERO_SURFACE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+  );
+  assert.match(
+    source,
+    /const heroShellClass =[\s\S]*`\$\{PUBLIC_HERO_SURFACE_CLASS\} p-5 lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\] lg:p-6`;/,
+  );
+  assert.match(
+    source,
+    /const heroCopyPanelClass =[\s\S]*`\$\{PUBLIC_HERO_PANEL_SURFACE_CLASS\} px-6 py-7 sm:px-8 sm:py-8`;/,
   );
   assert.match(source, /const sectionShellClass = `\$\{PUBLIC_SECTION_SURFACE_CLASS\} p-6`;/);
+  assert.match(source, /const panelSurfaceClass = `\$\{PUBLIC_PANEL_SURFACE_CLASS\} p-5`;/);
+  assert.match(source, /<article class=\{panelSurfaceClass\}>|<article[\s\S]*class=\{panelSurfaceClass\}/);
   assert.match(source, /const pillClass = PUBLIC_PILL_CLASS;/);
   assert.match(
     source,
@@ -153,6 +162,8 @@ test("site header brand uses text-only mark without avatar image", async () => {
   assert.match(source, /verifyAccessToken/);
   assert.match(source, /id="header-admin-link"/);
   assert.match(source, /id="header-admin-logout"/);
+  assert.match(source, /<form class="flex" method="GET" action=\{ADMIN_IMPORTS_PATH\}>/);
+  assert.match(source, /<button[\s\S]*id="header-admin-link"[\s\S]*type="submit"/);
   assert.match(source, /\/internal-api\/auth\/logout/);
   assert.match(source, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(

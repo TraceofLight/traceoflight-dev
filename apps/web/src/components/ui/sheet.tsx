@@ -3,6 +3,11 @@ import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { XIcon } from "lucide-react";
 
+import {
+  PUBLIC_MODAL_CLOSE_CLASS,
+  PUBLIC_MODAL_OVERLAY_CLASS,
+  PUBLIC_MODAL_SURFACE_CLASS,
+} from "@/lib/ui-effects";
 import { cn } from "@/lib/utils";
 
 const Sheet = SheetPrimitive.Root;
@@ -16,14 +21,14 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-slate-950/16 backdrop-blur-sm", className)}
+    className={cn(PUBLIC_MODAL_OVERLAY_CLASS, className)}
     {...props}
   />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl transition ease-in-out",
+  `fixed z-50 gap-4 p-6 transition ease-in-out ${PUBLIC_MODAL_SURFACE_CLASS}`,
   {
     variants: {
       side: {
@@ -51,7 +56,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
       {children}
-      <SheetClose className="absolute right-4 top-4 rounded-full border border-white/80 bg-white/90 p-1.5 opacity-70 shadow-sm transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+      <SheetClose className={PUBLIC_MODAL_CLOSE_CLASS}>
         <XIcon className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </SheetClose>

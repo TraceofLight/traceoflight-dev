@@ -8,6 +8,7 @@ import {
   restorePostsBackupZip,
 } from "@/lib/admin/imports-client";
 import {
+  PUBLIC_FIELD_DISPLAY_CLASS,
   PUBLIC_PANEL_SURFACE_CLASS,
   PUBLIC_PANEL_SURFACE_SOFT_CLASS,
   PUBLIC_SECTION_SURFACE_STRONG_CLASS,
@@ -232,7 +233,7 @@ export function AdminImportsPanel() {
               >
                 ZIP 파일 선택
               </Button>
-              <div className="min-w-0 flex-1 rounded-[1.25rem] border border-white/80 bg-slate-100/88 px-4 py-3 text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+              <div className={`min-w-0 flex-1 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
                 <span className="block truncate">
                   {selectedFile ? selectedFile.name : "선택된 파일이 없습니다."}
                 </span>

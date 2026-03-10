@@ -2,6 +2,10 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
+import {
+  PUBLIC_FIELD_SURFACE_CLASS,
+  PUBLIC_POPOVER_SURFACE_CLASS,
+} from "@/lib/ui-effects";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -15,7 +19,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between rounded-2xl border border-white/80 bg-white/92 px-4 py-2 text-sm shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+      `${PUBLIC_FIELD_SURFACE_CLASS} items-center justify-between text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`,
       className,
     )}
     {...props}
@@ -56,7 +60,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/95 text-popover-foreground shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl",
+        PUBLIC_POPOVER_SURFACE_CLASS,
         position === "popper" && "translate-y-1",
         className,
       )}

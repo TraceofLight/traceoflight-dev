@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
 import {
+  PUBLIC_FIELD_FRAME_CLASS,
   PUBLIC_HOVER_CARD_CLASS,
   PUBLIC_MEDIA_FRAME_CLASS,
   PUBLIC_SECTION_SURFACE_STRONG_CLASS,
@@ -136,7 +137,7 @@ export function BlogArchiveFilters({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <label className="grid flex-1 gap-2" htmlFor="blog-search">
             <span className="sr-only">포스트 검색</span>
-            <div className="rounded-2xl border border-white/80 bg-white/94 p-1 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
+            <div className={PUBLIC_FIELD_FRAME_CLASS}>
               <Input
                 autoComplete="off"
                 className="border-transparent bg-transparent shadow-none focus-visible:ring-0"
@@ -161,7 +162,7 @@ export function BlogArchiveFilters({
 
             <label className="grid gap-2 text-sm text-muted-foreground">
               <span className="sr-only">정렬 방식</span>
-              <div className="rounded-2xl border border-white/80 bg-white/94 p-1 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
+              <div className={PUBLIC_FIELD_FRAME_CLASS}>
                 <select
                   aria-label="정렬 방식"
                   className="h-10 min-w-36 rounded-xl border border-transparent bg-transparent px-3 text-sm text-foreground outline-none transition focus:border-sky-200 focus:bg-sky-50/70"

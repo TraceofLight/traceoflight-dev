@@ -75,3 +75,28 @@
 2. `npm run test:ui -- admin-imports-panel`
 3. `npm run build`
 4. 남는 경고를 기록한다.
+
+### Task 5: 역할 기반 박스 효과 확장
+
+**Files:**
+- Modify: `apps/web/src/lib/ui-effects.ts`
+- Modify: `apps/web/src/pages/index.astro`
+- Modify: `apps/web/src/components/HeaderLink.astro`
+- Modify: `apps/web/src/components/ui/input.tsx`
+- Modify: `apps/web/src/components/ui/select.tsx`
+- Modify: `apps/web/src/components/ui/dialog.tsx`
+- Modify: `apps/web/src/components/ui/sheet.tsx`
+- Modify: `apps/web/src/components/ui/alert-dialog.tsx`
+- Modify: `apps/web/src/components/public/BlogArchiveFilters.tsx`
+- Modify: `apps/web/src/components/public/AdminImportsPanel.tsx`
+- Test: `apps/web/tests/home-page-layout.test.mjs`
+- Test: `apps/web/tests/public-surface-states.test.mjs`
+- Test: `apps/web/tests/admin-imports-page.test.mjs`
+- Test: `apps/web/tests/blog-archive-ui.test.mjs`
+
+**Steps:**
+
+1. `hero`, `field`, `popover`, `modal`, `nav active` 역할 상수를 추가한다.
+2. 홈 hero, profile/skill panel, 아카이브 field wrapper, admin imports file display에 새 역할 상수를 적용한다.
+3. input/select/dialog/sheet/alert-dialog가 새 공용 surface를 재사용하도록 정리한다.
+4. 관련 소스 테스트를 공용 상수 사용 기준으로 갱신한다.

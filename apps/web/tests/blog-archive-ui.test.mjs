@@ -47,7 +47,7 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /import \{ cn \} from ["']@\/lib\/utils["'];/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_STRONG_CLASS[\s\S]*\} from ["']@\/lib\/ui-effects["'];/,
+    /import \{[\s\S]*PUBLIC_FIELD_FRAME_CLASS[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_STRONG_CLASS[\s\S]*\} from ["']@\/lib\/ui-effects["'];/,
   );
   assert.match(source, /placeholder="포스트 검색/);
   assert.match(source, /aria-label="정렬 방식"/);
@@ -77,7 +77,7 @@ test("blog archive filter island provides search, sort, and admin visibility con
     /html\[data-theme='dark'\] \.blog-filter-chip\[data-active='true'\] \{/,
   );
   assert.match(source, /bg-slate-100\/92[\s\S]*text-foreground\/80[\s\S]*hover:bg-white/);
-  assert.match(source, /rounded-2xl border border-white\/80 bg-white\/94/);
+  assert.match(source, /PUBLIC_FIELD_FRAME_CLASS/);
   assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);

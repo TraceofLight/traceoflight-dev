@@ -19,14 +19,16 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       {
         isAdminViewer && (
           <div class="hidden items-center gap-2 md:flex">
-            <a
-              href={ADMIN_IMPORTS_PATH}
-              id="header-admin-link"
-              class={DANGER_PILL_ACTION_CLASS}
-            >
-              Admin
-            </a>
-            <form method="POST" action="/internal-api/auth/logout?next=/">
+            <form class="flex" method="GET" action={ADMIN_IMPORTS_PATH}>
+              <button
+                id="header-admin-link"
+                class={DANGER_PILL_ACTION_CLASS}
+                type="submit"
+              >
+                Admin
+              </button>
+            </form>
+            <form class="flex" method="POST" action="/internal-api/auth/logout?next=/">
               <button
                 id="header-admin-logout"
                 class={DANGER_PILL_ACTION_CLASS}

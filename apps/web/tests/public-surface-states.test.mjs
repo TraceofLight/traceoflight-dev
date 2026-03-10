@@ -26,6 +26,14 @@ const projectCardPath = new URL(
   import.meta.url,
 );
 const postCardPath = new URL("../src/components/PostCard.astro", import.meta.url);
+const inputPath = new URL("../src/components/ui/input.tsx", import.meta.url);
+const selectPath = new URL("../src/components/ui/select.tsx", import.meta.url);
+const dialogPath = new URL("../src/components/ui/dialog.tsx", import.meta.url);
+const sheetPath = new URL("../src/components/ui/sheet.tsx", import.meta.url);
+const alertDialogPath = new URL(
+  "../src/components/ui/alert-dialog.tsx",
+  import.meta.url,
+);
 
 test("header navigation keeps active and hover states without a heavy shared rail", async () => {
   const [headerSource, headerLinkSource] = await Promise.all([
@@ -36,6 +44,8 @@ test("header navigation keeps active and hover states without a heavy shared rai
   assert.match(headerSource, /class="text-base font-semibold tracking-tight text-foreground"/);
   assert.doesNotMatch(headerSource, /bg-white\/88 px-4 py-2/);
   assert.match(headerSource, /class="hidden items-center gap-1 md:flex"/);
+  assert.match(headerSource, /<form class="flex" method="GET" action=\{ADMIN_IMPORTS_PATH\}>/);
+  assert.match(headerSource, /<form class="flex" method="POST" action="\/internal-api\/auth\/logout\?next=\/">/);
   assert.match(headerSource, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(
     headerSource,
@@ -47,15 +57,12 @@ test("header navigation keeps active and hover states without a heavy shared rai
   );
   assert.doesNotMatch(headerSource, /rounded-full border border-white\/70 bg-white\/72 p-1\.5/);
   assert.match(headerLinkSource, /select-none/);
+  assert.match(
+    headerLinkSource,
+    /import \{ PUBLIC_NAV_ACTIVE_PILL_CLASS \} from "\.\.\/lib\/ui-effects";/,
+  );
   assert.match(headerLinkSource, /hover:bg-white\/84/);
-  assert.match(
-    headerLinkSource,
-    /hover:shadow-\[0_8px_24px_rgba\(15,23,42,0\.08\)\]/,
-  );
-  assert.match(
-    headerLinkSource,
-    /"border border-white\/80 bg-white\/92 text-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\]": isActive/,
-  );
+  assert.match(headerLinkSource, /PUBLIC_NAV_ACTIVE_PILL_CLASS/);
 });
 
 test("footer icons use the same filled pill treatment as the admin entry button", async () => {
@@ -125,4 +132,47 @@ test("home sections and content cards use solid white surfaces with stronger hov
     /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/,
   );
   assert.match(postCardSource, /object-cover object-center/);
+});
+
+test("shared field and modal surfaces are reused across form and overlay primitives", async () => {
+  const [inputSource, selectSource, dialogSource, sheetSource, alertDialogSource] =
+    await Promise.all([
+      readFile(inputPath, "utf8"),
+      readFile(selectPath, "utf8"),
+      readFile(dialogPath, "utf8"),
+      readFile(sheetPath, "utf8"),
+      readFile(alertDialogPath, "utf8"),
+    ]);
+
+  assert.match(
+    inputSource,
+    /import \{ PUBLIC_FIELD_SURFACE_CLASS \} from "@\/lib\/ui-effects";/,
+  );
+  assert.match(inputSource, /PUBLIC_FIELD_SURFACE_CLASS/);
+  assert.match(
+    selectSource,
+    /import \{[\s\S]*PUBLIC_FIELD_SURFACE_CLASS[\s\S]*PUBLIC_POPOVER_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
+  );
+  assert.match(selectSource, /PUBLIC_FIELD_SURFACE_CLASS/);
+  assert.match(selectSource, /PUBLIC_POPOVER_SURFACE_CLASS/);
+  assert.match(
+    dialogSource,
+    /import \{[\s\S]*PUBLIC_MODAL_CLOSE_CLASS[\s\S]*PUBLIC_MODAL_OVERLAY_CLASS[\s\S]*PUBLIC_MODAL_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
+  );
+  assert.match(dialogSource, /PUBLIC_MODAL_OVERLAY_CLASS/);
+  assert.match(dialogSource, /PUBLIC_MODAL_SURFACE_CLASS/);
+  assert.match(dialogSource, /PUBLIC_MODAL_CLOSE_CLASS/);
+  assert.match(
+    sheetSource,
+    /import \{[\s\S]*PUBLIC_MODAL_CLOSE_CLASS[\s\S]*PUBLIC_MODAL_OVERLAY_CLASS[\s\S]*PUBLIC_MODAL_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
+  );
+  assert.match(sheetSource, /PUBLIC_MODAL_OVERLAY_CLASS/);
+  assert.match(sheetSource, /PUBLIC_MODAL_SURFACE_CLASS/);
+  assert.match(sheetSource, /PUBLIC_MODAL_CLOSE_CLASS/);
+  assert.match(
+    alertDialogSource,
+    /import \{[\s\S]*PUBLIC_MODAL_OVERLAY_CLASS[\s\S]*PUBLIC_MODAL_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
+  );
+  assert.match(alertDialogSource, /PUBLIC_MODAL_OVERLAY_CLASS/);
+  assert.match(alertDialogSource, /PUBLIC_MODAL_SURFACE_CLASS/);
 });
