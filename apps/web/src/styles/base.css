@@ -58,6 +58,10 @@ img {
   border-radius: var(--radius-md);
 }
 
+html[data-theme='light'] .theme-invert-on-light {
+  filter: brightness(0) saturate(100%);
+}
+
 code {
   padding: 0.1rem 0.4rem;
   border-radius: 8px;

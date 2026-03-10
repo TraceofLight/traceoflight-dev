@@ -100,6 +100,7 @@ type ResumeDisplay = {
 type TechStackItem = {
   label: string;
   icon?: string;
+  iconClass?: string;
   fallback?: string;
 };
 
@@ -209,7 +210,11 @@ const techStackGroups: TechStackGroup[] = [
     title: "Game Development",
     items: [
       { label: "DirectX 11", icon: "/icons/tech/directx11.webp" },
-      { label: "Unreal Engine 5", icon: "/icons/tech/unrealengine.svg" },
+      {
+        label: "Unreal Engine 5",
+        icon: "/icons/tech/unrealengine.svg",
+        iconClass: "theme-invert-on-light",
+      },
     ],
   },
   {
@@ -535,6 +540,7 @@ const connectLinks = [
                         <img
                           src={item.icon}
                           alt={`${item.label} logo`}
+                          class={item.iconClass}
                           loading="lazy"
                           width="18"
                           height="18"

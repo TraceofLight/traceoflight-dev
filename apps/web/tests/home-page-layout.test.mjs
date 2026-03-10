@@ -24,6 +24,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /rickyjun96@gmail\.com/);
   assert.match(source, /\/icons\/tech\/java\.svg/);
   assert.match(source, /\/icons\/tech\/directx11\.webp/);
+  assert.match(source, /\/icons\/tech\/unrealengine\.svg/);
   assert.match(source, /\/icons\/tech\/react\.svg/);
   assert.match(source, /\/icons\/tech\/fastapi\.svg/);
   assert.match(source, /\/icons\/tech\/vim\.svg/);
@@ -84,6 +85,8 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /<a class=\{surfaceActionClass\} href="\/series">\s*View All Series\s*<\/a>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_CLASS\}>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_STRONG_CLASS\}>/);
+  assert.match(source, /iconClass:\s*"theme-invert-on-light"/);
+  assert.match(source, /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width="18"/);
   assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
   assert.doesNotMatch(source, /"Cloud-Native Database"/);
   assert.doesNotMatch(source, /"Backend API"/);

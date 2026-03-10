@@ -93,10 +93,18 @@ class PostRepository:
         tags: list[str] | None = None,
         tag_match: str = "any",
     ) -> list[Post]:
+        ordering = [Post.created_at.desc(), Post.slug.desc()]
+        if status == PostStatus.PUBLISHED:
+            ordering = [
+                Post.published_at.desc().nulls_last(),
+                Post.created_at.desc(),
+                Post.slug.desc(),
+            ]
+
         stmt = (
             select(Post)
             .options(selectinload(Post.tags))
-            .order_by(Post.created_at.desc(), Post.slug.desc())
+            .order_by(*ordering)
         )
         if status is not None:
             stmt = stmt.where(Post.status == status)

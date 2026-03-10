@@ -18,6 +18,7 @@ const writerCssPath = new URL(
   "../src/styles/components/writer.css",
   import.meta.url,
 );
+const uiEffectsPath = new URL("../src/lib/ui-effects.ts", import.meta.url);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
 const baseHeadPath = new URL("../src/components/BaseHead.astro", import.meta.url);
 const baseLayoutPath = new URL("../src/layouts/BaseLayout.astro", import.meta.url);
@@ -47,32 +48,36 @@ test("public theme tokens move the site to a bright toss-like blue-gray palette"
   assert.match(baseSource, /html\[data-theme='dark'\] \.site-header-surface \{/);
   assert.match(baseSource, /html\[data-theme='dark'\] \.site-footer-surface \{/);
   assert.match(baseSource, /html\[data-theme='dark'\] \.site-footer-dock \{/);
+  assert.match(baseSource, /html\[data-theme='light'\] \.theme-invert-on-light \{/);
+  assert.match(baseSource, /filter:\s*brightness\(0\) saturate\(100%\)/);
   assert.doesNotMatch(baseSource, /html\[data-theme='dark'\] header \{/);
   assert.match(baseSource, /\.hljs-keyword/);
   assert.match(baseSource, /\.hljs-string/);
 });
 
 test("dialog, alert dialog, and sheet use solid light surfaces instead of dark translucent chrome", async () => {
-  const [dialogSource, alertSource, sheetSource] = await Promise.all([
+  const [dialogSource, alertSource, sheetSource, uiEffectsSource] = await Promise.all([
     readFile(dialogPath, "utf8"),
     readFile(alertDialogPath, "utf8"),
     readFile(sheetPath, "utf8"),
+    readFile(uiEffectsPath, "utf8"),
   ]);
+
+  assert.match(uiEffectsSource, /export const PUBLIC_MODAL_OVERLAY_CLASS =[\s\S]*backdrop-blur-sm/);
+  assert.match(uiEffectsSource, /export const PUBLIC_MODAL_SURFACE_CLASS =[\s\S]*border-white\/70[\s\S]*bg-white\/95[\s\S]*shadow-\[0_32px_80px_rgba\(15,23,42,0\.18\)\][\s\S]*backdrop-blur-xl/);
 
   for (const source of [dialogSource, alertSource, sheetSource]) {
     assert.doesNotMatch(source, /bg-black\/80/);
-    assert.match(source, /backdrop-blur/);
-    assert.match(source, /bg-white\/95/);
-    assert.match(source, /border-white\/70/);
-    assert.match(source, /shadow-\[0_32px_80px_rgba\(15,23,42,0\.18\)\]/);
+    assert.match(source, /PUBLIC_MODAL_OVERLAY_CLASS|PUBLIC_MODAL_SURFACE_CLASS/);
   }
 });
 
 test("button, input, and select primitives adopt the brighter toss-like shell", async () => {
-  const [buttonSource, inputSource, selectSource] = await Promise.all([
+  const [buttonSource, inputSource, selectSource, uiEffectsSource] = await Promise.all([
     readFile(buttonPath, "utf8"),
     readFile(inputPath, "utf8"),
     readFile(selectPath, "utf8"),
+    readFile(uiEffectsPath, "utf8"),
   ]);
 
   assert.match(buttonSource, /rounded-full/);
@@ -80,13 +85,10 @@ test("button, input, and select primitives adopt the brighter toss-like shell", 
   assert.match(buttonSource, /bg-white\/88/);
   assert.doesNotMatch(buttonSource, /rounded-md/);
 
-  assert.match(inputSource, /rounded-2xl/);
-  assert.match(inputSource, /bg-white\/92/);
-  assert.match(inputSource, /border-white\/80/);
+  assert.match(uiEffectsSource, /export const PUBLIC_FIELD_SURFACE_CLASS =[\s\S]*rounded-2xl[\s\S]*bg-white\/92[\s\S]*border-white\/80/);
+  assert.match(inputSource, /PUBLIC_FIELD_SURFACE_CLASS/);
 
-  assert.match(selectSource, /rounded-2xl/);
-  assert.match(selectSource, /bg-white\/92/);
-  assert.match(selectSource, /border-white\/80/);
+  assert.match(selectSource, /PUBLIC_FIELD_SURFACE_CLASS|PUBLIC_FIELD_FRAME_CLASS|PUBLIC_POPOVER_SURFACE_CLASS/);
 });
 
 test("writer styles reuse the shared light theme language instead of a separate green accent palette", async () => {

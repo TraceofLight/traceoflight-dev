@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import Base
+from app.models.post import Post
 from app.models.post import PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PostCreate
@@ -66,3 +69,58 @@ def test_list_posts_supports_any_and_all_tag_matching() -> None:
 
     assert [post.slug for post in any_match] == ["post-b", "post-a"]
     assert [post.slug for post in all_match] == ["post-a"]
+
+
+def test_list_published_posts_orders_by_published_at_before_created_at() -> None:
+    db = _build_session()
+    repo = PostRepository(db)
+
+    db.add_all(
+        [
+            Post(
+                slug="restored-old-post",
+                title="restored-old-post",
+                excerpt=None,
+                body_markdown="# restored-old-post",
+                cover_image_url=None,
+                status=PostStatus.PUBLISHED,
+                visibility=PostVisibility.PUBLIC,
+                published_at=datetime(2023, 5, 16, tzinfo=timezone.utc),
+                created_at=datetime(2026, 3, 11, tzinfo=timezone.utc),
+                updated_at=datetime(2026, 3, 11, tzinfo=timezone.utc),
+            ),
+            Post(
+                slug="latest-published-post",
+                title="latest-published-post",
+                excerpt=None,
+                body_markdown="# latest-published-post",
+                cover_image_url=None,
+                status=PostStatus.PUBLISHED,
+                visibility=PostVisibility.PUBLIC,
+                published_at=datetime(2025, 7, 28, tzinfo=timezone.utc),
+                created_at=datetime(2025, 7, 28, tzinfo=timezone.utc),
+                updated_at=datetime(2025, 7, 28, tzinfo=timezone.utc),
+            ),
+            Post(
+                slug="mid-published-post",
+                title="mid-published-post",
+                excerpt=None,
+                body_markdown="# mid-published-post",
+                cover_image_url=None,
+                status=PostStatus.PUBLISHED,
+                visibility=PostVisibility.PUBLIC,
+                published_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
+                created_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
+                updated_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
+            ),
+        ]
+    )
+    db.commit()
+
+    listed = repo.list(status=PostStatus.PUBLISHED, visibility=PostVisibility.PUBLIC)
+
+    assert [post.slug for post in listed] == [
+        "latest-published-post",
+        "mid-published-post",
+        "restored-old-post",
+    ]
