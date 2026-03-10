@@ -4,6 +4,13 @@ import { Image } from "astro:assets";
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getProjectBySlug } from "../../lib/projects";
+import {
+  PUBLIC_BADGE_STRONG_CLASS,
+  PUBLIC_EMPTY_STATE_CLASS,
+  PUBLIC_PANEL_SURFACE_CLASS,
+  PUBLIC_SECTION_SURFACE_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../../lib/ui-effects";
 
 const slug = Astro.params.slug ?? "";
 const project = getProjectBySlug(slug);
@@ -21,7 +28,7 @@ if (!project) {
       image={project.coverImage}
     >
       <section class="mx-auto flex max-w-5xl flex-col gap-8 py-10 sm:py-12">
-        <header class="grid gap-8 rounded-[2.25rem] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8">
+        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <div class="space-y-5">
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
@@ -37,14 +44,14 @@ if (!project) {
 
             <div class="flex flex-wrap items-center gap-2">
               {project.stack.map((skill) => (
-                <span class="rounded-full border border-white/80 bg-white/88 px-3 py-1 text-xs font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+                <span class={PUBLIC_BADGE_STRONG_CLASS}>
                   {skill}
                 </span>
               ))}
             </div>
           </div>
 
-          <div class="rounded-3xl border border-white/80 bg-white/88 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+          <div class={`rounded-3xl bg-white/88 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               Lorem ipsum
             </h2>
@@ -55,7 +62,7 @@ if (!project) {
           </div>
         </header>
 
-        <div class="overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/92 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <Image
             alt={project.title}
             class="aspect-[16/9] h-full w-full object-cover"
@@ -66,13 +73,13 @@ if (!project) {
         </div>
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <article class="rounded-3xl border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
             <p class="mt-4 text-base leading-8 text-foreground/85">
               {project.description}
             </p>
           </article>
 
-          <article class="rounded-3xl border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               Dolor sit amet
             </h2>
@@ -84,13 +91,13 @@ if (!project) {
           </article>
         </section>
 
-        <section class="rounded-3xl border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <div class="flex flex-wrap gap-3">
             {project.links.map((link) => {
               const isExternal = /^https?:\/\//.test(link.href);
               return (
                 <a
-                  class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
+                  class={PUBLIC_SURFACE_ACTION_CLASS}
                   href={link.href}
                   rel={isExternal ? "noreferrer" : undefined}
                   target={isExternal ? "_blank" : undefined}
@@ -115,12 +122,12 @@ if (!project) {
       description="Requested project was not found."
     >
       <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
-        <div class="rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-12 text-center shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+        <div class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-12 text-center`}>
           <p class="text-base text-muted-foreground">
             Lorem ipsum dolor sit amet, consectetur adipiscing elit.
           </p>
           <a
-            class="mt-5 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
+            class={`${PUBLIC_SURFACE_ACTION_CLASS} mt-5`}
             href="/projects"
           >
             Lorem ipsum

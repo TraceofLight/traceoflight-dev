@@ -23,9 +23,10 @@ test("project card and list page use the new public card shell", async () => {
 
   assert.match(
     cardSource,
-    /rounded-\[2rem\] border border-white\/80 bg-white\/95 p-3 text-card-foreground shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\]/,
+    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
-  assert.match(cardSource, /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/);
+  assert.match(cardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  assert.match(cardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(cardSource, /imageHeight = 640/);
   assert.match(cardSource, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(cardSource, /object-cover object-center/);
@@ -52,8 +53,12 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /getProjectBySlug/);
   assert.match(
     source,
-    /rounded-3xl border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+    /import \{[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/\.\.\/lib\/ui-effects";/,
   );
+  assert.match(source, /class=\{PUBLIC_BADGE_STRONG_CLASS\}/);
+  assert.match(source, /PUBLIC_SECTION_SURFACE_CLASS/);
+  assert.match(source, /class=\{PUBLIC_SURFACE_ACTION_CLASS\}/);
+  assert.match(source, /class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} px-6 py-12 text-center`\}/);
   assert.match(source, /PROJECT DETAIL/);
   assert.match(source, /Lorem ipsum/);
   assert.match(source, /Dolor sit amet/);

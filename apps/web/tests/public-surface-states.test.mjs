@@ -36,21 +36,14 @@ test("header navigation keeps active and hover states without a heavy shared rai
   assert.match(headerSource, /class="text-base font-semibold tracking-tight text-foreground"/);
   assert.doesNotMatch(headerSource, /bg-white\/88 px-4 py-2/);
   assert.match(headerSource, /class="hidden items-center gap-1 md:flex"/);
+  assert.match(headerSource, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(
     headerSource,
-    /id="header-admin-link"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700/,
+    /id="header-admin-link"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
   );
   assert.match(
     headerSource,
-    /id="header-admin-link"[\s\S]*inline-flex[\s\S]*items-center rounded-full[\s\S]*px-2\.5 py-1 text-xs[\s\S]*leading-none[\s\S]*transition-all duration-200[\s\S]*hover:-translate-y-0\.5[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50[\s\S]*hover:text-red-800/,
-  );
-  assert.match(
-    headerSource,
-    /id="header-admin-logout"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50/,
-  );
-  assert.match(
-    headerSource,
-    /id="header-admin-logout"[\s\S]*inline-flex[\s\S]*items-center rounded-full[\s\S]*px-2\.5 py-1 text-xs[\s\S]*leading-none/,
+    /id="header-admin-logout"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
   );
   assert.doesNotMatch(headerSource, /rounded-full border border-white\/70 bg-white\/72 p-1\.5/);
   assert.match(headerLinkSource, /select-none/);
@@ -76,22 +69,13 @@ test("footer icons use the same filled pill treatment as the admin entry button"
     footerSource,
     /class="site-footer-dock flex items-center gap-3 rounded-full border border-white\/70 bg-white\/72 px-3 py-2 shadow-\[0_20px_50px_rgba\(15,23,42,0\.08\)\]"/,
   );
-  assert.match(footerIconSource, /bg-white\/88/);
-  assert.match(footerIconSource, /border-white\/80/);
-  assert.match(footerIconSource, /cursor-pointer/);
-  assert.match(footerIconSource, /select-none/);
-  assert.match(
-    footerIconSource,
-    /shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\]/,
-  );
-  assert.match(footerIconSource, /hover:-translate-y-0\.5/);
-  assert.match(footerIconSource, /hover:border-sky-300/);
-  assert.match(footerIconSource, /hover:bg-white/);
-  assert.match(footerIconSource, /hover:text-sky-700/);
+  assert.match(footerIconSource, /import \{ PUBLIC_ICON_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
+  assert.match(footerIconSource, /class=\{PUBLIC_ICON_ACTION_CLASS\}/);
   assert.match(
     footerAdminModalSource,
-    /className="inline-flex h-10 w-10 cursor-pointer select-none items-center justify-center rounded-full border border-white\/80 bg-white\/88 text-muted-foreground shadow-\[0_10px_30px_rgba\(15,23,42,0\.08\)\] transition-all duration-200 hover:-translate-y-0\.5 hover:border-sky-300 hover:bg-white hover:text-sky-700/,
+    /import \{ PUBLIC_ICON_ACTION_CLASS \} from "@\/lib\/ui-effects";/,
   );
+  assert.match(footerAdminModalSource, /className=\{`\$\{PUBLIC_ICON_ACTION_CLASS\} focus-visible:outline-none/);
   assert.match(footerAdminModalSource, /type="button"/);
   assert.match(footerSource, /class="site-footer-surface border-t border-white\/60 bg-white\/72 backdrop-blur-xl"/);
 });
@@ -120,23 +104,25 @@ test("home sections and content cards use solid white surfaces with stronger hov
 
   assert.match(
     homeSource,
-    /const sectionShellClass =\s*"rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]"/,
+    /const sectionShellClass = `\$\{PUBLIC_SECTION_SURFACE_CLASS\} p-6`;/,
   );
   assert.match(
     projectCardSource,
-    /bg-white\/95 p-3 text-card-foreground shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\] transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-\[0_38px_90px_rgba\(15,23,42,0\.14\)\]/,
+    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
+  assert.match(projectCardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(
     projectCardSource,
-    /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/,
+    /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/,
   );
   assert.match(
     postCardSource,
-    /bg-white\/95 p-3 shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-\[0_38px_90px_rgba\(15,23,42,0\.14\)\]/,
+    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
+  assert.match(postCardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(
     postCardSource,
-    /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/,
+    /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/,
   );
   assert.match(postCardSource, /object-cover object-center/);
 });

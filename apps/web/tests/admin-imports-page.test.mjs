@@ -37,14 +37,14 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /선택된 파일이 없습니다/);
   assert.doesNotMatch(panelSource, /복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다/);
   assert.match(panelSource, /from ["']@\/lib\/admin\/imports-client["']/);
+  assert.match(panelSource, /from ["']@\/lib\/ui-effects["']/);
   assert.match(panelSource, /downloadPostsBackupZip/);
   assert.match(panelSource, /restorePostsBackupZip/);
   assert.match(panelSource, /self-start/);
-  assert.match(panelSource, /hover:-translate-y-0\.5/);
-  assert.match(
-    panelSource,
-    /<section className="grid gap-3 rounded-\[1\.75rem\] border border-white\/80 bg-white\/92 p-4 shadow-\[0_14px_36px_rgba\(15,23,42,0\.06\)\] sm:p-5">/,
-  );
+  assert.match(panelSource, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
+  assert.match(panelSource, /PUBLIC_PANEL_SURFACE_CLASS/);
+  assert.match(panelSource, /PUBLIC_PANEL_SURFACE_SOFT_CLASS/);
+  assert.match(panelSource, /PUBLIC_SURFACE_ACTION_CLASS/);
   assert.doesNotMatch(
     panelSource,
     /<section className="grid gap-3 rounded-\[1\.75rem\] border border-sky-200\/80 bg-sky-50\/90 p-4 text-sm shadow-\[0_18px_44px_rgba\(56,189,248,0\.10\)\]">/,

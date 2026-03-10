@@ -7,6 +7,12 @@ import {
   resolveImportsErrorMessage,
   restorePostsBackupZip,
 } from "@/lib/admin/imports-client";
+import {
+  PUBLIC_PANEL_SURFACE_CLASS,
+  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
+  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 import { cn } from "@/lib/utils";
 
 type FeedbackState = "info" | "pending" | "ok" | "error";
@@ -17,7 +23,7 @@ type StatusMessage = {
 };
 
 const adminActionButtonClass =
-  "h-11 justify-center self-start hover:-translate-y-0.5 hover:border-sky-300/90 hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]";
+  `${PUBLIC_SURFACE_ACTION_CLASS} h-11 justify-center self-start hover:border-sky-300/90 hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]`;
 
 export function AdminImportsPanel() {
   const [busy, setBusy] = useState(false);
@@ -143,9 +149,9 @@ export function AdminImportsPanel() {
   return (
     <section
       id="admin-imports-panel"
-      className="grid gap-5 rounded-[2.25rem] border border-white/80 bg-white/96 p-5 shadow-[0_28px_70px_rgba(15,23,42,0.10)] backdrop-blur-sm sm:p-6"
+      className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}
     >
-      <div className="grid gap-3 rounded-[1.75rem] border border-white/80 bg-white/92 p-4 shadow-[0_14px_36px_rgba(15,23,42,0.06)] sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5">
+      <div className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200/80 bg-sky-100/90 text-sky-800 shadow-[0_12px_30px_rgba(56,189,248,0.16)]">
           <ShieldIcon className="h-5 w-5" />
         </div>
@@ -163,7 +169,7 @@ export function AdminImportsPanel() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <section className="grid gap-4 rounded-[1.75rem] border border-white/80 bg-white/92 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+        <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
               Save
@@ -193,7 +199,7 @@ export function AdminImportsPanel() {
           ) : null}
         </section>
 
-        <section className="grid gap-4 rounded-[1.75rem] border border-white/80 bg-white/92 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+        <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
               Restore
@@ -252,7 +258,7 @@ export function AdminImportsPanel() {
         </section>
       </div>
 
-      <section className="grid gap-3 rounded-[1.75rem] border border-white/80 bg-white/92 p-4 shadow-[0_14px_36px_rgba(15,23,42,0.06)] sm:p-5">
+      <section className={`grid gap-3 p-4 sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
           복원 전 체크
         </p>

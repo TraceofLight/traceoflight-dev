@@ -7,6 +7,10 @@ import {
 } from "../lib/cover-media";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
+import {
+  PUBLIC_HOVER_CARD_CLASS,
+  PUBLIC_MEDIA_FRAME_CLASS,
+} from "../lib/ui-effects";
 
 interface Props {
   post: PostCardData;
@@ -40,9 +44,8 @@ const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSr
 const formattedPubDate = formatDateLabel(post.pubDate);
 const pubDateIso = toIsoDateTime(post.pubDate);
 const readingLabel = formatReadingTimeLabel(post.body ?? "");
-const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
-const anchorClass =
-  "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
+const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
+const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
 ---
 
 <article

@@ -2,6 +2,10 @@
 import { Image } from "astro:assets";
 
 import type { ProjectItem } from "../lib/projects";
+import {
+  PUBLIC_HOVER_CARD_CLASS,
+  PUBLIC_MEDIA_FRAME_CLASS,
+} from "../lib/ui-effects";
 
 interface Props {
   project: ProjectItem;
@@ -20,9 +24,8 @@ const visibleStack =
   typeof stackLimit === "number"
     ? project.stack.slice(0, stackLimit)
     : project.stack;
-const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
-const anchorClass =
-  "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 text-card-foreground shadow-[0_28px_80px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
+const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
+const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
 ---
 
 <article class="group h-full">

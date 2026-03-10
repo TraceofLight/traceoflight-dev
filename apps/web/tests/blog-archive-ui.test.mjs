@@ -45,6 +45,10 @@ test("blog archive filter island provides search, sort, and admin visibility con
   ]);
 
   assert.match(source, /import \{ cn \} from ["']@\/lib\/utils["'];/);
+  assert.match(
+    source,
+    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_STRONG_CLASS[\s\S]*\} from ["']@\/lib\/ui-effects["'];/,
+  );
   assert.match(source, /placeholder="포스트 검색/);
   assert.match(source, /aria-label="정렬 방식"/);
   assert.match(source, /글 작성/);
@@ -52,8 +56,7 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /총 \{filteredPosts\.length\}개의 포스트/);
   assert.doesNotMatch(source, /const archiveIntroClass =/);
   assert.match(source, /<header className="space-y-3 text-center">/);
-  assert.match(source, /rounded-\[2\.25rem\] border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.10\)\]/);
-  assert.match(source, /backdrop-blur-sm/);
+  assert.match(source, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
   assert.match(source, /const filterChipClass =/);
   assert.match(source, /const filterChipInactiveClass =/);
   assert.match(source, /const filterChipActiveClass =/);
@@ -75,11 +78,8 @@ test("blog archive filter island provides search, sort, and admin visibility con
   );
   assert.match(source, /bg-slate-100\/92[\s\S]*text-foreground\/80[\s\S]*hover:bg-white/);
   assert.match(source, /rounded-2xl border border-white\/80 bg-white\/94/);
-  assert.match(
-    source,
-    /const anchorClass =[\s\S]*rounded-\[2rem\] border border-white\/80 bg-white\/95 p-3 shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-\[0_38px_90px_rgba\(15,23,42,0\.14\)\]/,
-  );
-  assert.match(source, /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/);
+  assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
+  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
   assert.match(source, /const fallbackCoverImageSrc = toBrowserImageUrl\([\s\S]*fit:\s*"cover"/);
@@ -100,9 +100,10 @@ test("post card uses a wide image-led public card structure", async () => {
 
   assert.match(
     source,
-    /rounded-\[2rem\] border border-white\/80 bg-white\/95 p-3 shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\] text-card-foreground/,
+    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
-  assert.match(source, /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/);
+  assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
+  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
   assert.match(source, /line-clamp-2 text-sm text-muted-foreground/);

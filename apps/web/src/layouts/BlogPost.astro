@@ -12,6 +12,11 @@ import {
   toBrowserImageUrl,
   type CoverMediaSource,
 } from "../lib/cover-media";
+import {
+  PUBLIC_PANEL_SURFACE_CLASS,
+  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../lib/ui-effects";
 
 type MarkdownPostData = CollectionEntry<"blog">["data"];
 
@@ -106,7 +111,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
         aria-label="Post navigation"
       >
         <a
-          class="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class={PUBLIC_SURFACE_ACTION_CLASS}
           href="/blog/"
         >
           <span aria-hidden="true">‹</span>
@@ -166,7 +171,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
 
       <nav class="mt-12 flex justify-center" aria-label="Blog archive">
         <a
-          class="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class={PUBLIC_SURFACE_ACTION_CLASS}
           href="/blog/"
         >
           <span aria-hidden="true">☰</span>
@@ -181,7 +186,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
           class="xl:sticky xl:top-24 xl:self-start"
           aria-label="시리즈 탐색"
         >
-          <section class="rounded-3xl border border-white/80 bg-white/96 p-5 shadow-[0_28px_70px_rgba(15,23,42,0.12)]">
+          <section class={`rounded-3xl bg-white/96 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
             <div class="space-y-1">
               <a
                 class="block font-medium text-foreground transition-colors hover:text-primary"
@@ -208,7 +213,7 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
                 return (
                   <li>
                     <a
-                      class="group grid grid-cols-[124px_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-white/80 bg-white/92 p-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-sky-200/70 hover:bg-white"
+                      class={`group grid grid-cols-[124px_minmax(0,1fr)] items-center gap-4 rounded-2xl p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200/70 hover:bg-white ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}
                       href={`/blog/${seriesPost.slug}`}
                     >
                       <img

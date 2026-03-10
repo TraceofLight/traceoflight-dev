@@ -9,6 +9,12 @@ import {
   toBrowserImageUrl,
 } from "../../lib/cover-media";
 import { getSeriesBySlug } from "../../lib/series-db";
+import {
+  PUBLIC_EMPTY_STATE_CLASS,
+  PUBLIC_PANEL_SURFACE_CLASS,
+  PUBLIC_SECTION_SURFACE_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../../lib/ui-effects";
 
 const slug = Astro.params.slug ?? "";
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
@@ -73,7 +79,7 @@ const adminSeries = series
   {
     series ? (
       <section class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
-        <header class="grid gap-8 rounded-[2.25rem] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8">
+        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <div class="space-y-6">
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
@@ -140,7 +146,7 @@ const adminSeries = series
 
                     return (
                       <li
-                        class="rounded-[1.75rem] border border-white/80 bg-white/88 p-3 shadow-[0_18px_48px_rgba(15,23,42,0.06)]"
+                        class={`p-3 ${PUBLIC_PANEL_SURFACE_CLASS}`}
                         data-post-slug={post.slug}
                         data-series-order={post.orderIndex}
                       >
@@ -176,19 +182,19 @@ const adminSeries = series
               ))}
             </ol>
           ) : (
-            <section class="rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+            <section class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-10 text-center text-sm text-muted-foreground`}>
               아직 시리즈에 포함된 글이 없습니다.
             </section>
           ))}
       </section>
     ) : (
       <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
-        <div class="rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-12 text-center shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+        <div class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-12 text-center`}>
           <p class="text-base text-muted-foreground">
             시리즈를 찾을 수 없습니다.
           </p>
           <a
-            class="mt-5 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground"
+            class={`${PUBLIC_SURFACE_ACTION_CLASS} mt-5`}
             href="/series"
           >
             시리즈 목록

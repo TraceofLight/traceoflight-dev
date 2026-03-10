@@ -2,6 +2,7 @@
 import { NAV_LINKS, SITE_TITLE } from "../consts";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { ADMIN_IMPORTS_PATH } from "../lib/admin/imports-page";
+import { DANGER_PILL_ACTION_CLASS } from "../lib/ui-effects";
 import HeaderLink from "./HeaderLink.astro";
 import MobileNavSheet from "./public/MobileNavSheet";
 
@@ -21,14 +22,14 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
             <a
               href={ADMIN_IMPORTS_PATH}
               id="header-admin-link"
-              class="inline-flex select-none items-center rounded-full border border-red-200/80 bg-white/92 px-2.5 py-1 text-xs font-semibold leading-none text-red-700 shadow-[0_10px_30px_rgba(239,68,68,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-red-300/90 hover:bg-red-50 hover:text-red-800"
+              class={DANGER_PILL_ACTION_CLASS}
             >
               Admin
             </a>
             <form method="POST" action="/internal-api/auth/logout?next=/">
               <button
                 id="header-admin-logout"
-                class="inline-flex select-none items-center rounded-full border border-red-200/80 bg-white/92 px-2.5 py-1 text-xs font-semibold leading-none text-red-700 shadow-[0_10px_30px_rgba(239,68,68,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-red-300/90 hover:bg-red-50 hover:text-red-800"
+                class={DANGER_PILL_ACTION_CLASS}
                 type="submit"
               >
                 Logout

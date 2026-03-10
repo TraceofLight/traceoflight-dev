@@ -4,6 +4,10 @@ import {
   buildImageFallbackOnError,
   toBrowserImageUrl,
 } from "../lib/cover-media";
+import {
+  PUBLIC_HOVER_CARD_CLASS,
+  PUBLIC_MEDIA_FRAME_CLASS,
+} from "../lib/ui-effects";
 
 interface SeriesCardData {
   slug: string;
@@ -40,12 +44,12 @@ const resolvedCoverImageSrc = series.coverImageUrl
       height: imageHeight,
     })
   : resolvedFallbackCoverImageSrc;
-const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
+const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
 ---
 
 <article class="group h-full">
   <a
-    class="flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]"
+    class={`flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`}
     href={`/series/${series.slug}`}
   >
     <div class={mediaFrameClass}>

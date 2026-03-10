@@ -9,10 +9,6 @@ test("home page uses tailwind sections while keeping the curated resume content"
   const source = await readFile(homePagePath, "utf8");
 
   assert.match(source, /max-w-6xl/);
-  assert.match(
-    source,
-    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
-  );
   assert.match(source, /inline-flex select-none items-center gap-2 rounded-full/);
   assert.doesNotMatch(source, /class="home-resume"/);
   assert.doesNotMatch(source, /class="home-panel home-profile"/);
@@ -59,27 +55,27 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /"Game Development"/);
   assert.match(source, /"Graphics Programming"/);
   assert.match(source, /"Database Engineering"/);
-  assert.match(source, /const pillClass =\s*"inline-flex select-none items-center gap-2 rounded-full/);
   assert.match(
     source,
-    /const primaryOutlineActionClass =\s*"inline-flex select-none items-center gap-2 rounded-full border border-sky-200\/70 bg-white\/96 px-5 py-2\.5 text-sm font-medium text-sky-700/,
+    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+  );
+  assert.match(source, /const sectionShellClass = `\$\{PUBLIC_SECTION_SURFACE_CLASS\} p-6`;/);
+  assert.match(source, /const pillClass = PUBLIC_PILL_CLASS;/);
+  assert.match(
+    source,
+    /const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;/,
   );
   assert.match(
     source,
-    /const surfaceActionClass =\s*"inline-flex select-none items-center gap-2 rounded-full border border-white\/80 bg-white\/88 px-4 py-2 text-sm font-medium text-muted-foreground/,
+    /const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;/,
   );
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/projects">\s*프로젝트 보기\s*<\/a>/);
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/blog">\s*블로그 보기\s*<\/a>/);
   assert.match(source, /<a class=\{surfaceActionClass\} href="\/projects">\s*View All Projects\s*<\/a>/);
   assert.match(source, /<a class=\{surfaceActionClass\} href="\/series">\s*View All Series\s*<\/a>/);
-  assert.match(
-    source,
-    /<li class="inline-flex select-none items-center gap-2 rounded-full border border-white\/80 bg-slate-100\/88 px-2\.5 py-1 text-xs text-muted-foreground">/,
-  );
-  assert.match(
-    source,
-    /<li class="inline-flex select-none items-center gap-2 rounded-full border border-white\/80 bg-slate-100\/88 px-3 py-1\.5 text-xs font-medium text-muted-foreground">/,
-  );
+  assert.match(source, /<li class=\{PUBLIC_BADGE_CLASS\}>/);
+  assert.match(source, /<li class=\{PUBLIC_BADGE_STRONG_CLASS\}>/);
+  assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
   assert.doesNotMatch(source, /"Cloud-Native Database"/);
   assert.doesNotMatch(source, /"Backend API"/);
   assert.doesNotMatch(source, /"Frontend Engineering"/);
@@ -158,21 +154,14 @@ test("site header brand uses text-only mark without avatar image", async () => {
   assert.match(source, /id="header-admin-link"/);
   assert.match(source, /id="header-admin-logout"/);
   assert.match(source, /\/internal-api\/auth\/logout/);
+  assert.match(source, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(
     source,
-    /id="header-admin-link"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700/,
+    /id="header-admin-link"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
   );
   assert.match(
     source,
-    /id="header-admin-link"[\s\S]*inline-flex[\s\S]*items-center rounded-full[\s\S]*px-2\.5 py-1 text-xs[\s\S]*leading-none[\s\S]*transition-all duration-200[\s\S]*hover:-translate-y-0\.5[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50[\s\S]*hover:text-red-800/,
-  );
-  assert.match(
-    source,
-    /id="header-admin-logout"[\s\S]*border-red-200\/80[\s\S]*bg-white\/92[\s\S]*text-red-700[\s\S]*hover:border-red-300\/90[\s\S]*hover:bg-red-50/,
-  );
-  assert.match(
-    source,
-    /id="header-admin-logout"[\s\S]*inline-flex[\s\S]*items-center rounded-full[\s\S]*px-2\.5 py-1 text-xs[\s\S]*leading-none/,
+    /id="header-admin-logout"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
   );
   assert.match(source, /MobileNavSheet/);
   assert.doesNotMatch(source, /brand-avatar/);

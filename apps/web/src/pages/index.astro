@@ -16,6 +16,15 @@ import {
 } from "../lib/content-source";
 import { getProjects } from "../lib/projects";
 import { getSeriesBySlug, listSeries } from "../lib/series-db";
+import {
+  PUBLIC_BADGE_CLASS,
+  PUBLIC_BADGE_STRONG_CLASS,
+  PUBLIC_EMPTY_STATE_CLASS,
+  PUBLIC_PILL_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+  PUBLIC_SECTION_SURFACE_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../lib/ui-effects";
 
 const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
@@ -44,14 +53,10 @@ if (provider === "db") {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
 const projects = getProjects().slice(0, 3);
-const sectionShellClass =
-  "rounded-[2.25rem] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]";
-const pillClass =
-  "inline-flex select-none items-center gap-2 rounded-full border border-white/80 bg-white/88 px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
-const primaryOutlineActionClass =
-  "inline-flex select-none items-center gap-2 rounded-full border border-sky-200/70 bg-white/96 px-5 py-2.5 text-sm font-medium text-sky-700 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]";
-const surfaceActionClass =
-  "inline-flex select-none items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground";
+const sectionShellClass = `${PUBLIC_SECTION_SURFACE_CLASS} p-6`;
+const pillClass = PUBLIC_PILL_CLASS;
+const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;
+const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;
 const resumeRowClass =
   "grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3";
 const resumePeriodClass = "text-sm leading-7 font-medium text-foreground";
@@ -402,7 +407,7 @@ const connectLinks = [
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li class="inline-flex select-none items-center gap-2 rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-1 text-xs text-muted-foreground">
+                              <li class={PUBLIC_BADGE_CLASS}>
                                 <img
                                   src={badge.icon}
                                   alt=""
@@ -517,7 +522,7 @@ const connectLinks = [
               </h3>
               <ul class="mt-4 flex flex-wrap gap-2">
                 {group.items.map((item) => (
-                    <li class="inline-flex select-none items-center gap-2 rounded-full border border-white/80 bg-slate-100/88 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                    <li class={PUBLIC_BADGE_STRONG_CLASS}>
                       {item.icon ? (
                         <img
                           src={item.icon}
@@ -595,7 +600,7 @@ const connectLinks = [
             ))}
           </div>
         ) : (
-          <div class="mt-6 rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+          <div class={`${PUBLIC_EMPTY_STATE_CLASS} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
             아직 등록된 시리즈가 없습니다.
           </div>
         )
@@ -627,7 +632,7 @@ const connectLinks = [
             ))}
           </div>
         ) : (
-          <div class="mt-6 rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+          <div class={`${PUBLIC_EMPTY_STATE_CLASS} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
             아직 공개된 글이 없습니다.
           </div>
         )

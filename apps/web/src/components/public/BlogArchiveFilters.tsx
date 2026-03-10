@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
+import {
+  PUBLIC_HOVER_CARD_CLASS,
+  PUBLIC_MEDIA_FRAME_CLASS,
+  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
+} from "@/lib/ui-effects";
 import { cn } from "@/lib/utils";
 
 export type BlogArchivePost = {
@@ -48,9 +53,8 @@ const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png
   height: 640,
   fit: "cover",
 });
-const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
-const anchorClass =
-  "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
+const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
+const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
 const filterChipClass =
   "blog-filter-chip inline-flex h-10 select-none items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200";
 const filterChipInactiveClass =
@@ -125,9 +129,9 @@ export function BlogArchiveFilters({
         </p>
       </header>
 
-      <section
+        <section
         aria-label="Blog archive controls"
-        className="grid gap-5 rounded-[2.25rem] border border-white/80 bg-white/96 p-5 shadow-[0_28px_70px_rgba(15,23,42,0.10)] backdrop-blur-sm sm:p-6"
+        className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <label className="grid flex-1 gap-2" htmlFor="blog-search">
