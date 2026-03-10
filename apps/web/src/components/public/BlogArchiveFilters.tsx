@@ -51,8 +51,6 @@ const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png
 const mediaFrameClass = "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
 const anchorClass =
   "flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.10)] text-card-foreground transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]";
-const archiveIntroClass =
-  "rounded-[2.25rem] border border-white/80 bg-white/90 px-6 py-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:px-8 sm:py-12";
 const filterChipClass =
   "blog-filter-chip inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200";
 const filterChipInactiveClass =
@@ -118,7 +116,7 @@ export function BlogArchiveFilters({
 
   return (
     <section className="space-y-8">
-      <header className={cn(archiveIntroClass, "space-y-3 text-center")}>
+      <header className="space-y-3 text-center">
         <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
           Blog
         </h1>

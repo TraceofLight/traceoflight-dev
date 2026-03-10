@@ -35,6 +35,11 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(cardSource, /href=\{`\/series\/\$\{series\.slug\}`\}/);
   assert.match(source, /\/images\/empty-series-image\.png/);
   assert.match(source, /TraceofLight의 다양한 이야기를 주제별로 엮은 서고/);
+  assert.match(source, /<header class="space-y-4">/);
+  assert.doesNotMatch(
+    source,
+    /<header[\s\S]*rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+  );
   assert.match(source, /아직 등록된 시리즈가 없습니다/);
   assert.doesNotMatch(source, /주제별로 읽는 TraceofLight/);
   assert.doesNotMatch(source, /Archive Snapshot/);

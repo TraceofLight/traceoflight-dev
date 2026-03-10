@@ -44,8 +44,10 @@ test("public theme tokens move the site to a bright toss-like blue-gray palette"
   assert.match(tokensSource, /--card:\s*222 38% 11%/);
   assert.match(baseSource, /html\[data-theme='dark'\] body \{/);
   assert.match(baseSource, /linear-gradient\(180deg,\s*#08111f 0%,\s*#0f172a 100%\)/);
+  assert.match(baseSource, /html\[data-theme='dark'\] \.site-header-surface \{/);
   assert.match(baseSource, /html\[data-theme='dark'\] \.site-footer-surface \{/);
   assert.match(baseSource, /html\[data-theme='dark'\] \.site-footer-dock \{/);
+  assert.doesNotMatch(baseSource, /html\[data-theme='dark'\] header \{/);
   assert.match(baseSource, /\.hljs-keyword/);
   assert.match(baseSource, /\.hljs-string/);
 });
@@ -114,6 +116,7 @@ test("base head and base layout provide a persistent global theme toggle in a fl
   assert.match(baseHeadSource, /document\.addEventListener\("astro:after-swap", applyTheme\)/);
   assert.match(baseHeadSource, /document\.addEventListener\("astro:page-load", applyTheme\)/);
   assert.match(baseHeadSource, /window\.matchMedia\("\(prefers-color-scheme: dark\)"\)/);
+  assert.match(headerSource, /site-header-surface/);
   assert.doesNotMatch(headerSource, /ThemeToggle/);
   assert.match(baseLayoutSource, /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons['"];/);
   assert.match(baseLayoutSource, /<FloatingUtilityButtons client:load \/>/);

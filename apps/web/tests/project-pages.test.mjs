@@ -35,9 +35,10 @@ test("project card and list page use the new public card shell", async () => {
 
   assert.match(indexSource, /import ProjectCard from/);
   assert.match(indexSource, /max-w-6xl/);
-  assert.match(
+  assert.match(indexSource, /<header class="space-y-4">/);
+  assert.doesNotMatch(
     indexSource,
-    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
+    /<header[\s\S]*rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
   );
   assert.match(indexSource, /Lorem ipsum dolor sit amet/);
   assert.doesNotMatch(indexSource, /프로젝트 아카이브/);

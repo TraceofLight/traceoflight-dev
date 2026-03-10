@@ -137,7 +137,7 @@ html[data-theme='dark'] {
   color-scheme: dark;
 }
 
-html[data-theme='dark'] header {
+html[data-theme='dark'] .site-header-surface {
   border-color: rgba(148, 163, 184, 0.14);
   background: rgba(8, 17, 31, 0.78);
 }
