@@ -1,5 +1,6 @@
 ---
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
+import { ADMIN_IMPORTS_PATH } from "../lib/admin/imports-page";
 import { sanitizeNextPath } from "../lib/admin-redirect";
 import FooterIconLink from "./FooterIconLink.astro";
 import FooterAdminModal from "./public/FooterAdminModal";
@@ -27,12 +28,23 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
         icon="mail"
       />
       <FooterIconLink href={GITHUB_URL} label="GitHub" icon="github" external />
-      <FooterAdminModal
-        client:load
-        adminNextPath={adminNextPath}
-        isAdminViewer={isAdminViewer}
-        shouldOpenOnLoad={shouldOpenAdminLogin}
-      />
+      {
+        isAdminViewer ? (
+          <a
+            href={ADMIN_IMPORTS_PATH}
+            aria-label="Admin Console"
+            class="inline-flex h-10 items-center justify-center rounded-full border border-red-200/80 bg-white/92 px-4 text-sm font-semibold text-red-700 shadow-[0_10px_30px_rgba(239,68,68,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-red-300/90 hover:bg-red-50 hover:text-red-800"
+          >
+            Admin
+          </a>
+        ) : (
+          <FooterAdminModal
+            client:load
+            adminNextPath={adminNextPath}
+            shouldOpenOnLoad={shouldOpenAdminLogin}
+          />
+        )
+      }
     </div>
   </div>
 </footer>

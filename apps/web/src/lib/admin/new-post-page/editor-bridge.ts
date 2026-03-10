@@ -1,15 +1,32 @@
-import { Crepe } from "@milkdown/crepe";
-import "@milkdown/crepe/theme/common/style.css";
-import "@milkdown/crepe/theme/nord.css";
-import { replaceAll } from "@milkdown/utils";
-
 import type { EditorBridge } from "./types";
+
+type CrepeRuntime = {
+  Crepe: typeof import("@milkdown/crepe").Crepe;
+  replaceAll: typeof import("@milkdown/utils").replaceAll;
+};
+
+let crepeRuntimePromise: Promise<CrepeRuntime> | null = null;
+
+async function loadCrepeRuntime(): Promise<CrepeRuntime> {
+  if (crepeRuntimePromise) {
+    return crepeRuntimePromise;
+  }
+
+  crepeRuntimePromise = (async () => {
+    const { Crepe } = await import("@milkdown/crepe");
+    const { replaceAll } = await import("@milkdown/utils");
+    return { Crepe, replaceAll };
+  })();
+
+  return crepeRuntimePromise;
+}
 
 export async function createEditorBridge(
   editorRoot: HTMLElement,
   initialValue: string,
 ): Promise<EditorBridge> {
   try {
+    const { Crepe, replaceAll } = await loadCrepeRuntime();
     const editor = new Crepe({
       root: editorRoot,
       defaultValue: initialValue,

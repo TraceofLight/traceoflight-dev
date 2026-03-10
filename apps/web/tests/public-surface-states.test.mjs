@@ -89,6 +89,8 @@ test("mobile navigation sheet stays compact and drops redundant title copy", asy
   assert.doesNotMatch(source, /Move across the public site\./);
   assert.match(source, /className="mt-2 flex flex-col gap-1\.5"/);
   assert.match(source, /rounded-2xl px-4 py-3 text-base/);
+  assert.match(source, /ADMIN_IMPORTS_PATH/);
+  assert.match(source, /href=\{ADMIN_IMPORTS_PATH\}/);
 });
 
 test("home sections and content cards use solid white surfaces with stronger hover lift", async () => {

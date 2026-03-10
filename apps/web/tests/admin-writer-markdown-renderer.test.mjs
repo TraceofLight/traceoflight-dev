@@ -12,6 +12,14 @@ const rendererPath = new URL(
   "../src/lib/markdown-renderer.ts",
   import.meta.url,
 );
+const rendererCorePath = new URL(
+  "../src/lib/markdown-renderer-core.ts",
+  import.meta.url,
+);
+const lazyRendererPath = new URL(
+  "../src/lib/markdown-renderer-lazy.ts",
+  import.meta.url,
+);
 const blogLayoutPath = new URL(
   "../src/layouts/BlogPost.astro",
   import.meta.url,
@@ -22,21 +30,32 @@ const writerStylePath = new URL(
 );
 
 test("writer and blog db share markdown renderer with figure caption output", async () => {
-  const [writerSource, blogDbSource, rendererSource] = await Promise.all([
-    readFile(writerScriptPath, "utf8"),
-    readFile(blogDbPath, "utf8"),
-    readFile(rendererPath, "utf8"),
-  ]);
+  const [writerSource, blogDbSource, rendererSource, rendererCoreSource, lazyRendererSource] =
+    await Promise.all([
+      readFile(writerScriptPath, "utf8"),
+      readFile(blogDbPath, "utf8"),
+      readFile(rendererPath, "utf8"),
+      readFile(rendererCorePath, "utf8"),
+      readFile(lazyRendererPath, "utf8"),
+    ]);
 
-  assert.match(writerSource, /createMarkdownRenderer/);
+  assert.match(writerSource, /loadMarkdownRenderer/);
   assert.match(blogDbSource, /createMarkdownRenderer/);
-  assert.match(rendererSource, /import hljs from 'highlight\.js';/);
-  assert.match(rendererSource, /highlight:\s*\(code,\s*language\)\s*=>/);
-  assert.match(rendererSource, /hljs\.highlight\(code,\s*\{\s*language:\s*normalizedLanguage\s*\}\)/);
-  assert.match(rendererSource, /hljs\.highlightAuto\(code\)/);
-  assert.match(rendererSource, /renderer\.rules\.image/);
-  assert.match(rendererSource, /<figure/);
-  assert.match(rendererSource, /<figcaption/);
+  assert.match(rendererSource, /import MarkdownIt from ["']markdown-it["'];/);
+  assert.match(rendererSource, /import hljs from ["']highlight\.js["'];/);
+  assert.match(lazyRendererSource, /export async function loadMarkdownRenderer/);
+  assert.match(lazyRendererSource, /import\(["']markdown-it["']\)/);
+  assert.match(lazyRendererSource, /import\(["']highlight\.js\/lib\/common["']\)/);
+  assert.match(rendererCoreSource, /highlight:\s*\(code,\s*language\)\s*=>/);
+  assert.match(
+    rendererCoreSource,
+    /hljs\.highlight\(code,\s*\{\s*language:\s*normalizedLanguage\s*\}\)/,
+  );
+  assert.match(rendererCoreSource, /hljs\.highlightAuto\(code\)/);
+  assert.match(rendererCoreSource, /renderer\.rules\.image/);
+  assert.match(rendererCoreSource, /<figure/);
+  assert.match(rendererCoreSource, /<figcaption/);
+  assert.match(writerSource, /markdownPreviewPromise/);
 });
 
 test("writer preview figcaption style is isolated from blog styles", async () => {

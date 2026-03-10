@@ -1,26 +1,13 @@
-import { createMarkdownRenderer } from "../markdown-renderer";
+import { loadMarkdownRenderer } from "../markdown-renderer-lazy";
 
 import { createEditorBridge } from "./new-post-page/editor-bridge";
 import { sanitizeEditorMarkdown } from "./new-post-page/editor-markdown";
 import { queryWriterDomElements } from "./new-post-page/dom";
 import { bindDraftLayerEvents } from "./new-post-page/draft-layer-events";
-import {
-  buildDraftQueryPath,
-  createDraftListItem,
-  normalizeDraftList,
-  readDraftSlugFromSearch,
-  renderDraftListEmpty,
-} from "./new-post-page/drafts";
-import { isMediaFileDrag, resolveDropTarget } from "./new-post-page/drag-drop";
+import { createWriterLoaders } from "./new-post-page/loaders";
+import { bindWriterMediaInteractions } from "./new-post-page/media-controller";
 import { setFeedback } from "./new-post-page/feedback";
-import {
-  requestDraftBySlug,
-  requestDraftDelete,
-  requestDraftList,
-  requestPostBySlug,
-  requestSeriesList,
-  requestTagList,
-} from "./new-post-page/posts-api";
+import { requestDraftDelete } from "./new-post-page/posts-api";
 import {
   markCoverPreviewLoaded,
   nextCompactView,
@@ -31,9 +18,7 @@ import {
 } from "./new-post-page/preview";
 import { bindSubmitEvent } from "./new-post-page/submit-events";
 import {
-  buildTagSuggestionOptions,
   consumeTagInputValue,
-  dedupeTagSlugs,
   renderMetadataChipRail,
   syncTagInputState,
 } from "./new-post-page/tags";
@@ -45,18 +30,8 @@ import {
   doesSlugExist,
   slugify,
 } from "./new-post-page/slug";
-import {
-  createUploadBundle,
-  extractFileFromClipboard,
-  normalizeMediaBaseUrl,
-} from "./new-post-page/upload";
-import type {
-  AdminPostPayload,
-  CompactView,
-  DropTarget,
-} from "./new-post-page/types";
-
-const markdownPreview = createMarkdownRenderer();
+import { normalizeMediaBaseUrl } from "./new-post-page/upload";
+import type { CompactView } from "./new-post-page/types";
 
 export interface WriterPageInitOptions {
   mode?: "create" | "edit";
@@ -169,39 +144,6 @@ export async function initNewPostAdminPage(
     syncTagUi();
   };
 
-  const loadTagSuggestions = async (query = "") => {
-    const nextSequence = ++tagSuggestionSequence;
-    const result = await requestTagList(query);
-    if (nextSequence !== tagSuggestionSequence) return;
-    if (!result.ok) return;
-    buildTagSuggestionOptions(tagSuggestionList, result.tags);
-  };
-
-  const loadSeriesSuggestions = async (query = "") => {
-    const nextSequence = ++seriesSuggestionSequence;
-    const result = await requestSeriesList();
-    if (nextSequence !== seriesSuggestionSequence) return;
-    if (!result.ok) return;
-
-    const queryText = query.trim().toLowerCase();
-    const filteredSeries = queryText
-      ? result.series.filter(
-          (series) =>
-            series.title.toLowerCase().includes(queryText) ||
-            series.slug.includes(queryText),
-        )
-      : result.series;
-
-    const fragment = document.createDocumentFragment();
-    filteredSeries.forEach((series) => {
-      const option = document.createElement("option");
-      option.value = series.title;
-      fragment.append(option);
-    });
-    seriesSuggestionList.innerHTML = "";
-    seriesSuggestionList.append(fragment);
-  };
-
   const mediaBaseUrl = normalizeMediaBaseUrl(
     form.dataset.mediaBaseUrl ?? "",
     window.location.origin,
@@ -214,16 +156,16 @@ export async function initNewPostAdminPage(
       0,
     );
   }
-
-  let isUploading = false;
   let previewJobQueued = false;
-  let dragDepth = 0;
+  let markdownPreviewPromise:
+    | ReturnType<typeof loadMarkdownRenderer>
+    | null = null;
   let slugCheckTimer: number | null = null;
   let slugCheckSequence = 0;
   let tagSuggestionSequence = 0;
   let seriesSuggestionSequence = 0;
   let editingPostSlug: string | null = mode === "edit" ? initialEditSlug : null;
-  let activeDropTarget: DropTarget = null;
+  let activeDropTarget: "body" | "cover" | null = null;
   let selectedTags: string[] = [];
 
   const setDraftLayerOpen = (nextOpen: boolean) => {
@@ -304,7 +246,7 @@ export async function initNewPostAdminPage(
   setSlugValidationState("idle");
   syncTagUi();
 
-  const setDropTargetState = (target: DropTarget) => {
+  const setDropTargetState = (target: "body" | "cover" | null) => {
     if (activeDropTarget === target) return;
     activeDropTarget = target;
     editorDropZone.setAttribute(
@@ -379,6 +321,8 @@ export async function initNewPostAdminPage(
       hasBodyContent ? "true" : "false",
     );
     if (hasBodyContent) {
+      markdownPreviewPromise ??= loadMarkdownRenderer();
+      const markdownPreview = await markdownPreviewPromise;
       previewContent.innerHTML = markdownPreview.render(normalizedMarkdown);
     } else {
       previewContent.innerHTML =
@@ -423,134 +367,54 @@ export async function initNewPostAdminPage(
     setCompactToggleLabel(compactToggleButton, currentView);
   };
 
-  const updateDraftQueryParam = (draftSlug: string | null) => {
-    const nextPath = buildDraftQueryPath(window.location.href, draftSlug);
-    window.history.replaceState({}, "", nextPath);
-  };
-
-  const applyDraftPayload = async (
-    loaded: Partial<AdminPostPayload>,
-    fallbackSlug: string,
-  ) => {
-    editingPostSlug = loaded.slug?.trim() || fallbackSlug;
-    titleInput.value = loaded.title?.trim() ?? "";
-    slugInput.value = loaded.slug?.trim() || fallbackSlug;
-    slugInput.dataset.touched = "true";
-    excerptInput.value = loaded.excerpt ?? "";
-    coverInput.value = loaded.cover_image_url ?? "";
-    visibilityInput.value =
-      loaded.visibility === "private" ? "private" : "public";
-    seriesInput.value = loaded.series_title?.trim() ?? loaded.series_context?.series_title ?? "";
-    selectedTags = dedupeTagSlugs(loaded.tags ?? []);
-    syncTagUi();
-    await editorBridge.setMarkdown(loaded.body_markdown ?? "");
-    setSlugValidationState("idle");
-    queueSlugAvailabilityCheck();
-    queuePreviewRefresh();
-  };
-
-  const loadDraftBySlug = async (
-    draftSlug: string,
-    options: { updateQuery?: boolean; showToast?: boolean } = {},
-  ): Promise<boolean> => {
-    const normalizedSlug = draftSlug.trim();
-    if (!normalizedSlug) return false;
-
-    const draftResponse = await requestDraftBySlug(normalizedSlug);
-    if (!draftResponse.ok) {
-      if (draftResponse.reason === "not_found") {
-        showFeedback("요청한 임시저장 글을 찾지 못했습니다.", "error");
-      } else if (draftResponse.reason === "http_error") {
-        showFeedback("임시저장 글을 불러오지 못했습니다.", "error");
-      } else {
-        showFeedback(
-          "네트워크 오류로 임시저장 글을 불러오지 못했습니다.",
-          "error",
-        );
-      }
-      return false;
-    }
-
-    await applyDraftPayload(draftResponse.payload, normalizedSlug);
-    if (options.updateQuery !== false) {
-      updateDraftQueryParam(editingPostSlug || normalizedSlug);
-    }
-    if (options.showToast !== false) {
-      showFeedback(
-        `임시저장 글을 불러왔습니다: ${titleInput.value || "제목 없음"}`,
-        "ok",
-      );
-    }
-    return true;
-  };
-
-  const loadDraftFromQuery = async () => {
-    if (mode === "edit") return;
-    const draftSlug = readDraftSlugFromSearch(window.location.search);
-    if (!draftSlug) return;
-
-    await loadDraftBySlug(draftSlug, { updateQuery: true, showToast: true });
-  };
-
-  const loadExistingPostBySlug = async (
-    postSlug: string,
-    options: { showToast?: boolean } = {},
-  ): Promise<boolean> => {
-    const normalizedSlug = postSlug.trim();
-    if (!normalizedSlug) return false;
-
-    const postResponse = await requestPostBySlug(normalizedSlug);
-    if (!postResponse.ok) {
-      if (postResponse.reason === "not_found") {
-        showFeedback("수정할 게시글을 찾지 못했습니다.", "error");
-      } else if (postResponse.reason === "http_error") {
-        showFeedback("게시글을 불러오지 못했습니다.", "error");
-      } else {
-        showFeedback("네트워크 오류로 게시글을 불러오지 못했습니다.", "error");
-      }
-      return false;
-    }
-
-    await applyDraftPayload(postResponse.payload, normalizedSlug);
-    updateDraftQueryParam(null);
-    if (options.showToast !== false) {
-      showFeedback(`게시글을 불러왔습니다: ${titleInput.value || "제목 없음"}`, "ok");
-    }
-    return true;
-  };
-
-  const loadDraftList = async () => {
-    setDraftFeedback("임시저장 글을 불러오는 중...", "info");
-    renderDraftListEmpty(draftList, "임시저장 글을 불러오는 중입니다.");
-
-    const listResponse = await requestDraftList();
-    if (!listResponse.ok) {
-      renderDraftListEmpty(draftList, "불러오기 실패");
-      if (listResponse.reason === "network_error") {
-        setDraftFeedback(
-          "네트워크 오류로 임시저장 목록을 불러오지 못했습니다.",
-          "error",
-        );
-      } else {
-        setDraftFeedback("임시저장 목록을 불러오지 못했습니다.", "error");
-      }
-      return;
-    }
-
-    const drafts = normalizeDraftList(listResponse.posts);
-
-    draftList.innerHTML = "";
-    if (drafts.length === 0) {
-      renderDraftListEmpty(draftList, "임시저장 글이 없습니다.");
-      setDraftFeedback("", "info");
-      return;
-    }
-
-    drafts.forEach((post) => {
-      draftList.append(createDraftListItem(post));
-    });
-    setDraftFeedback("", "info");
-  };
+  const loaders = createWriterLoaders({
+    mode,
+    windowObject: window,
+    documentObject: document,
+    dom: {
+      titleInput,
+      slugInput,
+      excerptInput,
+      coverInput,
+      visibilityInput,
+      seriesInput,
+      tagSuggestionList,
+      seriesSuggestionList,
+      draftList,
+    },
+    editorBridge,
+    showFeedback,
+    setDraftFeedback,
+    getEditingPostSlug: () => editingPostSlug,
+    setEditingPostSlug: (nextSlug) => {
+      editingPostSlug = nextSlug;
+    },
+    getTagSuggestionSequence: () => tagSuggestionSequence,
+    setTagSuggestionSequence: (value) => {
+      tagSuggestionSequence = value;
+    },
+    getSeriesSuggestionSequence: () => seriesSuggestionSequence,
+    setSeriesSuggestionSequence: (value) => {
+      seriesSuggestionSequence = value;
+    },
+    getSelectedTags: () => selectedTags,
+    setSelectedTags: (tags) => {
+      selectedTags = tags;
+    },
+    syncTagUi,
+    setSlugValidationState,
+    queueSlugAvailabilityCheck,
+    queuePreviewRefresh,
+  });
+  const {
+    updateDraftQueryParam,
+    loadTagSuggestions,
+    loadSeriesSuggestions,
+    loadDraftBySlug,
+    loadDraftFromQuery,
+    loadExistingPostBySlug,
+    loadDraftList,
+  } = loaders;
 
   const insertSnippet = async (snippet: string) => {
     const currentMarkdown = await editorBridge.getMarkdown();
@@ -558,69 +422,6 @@ export async function initNewPostAdminPage(
       `${currentMarkdown.trimEnd()}\n\n${snippet}\n`,
     );
     queuePreviewRefresh();
-  };
-
-  const uploadOneFileToBody = async (file: File) => {
-    if (isUploading) {
-      showFeedback(
-        "이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.",
-        "info",
-      );
-      return;
-    }
-
-    isUploading = true;
-    showFeedback("미디어 업로드 중...", "info", 0);
-    uploadTrigger.disabled = true;
-
-    try {
-      const bundle = await createUploadBundle(file, mediaBaseUrl);
-      await insertSnippet(bundle.snippet);
-      showFeedback("업로드 완료, 본문에 삽입했습니다.", "ok");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "미디어 업로드 중 오류가 발생했습니다.";
-      showFeedback(message, "error");
-    } finally {
-      isUploading = false;
-      uploadTrigger.disabled = false;
-      uploadInput.value = "";
-    }
-  };
-
-  const uploadOneFileToCover = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      showFeedback("커버 이미지는 이미지 파일만 지원합니다.", "error");
-      return;
-    }
-
-    if (isUploading) {
-      showFeedback(
-        "이미 업로드를 처리 중입니다. 잠시만 기다려 주세요.",
-        "info",
-      );
-      return;
-    }
-
-    isUploading = true;
-    showFeedback("커버 이미지 업로드 중...", "info", 0);
-
-    try {
-      const bundle = await createUploadBundle(file, mediaBaseUrl);
-      coverInput.value = bundle.mediaUrl;
-      queuePreviewRefresh();
-      showFeedback("커버 이미지 업로드 완료.", "ok");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "커버 이미지 업로드 중 오류가 발생했습니다.";
-      showFeedback(message, "error");
-    } finally {
-      isUploading = false;
-    }
   };
 
   titleInput.addEventListener("input", () => {
@@ -710,8 +511,24 @@ export async function initNewPostAdminPage(
     updateDraftQueryParam,
   });
 
-  uploadTrigger.addEventListener("click", () => {
-    uploadInput.click();
+  const teardownMediaBindings = bindWriterMediaInteractions({
+    windowObject: window,
+    mediaBaseUrl,
+    elements: {
+      editorRoot,
+      coverDropZone,
+      coverPreview,
+      coverUploadInput,
+      uploadTrigger,
+      uploadInput,
+      coverInput,
+    },
+    setDropTargetState,
+    clearDropTargetState,
+    showFeedback,
+    insertSnippet,
+    queuePreviewRefresh,
+    normalizeCoverInputValue,
   });
 
   compactToggleButton.addEventListener("click", () => {
@@ -755,146 +572,6 @@ export async function initNewPostAdminPage(
 
   window.addEventListener("keydown", onWindowKeyDown);
 
-  uploadInput.addEventListener("change", async () => {
-    const file = uploadInput.files?.[0];
-    if (!file) return;
-    await uploadOneFileToBody(file);
-  });
-
-  editorRoot.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    setDropTargetState("body");
-  });
-
-  editorRoot.addEventListener("drop", async (event) => {
-    event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (!file) return;
-    try {
-      await uploadOneFileToBody(file);
-    } finally {
-      clearDropTargetState();
-    }
-  });
-
-  editorRoot.addEventListener("paste", async (event) => {
-    const file = extractFileFromClipboard(event as ClipboardEvent);
-    if (!file) return;
-    event.preventDefault();
-    await uploadOneFileToBody(file);
-  });
-
-  coverDropZone.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    setDropTargetState("cover");
-  });
-
-  coverDropZone.addEventListener("drop", async (event) => {
-    event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (!file) return;
-    try {
-      await uploadOneFileToCover(file);
-    } finally {
-      clearDropTargetState();
-    }
-  });
-
-  coverPreview.addEventListener("click", () => {
-    if (isUploading) return;
-    coverUploadInput.click();
-  });
-
-  coverPreview.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDropTargetState("cover");
-  });
-
-  coverPreview.addEventListener("drop", async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const file = event.dataTransfer?.files?.[0];
-    if (!file) return;
-    try {
-      await uploadOneFileToCover(file);
-    } finally {
-      clearDropTargetState();
-    }
-  });
-
-  coverUploadInput.addEventListener("change", async () => {
-    const file = coverUploadInput.files?.[0];
-    if (!file) return;
-    try {
-      await uploadOneFileToCover(file);
-    } finally {
-      coverUploadInput.value = "";
-    }
-  });
-
-  coverInput.addEventListener("paste", async (event) => {
-    const file = extractFileFromClipboard(event as ClipboardEvent);
-    if (file) {
-      event.preventDefault();
-      await uploadOneFileToCover(file);
-      return;
-    }
-
-    const pastedText = event.clipboardData?.getData("text/plain")?.trim() ?? "";
-    if (!pastedText) return;
-
-    event.preventDefault();
-    coverInput.value = pastedText;
-    normalizeCoverInputValue(true);
-    queuePreviewRefresh();
-  });
-
-  const onWindowDragEnter = (event: DragEvent) => {
-    if (!isMediaFileDrag(event)) return;
-    event.preventDefault();
-    dragDepth += 1;
-    setDropTargetState(resolveDropTarget(event));
-  };
-
-  const onWindowDragOver = (event: DragEvent) => {
-    if (!isMediaFileDrag(event)) return;
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "copy";
-    }
-    setDropTargetState(resolveDropTarget(event));
-  };
-
-  const onWindowDragLeave = (event: DragEvent) => {
-    if (!isMediaFileDrag(event)) return;
-    event.preventDefault();
-    dragDepth = Math.max(0, dragDepth - 1);
-    if (dragDepth === 0) {
-      clearDropTargetState();
-    }
-  };
-
-  const onWindowDrop = async (event: DragEvent) => {
-    if (!isMediaFileDrag(event)) return;
-    const alreadyHandled = event.defaultPrevented;
-    const dropTarget = resolveDropTarget(event);
-    event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    dragDepth = 0;
-    clearDropTargetState();
-    if (!file || alreadyHandled) return;
-    if (dropTarget === "cover") {
-      await uploadOneFileToCover(file);
-      return;
-    }
-    await uploadOneFileToBody(file);
-  };
-
-  window.addEventListener("dragenter", onWindowDragEnter);
-  window.addEventListener("dragover", onWindowDragOver);
-  window.addEventListener("dragleave", onWindowDragLeave);
-  window.addEventListener("drop", onWindowDrop);
   window.addEventListener("resize", syncCompactViewForViewport);
 
   bindSubmitEvent({
@@ -926,15 +603,12 @@ export async function initNewPostAdminPage(
 
   const teardown = () => {
     unobserveEditor();
+    teardownMediaBindings();
     if (slugCheckTimer !== null) {
       window.clearTimeout(slugCheckTimer);
       slugCheckTimer = null;
     }
     window.removeEventListener("keydown", onWindowKeyDown);
-    window.removeEventListener("dragenter", onWindowDragEnter);
-    window.removeEventListener("dragover", onWindowDragOver);
-    window.removeEventListener("dragleave", onWindowDragLeave);
-    window.removeEventListener("drop", onWindowDrop);
     window.removeEventListener("resize", syncCompactViewForViewport);
     setDraftLayerOpen(false);
     setPublishLayerOpen(false);

@@ -12,7 +12,6 @@ describe("FooterAdminModal", () => {
     render(
       <FooterAdminModal
         adminNextPath="/blog"
-        isAdminViewer={false}
         shouldOpenOnLoad={false}
       />,
     );
@@ -34,26 +33,24 @@ describe("FooterAdminModal", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders backup controls for admin viewers and can close the dialog", async () => {
+  it("can open and close the login dialog when requested on load", async () => {
     render(
       <FooterAdminModal
         adminNextPath="/"
-        isAdminViewer
         shouldOpenOnLoad
       />,
     );
 
     expect(
-      screen.getByRole("button", { name: "Admin Backup", hidden: true }),
+      screen.getByRole("button", { name: "Admin Login", hidden: true }),
     ).toHaveClass("text-muted-foreground");
-    expect(await screen.findByText("ADMIN BACKUP")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ZIP 불러와 DB 복원" })).toBeInTheDocument();
+    expect(await screen.findByText("ADMIN LOGIN")).toBeInTheDocument();
+    expect(screen.getByLabelText("아이디")).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: "Escape" });
 
     await waitFor(() => {
-      expect(screen.queryByText("ADMIN BACKUP")).not.toBeInTheDocument();
+      expect(screen.queryByText("ADMIN LOGIN")).not.toBeInTheDocument();
     });
   });
 });

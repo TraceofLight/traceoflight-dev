@@ -8,7 +8,7 @@ const footerModalPath = new URL(
   import.meta.url,
 );
 
-test("footer admin modal supports login view and admin backup management view", async () => {
+test("footer keeps login modal and routes admin viewers to imports console", async () => {
   const [footerSource, modalSource] = await Promise.all([
     readFile(footerPath, "utf8"),
     readFile(footerModalPath, "utf8"),
@@ -20,15 +20,15 @@ test("footer admin modal supports login view and admin backup management view", 
   assert.match(footerSource, /verifyAccessToken/);
   assert.match(footerSource, /shouldOpenOnLoad=\{shouldOpenAdminLogin\}/);
   assert.match(footerSource, /adminNextPath=\{adminNextPath\}/);
-  assert.match(modalSource, /!isAdminViewer \?/);
-  assert.match(modalSource, /isAdminViewer \?/);
+  assert.match(footerSource, /ADMIN_IMPORTS_PATH/);
+  assert.match(footerSource, /href=\{ADMIN_IMPORTS_PATH\}/);
   assert.match(modalSource, /footer-admin-login-form/);
-  assert.match(modalSource, /footer-admin-import-panel/);
-  assert.match(modalSource, /footer-admin-backup-download/);
-  assert.match(modalSource, /footer-admin-backup-file/);
-  assert.match(modalSource, /footer-admin-backup-load/);
-  assert.match(modalSource, /\/internal-api\/imports\/backups\/posts\.zip/);
-  assert.match(modalSource, /\/internal-api\/imports\/backups\/load/);
+  assert.doesNotMatch(modalSource, /footer-admin-import-panel/);
+  assert.doesNotMatch(modalSource, /footer-admin-backup-download/);
+  assert.doesNotMatch(modalSource, /footer-admin-backup-file/);
+  assert.doesNotMatch(modalSource, /footer-admin-backup-load/);
+  assert.doesNotMatch(modalSource, /\/internal-api\/imports\/backups\/posts\.zip/);
+  assert.doesNotMatch(modalSource, /\/internal-api\/imports\/backups\/load/);
   assert.doesNotMatch(footerSource, /<script type="module">/);
   assert.doesNotMatch(modalSource, /Velog 사용자명/);
   assert.doesNotMatch(modalSource, /Snapshot ID/);

@@ -87,3 +87,11 @@ class MinioStorageClient:
             if exc.code in {'NoSuchKey', 'NoSuchObject', 'NoSuchBucket'}:
                 return False
             raise
+
+    def delete_object(self, object_key: str) -> None:
+        try:
+            self.client.remove_object(self.bucket, object_key)
+        except S3Error as exc:
+            if exc.code in {'NoSuchKey', 'NoSuchObject', 'NoSuchBucket'}:
+                return
+            raise

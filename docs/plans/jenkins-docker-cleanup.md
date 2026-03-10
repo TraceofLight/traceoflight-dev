@@ -63,5 +63,5 @@
 - Expected: PASS
 
 **Step 2: Inspect diff**
-- Run: `git diff -- infra/jenkins/Jenkinsfile.frontend infra/jenkins/Jenkinsfile.backend infra/jenkins/Jenkinsfile.infra infra/jenkins/README.md infra/jenkins/tests/test_pipeline_cleanup.py docs/plans/2026-03-06-jenkins-docker-cleanup-design.md docs/plans/2026-03-06-jenkins-docker-cleanup.md`
+- Run: `git diff -- infra/jenkins/Jenkinsfile.frontend infra/jenkins/Jenkinsfile.backend infra/jenkins/Jenkinsfile.infra infra/jenkins/README.md infra/jenkins/tests/test_pipeline_cleanup.py docs/plans/jenkins-docker-cleanup-design.md docs/plans/jenkins-docker-cleanup.md`
 - Expected: Only cleanup-related changes are present.

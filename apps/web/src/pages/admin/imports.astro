@@ -1,0 +1,29 @@
+---
+import AdminImportsPanel from "../../components/public/AdminImportsPanel";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ADMIN_IMPORTS_COPY, ADMIN_IMPORTS_PATH } from "../../lib/admin/imports-page";
+---
+
+<BaseLayout
+  title={ADMIN_IMPORTS_COPY.title}
+  description={ADMIN_IMPORTS_COPY.description}
+>
+  <section class="mx-auto flex max-w-5xl flex-col gap-8 py-8">
+    <header class="space-y-3">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">
+        {ADMIN_IMPORTS_PATH}
+      </p>
+      <h1 class="text-4xl font-semibold tracking-tight text-foreground">
+        {ADMIN_IMPORTS_COPY.heading}
+      </h1>
+      <p class="max-w-3xl text-base text-muted-foreground">
+        {ADMIN_IMPORTS_COPY.intro}
+      </p>
+      <p class="max-w-3xl text-sm text-muted-foreground/90">
+        {ADMIN_IMPORTS_COPY.detail}
+      </p>
+    </header>
+
+    <AdminImportsPanel client:load />
+  </section>
+</BaseLayout>

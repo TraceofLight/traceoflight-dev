@@ -55,20 +55,31 @@ const postsApiPath = new URL(
   "../src/lib/admin/new-post-page/posts-api.ts",
   import.meta.url,
 );
+const loadersPath = new URL(
+  "../src/lib/admin/new-post-page/loaders.ts",
+  import.meta.url,
+);
+const mediaControllerPath = new URL(
+  "../src/lib/admin/new-post-page/media-controller.ts",
+  import.meta.url,
+);
 
 test("writer script supports cover image drag-and-drop upload", async () => {
-  const [source, domSource] = await Promise.all([
+  const [source, domSource, mediaControllerSource] = await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(domPath, "utf8"),
+    readFile(mediaControllerPath, "utf8"),
   ]);
   assert.match(domSource, /#writer-cover-upload-input/);
   assert.match(domSource, /#writer-cover-drop-zone/);
   assert.match(domSource, /#writer-cover-preview/);
-  assert.match(source, /coverDropZone\.addEventListener\(["']dragover["']/);
-  assert.match(source, /coverDropZone\.addEventListener\(["']drop["']/);
-  assert.match(source, /coverPreview\.addEventListener\(["']dragover["']/);
-  assert.match(source, /coverPreview\.addEventListener\(["']drop["']/);
-  assert.match(source, /coverPreview\.addEventListener\(["']click["']/);
+  assert.match(source, /from ["']\.\/new-post-page\/media-controller["']/);
+  assert.match(source, /bindWriterMediaInteractions/);
+  assert.match(mediaControllerSource, /coverDropZone\.addEventListener\(["']dragover["']/);
+  assert.match(mediaControllerSource, /coverDropZone\.addEventListener\(["']drop["']/);
+  assert.match(mediaControllerSource, /coverPreview\.addEventListener\(["']dragover["']/);
+  assert.match(mediaControllerSource, /coverPreview\.addEventListener\(["']drop["']/);
+  assert.match(mediaControllerSource, /coverPreview\.addEventListener\(["']click["']/);
 });
 
 test("writer script updates title in preview and syncs cover preview", async () => {
@@ -105,6 +116,17 @@ test("writer script has fallback text editor for init failure", async () => {
   assert.match(writerSource, /createEditorBridge/);
   assert.match(bridgeSource, /writer-fallback-textarea/);
   assert.match(bridgeSource, /createEditorBridge/);
+  assert.match(bridgeSource, /await import\(["']@milkdown\/crepe["']\)/);
+  assert.match(bridgeSource, /await import\(["']@milkdown\/utils["']\)/);
+  assert.doesNotMatch(
+    bridgeSource,
+    /await import\(["']@milkdown\/crepe\/theme\/common\/style\.css["']\)/,
+  );
+  assert.doesNotMatch(
+    bridgeSource,
+    /await import\(["']@milkdown\/crepe\/theme\/nord\.css["']\)/,
+  );
+  assert.doesNotMatch(bridgeSource, /import \{ Crepe \} from ["']@milkdown\/crepe["']/);
   assert.match(domSource, /#writer-toast/);
   assert.match(feedbackSource, /data-visible/);
 });
@@ -173,15 +195,17 @@ test("writer script validates duplicate slug with inline feedback and debounce",
 });
 
 test("writer script can load draft by slug query", async () => {
-  const [source, draftsSource] = await Promise.all([
+  const [source, draftsSource, loadersSource] = await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(draftsPath, "utf8"),
+    readFile(loadersPath, "utf8"),
   ]);
-  assert.match(source, /readDraftSlugFromSearch/);
+  assert.match(source, /createWriterLoaders/);
+  assert.match(loadersSource, /readDraftSlugFromSearch/);
   assert.match(draftsSource, /new URLSearchParams\(search\)/);
-  assert.match(source, /draft/);
-  assert.match(source, /loadDraftBySlug/);
-  assert.match(source, /editorBridge\.setMarkdown/);
+  assert.match(loadersSource, /draft/);
+  assert.match(loadersSource, /loadDraftBySlug/);
+  assert.match(loadersSource, /editorBridge\.setMarkdown/);
 });
 
 test("writer draft helpers normalize the posts array and keep only the public api exports", async () => {
@@ -198,21 +222,24 @@ test("writer draft helpers normalize the posts array and keep only the public ap
 });
 
 test("writer script supports draft modal list and delete actions", async () => {
-  const [source, domSource, draftsSource, draftLayerEventsSource, postsApiSource] =
+  const [source, domSource, draftsSource, draftLayerEventsSource, postsApiSource, loadersSource] =
     await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(domPath, "utf8"),
     readFile(draftsPath, "utf8"),
     readFile(draftLayerEventsPath, "utf8"),
     readFile(postsApiPath, "utf8"),
+    readFile(loadersPath, "utf8"),
   ]);
   assert.match(domSource, /#writer-open-drafts/);
   assert.match(domSource, /#writer-draft-layer/);
   assert.match(domSource, /#writer-draft-list/);
   assert.match(source, /from ["']\.\/new-post-page\/draft-layer-events["']/);
+  assert.match(source, /from ["']\.\/new-post-page\/loaders["']/);
+  assert.match(source, /createWriterLoaders/);
   assert.match(source, /bindDraftLayerEvents/);
-  assert.match(source, /loadDraftList/);
-  assert.match(source, /requestDraftList/);
+  assert.match(loadersSource, /loadDraftList/);
+  assert.match(loadersSource, /requestDraftList/);
   assert.match(source, /requestDraftDelete/);
   assert.match(source, /setDraftLayerOpen/);
   assert.match(draftLayerEventsSource, /writer-draft-delete/);
@@ -222,18 +249,35 @@ test("writer script supports draft modal list and delete actions", async () => {
   assert.match(source, /updateDraftQueryParam/);
 });
 
+test("writer script delegates tag, series, and draft loading to the loader factory", async () => {
+  const [source, loadersSource] = await Promise.all([
+    readFile(scriptPath, "utf8"),
+    readFile(loadersPath, "utf8"),
+  ]);
+
+  assert.match(source, /from ["']\.\/new-post-page\/loaders["']/);
+  assert.match(source, /createWriterLoaders/);
+  assert.doesNotMatch(source, /const loadTagSuggestions = async/);
+  assert.doesNotMatch(source, /const loadSeriesSuggestions = async/);
+  assert.doesNotMatch(source, /const loadDraftList = async/);
+  assert.match(loadersSource, /loadTagSuggestions/);
+  assert.match(loadersSource, /loadSeriesSuggestions/);
+  assert.match(loadersSource, /loadDraftList/);
+});
+
 test("writer script delegates post network requests to posts-api module", async () => {
-  const [source, submitEventsSource, postsApiSource] = await Promise.all([
+  const [source, submitEventsSource, postsApiSource, loadersSource] = await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(submitEventsPath, "utf8"),
     readFile(postsApiPath, "utf8"),
+    readFile(loadersPath, "utf8"),
   ]);
 
   assert.match(source, /from ["']\.\/new-post-page\/posts-api["']/);
-  assert.match(source, /requestDraftBySlug/);
-  assert.match(source, /requestDraftList/);
+  assert.match(loadersSource, /requestDraftBySlug/);
+  assert.match(loadersSource, /requestDraftList/);
   assert.match(source, /requestDraftDelete/);
-  assert.match(source, /requestPostBySlug/);
+  assert.match(loadersSource, /requestPostBySlug/);
   assert.doesNotMatch(source, /requestPostSubmit/);
   assert.match(submitEventsSource, /requestPostSubmit/);
   assert.doesNotMatch(source, /fetch\(/);
@@ -256,15 +300,17 @@ test("writer script uses milkdown replaceAll action for markdown injection", asy
 });
 
 test("writer script includes target-aware drag handling and upload proxy fallback", async () => {
-  const [writerSource, uploadSource, dragSource] = await Promise.all([
+  const [writerSource, uploadSource, dragSource, mediaControllerSource] = await Promise.all([
     readFile(scriptPath, "utf8"),
     readFile(uploadPath, "utf8"),
     readFile(dragDropPath, "utf8"),
+    readFile(mediaControllerPath, "utf8"),
   ]);
-  assert.match(writerSource, /resolveDropTarget/);
+  assert.match(writerSource, /bindWriterMediaInteractions/);
   assert.match(dragSource, /writer-cover-preview/);
   assert.match(writerSource, /data-drop-state/);
-  assert.match(writerSource, /isMediaFileDrag/);
+  assert.match(mediaControllerSource, /resolveDropTarget/);
+  assert.match(mediaControllerSource, /isMediaFileDrag/);
   assert.match(dragSource, /isMediaFileDrag/);
   assert.match(uploadSource, /shouldProxyUpload/);
   assert.match(uploadSource, /\/internal-api\/media\/upload-proxy/);

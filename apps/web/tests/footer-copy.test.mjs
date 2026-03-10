@@ -18,7 +18,8 @@ test("footer uses single-line rights copy with auto year and styled copyright fo
   assert.match(source, /FooterAdminModal/);
   assert.match(source, /shouldOpenOnLoad=\{shouldOpenAdminLogin\}/);
   assert.match(source, /adminNextPath=\{adminNextPath\}/);
-  assert.doesNotMatch(source, /href="\/admin"/);
+  assert.match(source, /ADMIN_IMPORTS_PATH/);
+  assert.match(source, /href=\{ADMIN_IMPORTS_PATH\}/);
 });
 
 test("site metadata and missing blog fallback use real copy instead of lorem ipsum", async () => {

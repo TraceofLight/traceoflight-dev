@@ -4,6 +4,14 @@ import { test } from "node:test";
 import { readCssModule } from "./helpers/read-css-module.mjs";
 
 const pagePath = new URL("../src/pages/admin/posts/new.astro", import.meta.url);
+const editPagePath = new URL(
+  "../src/pages/admin/posts/[slug]/edit.astro",
+  import.meta.url,
+);
+const layoutPath = new URL(
+  "../src/layouts/AdminWriterLayout.astro",
+  import.meta.url,
+);
 const stylePath = new URL(
   "../src/styles/components/writer.css",
   import.meta.url,
@@ -31,6 +39,22 @@ test("admin writer page renders post form shell", async () => {
 test("admin writer page bootstraps writer module", async () => {
   const source = await readFile(pagePath, "utf8");
   assert.match(source, /initNewPostAdminPage/);
+});
+
+test("admin writer layout preloads milkdown theme css statically", async () => {
+  const [layoutSource, newPageSource, editPageSource] = await Promise.all([
+    readFile(layoutPath, "utf8"),
+    readFile(pagePath, "utf8"),
+    readFile(editPagePath, "utf8"),
+  ]);
+
+  assert.match(
+    layoutSource,
+    /@milkdown\/crepe\/theme\/common\/style\.css/,
+  );
+  assert.match(layoutSource, /@milkdown\/crepe\/theme\/nord\.css/);
+  assert.match(newPageSource, /<AdminWriterLayout/);
+  assert.match(editPageSource, /<AdminWriterLayout/);
 });
 
 test("admin writer page has split editor and preview layout", async () => {

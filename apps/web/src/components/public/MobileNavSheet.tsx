@@ -1,5 +1,6 @@
 import { MenuIcon } from "lucide-react";
 
+import { ADMIN_IMPORTS_PATH } from "@/lib/admin/imports-page";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -36,11 +37,19 @@ export default function MobileNavSheet({
             </a>
           ))}
           {isAdminViewer ? (
-            <form action="/internal-api/auth/logout?next=/" className="pt-3" method="POST">
-              <Button className="w-full justify-center" type="submit" variant="outline">
-                Logout
-              </Button>
-            </form>
+            <>
+              <a
+                className="rounded-2xl px-4 py-3 text-base font-medium text-red-700 transition-all duration-200 hover:bg-red-50 hover:shadow-[0_8px_24px_rgba(239,68,68,0.12)]"
+                href={ADMIN_IMPORTS_PATH}
+              >
+                Admin Imports
+              </a>
+              <form action="/internal-api/auth/logout?next=/" className="pt-3" method="POST">
+                <Button className="w-full justify-center" type="submit" variant="outline">
+                  Logout
+                </Button>
+              </form>
+            </>
           ) : null}
         </nav>
       </SheetContent>
