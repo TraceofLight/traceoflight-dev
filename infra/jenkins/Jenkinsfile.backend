@@ -88,6 +88,12 @@ pipeline {
         '''
       }
     }
+
+    stage('Trigger Frontend') {
+      steps {
+        build job: 'traceoflight-frontend', wait: false
+      }
+    }
   }
 
   post {

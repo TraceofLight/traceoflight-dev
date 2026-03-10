@@ -199,7 +199,7 @@ const techStackGroups: TechStackGroup[] = [
     title: "Language",
     items: [
       { label: "C++", icon: "/icons/tech/cplusplus.svg" },
-      { label: "HLSL", fallback: "HLSL" },
+      { label: "HLSL", icon: "/icons/tech/hlsl.svg" },
       { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
       { label: "Java", icon: "/icons/tech/java.svg" },
       { label: "Python", icon: "/icons/tech/python.svg" },
@@ -294,12 +294,6 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
       })()
     : [];
 
-const connectLinks = [
-  { label: "GitHub", href: "https://github.com/TraceofLight", external: true },
-  { label: "Email", href: "mailto:rickyjun96@gmail.com", external: false },
-  { label: "Resume PDF", href: "/resume.pdf", external: false },
-  { label: "Blog", href: "/blog", external: false },
-];
 ---
 
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
@@ -653,42 +647,5 @@ const connectLinks = [
       }
     </section>
 
-    <section
-      id="home-connect"
-      class={sectionShellClass}
-      aria-labelledby="home-connect-heading"
-    >
-      <div
-        class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:items-end"
-      >
-        <div class="space-y-3">
-          <h2
-            id="home-connect-heading"
-            class="text-2xl font-semibold tracking-tight text-foreground"
-          >
-            Connect
-          </h2>
-          <p class="max-w-2xl text-base text-muted-foreground">
-            협업이나 프로젝트 문의는 메일로 부탁드립니다. 이력서는 PDF로
-            제공됩니다.
-          </p>
-        </div>
-
-        <div class="flex flex-wrap gap-3 lg:justify-end">
-          {
-            connectLinks.map((link) => (
-              <a
-                class={surfaceActionClass}
-                href={link.href}
-                target={link.external ? "_blank" : undefined}
-                rel={link.external ? "noreferrer" : undefined}
-              >
-                {link.label}
-              </a>
-            ))
-          }
-        </div>
-      </div>
-    </section>
   </div>
 </BaseLayout>

@@ -11,6 +11,7 @@ from app.repositories.tag_repository import TagRepository
 from app.services.import_service import ImportService
 from app.services.media_service import MediaService
 from app.services.post_service import PostService
+from app.services.resume_service import ResumeService
 from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
 from app.storage.minio_client import MinioStorageClient
@@ -40,3 +41,8 @@ def get_series_service(db: Session = Depends(get_db)) -> SeriesService:
 def get_import_service(db: Session = Depends(get_db)) -> ImportService:
     storage = MinioStorageClient()
     return ImportService(storage=storage, db=db)
+
+
+def get_resume_service() -> ResumeService:
+    storage = MinioStorageClient()
+    return ResumeService(storage=storage)

@@ -17,12 +17,11 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /id="home-tech-stack"/);
   assert.match(source, /id="home-featured-series"/);
   assert.match(source, /id="home-latest-posts"/);
-  assert.match(source, /id="home-connect"/);
-  assert.match(source, /href:\s*"\/resume\.pdf"/);
   assert.match(source, /TraceofLight/);
   assert.doesNotMatch(source, /김희준 \(Heejun Kim\)/);
-  assert.match(source, /rickyjun96@gmail\.com/);
+  assert.doesNotMatch(source, /rickyjun96@gmail\.com/);
   assert.match(source, /\/icons\/tech\/java\.svg/);
+  assert.match(source, /\/icons\/tech\/hlsl\.svg/);
   assert.match(source, /\/icons\/tech\/directx11\.webp/);
   assert.match(source, /\/icons\/tech\/unrealengine\.svg/);
   assert.match(source, /\/icons\/tech\/react\.svg/);
@@ -36,10 +35,6 @@ test("home page uses tailwind sections while keeping the curated resume content"
     /id="home-experience-heading"[\s\S]*?>\s*Profile\s*<\/h2>/,
   );
   assert.match(source, /id="home-tech-heading"[\s\S]*?>\s*Skill\s*<\/h2>/);
-  assert.match(
-    source,
-    /id="home-connect-heading"[\s\S]*?>\s*Connect\s*<\/h2>/,
-  );
   assert.doesNotMatch(source, /경험과 이력/);
   assert.doesNotMatch(source, /기술 스택/);
   assert.doesNotMatch(source, /함께 만들 이야기/);
@@ -49,6 +44,8 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /<p[\s\S]*?>\s*Profile\s*<\/p>/);
   assert.doesNotMatch(source, /<p[\s\S]*?>\s*Skill\s*<\/p>/);
   assert.doesNotMatch(source, /<p[\s\S]*?>\s*Connect\s*<\/p>/);
+  assert.doesNotMatch(source, /Connect/);
+  assert.doesNotMatch(source, /resume\.pdf/);
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
   assert.match(source, /<SeriesCard series=\{card\} imageWidth=\{960\} imageHeight=\{640\} \/>/);
@@ -98,13 +95,11 @@ test("home page uses tailwind sections while keeping the curated resume content"
   const projectIndex = source.indexOf('id="home-featured-projects"');
   const seriesIndex = source.indexOf('id="home-featured-series"');
   const postIndex = source.indexOf('id="home-latest-posts"');
-  const connectIndex = source.indexOf('id="home-connect"');
 
   assert.ok(expIndex < stackIndex);
   assert.ok(stackIndex < projectIndex);
   assert.ok(stackIndex < seriesIndex);
   assert.ok(seriesIndex < postIndex);
-  assert.ok(postIndex < connectIndex);
 
   const education2026Index = source.indexOf("2026.02.");
   const education2023Index = source.indexOf("2023.08.");
@@ -129,6 +124,8 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /title:\s*"Backend"/);
   assert.doesNotMatch(source, /title:\s*"Frontend"/);
   assert.match(source, /title:\s*"Language"/);
+  assert.match(source, /label:\s*"HLSL",\s*icon:\s*"\/icons\/tech\/hlsl\.svg"/);
+  assert.doesNotMatch(source, /label:\s*"HLSL",\s*fallback:\s*"HLSL"/);
   assert.match(source, /period:\s*"2023\.10\. ~ 2024\.11\."/);
   assert.match(source, /main:\s*"Cloud-Native 차세대 DB 개발 프로젝트 참여"/);
   assert.match(

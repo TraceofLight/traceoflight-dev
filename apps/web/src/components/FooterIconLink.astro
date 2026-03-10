@@ -2,9 +2,10 @@
 import adminIcon from "../assets/icons/footer/admin.svg?raw";
 import githubIcon from "../assets/icons/footer/github.svg?raw";
 import mailIcon from "../assets/icons/footer/mail.svg?raw";
+import resumeIcon from "../assets/icons/footer/resume.svg?raw";
 import { PUBLIC_ICON_ACTION_CLASS } from "../lib/ui-effects";
 
-type FooterIconName = "mail" | "github" | "admin";
+type FooterIconName = "mail" | "github" | "admin" | "resume";
 
 type Props = {
   href: string;
@@ -19,6 +20,7 @@ const iconSvgs: Record<FooterIconName, string> = {
   admin: adminIcon,
   mail: mailIcon,
   github: githubIcon,
+  resume: resumeIcon,
 };
 ---
 

@@ -1,26 +1,28 @@
 ---
 import AdminImportsPanel from "../../components/public/AdminImportsPanel";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { requestBackend } from "../../lib/backend-api";
 import { ADMIN_IMPORTS_COPY } from "../../lib/admin/imports-page";
+
+let initialResumeAvailable = false;
+try {
+  const response = await requestBackend("/resume/status", { method: "GET" });
+  if (response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { available?: boolean }
+      | null;
+    initialResumeAvailable = payload?.available === true;
+  }
+} catch {
+  initialResumeAvailable = false;
+}
 ---
 
 <BaseLayout
   title={ADMIN_IMPORTS_COPY.title}
   description={ADMIN_IMPORTS_COPY.description}
 >
-  <section class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
-    <header class="space-y-4">
-      <h1 class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-        {ADMIN_IMPORTS_COPY.heading}
-      </h1>
-      <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
-        {ADMIN_IMPORTS_COPY.intro}
-      </p>
-      <p class="max-w-2xl text-sm text-muted-foreground/90">
-        {ADMIN_IMPORTS_COPY.detail}
-      </p>
-    </header>
-
-    <AdminImportsPanel client:load />
+  <section class="mx-auto flex max-w-6xl flex-col py-10 sm:py-12">
+    <AdminImportsPanel client:load initialResumeAvailable={initialResumeAvailable} />
   </section>
 </BaseLayout>

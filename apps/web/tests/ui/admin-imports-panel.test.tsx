@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminImportsPanel } from "@/components/public/AdminImportsPanel";
@@ -6,6 +6,7 @@ import { AdminImportsPanel } from "@/components/public/AdminImportsPanel";
 describe("AdminImportsPanel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("renders dedicated backup controls", async () => {
@@ -14,10 +15,17 @@ describe("AdminImportsPanel", () => {
     const downloadButton = screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" });
     const chooseFileButton = screen.getByRole("button", { name: "ZIP 파일 선택" });
     const restoreButton = screen.getByRole("button", { name: "ZIP 불러와 DB 복원" });
+    const chooseResumeButton = screen.getByRole("button", { name: "PDF 파일 선택" });
+    const uploadResumeButton = screen.getByRole("button", { name: "Portfolio PDF 업로드" });
 
+    expect(screen.getByText("Backup Utility")).toBeInTheDocument();
     expect(screen.getByText("서비스 중인 내용 Save & Load")).toBeInTheDocument();
+    expect(screen.getByText("PDF Utility")).toBeInTheDocument();
+    expect(screen.getByText("포트폴리오 PDF 관리")).toBeInTheDocument();
     expect(screen.getByText("현재 상태 저장")).toBeInTheDocument();
     expect(screen.getByText("백업 ZIP으로 복원")).toBeInTheDocument();
+    expect(screen.getAllByText("Portfolio PDF")).toHaveLength(1);
+    expect(screen.getByText("포트폴리오 파일 교체")).toBeInTheDocument();
     expect(screen.getByText("복원 전 체크")).toBeInTheDocument();
     expect(
       screen.queryByText("복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다."),
@@ -29,6 +37,10 @@ describe("AdminImportsPanel", () => {
     expect(
       screen.queryByText("`.zip` 형식의 백업 파일만 업로드할 수 있습니다."),
     ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("포트폴리오 PDF 파일")).toBeInTheDocument();
+    expect(screen.getByText("등록된 포트폴리오 PDF가 없습니다.")).toBeInTheDocument();
+    expect(chooseResumeButton).toBeInTheDocument();
+    expect(uploadResumeButton).toBeInTheDocument();
     expect(downloadButton).toBeInTheDocument();
     expect(restoreButton).toBeInTheDocument();
     expect(
@@ -41,9 +53,12 @@ describe("AdminImportsPanel", () => {
     expect(restoreButton).toHaveClass("border-white/80");
     expect(restoreButton).toHaveClass("hover:border-sky-300/90");
     expect(restoreButton).toHaveClass("hover:text-sky-700");
+    expect(chooseResumeButton).toHaveClass("border-white/80");
+    expect(uploadResumeButton).toHaveClass("border-white/80");
   });
 
-  it("shows restore summary after a successful upload", async () => {
+  it("shows restore progress in the action button and resets after success", async () => {
+    vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -63,14 +78,30 @@ describe("AdminImportsPanel", () => {
     expect(screen.getByText("backup.zip")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ZIP 불러와 DB 복원" }));
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("DB 복원 완료: 게시글 2, 미디어 3, 시리즈 썸네일 1"),
-      ).toBeInTheDocument();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
     });
+
+    expect(
+      screen.getByRole("button", {
+        name: "DB 복원 완료: 게시글 2, 미디어 3, 시리즈 1",
+      }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "ZIP 불러와 DB 복원",
+      }),
+    ).toBeInTheDocument();
   });
 
-  it("shows download status near the save action after starting a backup download", async () => {
+  it("shows save progress in the action button and resets after success", async () => {
+    vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       blob: async () => new Blob(["zip"], { type: "application/zip" }),
@@ -90,8 +121,21 @@ describe("AdminImportsPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" }));
 
-    await waitFor(() => {
-      expect(screen.getByText("DB 백업 ZIP 다운로드를 시작했습니다.")).toBeInTheDocument();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
     });
+
+    expect(
+      screen.getByRole("button", { name: "DB 저장 ZIP 다운로드 시작" }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+
+    expect(
+      screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" }),
+    ).toBeInTheDocument();
   });
 });
