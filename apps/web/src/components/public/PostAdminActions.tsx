@@ -11,6 +11,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  PUBLIC_DANGER_OUTLINE_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 
 type PostAdminActionsProps = {
   adminPostSlug: string;
@@ -104,7 +108,11 @@ export function PostAdminActions({
 
   return (
     <div id="post-admin-actions" className="flex flex-wrap items-center gap-2">
-      <Button asChild className="rounded-full" variant="outline">
+      <Button
+        asChild
+        className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+        variant="outline"
+      >
         <a href={`/admin/posts/${encodeURIComponent(adminPostSlug)}/edit`}>
           수정
         </a>
@@ -112,10 +120,7 @@ export function PostAdminActions({
 
       <AlertDialog onOpenChange={setOpen} open={open}>
         <AlertDialogTrigger asChild>
-          <Button
-            className="rounded-full border-red-200/80 bg-white/88 text-red-700 hover:border-red-300/90 hover:bg-red-50 hover:text-red-800"
-            variant="outline"
-          >
+          <Button className={PUBLIC_DANGER_OUTLINE_ACTION_CLASS} variant="outline">
             삭제
           </Button>
         </AlertDialogTrigger>

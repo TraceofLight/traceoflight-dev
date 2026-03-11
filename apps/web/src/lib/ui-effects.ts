@@ -52,6 +52,9 @@ export const PUBLIC_SURFACE_ACTION_CLASS =
 export const PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS =
   "inline-flex select-none items-center gap-2 rounded-full border border-sky-200/70 bg-white/96 px-5 py-2.5 text-sm font-medium text-sky-700 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]";
 
+export const PUBLIC_DANGER_OUTLINE_ACTION_CLASS =
+  "inline-flex select-none items-center gap-2 rounded-full border border-red-200/80 bg-white/92 px-5 py-2.5 text-sm font-medium text-red-700 shadow-[0_10px_30px_rgba(239,68,68,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-red-300/90 hover:bg-red-50 hover:text-red-800";
+
 export const PUBLIC_ICON_ACTION_CLASS =
   "inline-flex h-10 w-10 cursor-pointer select-none items-center justify-center rounded-full border border-white/80 bg-white/88 text-muted-foreground shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-white hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]";
 

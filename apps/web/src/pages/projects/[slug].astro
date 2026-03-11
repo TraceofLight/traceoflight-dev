@@ -145,10 +145,6 @@ if (!project) {
           </div>
         </header>
 
-        {isAdminViewer && adminSeries ? (
-          <SeriesAdminPanel client:load series={adminSeries} />
-        ) : null}
-
         <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           {
             shouldRenderProjectTopVideo ? (
@@ -274,6 +270,10 @@ if (!project) {
             </section>
           )
         }
+
+        {isAdminViewer && adminSeries ? (
+          <SeriesAdminPanel client:load series={adminSeries} />
+        ) : null}
 
         <nav class="flex justify-center" aria-label="Projects archive">
           <a

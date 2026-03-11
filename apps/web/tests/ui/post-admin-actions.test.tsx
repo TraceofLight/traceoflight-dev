@@ -11,10 +11,16 @@ describe("PostAdminActions", () => {
   it("opens and closes the delete confirmation dialog", async () => {
     render(<PostAdminActions adminPostSlug="draft-post" />);
 
+    const editLink = screen.getByRole("link", { name: "수정" });
     const deleteTrigger = screen.getByRole("button", { name: "삭제" });
+    expect(editLink.className).toContain("border-sky-200/70");
+    expect(editLink.className).toContain("text-sky-700");
+    expect(editLink.className).toContain("px-5");
+    expect(editLink.className).toContain("text-sm");
     expect(deleteTrigger.className).toContain("border-red-200/80");
-    expect(deleteTrigger.className).toContain("bg-white/88");
     expect(deleteTrigger.className).toContain("text-red-700");
+    expect(deleteTrigger.className).toContain("px-5");
+    expect(deleteTrigger.className).toContain("text-sm");
 
     fireEvent.click(deleteTrigger);
 
