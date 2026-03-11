@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import UUID
 
+from app.models.post import PostContentKind
 from app.services import series_projection_cache as projection_cache
 
 
@@ -15,6 +16,7 @@ class _PostStub:
     published_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    content_kind: PostContentKind = PostContentKind.BLOG
 
 
 def _dt(hour: int) -> datetime:
@@ -91,3 +93,31 @@ def test_build_projection_rows_treats_case_distinct_series_titles_as_different_s
     rows = projection_cache._build_projection_rows(posts)  # noqa: SLF001
 
     assert [row.slug for row in rows] == ["PS", "Ps"]
+
+
+def test_build_projection_rows_ignores_project_content_kind() -> None:
+    posts = [
+        _PostStub(
+            id=UUID("00000000-0000-0000-0000-000000000101"),
+            slug="blog-entry",
+            series_title="Renderer Basics",
+            published_at=_dt(10),
+            created_at=_dt(10),
+            updated_at=_dt(10),
+            content_kind=PostContentKind.BLOG,
+        ),
+        _PostStub(
+            id=UUID("00000000-0000-0000-0000-000000000102"),
+            slug="project-entry",
+            series_title="Renderer Basics",
+            published_at=_dt(11),
+            created_at=_dt(11),
+            updated_at=_dt(11),
+            content_kind=PostContentKind.PROJECT,
+        ),
+    ]
+
+    rows = projection_cache._build_projection_rows(posts)  # noqa: SLF001
+
+    assert [row.slug for row in rows] == ["Renderer-Basics"]
+    assert list(rows[0].post_ids) == [UUID("00000000-0000-0000-0000-000000000101")]

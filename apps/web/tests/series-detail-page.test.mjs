@@ -22,13 +22,12 @@ test("series detail page mounts a React admin panel while keeping the public ser
   assert.match(source, /ADMIN_ACCESS_COOKIE/);
   assert.match(source, /verifyAccessToken/);
   assert.match(source, /getSeriesBySlug/);
+  assert.match(source, /PUBLIC_SECTION_SURFACE_CLASS/);
   assert.match(source, /series\.posts/);
   assert.match(source, /id="series-start-link"/);
-  assert.match(
-    source,
-    /rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
-  );
+  assert.match(source, /<header class=\{`grid gap-8 p-6/);
   assert.match(source, /시리즈 시작하기/);
+  assert.match(source, />\s*모든 시리즈 보기\s*</);
   assert.match(source, />\s*시리즈 목록\s*</);
   assert.match(
     source,

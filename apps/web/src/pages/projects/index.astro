@@ -2,26 +2,44 @@
 import ProjectCard from "../../components/ProjectCard.astro";
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { listPublishedDbProjects } from "../../lib/projects";
+import {
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../../lib/ui-effects";
 
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 const projects = await listPublishedDbProjects();
+const projectWriteHref = "/admin/posts/new?content_kind=project";
+const projectManageHref = "/admin/projects";
 ---
 
 <BaseLayout
   title={`Projects | ${SITE_TITLE}`}
-  description="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+  description="참여한 프로젝트들과 진행하면서 느끼고 고민한 것들"
 >
   <section class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
-    <header class="space-y-4">
+    <header class="space-y-4 text-center">
       <h1
         class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
       >
-        Lorem ipsum dolor sit amet
+        Projects
       </h1>
-      <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-        eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      <p class="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
+        참여한 프로젝트들과 진행하면서 느끼고 고민한 것들
       </p>
+      {isAdminViewer && (
+        <div class="mx-auto flex w-full max-w-6xl justify-center gap-3 sm:justify-end">
+          <a class={PUBLIC_SURFACE_ACTION_CLASS} href={projectManageHref}>
+            순서 조정
+          </a>
+          <a class={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS} href={projectWriteHref}>
+            글 작성
+          </a>
+        </div>
+      )}
     </header>
 
     {

@@ -1,0 +1,69 @@
+---
+import { SITE_TITLE } from "../../consts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  PUBLIC_PANEL_SURFACE_CLASS,
+  PUBLIC_SECTION_SURFACE_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../../lib/ui-effects";
+
+const writerHref = "/admin/posts/new?content_kind=project";
+---
+
+<BaseLayout
+  title={`프로젝트 관리 | ${SITE_TITLE}`}
+  description="프로젝트 작성과 순서 조정을 위한 관리 화면"
+>
+  <section class="mx-auto flex max-w-6xl flex-col gap-6 py-10 sm:py-12">
+    <header class={`space-y-3 p-6 sm:p-7 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+        Project Utility
+      </p>
+      <h1 class="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        프로젝트 관리
+      </h1>
+      <p class="max-w-3xl text-sm text-muted-foreground sm:text-base">
+        프로젝트 작성과 공개 진입점을 한곳에서 관리합니다. 프로젝트 순서 조정은
+        이 화면을 기준으로 이어서 붙일 예정입니다.
+      </p>
+    </header>
+
+    <section class={`grid gap-4 p-5 sm:p-6 lg:grid-cols-2 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+      <article class={`space-y-4 p-5 sm:p-6 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+        <div class="space-y-2">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+            Write
+          </p>
+          <h2 class="text-2xl font-semibold tracking-tight text-foreground">
+            프로젝트 글 작성
+          </h2>
+          <p class="text-sm text-muted-foreground">
+            프로젝트 카드 형식과 상세 메타데이터를 유지한 채 새 프로젝트 글을
+            작성합니다.
+          </p>
+        </div>
+        <a class={PUBLIC_SURFACE_ACTION_CLASS} href={writerHref}>
+          프로젝트 글 작성
+        </a>
+      </article>
+
+      <article class={`space-y-4 p-5 sm:p-6 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+        <div class="space-y-2">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+            Order
+          </p>
+          <h2 class="text-2xl font-semibold tracking-tight text-foreground">
+            프로젝트 순서 조정
+          </h2>
+          <p class="text-sm text-muted-foreground">
+            공개 페이지 배치 순서를 조정하는 화면입니다. 실제 정렬 저장 흐름은
+            다음 단계에서 이 페이지에 바로 연결됩니다.
+          </p>
+        </div>
+        <a class={PUBLIC_SURFACE_ACTION_CLASS} href="/projects">
+          공개 Projects 보기
+        </a>
+      </article>
+    </section>
+  </section>
+</BaseLayout>

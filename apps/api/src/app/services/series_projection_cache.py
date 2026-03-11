@@ -13,7 +13,7 @@ from sqlalchemy import delete, select
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models.post import Post
+from app.models.post import Post, PostContentKind
 from app.models.series import Series, SeriesPost
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,8 @@ def _build_projection_rows(posts: list[Post]) -> list[SeriesProjectionRow]:
     grouped_titles: dict[str, tuple[datetime, str]] = {}
 
     for post in posts:
+        if getattr(post, "content_kind", PostContentKind.BLOG) != PostContentKind.BLOG:
+            continue
         series_title = _normalize_series_title(post.series_title)
         if series_title is None:
             continue

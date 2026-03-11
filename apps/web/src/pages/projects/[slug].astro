@@ -1,9 +1,13 @@
 ---
 import { SITE_TITLE } from "../../consts";
+import PostAdminActions from "../../components/public/PostAdminActions";
+import SeriesAdminPanel from "../../components/public/SeriesAdminPanel";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostCard from "../../components/PostCard.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { getPublishedDbProjectBySlug } from "../../lib/projects";
 import { normalizeCoverMedia } from "../../lib/cover-media";
+import { getSeriesBySlug } from "../../lib/series-db";
 import {
   PUBLIC_BADGE_STRONG_CLASS,
   PUBLIC_EMPTY_STATE_CLASS,
@@ -11,8 +15,11 @@ import {
   PUBLIC_SECTION_SURFACE_CLASS,
   PUBLIC_SURFACE_ACTION_CLASS,
 } from "../../lib/ui-effects";
+import { toYoutubeEmbedUrl } from "../../lib/youtube";
 
 const slug = Astro.params.slug ?? "";
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 const project = await getPublishedDbProjectBySlug(slug);
 const projectProfile = project
   ? {
@@ -22,6 +29,55 @@ const projectProfile = project
       links: project.links,
     }
   : null;
+const relatedSeriesSlug = project?.seriesTitle
+  ? project.seriesTitle
+      .trim()
+      .split("")
+      .reduce(
+        (state, char) => {
+          if (/[\p{L}\p{N}]/u.test(char)) {
+            state.chars.push(char);
+            state.lastWasDash = false;
+            return state;
+          }
+          if (!state.lastWasDash) {
+            state.chars.push("-");
+            state.lastWasDash = true;
+          }
+          return state;
+        },
+        { chars: [] as string[], lastWasDash: false },
+      )
+      .chars.join("")
+      .replace(/^-+|-+$/g, "") || "series"
+  : null;
+const relatedSeries = relatedSeriesSlug
+  ? await getSeriesBySlug(relatedSeriesSlug, { includePrivate: isAdminViewer }).catch(
+      () => null,
+    )
+  : null;
+const adminSeries = relatedSeries
+  ? {
+      slug: relatedSeries.slug,
+      title: relatedSeries.title,
+      description: relatedSeries.description,
+      coverImageUrl: relatedSeries.coverImageUrl ?? "",
+      defaultCoverImage: "/images/empty-series-image.png",
+      posts: relatedSeries.posts
+        .filter((post) => post.slug !== project?.slug)
+        .map((post) => ({
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          coverImageUrl: post.coverImageUrl ?? "",
+          orderIndex: post.orderIndex,
+        })),
+    }
+  : null;
+const youtubeEmbedUrl =
+  project?.detailMediaKind === "youtube"
+    ? toYoutubeEmbedUrl(project.youtubeUrl)
+    : null;
 
 if (!project) {
   Astro.response.status = 404;
@@ -35,6 +91,21 @@ if (!project) {
       description={project.summary}
     >
       <section class="mx-auto flex max-w-5xl flex-col gap-8 py-10 sm:py-12">
+        <nav class="flex flex-wrap items-center justify-between gap-3" aria-label="Project navigation">
+          <a
+            class={PUBLIC_SURFACE_ACTION_CLASS}
+            href="/projects"
+          >
+            <span aria-hidden="true">‹</span>
+            <span>프로젝트로 돌아가기</span>
+          </a>
+          {
+            isAdminViewer && (
+              <PostAdminActions client:load adminPostSlug={project.slug} />
+            )
+          }
+        </nav>
+
         <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <div class="space-y-5">
             <div class="space-y-4">
@@ -69,13 +140,19 @@ if (!project) {
           </div>
         </header>
 
+        {isAdminViewer && adminSeries ? (
+          <SeriesAdminPanel client:load series={adminSeries} />
+        ) : null}
+
         <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           {
-            project.detailMediaKind === "youtube" && project.youtubeUrl ? (
+            youtubeEmbedUrl ? (
               <iframe
                 class="aspect-[16/9] h-full w-full"
-                src={project.youtubeUrl.replace("watch?v=", "embed/")}
+                src={youtubeEmbedUrl}
                 title={project.title}
+                loading="lazy"
+                referrerpolicy="strict-origin-when-cross-origin"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
               />
@@ -124,12 +201,6 @@ if (!project) {
                 </a>
               );
             })}
-            <a
-              class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-              href="/projects"
-            >
-              프로젝트 목록
-            </a>
           </div>
         </section>
 
@@ -141,7 +212,7 @@ if (!project) {
                   RELATED SERIES
                 </p>
                 <h2 class="text-2xl font-semibold tracking-tight text-foreground">
-                  related series posts
+                  연관된 포스팅 시리즈
                 </h2>
               </div>
               <div class="mt-6 grid gap-6 md:grid-cols-2">
@@ -163,23 +234,33 @@ if (!project) {
             </section>
           )
         }
+
+        <nav class="flex justify-center" aria-label="Projects archive">
+          <a
+            class={PUBLIC_SURFACE_ACTION_CLASS}
+            href="/projects"
+          >
+            <span aria-hidden="true">☰</span>
+            <span>모든 프로젝트 보기</span>
+          </a>
+        </nav>
       </section>
     </BaseLayout>
   ) : (
     <BaseLayout
-      title={`Project not found | ${SITE_TITLE}`}
-      description="Requested project was not found."
+      title={`프로젝트를 찾을 수 없습니다 | ${SITE_TITLE}`}
+      description="요청한 프로젝트를 찾을 수 없습니다."
     >
       <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
         <div class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-12 text-center`}>
           <p class="text-base text-muted-foreground">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            요청한 프로젝트를 찾을 수 없습니다.
           </p>
           <a
             class={`${PUBLIC_SURFACE_ACTION_CLASS} mt-5`}
             href="/projects"
           >
-            Lorem ipsum
+            프로젝트 목록으로 돌아가기
           </a>
         </div>
       </section>

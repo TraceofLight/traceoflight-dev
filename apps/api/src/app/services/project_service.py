@@ -5,6 +5,29 @@ from app.repositories.post_repository import PostRepository
 from app.repositories.series_repository import SeriesRepository
 
 
+def _normalize_series_title(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _slugify_series_title(title: str) -> str:
+    chars: list[str] = []
+    last_was_dash = False
+    for char in title.strip():
+        if char.isalnum():
+            chars.append(char)
+            last_was_dash = False
+            continue
+        if last_was_dash:
+            continue
+        chars.append("-")
+        last_was_dash = True
+    normalized = "".join(chars).strip("-")
+    return normalized or "series"
+
+
 class ProjectService:
     def __init__(self, post_repo: PostRepository, series_repo: SeriesRepository) -> None:
         self.post_repo = post_repo
@@ -34,12 +57,16 @@ class ProjectService:
             return None
 
         related_series_posts: list[dict[str, object]] = []
-        series_context = getattr(project, "series_context", None)
-        series_slug = series_context.get("series_slug") if isinstance(series_context, dict) else None
-        if isinstance(series_slug, str) and series_slug.strip():
-            series = self.series_repo.get_by_slug(series_slug.strip(), include_private=include_private)
+        series_title = _normalize_series_title(getattr(project, "series_title", None))
+        if series_title is not None:
+            series_slug = _slugify_series_title(series_title)
+            series = self.series_repo.get_by_slug(series_slug, include_private=include_private)
             if series is not None:
-                related_series_posts = list(series.get("posts") or [])
+                related_series_posts = [
+                    row
+                    for row in list(series.get("posts") or [])
+                    if row.get("slug") != getattr(project, "slug", None)
+                ]
 
         setattr(project, "related_series_posts", related_series_posts)
         return project

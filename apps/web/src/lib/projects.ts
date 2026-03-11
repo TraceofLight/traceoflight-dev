@@ -27,6 +27,7 @@ export interface ProjectItem {
   title: string;
   summary: string;
   description: string;
+  seriesTitle?: string;
   role: string;
   period: string;
   stack: string[];
@@ -77,6 +78,7 @@ interface DbProjectPost {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  series_title: string | null;
   content_kind: "project";
   tags: DbProjectTag[];
   project_profile: DbProjectProfile;
@@ -93,6 +95,7 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
     title: project.title,
     summary: project.excerpt?.trim() ?? "",
     description: markdown.render(project.body_markdown),
+    seriesTitle: project.series_title?.trim() || undefined,
     role: profile.role_summary,
     period: profile.period_label,
     stack: Array.isArray(project.tags) ? project.tags.map((tag) => tag.label || tag.slug) : [],

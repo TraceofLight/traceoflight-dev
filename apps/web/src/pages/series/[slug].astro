@@ -186,6 +186,16 @@ const adminSeries = series
               아직 시리즈에 포함된 글이 없습니다.
             </section>
           ))}
+
+        <nav class="flex justify-center" aria-label="Series archive">
+          <a
+            class={PUBLIC_SURFACE_ACTION_CLASS}
+            href="/series"
+          >
+            <span aria-hidden="true">☰</span>
+            <span>모든 시리즈 보기</span>
+          </a>
+        </nav>
       </section>
     ) : (
       <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
