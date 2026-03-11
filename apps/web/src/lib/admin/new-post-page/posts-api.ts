@@ -1,4 +1,9 @@
-import type { AdminPostPayload, AdminSeriesContext, AdminTagOption } from "./types";
+import type {
+  AdminPostPayload,
+  AdminProjectProfile,
+  AdminSeriesContext,
+  AdminTagOption,
+} from "./types";
 import type { SubmitPayload, SubmitRequestInfo } from "./submit";
 
 export type PostLoadFailureKind = "not_found" | "http_error" | "network_error";
@@ -207,6 +212,8 @@ function normalizeDraftPayload(raw: unknown): Partial<AdminPostPayload> {
       typeof payload.cover_image_url === "string" || payload.cover_image_url === null
         ? payload.cover_image_url
         : undefined,
+    content_kind:
+      payload.content_kind === "project" ? "project" : "blog",
     series_title:
       typeof payload.series_title === "string" || payload.series_title === null
         ? payload.series_title
@@ -215,6 +222,7 @@ function normalizeDraftPayload(raw: unknown): Partial<AdminPostPayload> {
     visibility: payload.visibility === "private" ? "private" : "public",
     tags: normalizeTagSlugs(payload.tags),
     series_context: normalizeSeriesContext(payload.series_context),
+    project_profile: normalizeProjectProfile(payload.project_profile),
   };
 }
 
@@ -284,4 +292,43 @@ function normalizeSeriesList(raw: unknown): SeriesListItem[] {
     items.push({ slug, title });
   }
   return items;
+}
+
+function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as Record<string, unknown>;
+  if (
+    typeof value.period_label !== "string" ||
+    typeof value.role_summary !== "string" ||
+    typeof value.card_image_url !== "string"
+  ) {
+    return null;
+  }
+  return {
+    period_label: value.period_label.trim(),
+    role_summary: value.role_summary.trim(),
+    card_image_url: value.card_image_url.trim(),
+    detail_media_kind: value.detail_media_kind === "youtube" ? "youtube" : "image",
+    detail_image_url:
+      typeof value.detail_image_url === "string" || value.detail_image_url === null
+        ? value.detail_image_url
+        : null,
+    youtube_url:
+      typeof value.youtube_url === "string" || value.youtube_url === null
+        ? value.youtube_url
+        : null,
+    highlights_json: Array.isArray(value.highlights_json)
+      ? value.highlights_json.filter((item): item is string => typeof item === "string")
+      : Array.isArray(value.highlights)
+        ? value.highlights.filter((item): item is string => typeof item === "string")
+        : [],
+    resource_links_json: Array.isArray(value.resource_links_json)
+      ? value.resource_links_json.flatMap((item) => {
+          if (!item || typeof item !== "object") return [];
+          const link = item as Record<string, unknown>;
+          if (typeof link.label !== "string" || typeof link.href !== "string") return [];
+          return [{ label: link.label, href: link.href }];
+        })
+      : [],
+  };
 }

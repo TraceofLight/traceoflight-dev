@@ -1,5 +1,7 @@
 export type PostStatus = "draft" | "published";
 export type PostVisibility = "public" | "private";
+export type PostContentKind = "blog" | "project";
+export type ProjectDetailMediaKind = "image" | "youtube";
 export type AssetKind = "image" | "video" | "file";
 
 export interface UploadUrlResponse {
@@ -20,11 +22,13 @@ export interface AdminPostPayload {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  content_kind?: PostContentKind;
   series_title?: string | null;
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];
   series_context?: AdminSeriesContext | null;
+  project_profile?: AdminProjectProfile | null;
 }
 
 export interface AdminTagOption {
@@ -35,6 +39,24 @@ export interface AdminTagOption {
 export interface AdminSeriesContext {
   series_slug: string;
   series_title: string;
+}
+
+export interface AdminProjectResourceLink {
+  label: string;
+  href: string;
+}
+
+export interface AdminProjectProfile {
+  period_label: string;
+  role_summary: string;
+  card_image_url: string;
+  detail_media_kind: ProjectDetailMediaKind;
+  detail_image_url: string | null;
+  youtube_url: string | null;
+  highlights_json?: string[];
+  highlights?: string[];
+  resource_links_json?: AdminProjectResourceLink[];
+  resource_links?: AdminProjectResourceLink[];
 }
 
 export interface AdminDraftListItem {

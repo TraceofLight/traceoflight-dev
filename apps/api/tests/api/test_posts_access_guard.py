@@ -8,13 +8,15 @@ from fastapi.testclient import TestClient
 from app.api.deps import get_post_service
 from app.api.v1.endpoints import posts as posts_endpoint
 from app.main import app
-from app.models.post import PostStatus, PostVisibility
+from app.models.post import PostContentKind, PostStatus, PostVisibility
 
 
 def _build_post_payload(
     slug: str,
     status: PostStatus = PostStatus.PUBLISHED,
     visibility: PostVisibility = PostVisibility.PUBLIC,
+    content_kind: PostContentKind = PostContentKind.BLOG,
+    project_profile: dict[str, object] | None = None,
 ) -> dict[str, object]:
     now = datetime.now(timezone.utc)
     return {
@@ -24,9 +26,11 @@ def _build_post_payload(
         'excerpt': 'excerpt',
         'body_markdown': 'body',
         'cover_image_url': None,
+        'content_kind': content_kind,
         'status': status,
         'visibility': visibility,
         'published_at': now if status == PostStatus.PUBLISHED else None,
+        'project_profile': project_profile,
         'created_at': now,
         'updated_at': now,
     }
@@ -185,3 +189,54 @@ def test_posts_write_allows_valid_internal_secret(monkeypatch) -> None:
     assert response.status_code == 200
     assert service.create_called is True
     assert response.json()['visibility'] == 'private'
+
+
+def test_posts_write_accepts_project_payload(monkeypatch) -> None:
+    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    service = _StubPostService()
+    client = _client_with_service(service)
+
+    project_profile = {
+        'period_label': '2026.03 - ongoing',
+        'role_summary': 'Graphics programmer',
+        'card_image_url': 'https://example.com/project-card.png',
+        'detail_media_kind': 'youtube',
+        'detail_image_url': None,
+        'youtube_url': 'https://www.youtube.com/watch?v=abcdefghijk',
+        'highlights_json': ['Highlight A', 'Highlight B'],
+        'resource_links_json': [
+            {'label': 'GitHub', 'href': 'https://github.com/example/project'},
+        ],
+    }
+
+    payload = {
+        'slug': 'graphics-showcase',
+        'title': 'Graphics Showcase',
+        'excerpt': 'project summary',
+        'body_markdown': 'body',
+        'cover_image_url': 'https://example.com/project-card.png',
+        'content_kind': 'project',
+        'status': 'published',
+        'visibility': 'public',
+        'published_at': None,
+        'project_profile': project_profile,
+    }
+
+    service.create_post = lambda request_payload: _build_post_payload(  # type: ignore[method-assign]
+        slug=request_payload.slug,
+        status=request_payload.status,
+        visibility=request_payload.visibility,
+        content_kind=request_payload.content_kind,
+        project_profile=project_profile,
+    )
+
+    response = client.post(
+        '/api/v1/posts',
+        json=payload,
+        headers={'x-internal-api-secret': 'test-shared-secret'},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json()['content_kind'] == 'project'
+    assert response.json()['project_profile']['detail_media_kind'] == 'youtube'

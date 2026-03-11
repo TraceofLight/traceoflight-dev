@@ -69,3 +69,18 @@ test("writer preview figcaption style is isolated from blog styles", async () =>
   assert.doesNotMatch(blogLayoutSource, /\.writer-preview-content figcaption/);
   assert.match(writerStyleSource, /\.writer-preview-content figcaption/);
 });
+
+test("shared markdown renderer supports explicit youtube directives", async () => {
+  const [rendererCoreSource, blogLayoutSource] = await Promise.all([
+    readFile(rendererCorePath, "utf8"),
+    readFile(blogLayoutPath, "utf8"),
+  ]);
+
+  assert.match(rendererCoreSource, /youtube/i);
+  assert.match(rendererCoreSource, /:::youtube/);
+  assert.match(rendererCoreSource, /iframe/);
+  assert.match(rendererCoreSource, /youtube-nocookie\.com\/embed/);
+  assert.match(rendererCoreSource, /md-video-embed/);
+  assert.match(blogLayoutSource, /\[\&_\.md-video-embed\]:/);
+  assert.match(blogLayoutSource, /\[\&_iframe\]:/);
+});

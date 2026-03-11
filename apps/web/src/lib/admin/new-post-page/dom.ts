@@ -8,9 +8,19 @@ export interface WriterDomElements {
   slugFeedback: HTMLElement;
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
+  contentKindInput: HTMLSelectElement;
   visibilityInput: HTMLSelectElement;
   seriesInput: HTMLInputElement;
   tagInput: HTMLInputElement;
+  slugPrefix: HTMLElement;
+  projectFields: HTMLElement;
+  projectPeriodInput: HTMLInputElement;
+  projectRoleSummaryInput: HTMLInputElement;
+  projectDetailMediaKindInput: HTMLSelectElement;
+  projectDetailImageUrlInput: HTMLInputElement;
+  projectYoutubeUrlInput: HTMLInputElement;
+  projectHighlightsInput: HTMLTextAreaElement;
+  projectResourceLinksInput: HTMLTextAreaElement;
   seriesSuggestionList: HTMLDataListElement;
   tagChipList: HTMLElement;
   metaChipRail: HTMLElement;
@@ -49,9 +59,19 @@ const WRITER_SELECTORS = {
   slugFeedback: "#writer-slug-feedback",
   excerptInput: "#post-excerpt",
   coverInput: "#post-cover",
+  contentKindInput: "#post-content-kind",
   visibilityInput: "#post-visibility",
   seriesInput: "#post-series",
   tagInput: "#post-tags",
+  slugPrefix: "#writer-slug-prefix",
+  projectFields: "#writer-project-fields",
+  projectPeriodInput: "#project-period",
+  projectRoleSummaryInput: "#project-role-summary",
+  projectDetailMediaKindInput: "#project-detail-media-kind",
+  projectDetailImageUrlInput: "#project-detail-image-url",
+  projectYoutubeUrlInput: "#project-youtube-url",
+  projectHighlightsInput: "#project-highlights",
+  projectResourceLinksInput: "#project-resource-links",
   seriesSuggestionList: "#writer-series-suggestions",
   tagChipList: "#writer-tag-chip-list",
   metaChipRail: "#writer-meta-chip-rail",
@@ -109,12 +129,22 @@ export function queryWriterDomElements(
       WRITER_SELECTORS.excerptInput,
     ),
     coverInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.coverInput),
+    contentKindInput: queryElement<HTMLSelectElement>(root, WRITER_SELECTORS.contentKindInput),
     visibilityInput: queryElement<HTMLSelectElement>(
       root,
       WRITER_SELECTORS.visibilityInput,
     ),
     seriesInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.seriesInput),
     tagInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.tagInput),
+    slugPrefix: queryElement<HTMLElement>(root, WRITER_SELECTORS.slugPrefix),
+    projectFields: queryElement<HTMLElement>(root, WRITER_SELECTORS.projectFields),
+    projectPeriodInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectPeriodInput),
+    projectRoleSummaryInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectRoleSummaryInput),
+    projectDetailMediaKindInput: queryElement<HTMLSelectElement>(root, WRITER_SELECTORS.projectDetailMediaKindInput),
+    projectDetailImageUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectDetailImageUrlInput),
+    projectYoutubeUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectYoutubeUrlInput),
+    projectHighlightsInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectHighlightsInput),
+    projectResourceLinksInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectResourceLinksInput),
     seriesSuggestionList: queryElement<HTMLDataListElement>(
       root,
       WRITER_SELECTORS.seriesSuggestionList,

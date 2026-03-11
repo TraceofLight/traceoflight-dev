@@ -63,9 +63,19 @@ export async function initNewPostAdminPage(
     slugFeedback,
     excerptInput,
     coverInput,
+    contentKindInput,
     visibilityInput,
     seriesInput,
     tagInput,
+    slugPrefix,
+    projectFields,
+    projectPeriodInput,
+    projectRoleSummaryInput,
+    projectDetailMediaKindInput,
+    projectDetailImageUrlInput,
+    projectYoutubeUrlInput,
+    projectHighlightsInput,
+    projectResourceLinksInput,
     seriesSuggestionList,
     tagChipList,
     metaChipRail,
@@ -167,6 +177,13 @@ export async function initNewPostAdminPage(
   let editingPostSlug: string | null = mode === "edit" ? initialEditSlug : null;
   let activeDropTarget: "body" | "cover" | null = null;
   let selectedTags: string[] = [];
+
+  const syncProjectFieldVisibility = () => {
+    const isProject = contentKindInput.value === "project";
+    projectFields.hidden = !isProject;
+    projectFields.dataset.contentKind = isProject ? "project" : "blog";
+    slugPrefix.textContent = isProject ? "/projects/" : "/blog/";
+  };
 
   const setDraftLayerOpen = (nextOpen: boolean) => {
     draftLayer.hidden = !nextOpen;
@@ -376,8 +393,18 @@ export async function initNewPostAdminPage(
       slugInput,
       excerptInput,
       coverInput,
+      contentKindInput,
       visibilityInput,
       seriesInput,
+      slugPrefix,
+      projectFields,
+      projectPeriodInput,
+      projectRoleSummaryInput,
+      projectDetailMediaKindInput,
+      projectDetailImageUrlInput,
+      projectYoutubeUrlInput,
+      projectHighlightsInput,
+      projectResourceLinksInput,
       tagSuggestionList,
       seriesSuggestionList,
       draftList,
@@ -439,6 +466,10 @@ export async function initNewPostAdminPage(
   });
 
   excerptInput.addEventListener("input", queuePreviewRefresh);
+  contentKindInput.addEventListener("change", () => {
+    syncProjectFieldVisibility();
+    queuePreviewRefresh();
+  });
   visibilityInput.addEventListener("change", () => {
     queuePreviewRefresh();
   });
@@ -580,8 +611,16 @@ export async function initNewPostAdminPage(
     titleInput,
     excerptInput,
     coverInput,
+    contentKindInput,
     visibilityInput,
     seriesInput,
+    projectPeriodInput,
+    projectRoleSummaryInput,
+    projectDetailMediaKindInput,
+    projectDetailImageUrlInput,
+    projectYoutubeUrlInput,
+    projectHighlightsInput,
+    projectResourceLinksInput,
     openPublishButton,
     confirmPublishButton,
     editorBridge,
@@ -629,6 +668,7 @@ export async function initNewPostAdminPage(
   } else {
     await loadDraftFromQuery();
   }
+  syncProjectFieldVisibility();
   syncCompactViewForViewport();
   await refreshPreview();
 }

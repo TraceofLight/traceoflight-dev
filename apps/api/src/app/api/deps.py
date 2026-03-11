@@ -11,6 +11,7 @@ from app.repositories.tag_repository import TagRepository
 from app.services.import_service import ImportService
 from app.services.media_service import MediaService
 from app.services.post_service import PostService
+from app.services.project_service import ProjectService
 from app.services.resume_service import ResumeService
 from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
@@ -23,6 +24,10 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
 
 def get_post_service(db: Session = Depends(get_db)) -> PostService:
     return PostService(repo=PostRepository(db))
+
+
+def get_project_service(db: Session = Depends(get_db)) -> ProjectService:
+    return ProjectService(post_repo=PostRepository(db), series_repo=SeriesRepository(db))
 
 
 def get_media_service(db: Session = Depends(get_db)) -> MediaService:

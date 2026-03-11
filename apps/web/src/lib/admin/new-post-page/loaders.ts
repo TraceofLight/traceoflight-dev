@@ -31,8 +31,18 @@ interface WriterLoaderDependencies {
     | "slugInput"
     | "excerptInput"
     | "coverInput"
+    | "contentKindInput"
     | "visibilityInput"
     | "seriesInput"
+    | "slugPrefix"
+    | "projectFields"
+    | "projectPeriodInput"
+    | "projectRoleSummaryInput"
+    | "projectDetailMediaKindInput"
+    | "projectDetailImageUrlInput"
+    | "projectYoutubeUrlInput"
+    | "projectHighlightsInput"
+    | "projectResourceLinksInput"
     | "tagSuggestionList"
     | "seriesSuggestionList"
     | "draftList"
@@ -102,12 +112,29 @@ export function createWriterLoaders(
     slugInput,
     excerptInput,
     coverInput,
+    contentKindInput,
     visibilityInput,
     seriesInput,
+    slugPrefix,
+    projectFields,
+    projectPeriodInput,
+    projectRoleSummaryInput,
+    projectDetailMediaKindInput,
+    projectDetailImageUrlInput,
+    projectYoutubeUrlInput,
+    projectHighlightsInput,
+    projectResourceLinksInput,
     tagSuggestionList,
     seriesSuggestionList,
     draftList,
   } = dom;
+
+  const syncProjectFieldVisibility = () => {
+    const isProject = contentKindInput.value === "project";
+    projectFields.hidden = !isProject;
+    projectFields.dataset.contentKind = isProject ? "project" : "blog";
+    slugPrefix.textContent = isProject ? "/projects/" : "/blog/";
+  };
 
   const updateDraftQueryParam = (draftSlug: string | null) => {
     const nextPath = buildDraftQueryPath(windowObject.location.href, draftSlug);
@@ -125,10 +152,30 @@ export function createWriterLoaders(
     slugInput.dataset.touched = "true";
     excerptInput.value = loaded.excerpt ?? "";
     coverInput.value = loaded.cover_image_url ?? "";
+    contentKindInput.value = loaded.content_kind === "project" ? "project" : "blog";
     visibilityInput.value =
       loaded.visibility === "private" ? "private" : "public";
     seriesInput.value =
       loaded.series_title?.trim() ?? loaded.series_context?.series_title ?? "";
+    projectPeriodInput.value = loaded.project_profile?.period_label ?? "";
+    projectRoleSummaryInput.value = loaded.project_profile?.role_summary ?? "";
+    projectDetailMediaKindInput.value =
+      loaded.project_profile?.detail_media_kind === "youtube" ? "youtube" : "image";
+    projectDetailImageUrlInput.value = loaded.project_profile?.detail_image_url ?? "";
+    projectYoutubeUrlInput.value = loaded.project_profile?.youtube_url ?? "";
+    projectHighlightsInput.value = (
+      loaded.project_profile?.highlights_json ??
+      loaded.project_profile?.highlights ??
+      []
+    ).join("\n");
+    projectResourceLinksInput.value = (
+      loaded.project_profile?.resource_links_json ??
+      loaded.project_profile?.resource_links ??
+      []
+    )
+      .map((link) => `${link.label} | ${link.href}`)
+      .join("\n");
+    syncProjectFieldVisibility();
     setSelectedTags(dedupeTagSlugs(loaded.tags ?? []));
     syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");

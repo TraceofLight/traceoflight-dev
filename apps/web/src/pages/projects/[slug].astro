@@ -1,9 +1,9 @@
 ---
-import { Image } from "astro:assets";
-
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getProjectBySlug } from "../../lib/projects";
+import PostCard from "../../components/PostCard.astro";
+import { getPublishedDbProjectBySlug } from "../../lib/projects";
+import { normalizeCoverMedia } from "../../lib/cover-media";
 import {
   PUBLIC_BADGE_STRONG_CLASS,
   PUBLIC_EMPTY_STATE_CLASS,
@@ -13,7 +13,15 @@ import {
 } from "../../lib/ui-effects";
 
 const slug = Astro.params.slug ?? "";
-const project = getProjectBySlug(slug);
+const project = await getPublishedDbProjectBySlug(slug);
+const projectProfile = project
+  ? {
+      role: project.role,
+      period: project.period,
+      highlights: project.highlights,
+      links: project.links,
+    }
+  : null;
 
 if (!project) {
   Astro.response.status = 404;
@@ -25,7 +33,6 @@ if (!project) {
     <BaseLayout
       title={`${project.title} | Projects | ${SITE_TITLE}`}
       description={project.summary}
-      image={project.coverImage}
     >
       <section class="mx-auto flex max-w-5xl flex-col gap-8 py-10 sm:py-12">
         <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
@@ -53,38 +60,49 @@ if (!project) {
 
           <div class={`rounded-3xl bg-white/88 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
-              Lorem ipsum
+              프로젝트 역할
             </h2>
             <p class="mt-4 text-base leading-8 text-foreground/85">
-              {project.role}
+              {projectProfile?.role}
             </p>
-            <p class="mt-2 text-sm text-muted-foreground">{project.period}</p>
+            <p class="mt-2 text-sm text-muted-foreground">{projectProfile?.period}</p>
           </div>
         </header>
 
         <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
-          <Image
-            alt={project.title}
-            class="aspect-[16/9] h-full w-full object-cover"
-            height={780}
-            src={project.coverImage}
-            width={1400}
-          />
+          {
+            project.detailMediaKind === "youtube" && project.youtubeUrl ? (
+              <iframe
+                class="aspect-[16/9] h-full w-full"
+                src={project.youtubeUrl.replace("watch?v=", "embed/")}
+                title={project.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              />
+            ) : (
+              <img
+                alt={project.title}
+                class="aspect-[16/9] h-full w-full object-cover"
+                height={780}
+                loading="lazy"
+                src={project.detailImageUrl ?? project.coverImageUrl ?? "/images/empty-series-image.png"}
+                width={1400}
+              />
+            )
+          }
         </div>
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
-            <p class="mt-4 text-base leading-8 text-foreground/85">
-              {project.description}
-            </p>
+            <div class="mt-4 text-base leading-8 text-foreground/85" set:html={project.description} />
           </article>
 
           <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
-              Dolor sit amet
+              주요 항목
             </h2>
             <ul class="mt-4 grid gap-3 text-sm leading-7 text-muted-foreground">
-              {project.highlights.map((item) => (
+              {projectProfile?.highlights.map((item) => (
                 <li>{item}</li>
               ))}
             </ul>
@@ -93,7 +111,7 @@ if (!project) {
 
         <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <div class="flex flex-wrap gap-3">
-            {project.links.map((link) => {
+            {projectProfile?.links.map((link) => {
               const isExternal = /^https?:\/\//.test(link.href);
               return (
                 <a
@@ -110,10 +128,41 @@ if (!project) {
               class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               href="/projects"
             >
-              Lorem back
+              프로젝트 목록
             </a>
           </div>
         </section>
+
+        {
+          project.relatedSeriesPosts.length > 0 && (
+            <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
+                  RELATED SERIES
+                </p>
+                <h2 class="text-2xl font-semibold tracking-tight text-foreground">
+                  related series posts
+                </h2>
+              </div>
+              <div class="mt-6 grid gap-6 md:grid-cols-2">
+                {project.relatedSeriesPosts.map((post) => (
+                  <PostCard
+                    post={{
+                      slug: post.slug,
+                      title: post.title,
+                      description: post.excerpt,
+                      pubDate: post.publishedAt ?? new Date(),
+                      coverMedia: normalizeCoverMedia(post.coverImageUrl),
+                      body: post.excerpt,
+                      tags: [],
+                      visibility: post.visibility,
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        }
       </section>
     </BaseLayout>
   ) : (

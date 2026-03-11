@@ -176,7 +176,7 @@ if (!slug) {
             <label class="writer-field writer-field-slug">
               <span>Post URL</span>
               <div class="writer-slug-input-wrap">
-                <span class="writer-slug-prefix">/blog/</span>
+                <span id="writer-slug-prefix" class="writer-slug-prefix">/blog/</span>
                 <input
                   id="post-slug"
                   name="slug"
@@ -228,6 +228,13 @@ if (!slug) {
               hidden
             />
             <label class="writer-field">
+              <span>콘텐츠 타입</span>
+              <select id="post-content-kind" name="content_kind">
+                <option value="blog">Blog</option>
+                <option value="project">Project</option>
+              </select>
+            </label>
+            <label class="writer-field">
               <span>공개 범위</span>
               <select id="post-visibility" name="visibility">
                 <option value="public">Public</option>
@@ -278,6 +285,44 @@ if (!slug) {
             <p class="writer-helper">
               Drag/drop image to cover field, or paste URL/file from clipboard.
             </p>
+            <section
+              id="writer-project-fields"
+              class="grid gap-3"
+              hidden
+              data-content-kind="blog"
+            >
+              <label class="writer-field">
+                <span>프로젝트 작업 기간</span>
+                <input id="project-period" type="text" placeholder="2026.03 - ongoing" />
+              </label>
+              <label class="writer-field">
+                <span>프로젝트 역할 요약</span>
+                <input id="project-role-summary" type="text" placeholder="Lead developer" />
+              </label>
+              <label class="writer-field">
+                <span>상단 미디어 타입</span>
+                <select id="project-detail-media-kind">
+                  <option value="image">Image</option>
+                  <option value="youtube">YouTube</option>
+                </select>
+              </label>
+              <label class="writer-field">
+                <span>상세 이미지 URL</span>
+                <input id="project-detail-image-url" type="url" placeholder="https://..." />
+              </label>
+              <label class="writer-field">
+                <span>유튜브 URL</span>
+                <input id="project-youtube-url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+              </label>
+              <label class="writer-field">
+                <span>주요 항목</span>
+                <textarea id="project-highlights" rows="5" placeholder="한 줄에 하나씩 입력"></textarea>
+              </label>
+              <label class="writer-field">
+                <span>관련 링크</span>
+                <textarea id="project-resource-links" rows="4" placeholder="GitHub | https://github.com/..."></textarea>
+              </label>
+            </section>
           </div>
         </div>
         <div class="writer-publish-actions">

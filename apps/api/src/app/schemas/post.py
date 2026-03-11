@@ -5,9 +5,39 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.post import PostStatus, PostVisibility
+from app.models.post import PostContentKind, PostStatus, PostVisibility
+from app.models.project_profile import ProjectDetailMediaKind
 from app.schemas.series import PostSeriesContext
 from app.schemas.tag import TagRead
+
+
+class ProjectResourceLink(BaseModel):
+    label: str
+    href: str
+
+
+class ProjectProfilePayload(BaseModel):
+    period_label: str
+    role_summary: str
+    card_image_url: str
+    detail_media_kind: ProjectDetailMediaKind
+    detail_image_url: str | None = None
+    youtube_url: str | None = None
+    highlights: list[str] = Field(default_factory=list)
+    resource_links: list[ProjectResourceLink] = Field(default_factory=list)
+
+
+class ProjectProfileRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    period_label: str
+    role_summary: str
+    card_image_url: str
+    detail_media_kind: ProjectDetailMediaKind
+    detail_image_url: str | None
+    youtube_url: str | None
+    highlights_json: list[str] = Field(default_factory=list)
+    resource_links_json: list[ProjectResourceLink] = Field(default_factory=list)
 
 
 class PostCreate(BaseModel):
@@ -38,6 +68,11 @@ class PostCreate(BaseModel):
         description='Optional series title selected in writer publish settings.',
         json_schema_extra={'example': 'FastAPI Deep Dive'},
     )
+    content_kind: PostContentKind = Field(
+        default=PostContentKind.BLOG,
+        description='Content kind used to separate blog posts from project posts.',
+        json_schema_extra={'example': 'blog'},
+    )
     status: PostStatus = Field(
         default=PostStatus.DRAFT,
         description='Publication status lifecycle of the post.',
@@ -58,6 +93,10 @@ class PostCreate(BaseModel):
         description='Tag slug list assigned to this post.',
         json_schema_extra={'example': ['fastapi', 'astro']},
     )
+    project_profile: ProjectProfilePayload | None = Field(
+        default=None,
+        description='Project-only metadata. Required when content_kind=project.',
+    )
 
 
 class PostRead(BaseModel):
@@ -70,6 +109,7 @@ class PostRead(BaseModel):
     body_markdown: str
     cover_image_url: str | None
     series_title: str | None = None
+    content_kind: PostContentKind = Field(default=PostContentKind.BLOG)
     status: PostStatus
     visibility: PostVisibility
     published_at: datetime | None
@@ -80,6 +120,10 @@ class PostRead(BaseModel):
     series_context: PostSeriesContext | None = Field(
         default=None,
         description='Optional in-series projection used by post detail navigation.',
+    )
+    project_profile: ProjectProfileRead | None = Field(
+        default=None,
+        description='Optional project metadata used by /projects surfaces.',
     )
     created_at: datetime
     updated_at: datetime

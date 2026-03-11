@@ -11,7 +11,13 @@ import {
   resolveSubmitRequest,
   resolveSubmitStatus,
 } from "./submit";
-import type { EditorBridge, PostStatus, PostVisibility } from "./types";
+import type {
+  EditorBridge,
+  PostContentKind,
+  PostStatus,
+  PostVisibility,
+  ProjectDetailMediaKind,
+} from "./types";
 
 type FeedbackState = "info" | "ok" | "error";
 type ShowFeedback = (
@@ -26,8 +32,16 @@ export interface SubmitBindings {
   titleInput: HTMLInputElement;
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
+  contentKindInput: HTMLSelectElement;
   visibilityInput: HTMLSelectElement;
   seriesInput: HTMLInputElement;
+  projectPeriodInput: HTMLInputElement;
+  projectRoleSummaryInput: HTMLInputElement;
+  projectDetailMediaKindInput: HTMLSelectElement;
+  projectDetailImageUrlInput: HTMLInputElement;
+  projectYoutubeUrlInput: HTMLInputElement;
+  projectHighlightsInput: HTMLTextAreaElement;
+  projectResourceLinksInput: HTMLTextAreaElement;
   openPublishButton: HTMLButtonElement;
   confirmPublishButton: HTMLButtonElement;
   editorBridge: EditorBridge;
@@ -52,8 +66,16 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     titleInput,
     excerptInput,
     coverInput,
+    contentKindInput,
     visibilityInput,
     seriesInput,
+    projectPeriodInput,
+    projectRoleSummaryInput,
+    projectDetailMediaKindInput,
+    projectDetailImageUrlInput,
+    projectYoutubeUrlInput,
+    projectHighlightsInput,
+    projectResourceLinksInput,
     openPublishButton,
     confirmPublishButton,
     editorBridge,
@@ -88,8 +110,14 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     const slug = slugInput.value.trim();
     const title = titleInput.value.trim();
     const seriesName = seriesInput.value.trim();
+    const contentKind: PostContentKind =
+      contentKindInput.value === "project" ? "project" : "blog";
     const visibility: PostVisibility =
       visibilityInput.value === "private" ? "private" : "public";
+    const projectPeriod = projectPeriodInput.value.trim();
+    const projectRole = projectRoleSummaryInput.value.trim();
+    const projectDetailMediaKind: ProjectDetailMediaKind =
+      projectDetailMediaKindInput.value === "youtube" ? "youtube" : "image";
     const bodyMarkdown = normalizeMarkdownLinks(
       sanitizeEditorMarkdown((await editorBridge.getMarkdown()).trim()),
       window.location.protocol,
@@ -98,6 +126,19 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
 
     if (!ensureTitleExists("제목을 입력해 주세요.")) {
       return;
+    }
+
+    if (contentKind === "project") {
+      if (!projectPeriod) {
+        showFeedback("프로젝트 작업 기간을 입력해 주세요.", "error");
+        projectPeriodInput.focus();
+        return;
+      }
+      if (!projectRole) {
+        showFeedback("프로젝트 역할 요약을 입력해 주세요.", "error");
+        projectRoleSummaryInput.focus();
+        return;
+      }
     }
 
     if (!slug) {
@@ -124,11 +165,19 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       excerpt: excerptInput.value,
       bodyMarkdown,
       coverImageUrl: coverInput.value,
+      contentKind,
       status,
       visibility,
       tags: getSelectedTags(),
       seriesTitle: seriesName,
       nowIso: new Date().toISOString(),
+      projectPeriod: projectPeriod,
+      projectRoleSummary: projectRole,
+      projectDetailMediaKind: projectDetailMediaKind,
+      projectDetailImageUrl: projectDetailImageUrlInput.value,
+      projectYoutubeUrl: projectYoutubeUrlInput.value,
+      projectHighlights: projectHighlightsInput.value,
+      projectResourceLinks: projectResourceLinksInput.value,
     });
     const submitRequest = resolveSubmitRequest(getEditingPostSlug());
 
@@ -181,7 +230,13 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       }
       const createdStatus = (created.status ?? status).toLowerCase();
       const publicPath =
-        createdStatus === "published" ? `/blog/${created.slug}/` : "/blog/";
+        createdStatus === "published"
+          ? contentKind === "project"
+            ? `/projects/${created.slug}`
+            : `/blog/${created.slug}/`
+          : contentKind === "project"
+            ? "/projects/"
+            : "/blog/";
       if (createdStatus === "published") {
         setPublishLayerOpen(false);
         updateDraftQueryParam(null);

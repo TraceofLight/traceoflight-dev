@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import Base
 from app.models.post import Post
+from app.models.post import PostContentKind
 from app.models.post import PostStatus, PostVisibility
+from app.models.project_profile import ProjectProfile
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PostCreate
 
@@ -30,6 +32,31 @@ def _payload(slug: str, tags: list[str]) -> PostCreate:
         visibility=PostVisibility.PUBLIC,
         published_at=None,
         tags=tags,
+    )
+
+
+def _project_payload(slug: str, tags: list[str]) -> PostCreate:
+    return PostCreate(
+        slug=slug,
+        title=slug,
+        excerpt="project excerpt",
+        body_markdown=f"# {slug}",
+        cover_image_url="/media/project-card.png",
+        status=PostStatus.PUBLISHED,
+        visibility=PostVisibility.PUBLIC,
+        published_at=None,
+        tags=tags,
+        content_kind=PostContentKind.PROJECT,
+        project_profile={
+            "period_label": "2026.03 - ongoing",
+            "role_summary": "Lead developer",
+            "card_image_url": "/media/project-card.png",
+            "detail_media_kind": "image",
+            "detail_image_url": "/media/project-detail.png",
+            "youtube_url": None,
+            "highlights": ["one", "two"],
+            "resource_links": [{"label": "GitHub", "href": "https://github.com/traceoflight"}],
+        },
     )
 
 
@@ -123,4 +150,32 @@ def test_list_published_posts_orders_by_published_at_before_created_at() -> None
         "latest-published-post",
         "mid-published-post",
         "restored-old-post",
+    ]
+
+
+def test_list_posts_excludes_project_content_from_default_blog_queries() -> None:
+    db = _build_session()
+    repo = PostRepository(db)
+
+    repo.create(_payload("blog-post", ["til"]))
+    repo.create(_project_payload("project-post", ["cpp"]))
+
+    listed = repo.list(status=PostStatus.PUBLISHED, visibility=PostVisibility.PUBLIC)
+
+    assert [post.slug for post in listed] == ["blog-post"]
+
+
+def test_get_project_post_by_slug_returns_profile_metadata() -> None:
+    db = _build_session()
+    repo = PostRepository(db)
+
+    created = repo.create(_project_payload("project-post", ["cpp"]))
+    fetched = repo.get_by_slug("project-post")
+
+    assert created.content_kind == PostContentKind.PROJECT
+    assert fetched is not None
+    assert fetched.project_profile is not None
+    assert fetched.project_profile.period_label == "2026.03 - ongoing"
+    assert fetched.project_profile.resource_links_json == [
+        {"label": "GitHub", "href": "https://github.com/traceoflight"}
     ]

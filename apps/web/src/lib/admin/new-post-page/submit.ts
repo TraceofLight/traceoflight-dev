@@ -1,4 +1,9 @@
-import type { PostStatus, PostVisibility } from "./types";
+import type {
+  PostContentKind,
+  PostStatus,
+  PostVisibility,
+  ProjectDetailMediaKind,
+} from "./types";
 
 export interface SubmitStatusInput {
   desiredStatus: string | null;
@@ -12,11 +17,19 @@ export interface SubmitPayloadInput {
   excerpt: string;
   bodyMarkdown: string;
   coverImageUrl: string;
+  contentKind: PostContentKind;
   seriesTitle: string;
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];
   nowIso: string;
+  projectPeriod: string;
+  projectRoleSummary: string;
+  projectDetailMediaKind: ProjectDetailMediaKind;
+  projectDetailImageUrl: string;
+  projectYoutubeUrl: string;
+  projectHighlights: string;
+  projectResourceLinks: string;
 }
 
 export interface SubmitRequestInfo {
@@ -30,11 +43,43 @@ export interface SubmitPayload {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  content_kind: PostContentKind;
   series_title: string | null;
   status: PostStatus;
   visibility: PostVisibility;
   tags: string[];
   published_at: string | null;
+  project_profile: {
+    period_label: string;
+    role_summary: string;
+    card_image_url: string;
+    detail_media_kind: ProjectDetailMediaKind;
+    detail_image_url: string | null;
+    youtube_url: string | null;
+    highlights: string[];
+    resource_links: { label: string; href: string }[];
+  } | null;
+}
+
+function parseMultilineValues(raw: string): string[] {
+  return raw
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseProjectResourceLinks(
+  raw: string,
+): { label: string; href: string }[] {
+  return raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      const [label, href] = line.split("|").map((part) => part.trim());
+      if (!label || !href) return [];
+      return [{ label, href }];
+    });
 }
 
 export function resolveSubmitStatus(input: SubmitStatusInput): PostStatus {
@@ -51,23 +96,46 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     excerpt,
     bodyMarkdown,
     coverImageUrl,
+    contentKind,
     seriesTitle,
     status,
     visibility,
     tags,
     nowIso,
+    projectPeriod,
+    projectRoleSummary,
+    projectDetailMediaKind,
+    projectDetailImageUrl,
+    projectYoutubeUrl,
+    projectHighlights,
+    projectResourceLinks,
   } = input;
+  const normalizedCoverImageUrl = coverImageUrl.trim() || null;
+  const isProject = contentKind === "project";
   return {
     slug,
     title,
     excerpt: excerpt.trim() || null,
     body_markdown: bodyMarkdown,
-    cover_image_url: coverImageUrl.trim() || null,
+    cover_image_url: normalizedCoverImageUrl,
+    content_kind: contentKind,
     series_title: seriesTitle.trim() || null,
     status,
     visibility,
     tags,
     published_at: status === "published" ? nowIso : null,
+    project_profile: isProject
+      ? {
+          period_label: projectPeriod.trim(),
+          role_summary: projectRoleSummary.trim(),
+          card_image_url: normalizedCoverImageUrl ?? "",
+          detail_media_kind: projectDetailMediaKind,
+          detail_image_url: projectDetailImageUrl.trim() || null,
+          youtube_url: projectYoutubeUrl.trim() || null,
+          highlights: parseMultilineValues(projectHighlights),
+          resource_links: parseProjectResourceLinks(projectResourceLinks),
+        }
+      : null,
   };
 }
 

@@ -1,6 +1,4 @@
 ---
-import { Image } from "astro:assets";
-
 import type { ProjectItem } from "../lib/projects";
 import {
   PUBLIC_HOVER_CARD_CLASS,
@@ -34,11 +32,12 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
     href={`/projects/${project.slug}`}
   >
     <div class={mediaFrameClass}>
-      <Image
+      <img
         alt={project.title}
-        class="block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
+        class="block h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.06]"
         height={imageHeight}
-        src={project.coverImage}
+        loading="lazy"
+        src={project.coverImageUrl ?? "/images/empty-series-image.png"}
         width={imageWidth}
       />
     </div>

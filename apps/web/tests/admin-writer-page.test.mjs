@@ -41,6 +41,21 @@ test("admin writer page bootstraps writer module", async () => {
   assert.match(source, /initNewPostAdminPage/);
 });
 
+test("admin writer edit page keeps the project publish fields", async () => {
+  const source = await readFile(editPagePath, "utf8");
+
+  assert.match(source, /id="writer-slug-prefix"/);
+  assert.match(source, /id="post-content-kind"/);
+  assert.match(source, /id="writer-project-fields"/);
+  assert.match(source, /id="project-period"/);
+  assert.match(source, /id="project-role-summary"/);
+  assert.match(source, /id="project-detail-media-kind"/);
+  assert.match(source, /id="project-detail-image-url"/);
+  assert.match(source, /id="project-youtube-url"/);
+  assert.match(source, /id="project-highlights"/);
+  assert.match(source, /id="project-resource-links"/);
+});
+
 test("admin writer layout preloads milkdown theme css statically", async () => {
   const [layoutSource, newPageSource, editPageSource] = await Promise.all([
     readFile(layoutPath, "utf8"),
@@ -99,9 +114,19 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /<span>요약<\/span>/);
   assert.match(source, /id="post-visibility"/);
   assert.match(source, /<span>공개 범위<\/span>/);
+  assert.match(source, /id="post-content-kind"/);
+  assert.match(source, /<span>콘텐츠 타입<\/span>/);
   assert.match(source, /id="post-series"/);
   assert.match(source, /id="writer-series-suggestions"/);
   assert.match(source, /<span>시리즈<\/span>/);
+  assert.match(source, /id="writer-project-fields"/);
+  assert.match(source, /id="project-period"/);
+  assert.match(source, /id="project-role-summary"/);
+  assert.match(source, /id="project-detail-media-kind"/);
+  assert.match(source, /id="project-detail-image-url"/);
+  assert.match(source, /id="project-youtube-url"/);
+  assert.match(source, /id="project-highlights"/);
+  assert.match(source, /id="project-resource-links"/);
   assert.doesNotMatch(source, /<span>Excerpt<\/span>/);
   assert.doesNotMatch(source, /<span>Status<\/span>/);
 });

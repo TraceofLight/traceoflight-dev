@@ -16,6 +16,7 @@ from app.services.series_projection_cache import run_series_projection_loop
 OPENAPI_TAGS = [
     {'name': 'health', 'description': 'Liveness and readiness probe endpoints.'},
     {'name': 'posts', 'description': 'Post query endpoints and internal write operations.'},
+    {'name': 'projects', 'description': 'Project query endpoints backed by project posts.'},
     {'name': 'series', 'description': 'Series discovery endpoints and internal series management operations.'},
     {'name': 'tags', 'description': 'Tag query endpoints and internal tag management operations.'},
     {'name': 'media', 'description': 'Media upload URL issuance, proxy upload, and metadata registration.'},

@@ -14,7 +14,7 @@ import {
   toPostCard,
   type PostCard as PostCardData,
 } from "../lib/content-source";
-import { getProjects } from "../lib/projects";
+import { listPublishedDbProjects } from "../lib/projects";
 import { getSeriesBySlug, listSeries } from "../lib/series-db";
 import {
   PUBLIC_BADGE_CLASS,
@@ -55,7 +55,12 @@ if (provider === "db") {
 } else {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
-const projects = getProjects().slice(0, 3);
+let projects = [];
+try {
+  projects = await listPublishedDbProjects(3);
+} catch {
+  projects = [];
+}
 const heroShellClass =
   `${PUBLIC_HERO_SURFACE_CLASS} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
 const heroCopyPanelClass =

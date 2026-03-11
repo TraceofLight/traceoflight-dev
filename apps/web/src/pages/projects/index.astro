@@ -2,9 +2,9 @@
 import ProjectCard from "../../components/ProjectCard.astro";
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getProjects } from "../../lib/projects";
+import { listPublishedDbProjects } from "../../lib/projects";
 
-const projects = getProjects();
+const projects = await listPublishedDbProjects();
 ---
 
 <BaseLayout
@@ -24,8 +24,18 @@ const projects = getProjects();
       </p>
     </header>
 
-    <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-      {projects.map((project) => <ProjectCard project={project} />)}
-    </section>
+    {
+      projects.length > 0 ? (
+        <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {projects.map((project) => <ProjectCard project={project} />)}
+        </section>
+      ) : (
+        <section class="rounded-3xl border border-dashed border-border/70 bg-card/80 px-6 py-12 text-center shadow-sm">
+          <p class="text-base text-muted-foreground">
+            아직 등록된 프로젝트가 없습니다.
+          </p>
+        </section>
+      )
+    }
   </section>
 </BaseLayout>

@@ -7,7 +7,8 @@ from sqlalchemy import delete, distinct, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.post import Post, PostStatus, PostVisibility
+from app.models.post import Post, PostContentKind, PostStatus, PostVisibility
+from app.models.project_profile import ProjectDetailMediaKind, ProjectProfile
 from app.models.series import Series, SeriesPost
 from app.models.tag import Tag
 from app.repositories.tag_repository import normalize_tag_slugs
@@ -90,6 +91,7 @@ class PostRepository:
         offset: int = 0,
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
+        content_kind: PostContentKind | None = PostContentKind.BLOG,
         tags: list[str] | None = None,
         tag_match: str = "any",
     ) -> list[Post]:
@@ -103,13 +105,15 @@ class PostRepository:
 
         stmt = (
             select(Post)
-            .options(selectinload(Post.tags))
+            .options(selectinload(Post.tags), selectinload(Post.project_profile))
             .order_by(*ordering)
         )
         if status is not None:
             stmt = stmt.where(Post.status == status)
         if visibility is not None:
             stmt = stmt.where(Post.visibility == visibility)
+        if content_kind is not None:
+            stmt = stmt.where(Post.content_kind == content_kind)
         normalized_tags = normalize_tag_slugs(tags or [])
         if normalized_tags:
             tag_stmt = (
@@ -131,12 +135,15 @@ class PostRepository:
         slug: str,
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
+        content_kind: PostContentKind | None = None,
     ) -> Post | None:
-        stmt = select(Post).options(selectinload(Post.tags)).where(Post.slug == slug)
+        stmt = select(Post).options(selectinload(Post.tags), selectinload(Post.project_profile)).where(Post.slug == slug)
         if status is not None:
             stmt = stmt.where(Post.status == status)
         if visibility is not None:
             stmt = stmt.where(Post.visibility == visibility)
+        if content_kind is not None:
+            stmt = stmt.where(Post.content_kind == content_kind)
         row = self.db.scalar(stmt)
         if row is None:
             return None
@@ -175,11 +182,14 @@ class PostRepository:
     def create(self, payload: PostCreate) -> Post:
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
+        project_profile_data = post_data.pop("project_profile", None)
         post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
         if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
 
         post = Post(**post_data)
+        if post.content_kind == PostContentKind.PROJECT and project_profile_data is not None:
+            post.project_profile = self._build_project_profile(project_profile_data)
         post.tags = self._resolve_tags(raw_tags)
         self.db.add(post)
         self.db.commit()
@@ -196,12 +206,20 @@ class PostRepository:
 
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
+        project_profile_data = post_data.pop("project_profile", None)
         post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
         if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
 
         for field, value in post_data.items():
             setattr(post, field, value)
+        if post.content_kind == PostContentKind.PROJECT and project_profile_data is not None:
+            if post.project_profile is None:
+                post.project_profile = self._build_project_profile(project_profile_data)
+            else:
+                self._update_project_profile(post.project_profile, project_profile_data)
+        else:
+            post.project_profile = None
         post.tags = self._resolve_tags(raw_tags)
 
         self.db.commit()
@@ -229,3 +247,35 @@ class PostRepository:
         result = self.db.execute(delete(Post))
         self.db.commit()
         return int(result.rowcount or 0)
+
+    def _build_project_profile(self, payload: dict[str, object]) -> ProjectProfile:
+        detail_media_kind = payload["detail_media_kind"]
+        if isinstance(detail_media_kind, ProjectDetailMediaKind):
+            normalized_media_kind = detail_media_kind
+        else:
+            normalized_media_kind = ProjectDetailMediaKind(str(detail_media_kind))
+        return ProjectProfile(
+            period_label=str(payload["period_label"]),
+            role_summary=str(payload["role_summary"]),
+            card_image_url=str(payload["card_image_url"]),
+            detail_media_kind=normalized_media_kind,
+            detail_image_url=payload.get("detail_image_url"),
+            youtube_url=payload.get("youtube_url"),
+            highlights_json=list(payload.get("highlights") or []),
+            resource_links_json=list(payload.get("resource_links") or []),
+        )
+
+    def _update_project_profile(self, profile: ProjectProfile, payload: dict[str, object]) -> None:
+        detail_media_kind = payload["detail_media_kind"]
+        if isinstance(detail_media_kind, ProjectDetailMediaKind):
+            normalized_media_kind = detail_media_kind
+        else:
+            normalized_media_kind = ProjectDetailMediaKind(str(detail_media_kind))
+        profile.period_label = str(payload["period_label"])
+        profile.role_summary = str(payload["role_summary"])
+        profile.card_image_url = str(payload["card_image_url"])
+        profile.detail_media_kind = normalized_media_kind
+        profile.detail_image_url = payload.get("detail_image_url")
+        profile.youtube_url = payload.get("youtube_url")
+        profile.highlights_json = list(payload.get("highlights") or [])
+        profile.resource_links_json = list(payload.get("resource_links") or [])
