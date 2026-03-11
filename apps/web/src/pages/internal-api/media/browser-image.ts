@@ -1,5 +1,7 @@
 import type { APIRoute } from "astro";
+import { lookup } from "node:dns/promises";
 import { access, readFile } from "node:fs/promises";
+import { isIP } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -13,8 +15,18 @@ const MODULE_ROOT = path.resolve(fileURLToPath(new URL("../../../../", import.me
 const APP_ROOT_CANDIDATES = [MODULE_ROOT, path.dirname(MODULE_ROOT)];
 const MAX_IMAGE_WIDTH = 2200;
 const MAX_IMAGE_HEIGHT = 2200;
+const MAX_CONTENT_LENGTH_BYTES = 8 * 1024 * 1024;
+const MAX_DOWNLOAD_BYTES = 8 * 1024 * 1024;
+const FETCH_TIMEOUT_MS = 8_000;
+const MAX_INPUT_PIXELS = 40_000_000;
 const DEFAULT_QUALITY = 82;
 const DEFAULT_BACKGROUND = { r: 248, g: 250, b: 252, alpha: 1 };
+const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(
+  (process.env.ALLOWED_REMOTE_IMAGE_HOSTS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 function badRequest(detail: string, status = 400): Response {
   return new Response(JSON.stringify({ detail }), {
@@ -44,35 +56,90 @@ function isBlockedHostname(hostname: string): boolean {
     return true;
   }
 
-  if (
-    normalized === "localhost"
-    || normalized === "127.0.0.1"
-    || normalized === "::1"
-    || normalized.endsWith(".local")
-  ) {
+  if (normalized === "localhost" || normalized.endsWith(".local")) {
     return true;
   }
 
-  if (/^10\.\d+\.\d+\.\d+$/.test(normalized)) {
+  if (isBlockedIpAddress(normalized)) {
     return true;
-  }
-
-  if (/^192\.168\.\d+\.\d+$/.test(normalized)) {
-    return true;
-  }
-
-  const private172Match = normalized.match(/^172\.(\d+)\.\d+\.\d+$/);
-  if (private172Match) {
-    const secondOctet = Number.parseInt(private172Match[1] ?? "", 10);
-    if (secondOctet >= 16 && secondOctet <= 31) {
-      return true;
-    }
   }
 
   return false;
 }
 
-function buildSourceUrlCandidates(request: Request, source: string): URL[] {
+function isBlockedIpAddress(address: string): boolean {
+  const normalized = address.trim().toLowerCase();
+  const version = isIP(normalized);
+
+  if (version === 4) {
+    if (/^127\.\d+\.\d+\.\d+$/.test(normalized)) return true;
+    if (/^10\.\d+\.\d+\.\d+$/.test(normalized)) return true;
+    if (/^192\.168\.\d+\.\d+$/.test(normalized)) return true;
+    if (/^169\.254\.\d+\.\d+$/.test(normalized)) return true;
+
+    const private172Match = normalized.match(/^172\.(\d+)\.\d+\.\d+$/);
+    if (private172Match) {
+      const secondOctet = Number.parseInt(private172Match[1] ?? "", 10);
+      if (secondOctet >= 16 && secondOctet <= 31) return true;
+    }
+
+    const carrierGradeNatMatch = normalized.match(/^100\.(\d+)\.\d+\.\d+$/);
+    if (carrierGradeNatMatch) {
+      const secondOctet = Number.parseInt(carrierGradeNatMatch[1] ?? "", 10);
+      if (secondOctet >= 64 && secondOctet <= 127) return true;
+    }
+
+    const benchmarkMatch = normalized.match(/^198\.(\d+)\.\d+\.\d+$/);
+    if (benchmarkMatch) {
+      const secondOctet = Number.parseInt(benchmarkMatch[1] ?? "", 10);
+      if (secondOctet === 18 || secondOctet === 19) return true;
+    }
+
+    return false;
+  }
+
+  if (version === 6) {
+    return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:");
+  }
+
+  return false;
+}
+
+async function resolvesToBlockedAddress(hostname: string): Promise<boolean> {
+  try {
+    const resolved = await lookup(hostname, { all: true, verbatim: true });
+    return resolved.some((record) => isBlockedIpAddress(record.address));
+  } catch {
+    return true;
+  }
+}
+
+function buildAllowedRemoteHosts(requestOrigin: string): Set<string> {
+  const allowedHosts = new Set<string>(ALLOWED_REMOTE_IMAGE_HOSTS);
+  const originCandidates = [requestOrigin, process.env.SITE_URL?.trim() || SITE_URL];
+
+  const backendAssetOrigin = (() => {
+    try {
+      return new URL(getBackendApiBaseUrl()).origin;
+    } catch {
+      return "";
+    }
+  })();
+  originCandidates.push(backendAssetOrigin);
+
+  for (const candidate of originCandidates) {
+    if (!candidate) continue;
+    try {
+      allowedHosts.add(new URL(candidate).hostname.toLowerCase());
+    } catch {
+      continue;
+    }
+  }
+
+  return allowedHosts;
+}
+
+async function buildSourceUrlCandidates(request: Request, source: string): Promise<URL[]> {
   const trimmedSource = source.trim();
   if (!trimmedSource) {
     return [];
@@ -82,12 +149,21 @@ function buildSourceUrlCandidates(request: Request, source: string): URL[] {
   const isRelativeSource = trimmedSource.startsWith("/");
   if (!isRelativeSource) {
     const resolvedUrl = new URL(trimmedSource);
+    const allowedRemoteHosts = buildAllowedRemoteHosts(requestOrigin);
 
     if (!["http:", "https:"].includes(resolvedUrl.protocol)) {
       return [];
     }
 
     if (isBlockedHostname(resolvedUrl.hostname)) {
+      return [];
+    }
+
+    if (!allowedRemoteHosts.has(resolvedUrl.hostname.toLowerCase())) {
+      return [];
+    }
+
+    if (await resolvesToBlockedAddress(resolvedUrl.hostname)) {
       return [];
     }
 
@@ -162,10 +238,44 @@ async function loadRelativeAssetBuffer(source: string): Promise<Buffer | null> {
   return null;
 }
 
+async function readLimitedArrayBuffer(response: Response): Promise<Buffer> {
+  const contentLength = response.headers.get("content-length");
+  if (contentLength) {
+    const parsedLength = Number.parseInt(contentLength, 10);
+    if (Number.isFinite(parsedLength) && parsedLength > MAX_CONTENT_LENGTH_BYTES) {
+      throw new Error("Source image is too large.");
+    }
+  }
+
+  if (!response.body) {
+    return Buffer.alloc(0);
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_DOWNLOAD_BYTES) {
+      await reader.cancel("Download exceeded limit.");
+      throw new Error("Source image download exceeded size limit.");
+    }
+
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+}
+
 export const GET: APIRoute = async ({ request }) => {
   const requestUrl = new URL(request.url);
   const sourceParam = requestUrl.searchParams.get("url");
-  const sourceCandidates = sourceParam ? buildSourceUrlCandidates(request, sourceParam) : [];
+  const sourceCandidates = sourceParam ? await buildSourceUrlCandidates(request, sourceParam) : [];
 
   if (sourceCandidates.length === 0) {
     return badRequest("A valid image url is required.");
@@ -183,14 +293,23 @@ export const GET: APIRoute = async ({ request }) => {
   let upstreamResponse: Response | null = null;
   if (!relativeAssetBuffer) {
     for (const sourceUrl of sourceCandidates) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {
         const candidateResponse = await fetch(sourceUrl, {
+          redirect: "manual",
+          signal: controller.signal,
           headers: {
             accept: "image/avif,image/webp,image/*;q=0.8,*/*;q=0.1",
           },
         });
+        clearTimeout(timeoutId);
 
         if (!candidateResponse.ok) {
+          continue;
+        }
+
+        if (candidateResponse.status >= 300 && candidateResponse.status < 400) {
           continue;
         }
 
@@ -202,6 +321,7 @@ export const GET: APIRoute = async ({ request }) => {
         upstreamResponse = candidateResponse;
         break;
       } catch {
+        clearTimeout(timeoutId);
         continue;
       }
     }
@@ -211,9 +331,8 @@ export const GET: APIRoute = async ({ request }) => {
     }
   }
 
-  const arrayBuffer = relativeAssetBuffer
-    ?? Buffer.from(await upstreamResponse!.arrayBuffer());
-  let imagePipeline = sharp(Buffer.from(arrayBuffer));
+  const arrayBuffer = relativeAssetBuffer ?? await readLimitedArrayBuffer(upstreamResponse!);
+  let imagePipeline = sharp(Buffer.from(arrayBuffer), { limitInputPixels: MAX_INPUT_PIXELS });
   const metadata = await imagePipeline.metadata();
 
   imagePipeline = imagePipeline.resize({

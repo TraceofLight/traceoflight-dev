@@ -39,3 +39,10 @@ test("admin auth middleware and routes are present", async () => {
   assert.doesNotMatch(middleware, /\/admin\/login/);
   assert.doesNotMatch(middleware, /\/admin\/logout/);
 });
+
+test("logout route only allows POST", async () => {
+  const source = await read("src/pages/internal-api/auth/logout.ts");
+
+  assert.match(source, /export const POST: APIRoute = performLogout;/);
+  assert.doesNotMatch(source, /export const GET: APIRoute/);
+});

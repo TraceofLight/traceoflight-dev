@@ -29,9 +29,3 @@ const performLogout: APIRoute = async ({ cookies, request, url, redirect }) => {
 };
 
 export const POST: APIRoute = performLogout;
-
-export const GET: APIRoute = async (context) => {
-  await performLogout(context);
-  const nextPath = sanitizeNextPath(context.url.searchParams.get('next'));
-  return context.redirect(nextPath);
-};

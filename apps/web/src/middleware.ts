@@ -9,6 +9,40 @@ import {
   verifyAccessToken,
 } from "./lib/admin-auth";
 
+const SECURITY_HEADERS = {
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "form-action 'self'",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com",
+    "media-src 'self' blob: data: https:",
+    "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
+  ].join("; "),
+} as const;
+
+function applySecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function isProtectedPath(pathname: string): boolean {
   return pathname.startsWith("/admin") || pathname.startsWith("/internal-api");
 }
@@ -74,7 +108,7 @@ function isAllowedInternalApiOrigin(origin: string | null): boolean {
   return buildAllowedInternalApiOrigins().has(origin);
 }
 
-export const onRequest = defineMiddleware((context, next) => {
+export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname, search } = context.url;
 
   if (
@@ -83,19 +117,21 @@ export const onRequest = defineMiddleware((context, next) => {
     isFormLikeRequest(context.request.headers.get("content-type")) &&
     !isAllowedInternalApiOrigin(context.request.headers.get("origin"))
   ) {
-    return new Response("Cross-site form submissions are forbidden", {
+    return applySecurityHeaders(new Response("Cross-site form submissions are forbidden", {
       status: 403,
       headers: { "content-type": "text/plain;charset=UTF-8" },
-    });
+    }));
   }
 
   if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
-    return next();
+    const response = await next();
+    return applySecurityHeaders(response);
   }
 
   const accessToken = context.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
   if (accessToken && verifyAccessToken(accessToken)) {
-    return next();
+    const response = await next();
+    return applySecurityHeaders(response);
   }
 
   const refreshToken = context.cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? "";
@@ -106,7 +142,8 @@ export const onRequest = defineMiddleware((context, next) => {
         process.env.NODE_ENV === "production" ||
         context.url.protocol === "https:";
       setAdminAuthCookies(context.cookies, rotation.pair, secure);
-      return next();
+      const response = await next();
+      return applySecurityHeaders(response);
     }
 
     if (
@@ -119,11 +156,11 @@ export const onRequest = defineMiddleware((context, next) => {
   }
 
   if (pathname.startsWith("/internal-api")) {
-    return new Response(JSON.stringify({ detail: "Unauthorized" }), {
+    return applySecurityHeaders(new Response(JSON.stringify({ detail: "Unauthorized" }), {
       status: 401,
       headers: { "content-type": "application/json" },
-    });
+    }));
   }
 
-  return context.redirect(buildLoginRedirect(pathname, search));
+  return applySecurityHeaders(context.redirect(buildLoginRedirect(pathname, search)));
 });

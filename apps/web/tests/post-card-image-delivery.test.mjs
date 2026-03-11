@@ -101,7 +101,7 @@ test("browser image route resizes remote originals with cache headers", async ()
   assert.match(source, /import sharp from ["']sharp["'];/);
   assert.match(source, /export const GET: APIRoute/);
   assert.match(source, /fetch\(sourceUrl/);
-  assert.match(source, /sharp\(Buffer\.from\(arrayBuffer\)\)/);
+  assert.match(source, /sharp\(Buffer\.from\(arrayBuffer\),\s*\{\s*limitInputPixels:\s*MAX_INPUT_PIXELS\s*\}\)/);
   assert.match(source, /const fit = requestUrl\.searchParams\.get\("fit"\)/);
   assert.match(source, /resize\(\{/);
   assert.match(source, /const resizeFit = fit === "contain" \|\| fit === "inside" \? fit : "cover"/);
@@ -113,27 +113,31 @@ test("browser image route resizes remote originals with cache headers", async ()
   assert.doesNotMatch(source, /\.extract\(\{/);
   assert.match(source, /position:\s*"centre"/);
   assert.match(source, /const metadata = await imagePipeline\.metadata\(\)/);
+  assert.match(source, /limitInputPixels:\s*MAX_INPUT_PIXELS/);
   assert.match(source, /if \(metadata\.hasAlpha \|\| resizeFit !== "cover"\)/);
   assert.match(source, /const DEFAULT_BACKGROUND = \{ r: 248, g: 250, b: 252, alpha: 1 \};/);
+  assert.match(source, /redirect:\s*"manual"/);
+  assert.match(source, /AbortController/);
+  assert.match(source, /MAX_DOWNLOAD_BYTES/);
+  assert.match(source, /MAX_CONTENT_LENGTH_BYTES/);
+  assert.match(source, /content-length/);
+  assert.match(source, /response\.body\.getReader\(/);
   assert.match(source, /"cache-control":\s*"public, max-age=31536000, immutable"/);
 });
 
 test("browser image route keeps opaque source dimensions intact before cover resize", async () => {
-  const url = "https://velog.velcdn.com/images/traceoflight/post/567ce22e-b558-45ed-890b-23d063acbd4c/image.png";
-  const response = await fetch(url);
-  assert.equal(response.ok, true);
-
-  const sourceBuffer = Buffer.from(await response.arrayBuffer());
+  const sourceBuffer = await readFile(fallbackImageAssetPath);
   const originalMeta = await (await import("sharp")).default(sourceBuffer).metadata();
   const transformedBuffer = await invokeBrowserImageRoute({
     cwd: appRootPath,
-    requestUrl: `http://127.0.0.1:4321/internal-api/media/browser-image?url=${encodeURIComponent(url)}&fit=cover&w=1400&h=1000`,
+    requestUrl:
+      "http://127.0.0.1:4321/internal-api/media/browser-image?url=%2Fimages%2Fempty-article-image.png&fit=cover&w=1400&h=1000",
     siteUrl: "https://traceoflight.dev",
   });
 
   assert.equal(transformedBuffer.status, 200);
-  assert.equal(originalMeta.width, 1748);
-  assert.equal(originalMeta.height, 1240);
+  assert.ok((originalMeta.width ?? 0) > 0);
+  assert.ok((originalMeta.height ?? 0) > 0);
 });
 
 test("browser image route can load fallback assets even when the process starts from the repo root", async () => {
@@ -155,6 +159,18 @@ test("browser image route checks both the app root and its parent for built fall
   assert.match(source, /const MODULE_ROOT =/);
   assert.match(source, /const APP_ROOT_CANDIDATES = \[MODULE_ROOT, path\.dirname\(MODULE_ROOT\)\];/);
   assert.match(source, /for \(const appRoot of APP_ROOT_CANDIDATES\)/);
+});
+
+test("browser image route limits remote hosts to an allowlist and blocks wider internal ranges", async () => {
+  const source = await readFile(mediaRoutePath, "utf8");
+
+  assert.match(source, /ALLOWED_REMOTE_IMAGE_HOSTS/);
+  assert.doesNotMatch(source, /velog\.velcdn\.com/);
+  assert.match(source, /169\\\.254/);
+  assert.match(source, /carrierGradeNatMatch/);
+  assert.match(source, /benchmarkMatch/);
+  assert.match(source, /startsWith\("fc"\)/);
+  assert.match(source, /startsWith\("fe80:"\)/);
 });
 
 test("browser image route prefers the current request origin for /media assets before SITE_URL fallback", async () => {
@@ -265,16 +281,13 @@ test("browser image route falls back to the backend asset origin for /media asse
 test("post card uses a toss-team-like wide media block and fully filled imagery", async () => {
   const source = await readFile(postCardPath, "utf8");
 
-  assert.match(
-    source,
-    /rounded-\[2rem\] border border-white\/80 bg-white\/95 p-3 shadow-\[0_28px_80px_rgba\(15,23,42,0\.10\)\]/,
-  );
-  assert.match(source, /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/);
+  assert.match(source, /PUBLIC_HOVER_CARD_CLASS/);
+  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /imageHeight = 640/);
   assert.match(source, /sizes="\(max-width: 768px\) 100vw, \(max-width: 1280px\) 50vw, 33vw"/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
-  assert.match(source, /overflow-hidden rounded-\[1\.5rem\]/);
+  assert.match(source, /PUBLIC_MEDIA_FRAME_CLASS/);
   assert.doesNotMatch(source, /const imagePosition = "top";/);
   assert.doesNotMatch(source, /const imageZoom = 1\.2;/);
   assert.doesNotMatch(source, /position=\{imagePosition\}/);
