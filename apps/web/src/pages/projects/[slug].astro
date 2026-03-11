@@ -115,9 +115,13 @@ if (!project) {
               <h1 class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
                 {project.title}
               </h1>
-              <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
-                {project.summary}
-              </p>
+              {
+                project.summary && (
+                  <p class="max-w-2xl text-base leading-8 text-foreground/78">
+                    {project.summary}
+                  </p>
+                )
+              }
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -146,7 +150,15 @@ if (!project) {
 
         <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           {
-            youtubeEmbedUrl ? (
+            project?.detailMediaKind === "video" && project.detailVideoUrl ? (
+              <video
+                class="aspect-[16/9] h-full w-full object-cover"
+                controls
+                preload="metadata"
+                src={project.detailVideoUrl}
+              >
+              </video>
+            ) : youtubeEmbedUrl ? (
               <iframe
                 class="aspect-[16/9] h-full w-full"
                 src={youtubeEmbedUrl}
@@ -171,37 +183,63 @@ if (!project) {
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
-            <div class="mt-4 text-base leading-8 text-foreground/85" set:html={project.description} />
+            <h2 class="text-xl font-semibold tracking-tight text-foreground">
+              프로젝트 소개
+            </h2>
+            <p class="mt-4 text-base leading-8 text-foreground/85">
+              {project.intro || "프로젝트 소개 문구를 준비 중입니다."}
+            </p>
+            {
+              projectProfile?.highlights.length ? (
+                <ul class="mt-5 grid gap-3 text-sm leading-7 text-muted-foreground">
+                  {projectProfile.highlights.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              ) : null
+            }
           </article>
 
           <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
-              주요 항목
+              관련 링크
             </h2>
-            <ul class="mt-4 grid gap-3 text-sm leading-7 text-muted-foreground">
-              {projectProfile?.highlights.map((item) => (
-                <li>{item}</li>
-              ))}
-            </ul>
+            {
+              (projectProfile?.links.length ?? 0) > 0 ? (
+                <div class="mt-4 flex flex-wrap gap-3">
+                  {projectProfile?.links.map((link) => {
+                    const isExternal = /^https?:\/\//.test(link.href);
+                    return (
+                      <a
+                        class={PUBLIC_SURFACE_ACTION_CLASS}
+                        href={link.href}
+                        rel={isExternal ? "noreferrer" : undefined}
+                        target={isExternal ? "_blank" : undefined}
+                      >
+                        {link.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p class="mt-4 text-sm leading-7 text-muted-foreground">
+                  등록된 관련 링크가 없습니다.
+                </p>
+              )
+            }
           </article>
         </section>
 
         <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
-          <div class="flex flex-wrap gap-3">
-            {projectProfile?.links.map((link) => {
-              const isExternal = /^https?:\/\//.test(link.href);
-              return (
-                <a
-                  class={PUBLIC_SURFACE_ACTION_CLASS}
-                  href={link.href}
-                  rel={isExternal ? "noreferrer" : undefined}
-                  target={isExternal ? "_blank" : undefined}
-                >
-                  {link.label}
-                </a>
-              );
-            })}
+          <div class="space-y-2">
+            <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
+              BODY
+            </p>
+            <h2 class="text-2xl font-semibold tracking-tight text-foreground">
+              상세 내용
+            </h2>
           </div>
+          <div class="mt-5 text-base leading-8 text-foreground/85" set:html={project.description} />
         </section>
 
         {

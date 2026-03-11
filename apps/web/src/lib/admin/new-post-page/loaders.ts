@@ -35,12 +35,14 @@ interface WriterLoaderDependencies {
     | "visibilityInput"
     | "seriesInput"
     | "slugPrefix"
+    | "metaPanel"
     | "projectFields"
     | "projectPeriodInput"
     | "projectRoleSummaryInput"
+    | "projectIntroInput"
     | "projectDetailMediaKindInput"
-    | "projectDetailImageUrlInput"
     | "projectYoutubeUrlInput"
+    | "projectDetailVideoUrlInput"
     | "projectHighlightsInput"
     | "projectResourceLinksInput"
     | "tagSuggestionList"
@@ -65,6 +67,7 @@ interface WriterLoaderDependencies {
   setSlugValidationState: (state: "idle" | "error", message?: string) => void;
   queueSlugAvailabilityCheck: () => void;
   queuePreviewRefresh: () => void;
+  syncProjectDetailMediaUi: () => void;
 }
 
 export interface WriterLoaders {
@@ -105,6 +108,7 @@ export function createWriterLoaders(
     setSlugValidationState,
     queueSlugAvailabilityCheck,
     queuePreviewRefresh,
+    syncProjectDetailMediaUi,
   } = dependencies;
 
   const {
@@ -116,12 +120,14 @@ export function createWriterLoaders(
     visibilityInput,
     seriesInput,
     slugPrefix,
+    metaPanel,
     projectFields,
     projectPeriodInput,
     projectRoleSummaryInput,
+    projectIntroInput,
     projectDetailMediaKindInput,
-    projectDetailImageUrlInput,
     projectYoutubeUrlInput,
+    projectDetailVideoUrlInput,
     projectHighlightsInput,
     projectResourceLinksInput,
     tagSuggestionList,
@@ -134,6 +140,7 @@ export function createWriterLoaders(
     projectFields.hidden = !isProject;
     projectFields.dataset.contentKind = isProject ? "project" : "blog";
     slugPrefix.textContent = isProject ? "/projects/" : "/blog/";
+    metaPanel.dataset.contentKind = isProject ? "project" : "blog";
   };
 
   const updateDraftQueryParam = (draftSlug: string | null) => {
@@ -151,7 +158,10 @@ export function createWriterLoaders(
     slugInput.value = loaded.slug?.trim() || fallbackSlug;
     slugInput.dataset.touched = "true";
     excerptInput.value = loaded.excerpt ?? "";
-    coverInput.value = loaded.cover_image_url ?? "";
+    coverInput.value =
+      loaded.cover_image_url ??
+      loaded.project_profile?.detail_image_url ??
+      "";
     contentKindInput.value = loaded.content_kind === "project" ? "project" : "blog";
     visibilityInput.value =
       loaded.visibility === "private" ? "private" : "public";
@@ -159,10 +169,15 @@ export function createWriterLoaders(
       loaded.series_title?.trim() ?? loaded.series_context?.series_title ?? "";
     projectPeriodInput.value = loaded.project_profile?.period_label ?? "";
     projectRoleSummaryInput.value = loaded.project_profile?.role_summary ?? "";
+    projectIntroInput.value = loaded.project_profile?.project_intro ?? "";
     projectDetailMediaKindInput.value =
-      loaded.project_profile?.detail_media_kind === "youtube" ? "youtube" : "image";
-    projectDetailImageUrlInput.value = loaded.project_profile?.detail_image_url ?? "";
+      loaded.project_profile?.detail_media_kind === "youtube"
+        ? "youtube"
+        : loaded.project_profile?.detail_media_kind === "video"
+          ? "video"
+          : "image";
     projectYoutubeUrlInput.value = loaded.project_profile?.youtube_url ?? "";
+    projectDetailVideoUrlInput.value = loaded.project_profile?.detail_video_url ?? "";
     projectHighlightsInput.value = (
       loaded.project_profile?.highlights_json ??
       loaded.project_profile?.highlights ??
@@ -176,6 +191,7 @@ export function createWriterLoaders(
       .map((link) => `${link.label} | ${link.href}`)
       .join("\n");
     syncProjectFieldVisibility();
+    syncProjectDetailMediaUi();
     setSelectedTags(dedupeTagSlugs(loaded.tags ?? []));
     syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");

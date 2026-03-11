@@ -37,9 +37,10 @@ export interface SubmitBindings {
   seriesInput: HTMLInputElement;
   projectPeriodInput: HTMLInputElement;
   projectRoleSummaryInput: HTMLInputElement;
+  projectIntroInput: HTMLTextAreaElement;
   projectDetailMediaKindInput: HTMLSelectElement;
-  projectDetailImageUrlInput: HTMLInputElement;
   projectYoutubeUrlInput: HTMLInputElement;
+  projectDetailVideoUrlInput: HTMLInputElement;
   projectHighlightsInput: HTMLTextAreaElement;
   projectResourceLinksInput: HTMLTextAreaElement;
   openPublishButton: HTMLButtonElement;
@@ -71,9 +72,10 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     seriesInput,
     projectPeriodInput,
     projectRoleSummaryInput,
+    projectIntroInput,
     projectDetailMediaKindInput,
-    projectDetailImageUrlInput,
     projectYoutubeUrlInput,
+    projectDetailVideoUrlInput,
     projectHighlightsInput,
     projectResourceLinksInput,
     openPublishButton,
@@ -117,7 +119,11 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     const projectPeriod = projectPeriodInput.value.trim();
     const projectRole = projectRoleSummaryInput.value.trim();
     const projectDetailMediaKind: ProjectDetailMediaKind =
-      projectDetailMediaKindInput.value === "youtube" ? "youtube" : "image";
+      projectDetailMediaKindInput.value === "youtube"
+        ? "youtube"
+        : projectDetailMediaKindInput.value === "video"
+          ? "video"
+          : "image";
     const bodyMarkdown = normalizeMarkdownLinks(
       sanitizeEditorMarkdown((await editorBridge.getMarkdown()).trim()),
       window.location.protocol,
@@ -173,9 +179,10 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       nowIso: new Date().toISOString(),
       projectPeriod: projectPeriod,
       projectRoleSummary: projectRole,
+      projectIntro: projectIntroInput.value,
       projectDetailMediaKind: projectDetailMediaKind,
-      projectDetailImageUrl: projectDetailImageUrlInput.value,
       projectYoutubeUrl: projectYoutubeUrlInput.value,
+      projectDetailVideoUrl: projectDetailVideoUrlInput.value,
       projectHighlights: projectHighlightsInput.value,
       projectResourceLinks: projectResourceLinksInput.value,
     });

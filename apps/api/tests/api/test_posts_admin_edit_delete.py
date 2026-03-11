@@ -41,10 +41,24 @@ def _build_update_request_payload(slug: str) -> dict[str, object]:
         "excerpt": "updated excerpt",
         "body_markdown": "updated body",
         "cover_image_url": None,
+        "content_kind": "project",
+        "series_title": "Rendering Deep Dive",
         "status": "draft",
         "visibility": "private",
         "published_at": None,
         "tags": ["fastapi"],
+        "project_profile": {
+            "period_label": "2026.03 - ongoing",
+            "role_summary": "Graphics programmer",
+            "project_intro": "interactive fluid simulation plugin overview",
+            "card_image_url": "/media/project-card.png",
+            "detail_media_kind": "video",
+            "detail_image_url": None,
+            "youtube_url": None,
+            "detail_video_url": "/media/project-demo.mp4",
+            "highlights": ["Render graph"],
+            "resource_links": [{"label": "GitHub", "href": "https://github.com/traceoflight"}],
+        },
     }
 
 
@@ -110,6 +124,27 @@ def test_admin_update_allows_internal_secret_and_uses_path_slug(monkeypatch) -> 
     assert service.update_called_with[0] == "original-slug"
     assert response.json()["slug"] == "updated-slug"
     assert response.json()["visibility"] == "private"
+
+
+def test_admin_update_accepts_project_video_payload(monkeypatch) -> None:
+    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    service = _StubPostService()
+    client = _client_with_service(service)
+
+    payload = _build_update_request_payload("renamed-slug")
+    response = client.put(
+        "/api/v1/posts/original-slug",
+        json=payload,
+        headers={"x-internal-api-secret": "test-shared-secret"},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.update_called_with is not None
+    submitted_payload = service.update_called_with[1]
+    assert submitted_payload.project_profile.detail_media_kind.value == "video"
+    assert submitted_payload.project_profile.detail_video_url == "/media/project-demo.mp4"
+    assert submitted_payload.project_profile.project_intro == "interactive fluid simulation plugin overview"
 
 
 def test_admin_update_returns_409_on_slug_conflict(monkeypatch) -> None:

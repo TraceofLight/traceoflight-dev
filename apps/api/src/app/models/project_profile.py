@@ -4,7 +4,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, JSON, String
+from sqlalchemy import Enum, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -20,6 +20,7 @@ def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
 class ProjectDetailMediaKind(str, enum.Enum):
     IMAGE = "image"
     YOUTUBE = "youtube"
+    VIDEO = "video"
 
 
 class ProjectProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -33,6 +34,7 @@ class ProjectProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     period_label: Mapped[str] = mapped_column(String(120), nullable=False)
     role_summary: Mapped[str] = mapped_column(String(300), nullable=False)
+    project_intro: Mapped[str | None] = mapped_column(Text, nullable=True)
     card_image_url: Mapped[str] = mapped_column(String(500), nullable=False)
     detail_media_kind: Mapped[ProjectDetailMediaKind] = mapped_column(
         Enum(ProjectDetailMediaKind, name="project_detail_media_kind", values_callable=_enum_values),
@@ -41,6 +43,7 @@ class ProjectProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     detail_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     youtube_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    detail_video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     highlights_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     resource_links_json: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False, default=list)
 

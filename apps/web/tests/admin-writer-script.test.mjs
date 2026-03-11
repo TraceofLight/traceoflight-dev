@@ -73,6 +73,9 @@ test("writer script supports cover image drag-and-drop upload", async () => {
   assert.match(domSource, /#writer-cover-upload-input/);
   assert.match(domSource, /#writer-cover-drop-zone/);
   assert.match(domSource, /#writer-cover-preview/);
+  assert.match(domSource, /#project-video-upload-trigger/);
+  assert.match(domSource, /#project-video-upload-input/);
+  assert.match(domSource, /#project-video-preview/);
   assert.match(source, /from ["']\.\/new-post-page\/media-controller["']/);
   assert.match(source, /bindWriterMediaInteractions/);
   assert.match(mediaControllerSource, /coverDropZone\.addEventListener\(["']dragover["']/);
@@ -80,6 +83,9 @@ test("writer script supports cover image drag-and-drop upload", async () => {
   assert.match(mediaControllerSource, /coverPreview\.addEventListener\(["']dragover["']/);
   assert.match(mediaControllerSource, /coverPreview\.addEventListener\(["']drop["']/);
   assert.match(mediaControllerSource, /coverPreview\.addEventListener\(["']click["']/);
+  assert.match(mediaControllerSource, /projectVideoUploadTrigger/);
+  assert.match(mediaControllerSource, /projectVideoUploadInput/);
+  assert.match(mediaControllerSource, /uploadOneFileToProjectVideo/);
 });
 
 test("writer script updates title in preview and syncs cover preview", async () => {
@@ -89,13 +95,37 @@ test("writer script updates title in preview and syncs cover preview", async () 
     readFile(previewPath, "utf8"),
   ]);
   assert.match(source, /previewTitle/);
+  assert.match(source, /previewMetaKinds/);
+  assert.match(source, /previewMetaSummary/);
+  assert.match(source, /previewMetaSeries/);
+  assert.match(source, /previewMetaTags/);
+  assert.match(source, /previewMetaProject/);
+  assert.match(source, /previewMetaHighlights/);
+  assert.match(source, /previewMetaLinks/);
+  assert.match(domSource, /#writer-preview-meta/);
+  assert.match(domSource, /#writer-preview-meta-kinds/);
+  assert.match(domSource, /#writer-preview-meta-summary/);
+  assert.match(domSource, /#writer-preview-meta-series/);
+  assert.match(domSource, /#writer-preview-meta-tags/);
+  assert.match(domSource, /#writer-preview-meta-project/);
+  assert.match(domSource, /#writer-preview-meta-highlights/);
+  assert.match(domSource, /#writer-preview-meta-links/);
   assert.doesNotMatch(source, /previewExcerpt/);
   assert.match(domSource, /#writer-cover-preview/);
   assert.match(domSource, /#writer-cover-preview-image/);
   assert.match(source, /renderCoverPreview/);
   assert.match(previewSource, /renderCoverPreview/);
+  assert.match(previewSource, /태그 입력 전입니다/);
+  assert.match(previewSource, /주요 항목 입력 전입니다/);
+  assert.match(previewSource, /관련 링크 입력 전입니다/);
+  assert.doesNotMatch(source, /syncPreviewSectionHeights/);
+  assert.doesNotMatch(source, /new ResizeObserver/);
+  assert.doesNotMatch(source, /previewHead\.style\.height/);
+  assert.doesNotMatch(source, /previewMeta\.style\.height/);
   assert.doesNotMatch(source, /previewSlug/);
   assert.doesNotMatch(source, /previewCover/);
+  assert.doesNotMatch(domSource, /#writer-upload-trigger/);
+  assert.doesNotMatch(domSource, /#writer-upload-input/);
 });
 
 test("writer script starts editor with empty content and toggles empty guide state", async () => {
@@ -154,9 +184,10 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.match(domSource, /#writer-project-fields/);
   assert.match(domSource, /#project-period/);
   assert.match(domSource, /#project-role-summary/);
+  assert.match(domSource, /#project-intro/);
   assert.match(domSource, /#project-detail-media-kind/);
-  assert.match(domSource, /#project-detail-image-url/);
   assert.match(domSource, /#project-youtube-url/);
+  assert.match(domSource, /#project-detail-video-url/);
   assert.match(domSource, /#project-highlights/);
   assert.match(domSource, /#project-resource-links/);
   assert.match(domSource, /#post-visibility/);
@@ -175,11 +206,16 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.match(submitEventsSource, /seriesTitle:\s*seriesName/);
   assert.match(submitEventsSource, /contentKind:/);
   assert.match(submitEventsSource, /projectPeriod:/);
+  assert.match(submitEventsSource, /projectIntro:/);
   assert.match(submitSource, /resolveSubmitStatus/);
   assert.match(submitSource, /buildSubmitPayload/);
   assert.match(submitSource, /content_kind/);
   assert.match(submitSource, /project_profile/);
+  assert.match(submitSource, /project_intro/);
   assert.match(submitSource, /detail_media_kind/);
+  assert.match(submitSource, /detail_video_url/);
+  assert.doesNotMatch(submitEventsSource, /projectDetailImageUrl:/);
+  assert.doesNotMatch(domSource, /#project-detail-image-url/);
   assert.match(submitSource, /series_title/);
   assert.match(postsApiSource, /requestPostSubmit/);
   assert.match(postsApiSource, /requestSeriesList/);
@@ -221,6 +257,8 @@ test("writer script can load draft by slug query", async () => {
   assert.match(draftsSource, /new URLSearchParams\(search\)/);
   assert.match(loadersSource, /draft/);
   assert.match(loadersSource, /loadDraftBySlug/);
+  assert.match(loadersSource, /projectIntroInput/);
+  assert.doesNotMatch(loadersSource, /projectDetailImageUrlInput/);
   assert.match(loadersSource, /editorBridge\.setMarkdown/);
 });
 
@@ -327,7 +365,12 @@ test("writer script includes target-aware drag handling and upload proxy fallbac
   assert.match(writerSource, /data-drop-state/);
   assert.match(mediaControllerSource, /resolveDropTarget/);
   assert.match(mediaControllerSource, /isMediaFileDrag/);
+  assert.match(mediaControllerSource, /file\.type\.startsWith\(["']video\/["']\)/);
   assert.match(dragSource, /isMediaFileDrag/);
+  assert.match(dragSource, /if \(files && files\.length > 0\)/);
+  assert.match(dragSource, /if \(!mime\) return false/);
+  assert.doesNotMatch(mediaControllerSource, /uploadTrigger/);
+  assert.doesNotMatch(mediaControllerSource, /uploadInput/);
   assert.match(uploadSource, /shouldProxyUpload/);
   assert.match(uploadSource, /\/internal-api\/media\/upload-proxy/);
   assert.match(uploadSource, /x-upload-url/);

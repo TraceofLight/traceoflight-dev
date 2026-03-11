@@ -22,7 +22,7 @@ if (!slug) {
     novalidate
   >
     <div class="writer-shell" data-compact-view="editor">
-      <section class="writer-pane writer-pane-editor">
+      <section class="writer-pane writer-pane-editor-column">
         <div class="writer-title-area">
           <input
             id="post-title"
@@ -33,22 +33,122 @@ if (!slug) {
           />
         </div>
 
-        <div
-          id="writer-editor-drop-zone"
-          class="writer-editor-shell"
-          data-drop-state="idle"
-          data-has-content="false"
-        >
-          <div class="writer-editor-drop-indicator" aria-hidden="true">
-            <p class="writer-editor-drop-title">
-              Drop media to insert into body
-            </p>
-            <p class="writer-editor-drop-caption">
-              Images and videos are uploaded and inserted at the end.
-            </p>
-          </div>
-          <div id="milkdown-editor" class="milkdown-editor"></div>
+        <div class="writer-meta-panel-wrap">
+          <aside id="writer-meta-panel" class="writer-pane writer-pane-meta" data-content-kind="blog">
+            <div class="writer-meta-head">
+              <p class="writer-preview-kicker">Metadata</p>
+              <h2>작성 설정</h2>
+            </div>
+            <div class="writer-meta-body">
+            <label class="writer-field">
+              <span>콘텐츠 타입</span>
+              <select id="post-content-kind" name="content_kind">
+                <option value="blog">Blog</option>
+                <option value="project">Project</option>
+              </select>
+            </label>
+            <label class="writer-field">
+              <span>공개 범위</span>
+              <select id="post-visibility" name="visibility">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </label>
+            <label class="writer-field">
+              <span>시리즈</span>
+              <input
+                id="post-series"
+                name="series"
+                type="text"
+                list="writer-series-suggestions"
+                placeholder="시리즈 이름 입력 (선택)"
+              />
+              <datalist id="writer-series-suggestions"></datalist>
+            </label>
+
+            <section
+              id="writer-project-fields"
+              class="writer-project-grid"
+              hidden
+              data-content-kind="blog"
+              data-media-kind="image"
+            >
+              <label class="writer-field">
+                <span>프로젝트 작업 기간</span>
+                <input id="project-period" type="text" placeholder="2026.03 - ongoing" />
+              </label>
+              <label class="writer-field">
+                <span>프로젝트 역할 요약</span>
+                <input id="project-role-summary" type="text" placeholder="Lead developer" />
+              </label>
+              <label class="writer-field writer-field-span-2">
+                <span>프로젝트 소개</span>
+                <textarea id="project-intro" rows="2" placeholder="프로젝트 소개 문구를 입력하세요"></textarea>
+              </label>
+              <label class="writer-field">
+                <span>상단 미디어 타입</span>
+                <select id="project-detail-media-kind">
+                  <option value="image">Image</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="video">Uploaded Video</option>
+                </select>
+              </label>
+              <label class="writer-field writer-field-span-2">
+                <span>유튜브 URL</span>
+                <input id="project-youtube-url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+              </label>
+              <label class="writer-field writer-field-span-2">
+                <span>업로드된 영상 URL</span>
+                <input id="project-detail-video-url" type="url" placeholder="/media/..." />
+              </label>
+              <div class="writer-project-upload writer-field-span-2">
+                <button
+                  id="project-video-upload-trigger"
+                  class="writer-action writer-action-muted"
+                  type="button"
+                >
+                  프로젝트 영상 업로드
+                </button>
+                <input
+                  id="project-video-upload-input"
+                  type="file"
+                  accept="video/*"
+                  hidden
+                />
+                <video id="project-video-preview" class="writer-project-video-preview" controls hidden>
+                </video>
+              </div>
+              <label class="writer-field writer-field-span-2">
+                <span>주요 항목</span>
+                <textarea id="project-highlights" rows="5" placeholder="한 줄에 하나씩 입력"></textarea>
+              </label>
+              <label class="writer-field writer-field-span-2">
+                <span>관련 링크</span>
+                <textarea id="project-resource-links" rows="4" placeholder="GitHub | https://github.com/..."></textarea>
+              </label>
+            </section>
+            </div>
+          </aside>
         </div>
+
+        <section class="writer-pane writer-pane-editor">
+          <div
+            id="writer-editor-drop-zone"
+            class="writer-editor-shell"
+            data-drop-state="idle"
+            data-has-content="false"
+          >
+            <div class="writer-editor-drop-indicator" aria-hidden="true">
+              <p class="writer-editor-drop-title">
+                Drop media to insert into body
+              </p>
+              <p class="writer-editor-drop-caption">
+                Images and videos are uploaded and inserted at the end.
+              </p>
+            </div>
+            <div id="milkdown-editor" class="milkdown-editor"></div>
+          </div>
+        </section>
 
         <div id="writer-bottom-bar" class="writer-bottom-bar">
           <div class="writer-bottom-left">
@@ -69,11 +169,6 @@ if (!slug) {
               미리보기
             </button>
             <button
-              id="writer-upload-trigger"
-              class="writer-action writer-action-muted"
-              type="button">업로드</button
-            >
-            <button
               id="writer-save-draft"
               class="writer-action writer-action-muted"
               type="submit"
@@ -89,15 +184,22 @@ if (!slug) {
               출간
             </button>
           </div>
-          <input id="writer-upload-input" type="file" hidden />
         </div>
       </section>
-
       <section class="writer-pane writer-pane-preview">
         <div class="writer-preview-head">
           <p class="writer-preview-kicker">Live Preview</p>
           <h1 id="writer-preview-title"></h1>
         </div>
+        <section id="writer-preview-meta" class="writer-preview-meta">
+          <div id="writer-preview-meta-kinds" class="writer-preview-meta-grid"></div>
+          <div id="writer-preview-meta-summary" class="writer-preview-meta-block"></div>
+          <div id="writer-preview-meta-series" class="writer-preview-meta-block"></div>
+          <div id="writer-preview-meta-tags" class="writer-preview-meta-block"></div>
+          <div id="writer-preview-meta-project" class="writer-preview-meta-block"></div>
+          <div id="writer-preview-meta-highlights" class="writer-preview-meta-block"></div>
+          <div id="writer-preview-meta-links" class="writer-preview-meta-block"></div>
+        </section>
         <article id="writer-preview-content" class="writer-preview-content">
         </article>
       </section>
@@ -200,6 +302,20 @@ if (!slug) {
                 rows="7"
                 placeholder="게시글 요약을 입력하세요."></textarea>
             </label>
+            <label class="writer-field">
+              <span>태그</span>
+              <input
+                id="post-tags"
+                name="tags"
+                type="text"
+                list="writer-tag-suggestions"
+                placeholder="태그 입력 후 Enter 또는 콤마"
+              />
+              <datalist id="writer-tag-suggestions"></datalist>
+            </label>
+            <div id="writer-meta-chip-rail" class="writer-meta-chip-rail">
+              <div id="writer-tag-chip-list" class="writer-tag-chip-list"></div>
+            </div>
           </div>
           <div class="writer-publish-column writer-publish-column-side">
             <div
@@ -227,45 +343,6 @@ if (!slug) {
               accept="image/*"
               hidden
             />
-            <label class="writer-field">
-              <span>콘텐츠 타입</span>
-              <select id="post-content-kind" name="content_kind">
-                <option value="blog">Blog</option>
-                <option value="project">Project</option>
-              </select>
-            </label>
-            <label class="writer-field">
-              <span>공개 범위</span>
-              <select id="post-visibility" name="visibility">
-                <option value="public">Public</option>
-                <option value="private">Private</option>
-              </select>
-            </label>
-            <label class="writer-field">
-              <span>시리즈</span>
-              <input
-                id="post-series"
-                name="series"
-                type="text"
-                list="writer-series-suggestions"
-                placeholder="시리즈 이름 입력 (선택)"
-              />
-              <datalist id="writer-series-suggestions"></datalist>
-            </label>
-            <label class="writer-field">
-              <span>태그</span>
-              <input
-                id="post-tags"
-                name="tags"
-                type="text"
-                list="writer-tag-suggestions"
-                placeholder="태그 입력 후 Enter 또는 콤마"
-              />
-              <datalist id="writer-tag-suggestions"></datalist>
-            </label>
-            <div id="writer-meta-chip-rail" class="writer-meta-chip-rail">
-              <div id="writer-tag-chip-list" class="writer-tag-chip-list"></div>
-            </div>
             <label
               id="writer-cover-drop-zone"
               class="writer-field writer-field-cover-drop"
@@ -285,44 +362,6 @@ if (!slug) {
             <p class="writer-helper">
               Drag/drop image to cover field, or paste URL/file from clipboard.
             </p>
-            <section
-              id="writer-project-fields"
-              class="grid gap-3"
-              hidden
-              data-content-kind="blog"
-            >
-              <label class="writer-field">
-                <span>프로젝트 작업 기간</span>
-                <input id="project-period" type="text" placeholder="2026.03 - ongoing" />
-              </label>
-              <label class="writer-field">
-                <span>프로젝트 역할 요약</span>
-                <input id="project-role-summary" type="text" placeholder="Lead developer" />
-              </label>
-              <label class="writer-field">
-                <span>상단 미디어 타입</span>
-                <select id="project-detail-media-kind">
-                  <option value="image">Image</option>
-                  <option value="youtube">YouTube</option>
-                </select>
-              </label>
-              <label class="writer-field">
-                <span>상세 이미지 URL</span>
-                <input id="project-detail-image-url" type="url" placeholder="https://..." />
-              </label>
-              <label class="writer-field">
-                <span>유튜브 URL</span>
-                <input id="project-youtube-url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
-              </label>
-              <label class="writer-field">
-                <span>주요 항목</span>
-                <textarea id="project-highlights" rows="5" placeholder="한 줄에 하나씩 입력"></textarea>
-              </label>
-              <label class="writer-field">
-                <span>관련 링크</span>
-                <textarea id="project-resource-links" rows="4" placeholder="GitHub | https://github.com/..."></textarea>
-              </label>
-            </section>
           </div>
         </div>
         <div class="writer-publish-actions">

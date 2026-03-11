@@ -307,8 +307,17 @@ function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
   return {
     period_label: value.period_label.trim(),
     role_summary: value.role_summary.trim(),
+    project_intro:
+      typeof value.project_intro === "string" || value.project_intro === null
+        ? value.project_intro
+        : null,
     card_image_url: value.card_image_url.trim(),
-    detail_media_kind: value.detail_media_kind === "youtube" ? "youtube" : "image",
+    detail_media_kind:
+      value.detail_media_kind === "youtube"
+        ? "youtube"
+        : value.detail_media_kind === "video"
+          ? "video"
+          : "image",
     detail_image_url:
       typeof value.detail_image_url === "string" || value.detail_image_url === null
         ? value.detail_image_url
@@ -316,6 +325,10 @@ function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
     youtube_url:
       typeof value.youtube_url === "string" || value.youtube_url === null
         ? value.youtube_url
+        : null,
+    detail_video_url:
+      typeof value.detail_video_url === "string" || value.detail_video_url === null
+        ? value.detail_video_url
         : null,
     highlights_json: Array.isArray(value.highlights_json)
       ? value.highlights_json.filter((item): item is string => typeof item === "string")

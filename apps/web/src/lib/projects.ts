@@ -30,11 +30,13 @@ export interface ProjectItem {
   seriesTitle?: string;
   role: string;
   period: string;
+  intro: string;
   stack: string[];
   coverImageUrl?: string;
-  detailMediaKind: "image" | "youtube";
+  detailMediaKind: "image" | "youtube" | "video";
   detailImageUrl?: string;
   youtubeUrl?: string;
+  detailVideoUrl?: string;
   highlights: string[];
   links: ProjectLink[];
   relatedSeriesPosts: RelatedSeriesPost[];
@@ -48,10 +50,12 @@ interface DbProjectLink {
 interface DbProjectProfile {
   period_label: string;
   role_summary: string;
+  project_intro: string | null;
   card_image_url: string;
-  detail_media_kind: "image" | "youtube";
+  detail_media_kind: "image" | "youtube" | "video";
   detail_image_url: string | null;
   youtube_url: string | null;
+  detail_video_url: string | null;
   highlights_json: string[];
   resource_links_json: DbProjectLink[];
 }
@@ -94,6 +98,7 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
     slug: project.slug,
     title: project.title,
     summary: project.excerpt?.trim() ?? "",
+    intro: profile.project_intro?.trim() ?? "",
     description: markdown.render(project.body_markdown),
     seriesTitle: project.series_title?.trim() || undefined,
     role: profile.role_summary,
@@ -101,8 +106,13 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
     stack: Array.isArray(project.tags) ? project.tags.map((tag) => tag.label || tag.slug) : [],
     coverImageUrl: resolveBackendAssetUrl(profile.card_image_url || project.cover_image_url || undefined),
     detailMediaKind: profile.detail_media_kind,
-    detailImageUrl: resolveBackendAssetUrl(profile.detail_image_url || project.cover_image_url || undefined),
+    detailImageUrl: resolveBackendAssetUrl(
+      profile.detail_media_kind === "image"
+        ? profile.card_image_url || project.cover_image_url || undefined
+        : profile.detail_image_url || project.cover_image_url || undefined,
+    ),
     youtubeUrl: profile.youtube_url ?? undefined,
+    detailVideoUrl: resolveBackendAssetUrl(profile.detail_video_url || undefined),
     highlights: Array.isArray(profile.highlights_json) ? profile.highlights_json : [],
     links: Array.isArray(profile.resource_links_json) ? profile.resource_links_json : [],
     relatedSeriesPosts: Array.isArray(project.related_series_posts)

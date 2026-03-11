@@ -14,6 +14,7 @@ import {
   normalizeCompactView,
   renderCoverPreview,
   renderCoverPreviewEmpty,
+  renderPreviewMeta,
   setCompactToggleLabel,
 } from "./new-post-page/preview";
 import { bindSubmitEvent } from "./new-post-page/submit-events";
@@ -68,12 +69,17 @@ export async function initNewPostAdminPage(
     seriesInput,
     tagInput,
     slugPrefix,
+    metaPanel,
     projectFields,
     projectPeriodInput,
     projectRoleSummaryInput,
+    projectIntroInput,
     projectDetailMediaKindInput,
-    projectDetailImageUrlInput,
     projectYoutubeUrlInput,
+    projectDetailVideoUrlInput,
+    projectVideoUploadTrigger,
+    projectVideoUploadInput,
+    projectVideoPreview,
     projectHighlightsInput,
     projectResourceLinksInput,
     seriesSuggestionList,
@@ -81,14 +87,20 @@ export async function initNewPostAdminPage(
     metaChipRail,
     tagSuggestionList,
     previewTitle,
+    previewMeta,
+    previewMetaKinds,
+    previewMetaSummary,
+    previewMetaSeries,
+    previewMetaTags,
+    previewMetaProject,
+    previewMetaHighlights,
+    previewMetaLinks,
     previewContent,
     coverPreview,
     coverPreviewImage,
     coverPreviewEmpty,
     coverUploadInput,
     compactToggleButton,
-    uploadTrigger,
-    uploadInput,
     openDraftsButton,
     draftLayer,
     draftBackdrop,
@@ -105,7 +117,6 @@ export async function initNewPostAdminPage(
   } = dom;
   const mode = resolveWriterMode(options.mode ?? form.dataset.writerMode);
   const initialEditSlug = normalizeInitialSlug(options.slug ?? form.dataset.editSlug);
-
   const toastTimer = { id: null as number | null };
   const showFeedback = (
     message: string,
@@ -134,6 +145,7 @@ export async function initNewPostAdminPage(
       onRemoveTag: (slug) => {
         selectedTags = selectedTags.filter((current) => current !== slug);
         syncTagUi();
+        queuePreviewRefresh();
       },
     });
   };
@@ -152,6 +164,7 @@ export async function initNewPostAdminPage(
     selectedTags = nextTags;
     tagInput.value = "";
     syncTagUi();
+    queuePreviewRefresh();
   };
 
   const mediaBaseUrl = normalizeMediaBaseUrl(
@@ -182,7 +195,34 @@ export async function initNewPostAdminPage(
     const isProject = contentKindInput.value === "project";
     projectFields.hidden = !isProject;
     projectFields.dataset.contentKind = isProject ? "project" : "blog";
+    metaPanel.dataset.contentKind = isProject ? "project" : "blog";
     slugPrefix.textContent = isProject ? "/projects/" : "/blog/";
+  };
+
+  const syncProjectDetailMediaUi = () => {
+    const mediaKind = projectDetailMediaKindInput.value;
+    projectFields.dataset.mediaKind = mediaKind;
+    projectYoutubeUrlInput.closest(".writer-field")?.toggleAttribute(
+      "hidden",
+      mediaKind !== "youtube",
+    );
+    projectDetailVideoUrlInput.closest(".writer-field")?.toggleAttribute(
+      "hidden",
+      mediaKind !== "video",
+    );
+    projectVideoUploadTrigger
+      .closest(".writer-project-upload")
+      ?.toggleAttribute("hidden", mediaKind !== "video");
+
+    const videoUrl = projectDetailVideoUrlInput.value.trim();
+    const shouldShowVideo = mediaKind === "video" && videoUrl.length > 0;
+    projectVideoPreview.hidden = !shouldShowVideo;
+    if (shouldShowVideo) {
+      projectVideoPreview.src = videoUrl;
+    } else {
+      projectVideoPreview.removeAttribute("src");
+      projectVideoPreview.load();
+    }
   };
 
   const setDraftLayerOpen = (nextOpen: boolean) => {
@@ -348,6 +388,36 @@ export async function initNewPostAdminPage(
 
     const nextTitle = titleInput.value.trim();
     previewTitle.textContent = nextTitle;
+    renderPreviewMeta(
+      {
+        previewMeta,
+        previewMetaKinds,
+        previewMetaSummary,
+        previewMetaSeries,
+        previewMetaTags,
+        previewMetaProject,
+        previewMetaHighlights,
+        previewMetaLinks,
+      },
+      {
+        contentKind: contentKindInput.value === "project" ? "project" : "blog",
+        visibility: visibilityInput.value === "private" ? "private" : "public",
+        excerpt: excerptInput.value,
+        seriesTitle: seriesInput.value.trim(),
+        tags: selectedTags,
+        periodLabel: projectPeriodInput.value,
+        roleSummary: projectRoleSummaryInput.value,
+        projectIntro: projectIntroInput.value,
+        highlights: projectHighlightsInput.value
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        links: projectResourceLinksInput.value
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+      },
+    );
     renderCoverPreview(
       { coverPreview, coverPreviewImage, coverPreviewEmpty },
       coverInput.value.trim(),
@@ -397,12 +467,14 @@ export async function initNewPostAdminPage(
       visibilityInput,
       seriesInput,
       slugPrefix,
+      metaPanel,
       projectFields,
       projectPeriodInput,
       projectRoleSummaryInput,
+      projectIntroInput,
       projectDetailMediaKindInput,
-      projectDetailImageUrlInput,
       projectYoutubeUrlInput,
+      projectDetailVideoUrlInput,
       projectHighlightsInput,
       projectResourceLinksInput,
       tagSuggestionList,
@@ -432,6 +504,7 @@ export async function initNewPostAdminPage(
     setSlugValidationState,
     queueSlugAvailabilityCheck,
     queuePreviewRefresh,
+    syncProjectDetailMediaUi,
   });
   const {
     updateDraftQueryParam,
@@ -468,8 +541,24 @@ export async function initNewPostAdminPage(
   excerptInput.addEventListener("input", queuePreviewRefresh);
   contentKindInput.addEventListener("change", () => {
     syncProjectFieldVisibility();
+    syncProjectDetailMediaUi();
     queuePreviewRefresh();
   });
+  projectDetailMediaKindInput.addEventListener("change", () => {
+    syncProjectDetailMediaUi();
+    queuePreviewRefresh();
+  });
+  projectYoutubeUrlInput.addEventListener("input", queuePreviewRefresh);
+  projectDetailVideoUrlInput.addEventListener("input", () => {
+    syncProjectDetailMediaUi();
+    queuePreviewRefresh();
+  });
+  projectPeriodInput.addEventListener("input", queuePreviewRefresh);
+  projectRoleSummaryInput.addEventListener("input", queuePreviewRefresh);
+  projectIntroInput.addEventListener("input", queuePreviewRefresh);
+  projectHighlightsInput.addEventListener("input", queuePreviewRefresh);
+  projectResourceLinksInput.addEventListener("input", queuePreviewRefresh);
+  seriesInput.addEventListener("change", queuePreviewRefresh);
   visibilityInput.addEventListener("change", () => {
     queuePreviewRefresh();
   });
@@ -477,6 +566,7 @@ export async function initNewPostAdminPage(
   tagInput.addEventListener("input", () => {
     const query = tagInput.value.trim();
     void loadTagSuggestions(query);
+    queuePreviewRefresh();
   });
 
   seriesInput.addEventListener("focus", () => {
@@ -503,6 +593,7 @@ export async function initNewPostAdminPage(
     ) {
       selectedTags = selectedTags.slice(0, -1);
       syncTagUi();
+      queuePreviewRefresh();
     }
   });
 
@@ -550,9 +641,10 @@ export async function initNewPostAdminPage(
       coverDropZone,
       coverPreview,
       coverUploadInput,
-      uploadTrigger,
-      uploadInput,
       coverInput,
+      projectVideoUploadTrigger,
+      projectVideoUploadInput,
+      projectDetailVideoUrlInput,
     },
     setDropTargetState,
     clearDropTargetState,
@@ -560,6 +652,7 @@ export async function initNewPostAdminPage(
     insertSnippet,
     queuePreviewRefresh,
     normalizeCoverInputValue,
+    syncProjectDetailMediaUi,
   });
 
   compactToggleButton.addEventListener("click", () => {
@@ -616,9 +709,10 @@ export async function initNewPostAdminPage(
     seriesInput,
     projectPeriodInput,
     projectRoleSummaryInput,
+    projectIntroInput,
     projectDetailMediaKindInput,
-    projectDetailImageUrlInput,
     projectYoutubeUrlInput,
+    projectDetailVideoUrlInput,
     projectHighlightsInput,
     projectResourceLinksInput,
     openPublishButton,
@@ -669,6 +763,7 @@ export async function initNewPostAdminPage(
     await loadDraftFromQuery();
   }
   syncProjectFieldVisibility();
+  syncProjectDetailMediaUi();
   syncCompactViewForViewport();
   await refreshPreview();
 }

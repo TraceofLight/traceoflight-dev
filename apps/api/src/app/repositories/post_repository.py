@@ -257,10 +257,12 @@ class PostRepository:
         return ProjectProfile(
             period_label=str(payload["period_label"]),
             role_summary=str(payload["role_summary"]),
+            project_intro=str(payload["project_intro"]).strip() if payload.get("project_intro") else None,
             card_image_url=str(payload["card_image_url"]),
             detail_media_kind=normalized_media_kind,
             detail_image_url=payload.get("detail_image_url"),
             youtube_url=payload.get("youtube_url"),
+            detail_video_url=payload.get("detail_video_url"),
             highlights_json=list(payload.get("highlights") or []),
             resource_links_json=list(payload.get("resource_links") or []),
         )
@@ -273,9 +275,13 @@ class PostRepository:
             normalized_media_kind = ProjectDetailMediaKind(str(detail_media_kind))
         profile.period_label = str(payload["period_label"])
         profile.role_summary = str(payload["role_summary"])
+        profile.project_intro = (
+            str(payload["project_intro"]).strip() if payload.get("project_intro") else None
+        )
         profile.card_image_url = str(payload["card_image_url"])
         profile.detail_media_kind = normalized_media_kind
         profile.detail_image_url = payload.get("detail_image_url")
         profile.youtube_url = payload.get("youtube_url")
+        profile.detail_video_url = payload.get("detail_video_url")
         profile.highlights_json = list(payload.get("highlights") or [])
         profile.resource_links_json = list(payload.get("resource_links") or [])

@@ -19,10 +19,12 @@ class ProjectResourceLink(BaseModel):
 class ProjectProfilePayload(BaseModel):
     period_label: str
     role_summary: str
+    project_intro: str | None = None
     card_image_url: str
     detail_media_kind: ProjectDetailMediaKind
     detail_image_url: str | None = None
     youtube_url: str | None = None
+    detail_video_url: str | None = None
     highlights: list[str] = Field(default_factory=list)
     resource_links: list[ProjectResourceLink] = Field(default_factory=list)
 
@@ -32,10 +34,12 @@ class ProjectProfileRead(BaseModel):
 
     period_label: str
     role_summary: str
+    project_intro: str | None = None
     card_image_url: str
     detail_media_kind: ProjectDetailMediaKind
-    detail_image_url: str | None
-    youtube_url: str | None
+    detail_image_url: str | None = None
+    youtube_url: str | None = None
+    detail_video_url: str | None = None
     highlights_json: list[str] = Field(default_factory=list)
     resource_links_json: list[ProjectResourceLink] = Field(default_factory=list)
 

@@ -77,10 +77,17 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} px-6 py-12 text-center`\}/);
   assert.match(source, /PROJECT DETAIL/);
   assert.match(source, /project\.projectProfile|projectProfile/);
+  assert.match(source, /project\.summary/);
+  assert.match(source, /project\.intro/);
+  assert.match(source, /프로젝트 소개/);
+  assert.match(source, /project\.intro \|\| "프로젝트 소개 문구를 준비 중입니다\."/);
   assert.match(source, /relatedSeriesPosts|related series/i);
   assert.match(source, /연관된 포스팅 시리즈/);
   assert.match(source, /모든 프로젝트 보기/);
   assert.match(source, /toYoutubeEmbedUrl/);
+  assert.match(source, /detailMediaKind === "video"/);
+  assert.match(source, /detailVideoUrl/);
+  assert.match(source, /<video/);
   assert.match(source, /isAdminViewer &&/);
   assert.match(source, /adminPostSlug=\{project\.slug\}/);
   assert.match(source, /프로젝트를 찾을 수 없습니다/);

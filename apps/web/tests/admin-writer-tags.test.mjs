@@ -24,12 +24,21 @@ const postsApiPath = new URL(
   import.meta.url,
 );
 
-test("admin writer page contains tag input and chip list", async () => {
+test("admin writer page keeps tag input and chip list inside publish settings", async () => {
   const source = await readFile(pagePath, "utf8");
+  const metaPanelMatch = source.match(
+    /<aside id="writer-meta-panel"[\s\S]*?<\/aside>/,
+  );
+  const publishBodyMatch = source.match(
+    /<div class="writer-publish-body">[\s\S]*?<\/div>\s*<\/div>\s*<div class="writer-publish-actions">/,
+  );
 
-  assert.match(source, /id="post-tags"/);
-  assert.match(source, /id="writer-tag-chip-list"/);
-  assert.match(source, /id="writer-meta-chip-rail"/);
+  assert.ok(metaPanelMatch);
+  assert.ok(publishBodyMatch);
+  assert.match(publishBodyMatch[0], /id="post-tags"/);
+  assert.match(publishBodyMatch[0], /id="writer-tag-chip-list"/);
+  assert.match(publishBodyMatch[0], /id="writer-meta-chip-rail"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="post-tags"/);
 });
 
 test("admin writer dom/query definitions include tag elements", async () => {

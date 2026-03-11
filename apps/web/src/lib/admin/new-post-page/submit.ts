@@ -25,9 +25,10 @@ export interface SubmitPayloadInput {
   nowIso: string;
   projectPeriod: string;
   projectRoleSummary: string;
+  projectIntro: string;
   projectDetailMediaKind: ProjectDetailMediaKind;
-  projectDetailImageUrl: string;
   projectYoutubeUrl: string;
+  projectDetailVideoUrl: string;
   projectHighlights: string;
   projectResourceLinks: string;
 }
@@ -52,10 +53,12 @@ export interface SubmitPayload {
   project_profile: {
     period_label: string;
     role_summary: string;
+    project_intro: string | null;
     card_image_url: string;
     detail_media_kind: ProjectDetailMediaKind;
     detail_image_url: string | null;
     youtube_url: string | null;
+    detail_video_url: string | null;
     highlights: string[];
     resource_links: { label: string; href: string }[];
   } | null;
@@ -104,9 +107,10 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     nowIso,
     projectPeriod,
     projectRoleSummary,
+    projectIntro,
     projectDetailMediaKind,
-    projectDetailImageUrl,
     projectYoutubeUrl,
+    projectDetailVideoUrl,
     projectHighlights,
     projectResourceLinks,
   } = input;
@@ -128,10 +132,21 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
       ? {
           period_label: projectPeriod.trim(),
           role_summary: projectRoleSummary.trim(),
+          project_intro: projectIntro.trim() || null,
           card_image_url: normalizedCoverImageUrl ?? "",
           detail_media_kind: projectDetailMediaKind,
-          detail_image_url: projectDetailImageUrl.trim() || null,
-          youtube_url: projectYoutubeUrl.trim() || null,
+          detail_image_url:
+            projectDetailMediaKind === "image"
+              ? normalizedCoverImageUrl
+              : null,
+          youtube_url:
+            projectDetailMediaKind === "youtube"
+              ? projectYoutubeUrl.trim() || null
+              : null,
+          detail_video_url:
+            projectDetailMediaKind === "video"
+              ? projectDetailVideoUrl.trim() || null
+              : null,
           highlights: parseMultilineValues(projectHighlights),
           resource_links: parseProjectResourceLinks(projectResourceLinks),
         }

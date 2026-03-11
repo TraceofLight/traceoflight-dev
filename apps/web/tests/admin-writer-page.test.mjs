@@ -27,7 +27,6 @@ test("admin writer page renders post form shell", async () => {
   assert.match(source, /id="writer-draft-layer"/);
   assert.match(source, /id="writer-draft-list"/);
   assert.match(source, /id="writer-draft-feedback"/);
-  assert.match(source, /id="writer-upload-trigger"/);
   assert.match(source, /id="writer-toggle-compact-view"/);
   assert.match(source, /id="writer-bottom-bar"/);
   assert.match(source, /id="writer-open-publish"/);
@@ -44,14 +43,19 @@ test("admin writer page bootstraps writer module", async () => {
 test("admin writer edit page keeps the project publish fields", async () => {
   const source = await readFile(editPagePath, "utf8");
 
+  assert.match(source, /id="writer-meta-panel"/);
   assert.match(source, /id="writer-slug-prefix"/);
   assert.match(source, /id="post-content-kind"/);
   assert.match(source, /id="writer-project-fields"/);
   assert.match(source, /id="project-period"/);
   assert.match(source, /id="project-role-summary"/);
+  assert.match(source, /id="project-intro"/);
   assert.match(source, /id="project-detail-media-kind"/);
-  assert.match(source, /id="project-detail-image-url"/);
   assert.match(source, /id="project-youtube-url"/);
+  assert.match(source, /id="project-detail-video-url"/);
+  assert.match(source, /id="project-video-upload-trigger"/);
+  assert.match(source, /id="project-video-upload-input"/);
+  assert.match(source, /id="project-video-preview"/);
   assert.match(source, /id="project-highlights"/);
   assert.match(source, /id="project-resource-links"/);
 });
@@ -74,16 +78,39 @@ test("admin writer layout preloads milkdown theme css statically", async () => {
 
 test("admin writer page has split editor and preview layout", async () => {
   const source = await readFile(pagePath, "utf8");
+  const metaPanelMatch = source.match(
+    /<aside id="writer-meta-panel"[\s\S]*?<\/aside>/,
+  );
+  const publishBodyMatch = source.match(
+    /<div class="writer-publish-body">[\s\S]*?<\/div>\s*<\/div>\s*<div class="writer-publish-actions">/,
+  );
+
+  assert.ok(metaPanelMatch);
+  assert.ok(publishBodyMatch);
+
   assert.match(source, /class="writer-shell"/);
   assert.match(source, /class="writer-shell" data-compact-view="editor"/);
-  assert.match(source, /class="writer-pane writer-pane-preview"/);
+  assert.match(source, /class="writer-pane writer-pane-editor-column"/);
   assert.match(source, /class="writer-title-area"/);
-  assert.match(
-    source,
-    /class="writer-pane writer-pane-editor"[\s\S]*id="writer-bottom-bar"/,
-  );
+  assert.match(source, /class="writer-meta-panel-wrap"/);
+  assert.match(source, /class="writer-pane writer-pane-preview"/);
+  assert.match(source, /class="writer-pane writer-pane-meta"/);
+  assert.match(source, /id="writer-meta-panel"/);
+  assert.match(source, /class="writer-title-area"/);
+  assert.match(source, /class="writer-shell"[\s\S]*class="writer-title-area"/);
+  assert.match(source, /class="writer-shell"[\s\S]*class="writer-meta-panel-wrap"/);
+  assert.match(source, /class="writer-shell"[\s\S]*class="writer-pane writer-pane-editor"/);
+  assert.match(source, /class="writer-shell"[\s\S]*class="writer-pane writer-pane-preview"/);
   assert.match(source, /data-has-content="false"/);
   assert.match(source, /id="writer-preview-content"/);
+  assert.match(source, /id="writer-preview-meta"/);
+  assert.match(source, /id="writer-preview-meta-kinds"/);
+  assert.match(source, /id="writer-preview-meta-summary"/);
+  assert.match(source, /id="writer-preview-meta-series"/);
+  assert.match(source, /id="writer-preview-meta-tags"/);
+  assert.match(source, /id="writer-preview-meta-project"/);
+  assert.match(source, /id="writer-preview-meta-highlights"/);
+  assert.match(source, /id="writer-preview-meta-links"/);
   assert.match(source, /id="writer-preview-title"><\/h1>/);
   assert.doesNotMatch(source, /id="writer-preview-title">제목 없음</);
   assert.doesNotMatch(source, /id="writer-preview-excerpt"/);
@@ -98,6 +125,8 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-cover-preview-image"/);
   assert.match(source, /id="writer-cover-preview-empty"/);
   assert.match(source, /id="writer-cover-upload-input"/);
+  assert.doesNotMatch(source, /id="writer-upload-trigger"/);
+  assert.doesNotMatch(source, /id="writer-upload-input"/);
   assert.match(source, /class="writer-publish-body"/);
   assert.match(
     source,
@@ -112,21 +141,40 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-slug-feedback"/);
   assert.match(source, /id="post-excerpt"[\s\S]*rows="7"/);
   assert.match(source, /<span>요약<\/span>/);
-  assert.match(source, /id="post-visibility"/);
-  assert.match(source, /<span>공개 범위<\/span>/);
-  assert.match(source, /id="post-content-kind"/);
-  assert.match(source, /<span>콘텐츠 타입<\/span>/);
-  assert.match(source, /id="post-series"/);
-  assert.match(source, /id="writer-series-suggestions"/);
-  assert.match(source, /<span>시리즈<\/span>/);
-  assert.match(source, /id="writer-project-fields"/);
-  assert.match(source, /id="project-period"/);
-  assert.match(source, /id="project-role-summary"/);
-  assert.match(source, /id="project-detail-media-kind"/);
-  assert.match(source, /id="project-detail-image-url"/);
-  assert.match(source, /id="project-youtube-url"/);
-  assert.match(source, /id="project-highlights"/);
-  assert.match(source, /id="project-resource-links"/);
+  assert.match(metaPanelMatch[0], /id="post-visibility"/);
+  assert.match(metaPanelMatch[0], /id="post-content-kind"/);
+  assert.match(metaPanelMatch[0], /id="post-series"/);
+  assert.match(metaPanelMatch[0], /id="writer-series-suggestions"/);
+  assert.match(metaPanelMatch[0], /id="writer-project-fields"/);
+  assert.match(metaPanelMatch[0], /id="project-intro"/);
+  assert.match(metaPanelMatch[0], /id="project-intro"[\s\S]*rows="2"/);
+  assert.match(source, /id="project-detail-video-url"/);
+  assert.match(source, /id="project-video-upload-trigger"/);
+  assert.match(source, /id="project-video-upload-input"/);
+  assert.match(source, /id="project-video-preview"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-detail-image-url"/);
+  assert.match(publishBodyMatch[0], /id="post-tags"/);
+  assert.match(publishBodyMatch[0], /id="writer-tag-chip-list"/);
+  assert.match(publishBodyMatch[0], /id="writer-meta-chip-rail"/);
+  assert.match(publishBodyMatch[0], /id="writer-tag-suggestions"/);
+  assert.doesNotMatch(
+    source,
+    /class="writer-publish-body"[\s\S]*id="post-visibility"/,
+  );
+  assert.doesNotMatch(
+    source,
+    /class="writer-publish-body"[\s\S]*id="post-content-kind"/,
+  );
+  assert.doesNotMatch(
+    source,
+    /class="writer-publish-body"[\s\S]*id="post-series"/,
+  );
+  assert.doesNotMatch(metaPanelMatch[0], /id="post-tags"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="writer-tag-chip-list"/);
+  assert.doesNotMatch(
+    source,
+    /class="writer-publish-body"[\s\S]*id="writer-project-fields"/,
+  );
   assert.doesNotMatch(source, /<span>Excerpt<\/span>/);
   assert.doesNotMatch(source, /<span>Status<\/span>/);
 });
@@ -148,11 +196,15 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
   );
   assert.match(
     source,
-    /\.writer-editor-shell \.milkdown \.editor[\s\S]*max-width:\s*none/,
+    /\.writer-editor-shell \.milkdown \.editor[\s\S]*max-width:\s*calc\(100%\s*-\s*4\.75rem\)/,
   );
   assert.match(
     source,
-    /\.writer-editor-shell \.milkdown \.editor[\s\S]*margin:\s*0/,
+    /\.writer-editor-shell \.milkdown \.editor[\s\S]*margin:\s*0 auto 0 0/,
+  );
+  assert.match(
+    source,
+    /\.writer-editor-shell \.milkdown \.editor[\s\S]*padding:\s*0\.95rem 2\.9rem 1\.8rem 1\.3rem/,
   );
   assert.match(
     source,
@@ -172,23 +224,49 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
     source,
     /\.writer-field-feedback\[data-state=["']error["']][\s\S]*color:\s*#b43a3a/,
   );
-  assert.match(source, /\.writer-preview-head h1:empty[\s\S]*display:\s*none/);
+  assert.match(source, /\.writer-preview-head[\s\S]*position:\s*relative/);
+  assert.match(source, /\.writer-preview-kicker[\s\S]*position:\s*absolute/);
+  assert.match(source, /\.writer-preview-head h1[\s\S]*min-height:\s*56px/);
 });
 
 test("admin writer has editor-side bottom bar and publish layer style", async () => {
   const source = await readWriterStyles();
+  assert.match(source, /\.writer-shell[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/);
+  assert.match(source, /\.writer-shell[\s\S]*grid-template-rows:\s*auto auto minmax\(0,\s*1fr\)/);
+  assert.match(source, /\.writer-shell[\s\S]*align-items:\s*stretch/);
+  assert.match(source, /\.writer-pane\.writer-pane-editor-column[\s\S]*display:\s*contents/);
+  assert.match(source, /\.writer-pane\.writer-pane-preview[\s\S]*display:\s*contents/);
+  assert.match(source, /\.writer-title-area[\s\S]*grid-column:\s*1/);
+  assert.match(source, /\.writer-title-area[\s\S]*grid-row:\s*1/);
+  assert.match(source, /\.writer-meta-panel-wrap[\s\S]*grid-column:\s*1/);
+  assert.match(source, /\.writer-meta-panel-wrap[\s\S]*grid-row:\s*2/);
+  assert.match(source, /\.writer-pane\.writer-pane-editor[\s\S]*grid-column:\s*1/);
+  assert.match(source, /\.writer-pane\.writer-pane-editor[\s\S]*grid-row:\s*3/);
+  assert.match(source, /\.writer-preview-head[\s\S]*grid-column:\s*2/);
+  assert.match(source, /\.writer-preview-head[\s\S]*grid-row:\s*1/);
+  assert.match(source, /\.writer-preview-meta[\s\S]*grid-column:\s*2/);
+  assert.match(source, /\.writer-preview-meta[\s\S]*grid-row:\s*2/);
+  assert.match(source, /\.writer-preview-content[\s\S]*grid-column:\s*2/);
+  assert.match(source, /\.writer-preview-content[\s\S]*grid-row:\s*3/);
+  assert.match(source, /\.writer-meta-panel-wrap/);
   assert.match(
     source,
     /\.writer-pane\.writer-pane-editor[\s\S]*position:\s*relative/,
   );
   assert.match(
     source,
-    /\.writer-pane\.writer-pane-editor \.writer-bottom-bar[\s\S]*position:\s*absolute/,
+    /\.writer-bottom-bar[\s\S]*position:\s*fixed/,
   );
   assert.match(
     source,
-    /\.writer-pane\.writer-pane-editor \.writer-bottom-bar[\s\S]*bottom:\s*0/,
+    /\.writer-bottom-bar[\s\S]*bottom:\s*0/,
   );
+  assert.match(
+    source,
+    /\.writer-bottom-bar[\s\S]*width:\s*50%/,
+  );
+  assert.match(source, /\.writer-preview-meta/);
+  assert.match(source, /\.writer-preview-meta-grid/);
   assert.match(source, /\.writer-publish-layer[\s\S]*align-items:\s*center/);
   assert.match(
     source,
@@ -203,6 +281,8 @@ test("admin writer has editor-side bottom bar and publish layer style", async ()
     source,
     /\.writer-publish-body[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+320px/,
   );
+  assert.match(source, /\.writer-pane\.writer-pane-meta/);
+  assert.match(source, /\.writer-meta-body[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(
     source,
     /\.writer-publish-actions[\s\S]*border-top:\s*1px\s+solid\s+var\(--writer-border\)/,
@@ -211,7 +291,7 @@ test("admin writer has editor-side bottom bar and publish layer style", async ()
   assert.match(source, /\.writer-publish-layer\[data-open=["']true["']]/);
   assert.match(source, /\.writer-toast[\s\S]*position:\s*fixed/);
   assert.match(source, /\.writer-toast[\s\S]*right:\s*1\.2rem/);
-  assert.match(source, /\.writer-toast[\s\S]*bottom:\s*1\.2rem/);
+  assert.match(source, /\.writer-toast[\s\S]*top:\s*1\.2rem/);
   assert.match(source, /\.writer-draft-layer/);
   assert.match(source, /\.writer-draft-list/);
   assert.match(source, /\.writer-draft-delete/);
@@ -222,6 +302,14 @@ test("admin writer has editor-side bottom bar and publish layer style", async ()
   );
   assert.match(
     source,
-    /\.writer-shell\[data-compact-view=["']preview["']\]\s+\.writer-pane\.writer-pane-preview[\s\S]*display:\s*flex/,
+    /@media \(max-width:\s*1200px\)[\s\S]*\.writer-bottom-bar[\s\S]*position:\s*sticky/,
+  );
+  assert.match(
+    source,
+    /\.writer-shell\[data-compact-view=["']preview["']\][\s\S]*\.writer-pane\.writer-pane-preview[\s\S]*display:\s*flex/,
+  );
+  assert.match(
+    source,
+    /\.writer-shell\[data-compact-view=["']preview["']\][\s\S]*\.writer-pane\.writer-pane-editor-column[\s\S]*visibility:\s*hidden/,
   );
 });

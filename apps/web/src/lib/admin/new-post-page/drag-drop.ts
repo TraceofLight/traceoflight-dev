@@ -21,12 +21,20 @@ export function resolveDropTarget(event: DragEvent): DropTarget {
 }
 
 export function isMediaFileDrag(event: DragEvent): boolean {
+  const files = event.dataTransfer?.files;
+  if (files && files.length > 0) {
+    return Array.from(files).some((file) => {
+      const mime = file.type.toLowerCase();
+      return mime.startsWith("image/") || mime.startsWith("video/");
+    });
+  }
+
   const items = event.dataTransfer?.items;
   if (items && items.length > 0) {
     return Array.from(items).some((item) => {
       if (item.kind !== "file") return false;
       const mime = item.type.toLowerCase();
-      if (!mime) return true;
+      if (!mime) return false;
       return mime.startsWith("image/") || mime.startsWith("video/");
     });
   }

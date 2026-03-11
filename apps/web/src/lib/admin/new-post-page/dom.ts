@@ -13,12 +13,17 @@ export interface WriterDomElements {
   seriesInput: HTMLInputElement;
   tagInput: HTMLInputElement;
   slugPrefix: HTMLElement;
+  metaPanel: HTMLElement;
   projectFields: HTMLElement;
   projectPeriodInput: HTMLInputElement;
   projectRoleSummaryInput: HTMLInputElement;
+  projectIntroInput: HTMLTextAreaElement;
   projectDetailMediaKindInput: HTMLSelectElement;
-  projectDetailImageUrlInput: HTMLInputElement;
   projectYoutubeUrlInput: HTMLInputElement;
+  projectDetailVideoUrlInput: HTMLInputElement;
+  projectVideoUploadTrigger: HTMLButtonElement;
+  projectVideoUploadInput: HTMLInputElement;
+  projectVideoPreview: HTMLVideoElement;
   projectHighlightsInput: HTMLTextAreaElement;
   projectResourceLinksInput: HTMLTextAreaElement;
   seriesSuggestionList: HTMLDataListElement;
@@ -26,14 +31,20 @@ export interface WriterDomElements {
   metaChipRail: HTMLElement;
   tagSuggestionList: HTMLDataListElement;
   previewTitle: HTMLElement;
+  previewMeta: HTMLElement;
+  previewMetaKinds: HTMLElement;
+  previewMetaSummary: HTMLElement;
+  previewMetaSeries: HTMLElement;
+  previewMetaTags: HTMLElement;
+  previewMetaProject: HTMLElement;
+  previewMetaHighlights: HTMLElement;
+  previewMetaLinks: HTMLElement;
   previewContent: HTMLElement;
   coverPreview: HTMLElement;
   coverPreviewImage: HTMLImageElement;
   coverPreviewEmpty: HTMLElement;
   coverUploadInput: HTMLInputElement;
   compactToggleButton: HTMLButtonElement;
-  uploadTrigger: HTMLButtonElement;
-  uploadInput: HTMLInputElement;
   openDraftsButton: HTMLButtonElement;
   draftLayer: HTMLElement;
   draftBackdrop: HTMLButtonElement;
@@ -64,12 +75,17 @@ const WRITER_SELECTORS = {
   seriesInput: "#post-series",
   tagInput: "#post-tags",
   slugPrefix: "#writer-slug-prefix",
+  metaPanel: "#writer-meta-panel",
   projectFields: "#writer-project-fields",
   projectPeriodInput: "#project-period",
   projectRoleSummaryInput: "#project-role-summary",
+  projectIntroInput: "#project-intro",
   projectDetailMediaKindInput: "#project-detail-media-kind",
-  projectDetailImageUrlInput: "#project-detail-image-url",
   projectYoutubeUrlInput: "#project-youtube-url",
+  projectDetailVideoUrlInput: "#project-detail-video-url",
+  projectVideoUploadTrigger: "#project-video-upload-trigger",
+  projectVideoUploadInput: "#project-video-upload-input",
+  projectVideoPreview: "#project-video-preview",
   projectHighlightsInput: "#project-highlights",
   projectResourceLinksInput: "#project-resource-links",
   seriesSuggestionList: "#writer-series-suggestions",
@@ -77,14 +93,20 @@ const WRITER_SELECTORS = {
   metaChipRail: "#writer-meta-chip-rail",
   tagSuggestionList: "#writer-tag-suggestions",
   previewTitle: "#writer-preview-title",
+  previewMeta: "#writer-preview-meta",
+  previewMetaKinds: "#writer-preview-meta-kinds",
+  previewMetaSummary: "#writer-preview-meta-summary",
+  previewMetaSeries: "#writer-preview-meta-series",
+  previewMetaTags: "#writer-preview-meta-tags",
+  previewMetaProject: "#writer-preview-meta-project",
+  previewMetaHighlights: "#writer-preview-meta-highlights",
+  previewMetaLinks: "#writer-preview-meta-links",
   previewContent: "#writer-preview-content",
   coverPreview: "#writer-cover-preview",
   coverPreviewImage: "#writer-cover-preview-image",
   coverPreviewEmpty: "#writer-cover-preview-empty",
   coverUploadInput: "#writer-cover-upload-input",
   compactToggleButton: "#writer-toggle-compact-view",
-  uploadTrigger: "#writer-upload-trigger",
-  uploadInput: "#writer-upload-input",
   openDraftsButton: "#writer-open-drafts",
   draftLayer: "#writer-draft-layer",
   draftBackdrop: "#writer-draft-backdrop",
@@ -137,12 +159,17 @@ export function queryWriterDomElements(
     seriesInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.seriesInput),
     tagInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.tagInput),
     slugPrefix: queryElement<HTMLElement>(root, WRITER_SELECTORS.slugPrefix),
+    metaPanel: queryElement<HTMLElement>(root, WRITER_SELECTORS.metaPanel),
     projectFields: queryElement<HTMLElement>(root, WRITER_SELECTORS.projectFields),
     projectPeriodInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectPeriodInput),
     projectRoleSummaryInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectRoleSummaryInput),
+    projectIntroInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectIntroInput),
     projectDetailMediaKindInput: queryElement<HTMLSelectElement>(root, WRITER_SELECTORS.projectDetailMediaKindInput),
-    projectDetailImageUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectDetailImageUrlInput),
     projectYoutubeUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectYoutubeUrlInput),
+    projectDetailVideoUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectDetailVideoUrlInput),
+    projectVideoUploadTrigger: queryElement<HTMLButtonElement>(root, WRITER_SELECTORS.projectVideoUploadTrigger),
+    projectVideoUploadInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectVideoUploadInput),
+    projectVideoPreview: queryElement<HTMLVideoElement>(root, WRITER_SELECTORS.projectVideoPreview),
     projectHighlightsInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectHighlightsInput),
     projectResourceLinksInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectResourceLinksInput),
     seriesSuggestionList: queryElement<HTMLDataListElement>(
@@ -156,6 +183,35 @@ export function queryWriterDomElements(
       WRITER_SELECTORS.tagSuggestionList,
     ),
     previewTitle: queryElement<HTMLElement>(root, WRITER_SELECTORS.previewTitle),
+    previewMeta: queryElement<HTMLElement>(root, WRITER_SELECTORS.previewMeta),
+    previewMetaKinds: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaKinds,
+    ),
+    previewMetaSummary: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaSummary,
+    ),
+    previewMetaSeries: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaSeries,
+    ),
+    previewMetaTags: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaTags,
+    ),
+    previewMetaProject: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaProject,
+    ),
+    previewMetaHighlights: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaHighlights,
+    ),
+    previewMetaLinks: queryElement<HTMLElement>(
+      root,
+      WRITER_SELECTORS.previewMetaLinks,
+    ),
     previewContent: queryElement<HTMLElement>(
       root,
       WRITER_SELECTORS.previewContent,
@@ -177,11 +233,6 @@ export function queryWriterDomElements(
       root,
       WRITER_SELECTORS.compactToggleButton,
     ),
-    uploadTrigger: queryElement<HTMLButtonElement>(
-      root,
-      WRITER_SELECTORS.uploadTrigger,
-    ),
-    uploadInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.uploadInput),
     openDraftsButton: queryElement<HTMLButtonElement>(
       root,
       WRITER_SELECTORS.openDraftsButton,
