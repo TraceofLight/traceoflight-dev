@@ -7,7 +7,8 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.models.post import Post, PostStatus, PostVisibility
+from app.models.post import Post, PostContentKind, PostStatus, PostTopMediaKind, PostVisibility
+from app.models.project_profile import ProjectProfile
 from app.services.import_service import ImportService, ImportValidationError
 from app.services.imports.backup_archive import build_posts_backup_zip, parse_posts_backup_zip
 from app.services.imports.backup_restore import BackupRestoreCoordinator
@@ -76,12 +77,27 @@ def _build_backup_zip() -> bytes:
                 "slug": "restored-post",
                 "title": "Restored post",
                 "excerpt": "restored",
+                "content_kind": "project",
                 "status": "published",
                 "visibility": "public",
                 "published_at": "2026-03-06T00:00:00Z",
                 "tags": ["python"],
                 "series_title": None,
                 "cover_image_url": "/media/image/cover.png",
+                "top_media_kind": "youtube",
+                "top_media_image_url": None,
+                "top_media_youtube_url": "https://www.youtube.com/watch?v=abc123",
+                "top_media_video_url": None,
+                "project_profile": {
+                    "period_label": "2026.03 - 2026.04",
+                    "role_summary": "Graphics engineer",
+                    "project_intro": "Project intro",
+                    "card_image_url": "/media/image/card.png",
+                    "highlights": ["Highlight A"],
+                    "resource_links": [
+                        {"label": "GitHub", "href": "https://github.com/example/repo"}
+                    ],
+                },
                 "body_markdown": "![cover](/media/image/cover.png)",
             }
         ],
@@ -114,6 +130,35 @@ def _build_backup_zip() -> bytes:
         series_overrides=[],
         generated_at=datetime(2026, 3, 6, tzinfo=timezone.utc),
     )
+
+
+def test_backup_restore_restores_project_and_top_media_fields() -> None:
+    session = _session()
+    coordinator = BackupRestoreCoordinator(
+        storage=_StorageStub(),
+        db=session,
+        rebuild_series_projection=lambda: None,
+    )
+
+    result = coordinator.restore(parse_posts_backup_zip(_build_backup_zip()))
+
+    restored_post = session.scalar(select(Post).where(Post.slug == "restored-post"))
+    restored_profile = session.scalar(select(ProjectProfile).where(ProjectProfile.post_id == restored_post.id))
+
+    assert result.restored_posts == 1
+    assert restored_post is not None
+    assert restored_post.content_kind == PostContentKind.PROJECT
+    assert restored_post.top_media_kind == PostTopMediaKind.YOUTUBE
+    assert restored_post.top_media_youtube_url == "https://www.youtube.com/watch?v=abc123"
+    assert restored_profile is not None
+    assert restored_profile.period_label == "2026.03 - 2026.04"
+    assert restored_profile.role_summary == "Graphics engineer"
+    assert restored_profile.project_intro == "Project intro"
+    assert restored_profile.card_image_url == "/media/image/card.png"
+    assert restored_profile.highlights_json == ["Highlight A"]
+    assert restored_profile.resource_links_json == [
+        {"label": "GitHub", "href": "https://github.com/example/repo"}
+    ]
 
 
 def test_load_posts_backup_rejects_invalid_archive_before_clearing_posts() -> None:

@@ -9,7 +9,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from .errors import ImportValidationError
 from .models import SnapshotBundle, normalize_slug, normalize_tags, to_iso_utc
 
-BACKUP_SCHEMA_VERSION = "backup-v1"
+BACKUP_SCHEMA_VERSION = "backup-v2"
+LEGACY_BACKUP_SCHEMA_VERSION = "backup-v1"
 
 
 @dataclass
@@ -58,12 +59,18 @@ def build_posts_backup_zip(
                         "slug": post["slug"],
                         "title": post["title"],
                         "excerpt": post.get("excerpt"),
+                        "content_kind": post.get("content_kind", "blog"),
                         "status": post["status"],
                         "visibility": post["visibility"],
                         "published_at": post.get("published_at"),
                         "tags": post.get("tags", []),
                         "series_title": post.get("series_title"),
                         "cover_image_url": post.get("cover_image_url"),
+                        "top_media_kind": post.get("top_media_kind", "image"),
+                        "top_media_image_url": post.get("top_media_image_url"),
+                        "top_media_youtube_url": post.get("top_media_youtube_url"),
+                        "top_media_video_url": post.get("top_media_video_url"),
+                        "project_profile": post.get("project_profile"),
                     },
                     ensure_ascii=False,
                     indent=2,
@@ -94,7 +101,10 @@ def parse_posts_backup_zip(backup_data: bytes) -> ParsedPostsBackup:
         except ValueError as exc:
             raise ImportValidationError("backup archive metadata is invalid") from exc
 
-        if not isinstance(manifest, dict) or manifest.get("schema_version") != BACKUP_SCHEMA_VERSION:
+        if not isinstance(manifest, dict):
+            raise ImportValidationError("backup manifest schema is invalid")
+        schema_version = str(manifest.get("schema_version", "")).strip()
+        if schema_version not in {BACKUP_SCHEMA_VERSION, LEGACY_BACKUP_SCHEMA_VERSION}:
             raise ImportValidationError("backup manifest schema is invalid")
         slugs = manifest.get("slugs")
         if not isinstance(slugs, list):
@@ -154,6 +164,8 @@ def parse_posts_backup_zip(backup_data: bytes) -> ParsedPostsBackup:
                 raise ImportValidationError(f"backup post meta for {slug} is invalid")
 
             title = str(meta.get("title", "")).strip() or slug
+            raw_project_profile = meta.get("project_profile")
+            project_profile = raw_project_profile if isinstance(raw_project_profile, dict) else None
             bundles.append(
                 SnapshotBundle(
                     external_post_id=f"backup-{slug}",
@@ -184,6 +196,20 @@ def parse_posts_backup_zip(backup_data: bytes) -> ParsedPostsBackup:
                     order_key=str(meta.get("published_at")).strip()
                     if isinstance(meta.get("published_at"), str)
                     else slug,
+                    content_kind="project"
+                    if str(meta.get("content_kind", "blog")).strip().lower() == "project"
+                    else "blog",
+                    top_media_kind=_normalize_top_media_kind(meta.get("top_media_kind")),
+                    top_media_image_url=str(meta.get("top_media_image_url")).strip()
+                    if isinstance(meta.get("top_media_image_url"), str)
+                    else None,
+                    top_media_youtube_url=str(meta.get("top_media_youtube_url")).strip()
+                    if isinstance(meta.get("top_media_youtube_url"), str)
+                    else None,
+                    top_media_video_url=str(meta.get("top_media_video_url")).strip()
+                    if isinstance(meta.get("top_media_video_url"), str)
+                    else None,
+                    project_profile=_normalize_project_profile(project_profile),
                 )
             )
 
@@ -194,3 +220,47 @@ def parse_posts_backup_zip(backup_data: bytes) -> ParsedPostsBackup:
         media_bytes=media_bytes,
         series_overrides=series_overrides,
     )
+
+
+def _normalize_top_media_kind(raw: object) -> str:
+    value = str(raw or "image").strip().lower()
+    if value in {"youtube", "video"}:
+        return value
+    return "image"
+
+
+def _normalize_project_profile(raw: dict[str, object] | None) -> dict[str, object] | None:
+    if raw is None:
+        return None
+
+    period_label = str(raw.get("period_label", "")).strip()
+    role_summary = str(raw.get("role_summary", "")).strip()
+    card_image_url = str(raw.get("card_image_url", "")).strip()
+    if not period_label or not role_summary or not card_image_url:
+        return None
+
+    raw_highlights = raw.get("highlights")
+    highlights: list[str] = []
+    if isinstance(raw_highlights, list):
+        highlights = [str(item).strip() for item in raw_highlights if str(item).strip()]
+    resource_links: list[dict[str, str]] = []
+    raw_links = raw.get("resource_links")
+    if isinstance(raw_links, list):
+        for item in raw_links:
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get("label", "")).strip()
+            href = str(item.get("href", "")).strip()
+            if not label or not href:
+                continue
+            resource_links.append({"label": label, "href": href})
+
+    project_intro = str(raw.get("project_intro", "")).strip() or None
+    return {
+        "period_label": period_label,
+        "role_summary": role_summary,
+        "project_intro": project_intro,
+        "card_image_url": card_image_url,
+        "highlights": highlights,
+        "resource_links": resource_links,
+    }

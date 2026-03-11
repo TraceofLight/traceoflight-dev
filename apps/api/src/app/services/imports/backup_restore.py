@@ -7,7 +7,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models.media import MediaAsset
-from app.models.post import Post, PostStatus, PostVisibility
+from app.models.post import Post, PostContentKind, PostStatus, PostTopMediaKind, PostVisibility
+from app.models.project_profile import ProjectProfile
 from app.models.series import Series
 from app.repositories.post_repository import PostRepository
 from app.schemas.imports import BackupLoadRead
@@ -159,13 +160,31 @@ class BackupRestoreCoordinator:
                 excerpt=bundle.excerpt,
                 body_markdown=bundle.body_markdown,
                 cover_image_url=bundle.cover_image_url,
+                top_media_kind=_parse_top_media_kind(bundle.top_media_kind),
+                top_media_image_url=bundle.top_media_image_url,
+                top_media_youtube_url=bundle.top_media_youtube_url,
+                top_media_video_url=bundle.top_media_video_url,
                 series_title=_normalize_series_title(bundle.series_title),
+                content_kind=PostContentKind.PROJECT
+                if bundle.content_kind == "project"
+                else PostContentKind.BLOG,
                 status=PostStatus.DRAFT if bundle.status == "draft" else PostStatus.PUBLISHED,
                 visibility=PostVisibility.PRIVATE
                 if bundle.visibility == "private"
                 else PostVisibility.PUBLIC,
                 published_at=parse_datetime(bundle.published_at),
             )
+            if post.content_kind == PostContentKind.PROJECT and isinstance(bundle.project_profile, dict):
+                post.project_profile = ProjectProfile(
+                    period_label=str(bundle.project_profile["period_label"]),
+                    role_summary=str(bundle.project_profile["role_summary"]),
+                    project_intro=str(bundle.project_profile["project_intro"]).strip()
+                    if bundle.project_profile.get("project_intro")
+                    else None,
+                    card_image_url=str(bundle.project_profile["card_image_url"]),
+                    highlights_json=list(bundle.project_profile.get("highlights") or []),
+                    resource_links_json=list(bundle.project_profile.get("resource_links") or []),
+                )
             post.tags = repo._resolve_tags(bundle.tags)
             self.db.add(post)
             restored_posts += 1
@@ -188,3 +207,12 @@ class BackupRestoreCoordinator:
                 series.cover_image_url = cover_image_url
                 applied += 1
         return applied
+
+
+def _parse_top_media_kind(value: str) -> PostTopMediaKind:
+    normalized = value.strip().lower()
+    if normalized == "youtube":
+        return PostTopMediaKind.YOUTUBE
+    if normalized == "video":
+        return PostTopMediaKind.VIDEO
+    return PostTopMediaKind.IMAGE

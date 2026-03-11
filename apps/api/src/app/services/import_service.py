@@ -47,7 +47,17 @@ class ImportService:
             cover_key = extract_internal_object_key(post.cover_image_url)
             if cover_key is not None:
                 media_object_keys.add(cover_key)
+            top_image_key = extract_internal_object_key(post.top_media_image_url)
+            if top_image_key is not None:
+                media_object_keys.add(top_image_key)
+            top_video_key = extract_internal_object_key(post.top_media_video_url)
+            if top_video_key is not None:
+                media_object_keys.add(top_video_key)
             media_object_keys.update(extract_markdown_media_object_keys(post.body_markdown))
+            if post.project_profile is not None:
+                card_key = extract_internal_object_key(post.project_profile.card_image_url)
+                if card_key is not None:
+                    media_object_keys.add(card_key)
 
         series_rows = list(self.db.scalars(select(Series).where(Series.cover_image_url.is_not(None))))
         series_overrides: list[dict[str, str]] = []
@@ -107,12 +117,27 @@ class ImportService:
                     "slug": post.slug,
                     "title": post.title,
                     "excerpt": post.excerpt,
+                    "content_kind": post.content_kind.value,
                     "status": post.status.value,
                     "visibility": post.visibility.value,
                     "published_at": to_iso_utc(post.published_at),
                     "tags": [tag.slug for tag in post.tags],
                     "series_title": post.series_title,
                     "cover_image_url": post.cover_image_url,
+                    "top_media_kind": post.top_media_kind.value,
+                    "top_media_image_url": post.top_media_image_url,
+                    "top_media_youtube_url": post.top_media_youtube_url,
+                    "top_media_video_url": post.top_media_video_url,
+                    "project_profile": None
+                    if post.project_profile is None
+                    else {
+                        "period_label": post.project_profile.period_label,
+                        "role_summary": post.project_profile.role_summary,
+                        "project_intro": post.project_profile.project_intro,
+                        "card_image_url": post.project_profile.card_image_url,
+                        "highlights": list(post.project_profile.highlights_json),
+                        "resource_links": list(post.project_profile.resource_links_json),
+                    },
                     "body_markdown": post.body_markdown,
                 }
                 for post in posts

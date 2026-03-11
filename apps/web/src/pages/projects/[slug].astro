@@ -78,6 +78,7 @@ const youtubeEmbedUrl =
   project && project.topMediaKind === "youtube"
     ? toYoutubeEmbedUrl(project.topMediaYoutubeUrl)
     : null;
+const shouldRenderProjectTopVideo = project?.topMediaKind === "video" && project.topMediaVideoUrl;
 
 if (!project) {
   Astro.response.status = 404;
@@ -150,13 +151,14 @@ if (!project) {
 
         <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           {
-            project.topMediaKind === "video" && project.topMediaVideoUrl ? (
+            shouldRenderProjectTopVideo ? (
               <video
                 class="aspect-[16/9] h-full w-full object-cover"
                 controls
+                data-project-top-video
                 preload="metadata"
-                src={project.topMediaVideoUrl}
               >
+                <source src={project.topMediaVideoUrl} type="video/mp4" />
               </video>
             ) : youtubeEmbedUrl ? (
               <iframe
@@ -283,6 +285,33 @@ if (!project) {
           </a>
         </nav>
       </section>
+
+      {
+        shouldRenderProjectTopVideo ? (
+          <script is:inline>
+            {`
+              (() => {
+                const reloadProjectTopVideo = () => {
+                  const video = document.querySelector("video[data-project-top-video]");
+                  if (!(video instanceof HTMLVideoElement)) {
+                    return;
+                  }
+                  const hasMp4Source = Array.from(video.querySelectorAll("source")).some(
+                    (source) => source instanceof HTMLSourceElement && source.type === "video/mp4" && Boolean(source.src),
+                  );
+                  if (!hasMp4Source) {
+                    return;
+                  }
+                  video.load();
+                };
+
+                reloadProjectTopVideo();
+                document.addEventListener("astro:page-load", reloadProjectTopVideo);
+              })();
+            `}
+          </script>
+        ) : null
+      }
     </BaseLayout>
   ) : (
     <BaseLayout

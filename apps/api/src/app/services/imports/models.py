@@ -22,6 +22,12 @@ class SnapshotBundle:
     tags: list[str]
     series_title: str | None
     order_key: str
+    content_kind: str = "blog"
+    top_media_kind: str = "image"
+    top_media_image_url: str | None = None
+    top_media_youtube_url: str | None = None
+    top_media_video_url: str | None = None
+    project_profile: dict[str, object] | None = None
 
 
 def utcnow() -> datetime:

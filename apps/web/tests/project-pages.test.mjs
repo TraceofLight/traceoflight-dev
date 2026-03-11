@@ -31,6 +31,7 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(cardSource, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(cardSource, /object-cover object-center/);
   assert.match(cardSource, /href=\{`\/projects\/\$\{project\.slug\}`\}/);
+  assert.match(cardSource, /data-astro-reload/);
   assert.doesNotMatch(cardSource, /class="surface-card"/);
   assert.doesNotMatch(cardSource, /class="thumb"/);
 
@@ -92,8 +93,13 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /topMediaKind === "video"/);
   assert.match(source, /topMediaVideoUrl/);
   assert.match(source, /<video/);
+  assert.match(source, /data-project-top-video/);
+  assert.match(source, /<source/);
+  assert.match(source, /type="video\/mp4"/);
   assert.match(source, /topMediaKind === "youtube"/);
   assert.match(source, /topMediaYoutubeUrl/);
+  assert.match(source, /astro:page-load/);
+  assert.match(source, /video\.load\(\)/);
   assert.match(source, /isAdminViewer &&/);
   assert.match(source, /adminPostSlug=\{project\.slug\}/);
   assert.match(source, /프로젝트를 찾을 수 없습니다/);

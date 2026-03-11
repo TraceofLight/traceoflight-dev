@@ -40,12 +40,27 @@ def test_backup_archive_roundtrip_preserves_posts_media_and_series_overrides() -
                 "slug": "alpha",
                 "title": "Alpha",
                 "excerpt": "Summary",
+                "content_kind": "project",
                 "status": "published",
                 "visibility": "public",
                 "published_at": "2026-03-06T00:00:00Z",
                 "tags": ["python"],
                 "series_title": "Series A",
                 "cover_image_url": "/media/image/cover.png",
+                "top_media_kind": "video",
+                "top_media_image_url": None,
+                "top_media_youtube_url": None,
+                "top_media_video_url": "/media/video/demo.mp4",
+                "project_profile": {
+                    "period_label": "2026.03 - 2026.04",
+                    "role_summary": "Lead developer",
+                    "project_intro": "Project intro",
+                    "card_image_url": "/media/image/card.png",
+                    "highlights": ["One", "Two"],
+                    "resource_links": [
+                        {"label": "GitHub", "href": "https://github.com/example/repo"}
+                    ],
+                },
                 "body_markdown": "![cover](/media/image/body.png)",
             }
         ],
@@ -75,6 +90,19 @@ def test_backup_archive_roundtrip_preserves_posts_media_and_series_overrides() -
 
     assert [bundle.slug for bundle in parsed.bundles] == ["alpha"]
     assert parsed.bundles[0].series_title == "Series A"
+    assert parsed.bundles[0].content_kind == "project"
+    assert parsed.bundles[0].top_media_kind == "video"
+    assert parsed.bundles[0].top_media_video_url == "/media/video/demo.mp4"
+    assert parsed.bundles[0].project_profile == {
+        "period_label": "2026.03 - 2026.04",
+        "role_summary": "Lead developer",
+        "project_intro": "Project intro",
+        "card_image_url": "/media/image/card.png",
+        "highlights": ["One", "Two"],
+        "resource_links": [
+            {"label": "GitHub", "href": "https://github.com/example/repo"}
+        ],
+    }
     assert parsed.media_bytes == {"image/body.png": b"body"}
     assert parsed.series_overrides == [
         {
@@ -86,5 +114,52 @@ def test_backup_archive_roundtrip_preserves_posts_media_and_series_overrides() -
     with ZipFile(io.BytesIO(archive_bytes)) as archive:
         manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
 
-    assert manifest["schema_version"] == "backup-v1"
+    assert manifest["schema_version"] == "backup-v2"
     assert manifest["slugs"] == ["alpha"]
+
+
+def test_backup_archive_parser_keeps_legacy_backup_v1_compatibility() -> None:
+    memory = io.BytesIO()
+    with ZipFile(memory, mode="w") as archive:
+        archive.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "schema_version": "backup-v1",
+                    "generated_at": "2026-03-12T00:00:00Z",
+                    "post_count": 1,
+                    "media_count": 0,
+                    "series_override_count": 0,
+                    "slugs": ["legacy"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+        archive.writestr("media-manifest.json", "[]")
+        archive.writestr("series_overrides.json", "[]")
+        archive.writestr(
+            "posts/legacy/meta.json",
+            json.dumps(
+                {
+                    "slug": "legacy",
+                    "title": "Legacy",
+                    "excerpt": "Old summary",
+                    "status": "published",
+                    "visibility": "public",
+                    "published_at": "2026-03-01T00:00:00Z",
+                    "tags": ["legacy"],
+                    "series_title": None,
+                    "cover_image_url": "/media/image/legacy.png",
+                },
+                ensure_ascii=False,
+            ),
+        )
+        archive.writestr("posts/legacy/content.md", "legacy body")
+
+    parsed = parse_posts_backup_zip(memory.getvalue())
+
+    assert len(parsed.bundles) == 1
+    assert parsed.bundles[0].slug == "legacy"
+    assert parsed.bundles[0].content_kind == "blog"
+    assert parsed.bundles[0].top_media_kind == "image"
+    assert parsed.bundles[0].project_profile is None
