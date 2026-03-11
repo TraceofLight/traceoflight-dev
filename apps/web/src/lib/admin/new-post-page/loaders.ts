@@ -31,6 +31,10 @@ interface WriterLoaderDependencies {
     | "slugInput"
     | "excerptInput"
     | "coverInput"
+    | "topMediaKindInput"
+    | "topMediaImageUrlInput"
+    | "topMediaYoutubeUrlInput"
+    | "topMediaVideoUrlInput"
     | "contentKindInput"
     | "visibilityInput"
     | "seriesInput"
@@ -40,9 +44,6 @@ interface WriterLoaderDependencies {
     | "projectPeriodInput"
     | "projectRoleSummaryInput"
     | "projectIntroInput"
-    | "projectDetailMediaKindInput"
-    | "projectYoutubeUrlInput"
-    | "projectDetailVideoUrlInput"
     | "projectHighlightsInput"
     | "projectResourceLinksInput"
     | "tagSuggestionList"
@@ -67,7 +68,7 @@ interface WriterLoaderDependencies {
   setSlugValidationState: (state: "idle" | "error", message?: string) => void;
   queueSlugAvailabilityCheck: () => void;
   queuePreviewRefresh: () => void;
-  syncProjectDetailMediaUi: () => void;
+  syncTopMediaUi: () => void;
 }
 
 export interface WriterLoaders {
@@ -108,7 +109,7 @@ export function createWriterLoaders(
     setSlugValidationState,
     queueSlugAvailabilityCheck,
     queuePreviewRefresh,
-    syncProjectDetailMediaUi,
+    syncTopMediaUi,
   } = dependencies;
 
   const {
@@ -116,6 +117,10 @@ export function createWriterLoaders(
     slugInput,
     excerptInput,
     coverInput,
+    topMediaKindInput,
+    topMediaImageUrlInput,
+    topMediaYoutubeUrlInput,
+    topMediaVideoUrlInput,
     contentKindInput,
     visibilityInput,
     seriesInput,
@@ -125,9 +130,6 @@ export function createWriterLoaders(
     projectPeriodInput,
     projectRoleSummaryInput,
     projectIntroInput,
-    projectDetailMediaKindInput,
-    projectYoutubeUrlInput,
-    projectDetailVideoUrlInput,
     projectHighlightsInput,
     projectResourceLinksInput,
     tagSuggestionList,
@@ -158,10 +160,16 @@ export function createWriterLoaders(
     slugInput.value = loaded.slug?.trim() || fallbackSlug;
     slugInput.dataset.touched = "true";
     excerptInput.value = loaded.excerpt ?? "";
-    coverInput.value =
-      loaded.cover_image_url ??
-      loaded.project_profile?.detail_image_url ??
-      "";
+    coverInput.value = loaded.cover_image_url ?? "";
+    topMediaKindInput.value =
+      loaded.top_media_kind === "youtube"
+        ? "youtube"
+        : loaded.top_media_kind === "video"
+          ? "video"
+          : "image";
+    topMediaImageUrlInput.value = loaded.top_media_image_url ?? loaded.cover_image_url ?? "";
+    topMediaYoutubeUrlInput.value = loaded.top_media_youtube_url ?? "";
+    topMediaVideoUrlInput.value = loaded.top_media_video_url ?? "";
     contentKindInput.value = loaded.content_kind === "project" ? "project" : "blog";
     visibilityInput.value =
       loaded.visibility === "private" ? "private" : "public";
@@ -170,14 +178,6 @@ export function createWriterLoaders(
     projectPeriodInput.value = loaded.project_profile?.period_label ?? "";
     projectRoleSummaryInput.value = loaded.project_profile?.role_summary ?? "";
     projectIntroInput.value = loaded.project_profile?.project_intro ?? "";
-    projectDetailMediaKindInput.value =
-      loaded.project_profile?.detail_media_kind === "youtube"
-        ? "youtube"
-        : loaded.project_profile?.detail_media_kind === "video"
-          ? "video"
-          : "image";
-    projectYoutubeUrlInput.value = loaded.project_profile?.youtube_url ?? "";
-    projectDetailVideoUrlInput.value = loaded.project_profile?.detail_video_url ?? "";
     projectHighlightsInput.value = (
       loaded.project_profile?.highlights_json ??
       loaded.project_profile?.highlights ??
@@ -191,7 +191,7 @@ export function createWriterLoaders(
       .map((link) => `${link.label} | ${link.href}`)
       .join("\n");
     syncProjectFieldVisibility();
-    syncProjectDetailMediaUi();
+    syncTopMediaUi();
     setSelectedTags(dedupeTagSlugs(loaded.tags ?? []));
     syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");

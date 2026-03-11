@@ -20,13 +20,13 @@ import {
   PUBLIC_BADGE_CLASS,
   PUBLIC_BADGE_STRONG_CLASS,
   PUBLIC_EMPTY_STATE_CLASS,
-  PUBLIC_HERO_PANEL_SURFACE_CLASS,
-  PUBLIC_HERO_SURFACE_CLASS,
   PUBLIC_PANEL_SURFACE_CLASS,
   PUBLIC_PILL_CLASS,
   PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
   PUBLIC_SECTION_SURFACE_CLASS,
   PUBLIC_SURFACE_ACTION_CLASS,
+  PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS,
+  PUBLIC_TOP_MEDIA_SURFACE_CLASS,
 } from "../lib/ui-effects";
 
 const provider = getContentProvider();
@@ -61,10 +61,10 @@ try {
 } catch {
   projects = [];
 }
-const heroShellClass =
-  `${PUBLIC_HERO_SURFACE_CLASS} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
-const heroCopyPanelClass =
-  `${PUBLIC_HERO_PANEL_SURFACE_CLASS} px-6 py-7 sm:px-8 sm:py-8`;
+const topMediaShellClass =
+  `${PUBLIC_TOP_MEDIA_SURFACE_CLASS} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
+const topMediaCopyPanelClass =
+  `${PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS} px-6 py-7 sm:px-8 sm:py-8`;
 const sectionShellClass = `${PUBLIC_SECTION_SURFACE_CLASS} p-6`;
 const panelSurfaceClass = `${PUBLIC_PANEL_SURFACE_CLASS} p-5`;
 const pillClass = PUBLIC_PILL_CLASS;
@@ -304,12 +304,12 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
   <div class="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-12">
     <section
-      class={`grid gap-6 ${heroShellClass}`}
+      class={`grid gap-6 ${topMediaShellClass}`}
       aria-labelledby="home-profile-title"
     >
       <div
         id="home-intro-copy-panel"
-        class={`grid h-full content-center gap-6 ${heroCopyPanelClass}`}
+        class={`grid h-full content-center gap-6 ${topMediaCopyPanelClass}`}
       >
         <div class="space-y-4">
           <p class={pillClass}>About Me</p>

@@ -23,7 +23,7 @@ class SeriesUpsert(BaseModel):
     )
     cover_image_url: str | None = Field(
         default=None,
-        description="Optional cover image URL for series card/hero.",
+        description="Optional cover image URL for series card and detail header.",
         json_schema_extra={"example": "https://traceoflight.dev/media/image/series-cover.jpg"},
     )
 

@@ -4,10 +4,10 @@ export const PUBLIC_SECTION_SURFACE_CLASS =
 export const PUBLIC_SECTION_SURFACE_STRONG_CLASS =
   "rounded-[2.25rem] border border-white/80 bg-white/96 shadow-[0_28px_70px_rgba(15,23,42,0.10)] backdrop-blur-sm";
 
-export const PUBLIC_HERO_SURFACE_CLASS =
+export const PUBLIC_TOP_MEDIA_SURFACE_CLASS =
   "rounded-[2.5rem] border border-white/80 bg-white/92 shadow-[0_32px_80px_rgba(15,23,42,0.10)]";
 
-export const PUBLIC_HERO_PANEL_SURFACE_CLASS =
+export const PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS =
   "rounded-[2.1rem] border border-white/80 bg-white/92 shadow-[0_22px_56px_rgba(15,23,42,0.06)]";
 
 export const PUBLIC_PANEL_SURFACE_CLASS =

@@ -5,8 +5,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.post import PostContentKind, PostStatus, PostVisibility
-from app.models.project_profile import ProjectDetailMediaKind
+from app.models.post import (
+    PostContentKind,
+    PostStatus,
+    PostTopMediaKind,
+    PostVisibility,
+)
 from app.schemas.series import PostSeriesContext
 from app.schemas.tag import TagRead
 
@@ -21,10 +25,6 @@ class ProjectProfilePayload(BaseModel):
     role_summary: str
     project_intro: str | None = None
     card_image_url: str
-    detail_media_kind: ProjectDetailMediaKind
-    detail_image_url: str | None = None
-    youtube_url: str | None = None
-    detail_video_url: str | None = None
     highlights: list[str] = Field(default_factory=list)
     resource_links: list[ProjectResourceLink] = Field(default_factory=list)
 
@@ -36,10 +36,6 @@ class ProjectProfileRead(BaseModel):
     role_summary: str
     project_intro: str | None = None
     card_image_url: str
-    detail_media_kind: ProjectDetailMediaKind
-    detail_image_url: str | None = None
-    youtube_url: str | None = None
-    detail_video_url: str | None = None
     highlights_json: list[str] = Field(default_factory=list)
     resource_links_json: list[ProjectResourceLink] = Field(default_factory=list)
 
@@ -64,8 +60,24 @@ class PostCreate(BaseModel):
     )
     cover_image_url: str | None = Field(
         default=None,
-        description='Optional cover image URL rendered for post cards and detail pages.',
+        description='Optional thumbnail image URL rendered for post cards and OG metadata.',
         json_schema_extra={'example': 'https://cdn.traceoflight.dev/images/my-first-post-cover.jpg'},
+    )
+    top_media_kind: PostTopMediaKind = Field(
+        default=PostTopMediaKind.IMAGE,
+        description='Shared top media kind rendered at the top of detail pages.',
+    )
+    top_media_image_url: str | None = Field(
+        default=None,
+        description='Optional top image URL for detail pages when top_media_kind=image.',
+    )
+    top_media_youtube_url: str | None = Field(
+        default=None,
+        description='Optional YouTube URL for detail pages when top_media_kind=youtube.',
+    )
+    top_media_video_url: str | None = Field(
+        default=None,
+        description='Optional uploaded video URL for detail pages when top_media_kind=video.',
     )
     series_title: str | None = Field(
         default=None,
@@ -112,6 +124,10 @@ class PostRead(BaseModel):
     excerpt: str | None
     body_markdown: str
     cover_image_url: str | None
+    top_media_kind: PostTopMediaKind = Field(default=PostTopMediaKind.IMAGE)
+    top_media_image_url: str | None = None
+    top_media_youtube_url: str | None = None
+    top_media_video_url: str | None = None
     series_title: str | None = None
     content_kind: PostContentKind = Field(default=PostContentKind.BLOG)
     status: PostStatus

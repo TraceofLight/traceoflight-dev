@@ -41,6 +41,10 @@ def _build_update_request_payload(slug: str) -> dict[str, object]:
         "excerpt": "updated excerpt",
         "body_markdown": "updated body",
         "cover_image_url": None,
+        "top_media_kind": "video",
+        "top_media_image_url": None,
+        "top_media_youtube_url": None,
+        "top_media_video_url": "/media/project-demo.mp4",
         "content_kind": "project",
         "series_title": "Rendering Deep Dive",
         "status": "draft",
@@ -52,10 +56,6 @@ def _build_update_request_payload(slug: str) -> dict[str, object]:
             "role_summary": "Graphics programmer",
             "project_intro": "interactive fluid simulation plugin overview",
             "card_image_url": "/media/project-card.png",
-            "detail_media_kind": "video",
-            "detail_image_url": None,
-            "youtube_url": None,
-            "detail_video_url": "/media/project-demo.mp4",
             "highlights": ["Render graph"],
             "resource_links": [{"label": "GitHub", "href": "https://github.com/traceoflight"}],
         },
@@ -142,8 +142,8 @@ def test_admin_update_accepts_project_video_payload(monkeypatch) -> None:
     assert response.status_code == 200
     assert service.update_called_with is not None
     submitted_payload = service.update_called_with[1]
-    assert submitted_payload.project_profile.detail_media_kind.value == "video"
-    assert submitted_payload.project_profile.detail_video_url == "/media/project-demo.mp4"
+    assert submitted_payload.top_media_kind.value == "video"
+    assert submitted_payload.top_media_video_url == "/media/project-demo.mp4"
     assert submitted_payload.project_profile.project_intro == "interactive fluid simulation plugin overview"
 
 

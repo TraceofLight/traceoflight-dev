@@ -8,6 +8,17 @@ export interface WriterDomElements {
   slugFeedback: HTMLElement;
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
+  topMediaKindInput: HTMLSelectElement;
+  topMediaImageUrlInput: HTMLInputElement;
+  topMediaYoutubeUrlInput: HTMLInputElement;
+  topMediaVideoUrlInput: HTMLInputElement;
+  topMediaPreview: HTMLElement;
+  topMediaPreviewImage: HTMLImageElement;
+  topMediaPreviewFrame: HTMLIFrameElement;
+  topMediaPreviewVideo: HTMLVideoElement;
+  topMediaPreviewEmpty: HTMLElement;
+  topMediaUploadTrigger: HTMLButtonElement;
+  topMediaUploadInput: HTMLInputElement;
   contentKindInput: HTMLSelectElement;
   visibilityInput: HTMLSelectElement;
   seriesInput: HTMLInputElement;
@@ -18,12 +29,6 @@ export interface WriterDomElements {
   projectPeriodInput: HTMLInputElement;
   projectRoleSummaryInput: HTMLInputElement;
   projectIntroInput: HTMLTextAreaElement;
-  projectDetailMediaKindInput: HTMLSelectElement;
-  projectYoutubeUrlInput: HTMLInputElement;
-  projectDetailVideoUrlInput: HTMLInputElement;
-  projectVideoUploadTrigger: HTMLButtonElement;
-  projectVideoUploadInput: HTMLInputElement;
-  projectVideoPreview: HTMLVideoElement;
   projectHighlightsInput: HTMLTextAreaElement;
   projectResourceLinksInput: HTMLTextAreaElement;
   seriesSuggestionList: HTMLDataListElement;
@@ -33,9 +38,7 @@ export interface WriterDomElements {
   previewTitle: HTMLElement;
   previewMeta: HTMLElement;
   previewMetaKinds: HTMLElement;
-  previewMetaSummary: HTMLElement;
   previewMetaSeries: HTMLElement;
-  previewMetaTags: HTMLElement;
   previewMetaProject: HTMLElement;
   previewMetaHighlights: HTMLElement;
   previewMetaLinks: HTMLElement;
@@ -70,6 +73,17 @@ const WRITER_SELECTORS = {
   slugFeedback: "#writer-slug-feedback",
   excerptInput: "#post-excerpt",
   coverInput: "#post-cover",
+  topMediaKindInput: "#writer-top-media-kind",
+  topMediaImageUrlInput: "#writer-top-media-image-url",
+  topMediaYoutubeUrlInput: "#writer-top-media-youtube-url",
+  topMediaVideoUrlInput: "#writer-top-media-video-url",
+  topMediaPreview: "#writer-top-media-preview",
+  topMediaPreviewImage: "#writer-top-media-preview-image",
+  topMediaPreviewFrame: "#writer-top-media-preview-frame",
+  topMediaPreviewVideo: "#writer-top-media-preview-video",
+  topMediaPreviewEmpty: "#writer-top-media-preview-empty",
+  topMediaUploadTrigger: "#writer-top-media-upload-trigger",
+  topMediaUploadInput: "#writer-top-media-upload-input",
   contentKindInput: "#post-content-kind",
   visibilityInput: "#post-visibility",
   seriesInput: "#post-series",
@@ -80,12 +94,6 @@ const WRITER_SELECTORS = {
   projectPeriodInput: "#project-period",
   projectRoleSummaryInput: "#project-role-summary",
   projectIntroInput: "#project-intro",
-  projectDetailMediaKindInput: "#project-detail-media-kind",
-  projectYoutubeUrlInput: "#project-youtube-url",
-  projectDetailVideoUrlInput: "#project-detail-video-url",
-  projectVideoUploadTrigger: "#project-video-upload-trigger",
-  projectVideoUploadInput: "#project-video-upload-input",
-  projectVideoPreview: "#project-video-preview",
   projectHighlightsInput: "#project-highlights",
   projectResourceLinksInput: "#project-resource-links",
   seriesSuggestionList: "#writer-series-suggestions",
@@ -95,9 +103,7 @@ const WRITER_SELECTORS = {
   previewTitle: "#writer-preview-title",
   previewMeta: "#writer-preview-meta",
   previewMetaKinds: "#writer-preview-meta-kinds",
-  previewMetaSummary: "#writer-preview-meta-summary",
   previewMetaSeries: "#writer-preview-meta-series",
-  previewMetaTags: "#writer-preview-meta-tags",
   previewMetaProject: "#writer-preview-meta-project",
   previewMetaHighlights: "#writer-preview-meta-highlights",
   previewMetaLinks: "#writer-preview-meta-links",
@@ -151,6 +157,17 @@ export function queryWriterDomElements(
       WRITER_SELECTORS.excerptInput,
     ),
     coverInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.coverInput),
+    topMediaKindInput: queryElement<HTMLSelectElement>(root, WRITER_SELECTORS.topMediaKindInput),
+    topMediaImageUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.topMediaImageUrlInput),
+    topMediaYoutubeUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.topMediaYoutubeUrlInput),
+    topMediaVideoUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.topMediaVideoUrlInput),
+    topMediaPreview: queryElement<HTMLElement>(root, WRITER_SELECTORS.topMediaPreview),
+    topMediaPreviewImage: queryElement<HTMLImageElement>(root, WRITER_SELECTORS.topMediaPreviewImage),
+    topMediaPreviewFrame: queryElement<HTMLIFrameElement>(root, WRITER_SELECTORS.topMediaPreviewFrame),
+    topMediaPreviewVideo: queryElement<HTMLVideoElement>(root, WRITER_SELECTORS.topMediaPreviewVideo),
+    topMediaPreviewEmpty: queryElement<HTMLElement>(root, WRITER_SELECTORS.topMediaPreviewEmpty),
+    topMediaUploadTrigger: queryElement<HTMLButtonElement>(root, WRITER_SELECTORS.topMediaUploadTrigger),
+    topMediaUploadInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.topMediaUploadInput),
     contentKindInput: queryElement<HTMLSelectElement>(root, WRITER_SELECTORS.contentKindInput),
     visibilityInput: queryElement<HTMLSelectElement>(
       root,
@@ -164,12 +181,6 @@ export function queryWriterDomElements(
     projectPeriodInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectPeriodInput),
     projectRoleSummaryInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectRoleSummaryInput),
     projectIntroInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectIntroInput),
-    projectDetailMediaKindInput: queryElement<HTMLSelectElement>(root, WRITER_SELECTORS.projectDetailMediaKindInput),
-    projectYoutubeUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectYoutubeUrlInput),
-    projectDetailVideoUrlInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectDetailVideoUrlInput),
-    projectVideoUploadTrigger: queryElement<HTMLButtonElement>(root, WRITER_SELECTORS.projectVideoUploadTrigger),
-    projectVideoUploadInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.projectVideoUploadInput),
-    projectVideoPreview: queryElement<HTMLVideoElement>(root, WRITER_SELECTORS.projectVideoPreview),
     projectHighlightsInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectHighlightsInput),
     projectResourceLinksInput: queryElement<HTMLTextAreaElement>(root, WRITER_SELECTORS.projectResourceLinksInput),
     seriesSuggestionList: queryElement<HTMLDataListElement>(
@@ -188,17 +199,9 @@ export function queryWriterDomElements(
       root,
       WRITER_SELECTORS.previewMetaKinds,
     ),
-    previewMetaSummary: queryElement<HTMLElement>(
-      root,
-      WRITER_SELECTORS.previewMetaSummary,
-    ),
     previewMetaSeries: queryElement<HTMLElement>(
       root,
       WRITER_SELECTORS.previewMetaSeries,
-    ),
-    previewMetaTags: queryElement<HTMLElement>(
-      root,
-      WRITER_SELECTORS.previewMetaTags,
     ),
     previewMetaProject: queryElement<HTMLElement>(
       root,

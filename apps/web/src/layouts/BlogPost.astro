@@ -12,6 +12,7 @@ import {
   toBrowserImageUrl,
   type CoverMediaSource,
 } from "../lib/cover-media";
+import { toYoutubeEmbedUrl } from "../lib/youtube";
 import {
   PUBLIC_PANEL_SURFACE_CLASS,
   PUBLIC_PANEL_SURFACE_SOFT_CLASS,
@@ -26,6 +27,10 @@ interface DbPostData {
   pubDate: Date;
   updatedDate?: Date;
   coverImage?: CoverMediaSource;
+  topMediaKind?: "image" | "youtube" | "video";
+  topMediaImageUrl?: string;
+  topMediaYoutubeUrl?: string;
+  topMediaVideoUrl?: string;
 }
 
 interface SeriesContext {
@@ -63,6 +68,10 @@ const {
   pubDate,
   updatedDate,
   coverImage,
+  topMediaKind = "image",
+  topMediaImageUrl,
+  topMediaYoutubeUrl,
+  topMediaVideoUrl,
   adminPostSlug = "",
   showAdminActions = false,
   seriesContext,
@@ -89,6 +98,9 @@ const pubDateIso = toIsoDateTime(pubDate);
 const updatedDateLabel = updatedDate ? formatDateLabel(updatedDate) : "";
 const updatedDateIso = updatedDate ? toIsoDateTime(updatedDate) : "";
 const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSeriesPostCoverImageSrc);
+const topMediaEmbedUrl =
+  topMediaKind === "youtube" ? toYoutubeEmbedUrl(topMediaYoutubeUrl) : null;
+const topMediaImage = normalizeCoverMedia(topMediaImageUrl ?? coverImage);
 ---
 
 <BaseLayout
@@ -125,10 +137,30 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
       </nav>
 
       {
-        coverMedia && (
+        topMediaKind === "video" && topMediaVideoUrl ? (
+          <video
+            class="mt-8 aspect-[16/9] h-auto w-full rounded-3xl object-cover shadow-[0_30px_80px_rgba(15,23,42,0.12)]"
+            controls
+            preload="metadata"
+            src={topMediaVideoUrl}
+          >
+          </video>
+        ) : topMediaEmbedUrl ? (
+          <div class="mt-8 overflow-hidden rounded-3xl shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
+            <iframe
+              class="aspect-[16/9] h-full w-full"
+              src={topMediaEmbedUrl}
+              title={title}
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            />
+          </div>
+        ) : topMediaImage && (
           <CoverMediaImage
             className="mt-8 h-auto w-full rounded-3xl shadow-[0_30px_80px_rgba(15,23,42,0.12)]"
-            media={coverMedia}
+            media={topMediaImage}
             alt={title}
             width={detailCoverWidth}
             height={detailCoverHeight}

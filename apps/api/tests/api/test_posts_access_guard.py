@@ -196,13 +196,21 @@ def test_posts_write_accepts_project_payload(monkeypatch) -> None:
     service = _StubPostService()
     client = _client_with_service(service)
 
-    project_profile = {
+    request_project_profile = {
         'period_label': '2026.03 - ongoing',
         'role_summary': 'Graphics programmer',
+        'project_intro': 'project intro',
         'card_image_url': 'https://example.com/project-card.png',
-        'detail_media_kind': 'youtube',
-        'detail_image_url': None,
-        'youtube_url': 'https://www.youtube.com/watch?v=abcdefghijk',
+        'highlights': ['Highlight A', 'Highlight B'],
+        'resource_links': [
+            {'label': 'GitHub', 'href': 'https://github.com/example/project'},
+        ],
+    }
+    response_project_profile = {
+        'period_label': '2026.03 - ongoing',
+        'role_summary': 'Graphics programmer',
+        'project_intro': 'project intro',
+        'card_image_url': 'https://example.com/project-card.png',
         'highlights_json': ['Highlight A', 'Highlight B'],
         'resource_links_json': [
             {'label': 'GitHub', 'href': 'https://github.com/example/project'},
@@ -215,11 +223,15 @@ def test_posts_write_accepts_project_payload(monkeypatch) -> None:
         'excerpt': 'project summary',
         'body_markdown': 'body',
         'cover_image_url': 'https://example.com/project-card.png',
+        'top_media_kind': 'youtube',
+        'top_media_image_url': None,
+        'top_media_youtube_url': 'https://www.youtube.com/watch?v=abcdefghijk',
+        'top_media_video_url': None,
         'content_kind': 'project',
         'status': 'published',
         'visibility': 'public',
         'published_at': None,
-        'project_profile': project_profile,
+        'project_profile': request_project_profile,
     }
 
     service.create_post = lambda request_payload: _build_post_payload(  # type: ignore[method-assign]
@@ -227,8 +239,13 @@ def test_posts_write_accepts_project_payload(monkeypatch) -> None:
         status=request_payload.status,
         visibility=request_payload.visibility,
         content_kind=request_payload.content_kind,
-        project_profile=project_profile,
-    )
+        project_profile=response_project_profile,
+    ) | {
+        'top_media_kind': 'youtube',
+        'top_media_image_url': None,
+        'top_media_youtube_url': 'https://www.youtube.com/watch?v=abcdefghijk',
+        'top_media_video_url': None,
+    }
 
     response = client.post(
         '/api/v1/posts',
@@ -239,4 +256,4 @@ def test_posts_write_accepts_project_payload(monkeypatch) -> None:
     app.dependency_overrides.clear()
     assert response.status_code == 200
     assert response.json()['content_kind'] == 'project'
-    assert response.json()['project_profile']['detail_media_kind'] == 'youtube'
+    assert response.json()['top_media_kind'] == 'youtube'

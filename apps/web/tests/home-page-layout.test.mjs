@@ -54,15 +54,15 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /"Database Engineering"/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_HERO_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_HERO_SURFACE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_TOP_MEDIA_SURFACE_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
   assert.match(
     source,
-    /const heroShellClass =[\s\S]*`\$\{PUBLIC_HERO_SURFACE_CLASS\} p-5 lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\] lg:p-6`;/,
+    /const topMediaShellClass =[\s\S]*`\$\{PUBLIC_TOP_MEDIA_SURFACE_CLASS\} p-5 lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\] lg:p-6`;/,
   );
   assert.match(
     source,
-    /const heroCopyPanelClass =[\s\S]*`\$\{PUBLIC_HERO_PANEL_SURFACE_CLASS\} px-6 py-7 sm:px-8 sm:py-8`;/,
+    /const topMediaCopyPanelClass =[\s\S]*`\$\{PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS\} px-6 py-7 sm:px-8 sm:py-8`;/,
   );
   assert.match(source, /const sectionShellClass = `\$\{PUBLIC_SECTION_SURFACE_CLASS\} p-6`;/);
   assert.match(source, /const panelSurfaceClass = `\$\{PUBLIC_PANEL_SURFACE_CLASS\} p-5`;/);
@@ -85,6 +85,9 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /iconClass:\s*"theme-invert-on-light"/);
   assert.match(source, /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width="18"/);
   assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
+  assert.doesNotMatch(source, /PUBLIC_HERO_/);
+  assert.doesNotMatch(source, /heroShellClass/);
+  assert.doesNotMatch(source, /heroCopyPanelClass/);
   assert.doesNotMatch(source, /"Cloud-Native Database"/);
   assert.doesNotMatch(source, /"Backend API"/);
   assert.doesNotMatch(source, /"Frontend Engineering"/);

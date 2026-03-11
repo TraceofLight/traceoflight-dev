@@ -14,6 +14,7 @@ import {
   normalizeCompactView,
   renderCoverPreview,
   renderCoverPreviewEmpty,
+  buildPreviewTopMediaMarkup,
   renderPreviewMeta,
   setCompactToggleLabel,
 } from "./new-post-page/preview";
@@ -27,6 +28,7 @@ import {
   normalizeCoverUrl,
   normalizeMarkdownLinks,
 } from "./new-post-page/link-normalization";
+import { toYoutubeEmbedUrl } from "../youtube";
 import {
   doesSlugExist,
   slugify,
@@ -64,6 +66,17 @@ export async function initNewPostAdminPage(
     slugFeedback,
     excerptInput,
     coverInput,
+    topMediaKindInput,
+    topMediaImageUrlInput,
+    topMediaYoutubeUrlInput,
+    topMediaVideoUrlInput,
+    topMediaPreview,
+    topMediaPreviewImage,
+    topMediaPreviewFrame,
+    topMediaPreviewVideo,
+    topMediaPreviewEmpty,
+    topMediaUploadTrigger,
+    topMediaUploadInput,
     contentKindInput,
     visibilityInput,
     seriesInput,
@@ -74,12 +87,6 @@ export async function initNewPostAdminPage(
     projectPeriodInput,
     projectRoleSummaryInput,
     projectIntroInput,
-    projectDetailMediaKindInput,
-    projectYoutubeUrlInput,
-    projectDetailVideoUrlInput,
-    projectVideoUploadTrigger,
-    projectVideoUploadInput,
-    projectVideoPreview,
     projectHighlightsInput,
     projectResourceLinksInput,
     seriesSuggestionList,
@@ -89,9 +96,7 @@ export async function initNewPostAdminPage(
     previewTitle,
     previewMeta,
     previewMetaKinds,
-    previewMetaSummary,
     previewMetaSeries,
-    previewMetaTags,
     previewMetaProject,
     previewMetaHighlights,
     previewMetaLinks,
@@ -199,29 +204,51 @@ export async function initNewPostAdminPage(
     slugPrefix.textContent = isProject ? "/projects/" : "/blog/";
   };
 
-  const syncProjectDetailMediaUi = () => {
-    const mediaKind = projectDetailMediaKindInput.value;
-    projectFields.dataset.mediaKind = mediaKind;
-    projectYoutubeUrlInput.closest(".writer-field")?.toggleAttribute(
-      "hidden",
-      mediaKind !== "youtube",
-    );
-    projectDetailVideoUrlInput.closest(".writer-field")?.toggleAttribute(
-      "hidden",
-      mediaKind !== "video",
-    );
-    projectVideoUploadTrigger
-      .closest(".writer-project-upload")
-      ?.toggleAttribute("hidden", mediaKind !== "video");
+  const syncTopMediaUi = () => {
+    const mediaKind = topMediaKindInput.value;
+    const resolvedImageUrl =
+      topMediaImageUrlInput.value.trim() || coverInput.value.trim();
+    const imageField = topMediaImageUrlInput.closest(".writer-field");
+    const youtubeField = topMediaYoutubeUrlInput.closest(".writer-field");
+    const videoField = topMediaVideoUrlInput.closest(".writer-field");
+    imageField?.toggleAttribute("hidden", mediaKind !== "image");
+    youtubeField?.toggleAttribute("hidden", mediaKind !== "youtube");
+    videoField?.toggleAttribute("hidden", mediaKind !== "video");
+    topMediaUploadTrigger.toggleAttribute("hidden", mediaKind !== "video");
 
-    const videoUrl = projectDetailVideoUrlInput.value.trim();
-    const shouldShowVideo = mediaKind === "video" && videoUrl.length > 0;
-    projectVideoPreview.hidden = !shouldShowVideo;
-    if (shouldShowVideo) {
-      projectVideoPreview.src = videoUrl;
-    } else {
-      projectVideoPreview.removeAttribute("src");
-      projectVideoPreview.load();
+    topMediaPreview.setAttribute("data-empty", "true");
+    topMediaPreviewImage.hidden = true;
+    topMediaPreviewFrame.hidden = true;
+    topMediaPreviewVideo.hidden = true;
+    topMediaPreviewImage.removeAttribute("src");
+    topMediaPreviewFrame.removeAttribute("src");
+    topMediaPreviewVideo.removeAttribute("src");
+    topMediaPreviewVideo.load();
+    topMediaPreviewEmpty.hidden = false;
+
+    if (mediaKind === "video" && topMediaVideoUrlInput.value.trim()) {
+      topMediaPreview.setAttribute("data-empty", "false");
+      topMediaPreviewEmpty.hidden = true;
+      topMediaPreviewVideo.hidden = false;
+      topMediaPreviewVideo.src = topMediaVideoUrlInput.value.trim();
+      return;
+    }
+
+    if (mediaKind === "youtube" && topMediaYoutubeUrlInput.value.trim()) {
+      const embedUrl = toYoutubeEmbedUrl(topMediaYoutubeUrlInput.value.trim());
+      if (!embedUrl) return;
+      topMediaPreview.setAttribute("data-empty", "false");
+      topMediaPreviewEmpty.hidden = true;
+      topMediaPreviewFrame.hidden = false;
+      topMediaPreviewFrame.src = embedUrl;
+      return;
+    }
+
+    if (mediaKind === "image" && resolvedImageUrl) {
+      topMediaPreview.setAttribute("data-empty", "false");
+      topMediaPreviewEmpty.hidden = true;
+      topMediaPreviewImage.hidden = false;
+      topMediaPreviewImage.src = resolvedImageUrl;
     }
   };
 
@@ -377,13 +404,24 @@ export async function initNewPostAdminPage(
       "data-has-content",
       hasBodyContent ? "true" : "false",
     );
+    const topMediaMarkup = buildPreviewTopMediaMarkup({
+      kind:
+        topMediaKindInput.value === "youtube"
+          ? "youtube"
+          : topMediaKindInput.value === "video"
+            ? "video"
+            : "image",
+      imageUrl: topMediaImageUrlInput.value || coverInput.value,
+      youtubeUrl: topMediaYoutubeUrlInput.value,
+      videoUrl: topMediaVideoUrlInput.value,
+    });
+
     if (hasBodyContent) {
       markdownPreviewPromise ??= loadMarkdownRenderer();
       const markdownPreview = await markdownPreviewPromise;
-      previewContent.innerHTML = markdownPreview.render(normalizedMarkdown);
+      previewContent.innerHTML = `${topMediaMarkup}${markdownPreview.render(normalizedMarkdown)}`;
     } else {
-      previewContent.innerHTML =
-        '<p class="writer-preview-empty">본문을 입력하면 여기에 미리보기가 표시됩니다.</p>';
+      previewContent.innerHTML = `${topMediaMarkup}<p class="writer-preview-empty">본문을 입력하면 여기에 미리보기가 표시됩니다.</p>`;
     }
 
     const nextTitle = titleInput.value.trim();
@@ -392,9 +430,7 @@ export async function initNewPostAdminPage(
       {
         previewMeta,
         previewMetaKinds,
-        previewMetaSummary,
         previewMetaSeries,
-        previewMetaTags,
         previewMetaProject,
         previewMetaHighlights,
         previewMetaLinks,
@@ -402,9 +438,7 @@ export async function initNewPostAdminPage(
       {
         contentKind: contentKindInput.value === "project" ? "project" : "blog",
         visibility: visibilityInput.value === "private" ? "private" : "public",
-        excerpt: excerptInput.value,
         seriesTitle: seriesInput.value.trim(),
-        tags: selectedTags,
         periodLabel: projectPeriodInput.value,
         roleSummary: projectRoleSummaryInput.value,
         projectIntro: projectIntroInput.value,
@@ -472,9 +506,10 @@ export async function initNewPostAdminPage(
       projectPeriodInput,
       projectRoleSummaryInput,
       projectIntroInput,
-      projectDetailMediaKindInput,
-      projectYoutubeUrlInput,
-      projectDetailVideoUrlInput,
+      topMediaKindInput,
+      topMediaImageUrlInput,
+      topMediaYoutubeUrlInput,
+      topMediaVideoUrlInput,
       projectHighlightsInput,
       projectResourceLinksInput,
       tagSuggestionList,
@@ -504,7 +539,7 @@ export async function initNewPostAdminPage(
     setSlugValidationState,
     queueSlugAvailabilityCheck,
     queuePreviewRefresh,
-    syncProjectDetailMediaUi,
+    syncTopMediaUi,
   });
   const {
     updateDraftQueryParam,
@@ -541,16 +576,22 @@ export async function initNewPostAdminPage(
   excerptInput.addEventListener("input", queuePreviewRefresh);
   contentKindInput.addEventListener("change", () => {
     syncProjectFieldVisibility();
-    syncProjectDetailMediaUi();
     queuePreviewRefresh();
   });
-  projectDetailMediaKindInput.addEventListener("change", () => {
-    syncProjectDetailMediaUi();
+  topMediaKindInput.addEventListener("change", () => {
+    syncTopMediaUi();
     queuePreviewRefresh();
   });
-  projectYoutubeUrlInput.addEventListener("input", queuePreviewRefresh);
-  projectDetailVideoUrlInput.addEventListener("input", () => {
-    syncProjectDetailMediaUi();
+  topMediaImageUrlInput.addEventListener("input", () => {
+    syncTopMediaUi();
+    queuePreviewRefresh();
+  });
+  topMediaYoutubeUrlInput.addEventListener("input", () => {
+    syncTopMediaUi();
+    queuePreviewRefresh();
+  });
+  topMediaVideoUrlInput.addEventListener("input", () => {
+    syncTopMediaUi();
     queuePreviewRefresh();
   });
   projectPeriodInput.addEventListener("input", queuePreviewRefresh);
@@ -601,9 +642,13 @@ export async function initNewPostAdminPage(
     commitTagInput();
   });
 
-  coverInput.addEventListener("input", queuePreviewRefresh);
+  coverInput.addEventListener("input", () => {
+    syncTopMediaUi();
+    queuePreviewRefresh();
+  });
   coverInput.addEventListener("blur", () => {
     normalizeCoverInputValue(true);
+    syncTopMediaUi();
     queuePreviewRefresh();
   });
 
@@ -642,9 +687,9 @@ export async function initNewPostAdminPage(
       coverPreview,
       coverUploadInput,
       coverInput,
-      projectVideoUploadTrigger,
-      projectVideoUploadInput,
-      projectDetailVideoUrlInput,
+      topMediaUploadTrigger,
+      topMediaUploadInput,
+      topMediaVideoUrlInput,
     },
     setDropTargetState,
     clearDropTargetState,
@@ -652,7 +697,7 @@ export async function initNewPostAdminPage(
     insertSnippet,
     queuePreviewRefresh,
     normalizeCoverInputValue,
-    syncProjectDetailMediaUi,
+    syncTopMediaUi,
   });
 
   compactToggleButton.addEventListener("click", () => {
@@ -710,9 +755,10 @@ export async function initNewPostAdminPage(
     projectPeriodInput,
     projectRoleSummaryInput,
     projectIntroInput,
-    projectDetailMediaKindInput,
-    projectYoutubeUrlInput,
-    projectDetailVideoUrlInput,
+    topMediaKindInput,
+    topMediaImageUrlInput,
+    topMediaYoutubeUrlInput,
+    topMediaVideoUrlInput,
     projectHighlightsInput,
     projectResourceLinksInput,
     openPublishButton,
@@ -763,7 +809,7 @@ export async function initNewPostAdminPage(
     await loadDraftFromQuery();
   }
   syncProjectFieldVisibility();
-  syncProjectDetailMediaUi();
+  syncTopMediaUi();
   syncCompactViewForViewport();
   await refreshPreview();
 }

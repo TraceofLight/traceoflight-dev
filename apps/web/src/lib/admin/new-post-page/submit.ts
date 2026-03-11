@@ -1,8 +1,8 @@
 import type {
   PostContentKind,
   PostStatus,
+  PostTopMediaKind,
   PostVisibility,
-  ProjectDetailMediaKind,
 } from "./types";
 
 export interface SubmitStatusInput {
@@ -17,6 +17,10 @@ export interface SubmitPayloadInput {
   excerpt: string;
   bodyMarkdown: string;
   coverImageUrl: string;
+  topMediaKind: PostTopMediaKind;
+  topMediaImageUrl: string;
+  topMediaYoutubeUrl: string;
+  topMediaVideoUrl: string;
   contentKind: PostContentKind;
   seriesTitle: string;
   status: PostStatus;
@@ -26,9 +30,6 @@ export interface SubmitPayloadInput {
   projectPeriod: string;
   projectRoleSummary: string;
   projectIntro: string;
-  projectDetailMediaKind: ProjectDetailMediaKind;
-  projectYoutubeUrl: string;
-  projectDetailVideoUrl: string;
   projectHighlights: string;
   projectResourceLinks: string;
 }
@@ -44,6 +45,10 @@ export interface SubmitPayload {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  top_media_kind: PostTopMediaKind;
+  top_media_image_url: string | null;
+  top_media_youtube_url: string | null;
+  top_media_video_url: string | null;
   content_kind: PostContentKind;
   series_title: string | null;
   status: PostStatus;
@@ -55,10 +60,6 @@ export interface SubmitPayload {
     role_summary: string;
     project_intro: string | null;
     card_image_url: string;
-    detail_media_kind: ProjectDetailMediaKind;
-    detail_image_url: string | null;
-    youtube_url: string | null;
-    detail_video_url: string | null;
     highlights: string[];
     resource_links: { label: string; href: string }[];
   } | null;
@@ -99,6 +100,10 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     excerpt,
     bodyMarkdown,
     coverImageUrl,
+    topMediaKind,
+    topMediaImageUrl,
+    topMediaYoutubeUrl,
+    topMediaVideoUrl,
     contentKind,
     seriesTitle,
     status,
@@ -108,13 +113,19 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     projectPeriod,
     projectRoleSummary,
     projectIntro,
-    projectDetailMediaKind,
-    projectYoutubeUrl,
-    projectDetailVideoUrl,
     projectHighlights,
     projectResourceLinks,
   } = input;
   const normalizedCoverImageUrl = coverImageUrl.trim() || null;
+  const normalizedTopMediaKind = topMediaKind;
+  const normalizedTopMediaImageUrl =
+    normalizedTopMediaKind === "image"
+      ? topMediaImageUrl.trim() || normalizedCoverImageUrl
+      : null;
+  const normalizedTopMediaYoutubeUrl =
+    normalizedTopMediaKind === "youtube" ? topMediaYoutubeUrl.trim() || null : null;
+  const normalizedTopMediaVideoUrl =
+    normalizedTopMediaKind === "video" ? topMediaVideoUrl.trim() || null : null;
   const isProject = contentKind === "project";
   return {
     slug,
@@ -122,6 +133,10 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     excerpt: excerpt.trim() || null,
     body_markdown: bodyMarkdown,
     cover_image_url: normalizedCoverImageUrl,
+    top_media_kind: normalizedTopMediaKind,
+    top_media_image_url: normalizedTopMediaImageUrl,
+    top_media_youtube_url: normalizedTopMediaYoutubeUrl,
+    top_media_video_url: normalizedTopMediaVideoUrl,
     content_kind: contentKind,
     series_title: seriesTitle.trim() || null,
     status,
@@ -134,19 +149,6 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
           role_summary: projectRoleSummary.trim(),
           project_intro: projectIntro.trim() || null,
           card_image_url: normalizedCoverImageUrl ?? "",
-          detail_media_kind: projectDetailMediaKind,
-          detail_image_url:
-            projectDetailMediaKind === "image"
-              ? normalizedCoverImageUrl
-              : null,
-          youtube_url:
-            projectDetailMediaKind === "youtube"
-              ? projectYoutubeUrl.trim() || null
-              : null,
-          detail_video_url:
-            projectDetailMediaKind === "video"
-              ? projectDetailVideoUrl.trim() || null
-              : null,
           highlights: parseMultilineValues(projectHighlights),
           resource_links: parseProjectResourceLinks(projectResourceLinks),
         }

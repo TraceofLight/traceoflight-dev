@@ -212,6 +212,24 @@ function normalizeDraftPayload(raw: unknown): Partial<AdminPostPayload> {
       typeof payload.cover_image_url === "string" || payload.cover_image_url === null
         ? payload.cover_image_url
         : undefined,
+    top_media_kind:
+      payload.top_media_kind === "youtube"
+        ? "youtube"
+        : payload.top_media_kind === "video"
+          ? "video"
+          : "image",
+    top_media_image_url:
+      typeof payload.top_media_image_url === "string" || payload.top_media_image_url === null
+        ? payload.top_media_image_url
+        : undefined,
+    top_media_youtube_url:
+      typeof payload.top_media_youtube_url === "string" || payload.top_media_youtube_url === null
+        ? payload.top_media_youtube_url
+        : undefined,
+    top_media_video_url:
+      typeof payload.top_media_video_url === "string" || payload.top_media_video_url === null
+        ? payload.top_media_video_url
+        : undefined,
     content_kind:
       payload.content_kind === "project" ? "project" : "blog",
     series_title:
@@ -312,24 +330,6 @@ function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
         ? value.project_intro
         : null,
     card_image_url: value.card_image_url.trim(),
-    detail_media_kind:
-      value.detail_media_kind === "youtube"
-        ? "youtube"
-        : value.detail_media_kind === "video"
-          ? "video"
-          : "image",
-    detail_image_url:
-      typeof value.detail_image_url === "string" || value.detail_image_url === null
-        ? value.detail_image_url
-        : null,
-    youtube_url:
-      typeof value.youtube_url === "string" || value.youtube_url === null
-        ? value.youtube_url
-        : null,
-    detail_video_url:
-      typeof value.detail_video_url === "string" || value.detail_video_url === null
-        ? value.detail_video_url
-        : null,
     highlights_json: Array.isArray(value.highlights_json)
       ? value.highlights_json.filter((item): item is string => typeof item === "string")
       : Array.isArray(value.highlights)

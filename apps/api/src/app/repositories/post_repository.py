@@ -7,8 +7,14 @@ from sqlalchemy import delete, distinct, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.post import Post, PostContentKind, PostStatus, PostVisibility
-from app.models.project_profile import ProjectDetailMediaKind, ProjectProfile
+from app.models.post import (
+    Post,
+    PostContentKind,
+    PostStatus,
+    PostTopMediaKind,
+    PostVisibility,
+)
+from app.models.project_profile import ProjectProfile
 from app.models.series import Series, SeriesPost
 from app.models.tag import Tag
 from app.repositories.tag_repository import normalize_tag_slugs
@@ -249,39 +255,21 @@ class PostRepository:
         return int(result.rowcount or 0)
 
     def _build_project_profile(self, payload: dict[str, object]) -> ProjectProfile:
-        detail_media_kind = payload["detail_media_kind"]
-        if isinstance(detail_media_kind, ProjectDetailMediaKind):
-            normalized_media_kind = detail_media_kind
-        else:
-            normalized_media_kind = ProjectDetailMediaKind(str(detail_media_kind))
         return ProjectProfile(
             period_label=str(payload["period_label"]),
             role_summary=str(payload["role_summary"]),
             project_intro=str(payload["project_intro"]).strip() if payload.get("project_intro") else None,
             card_image_url=str(payload["card_image_url"]),
-            detail_media_kind=normalized_media_kind,
-            detail_image_url=payload.get("detail_image_url"),
-            youtube_url=payload.get("youtube_url"),
-            detail_video_url=payload.get("detail_video_url"),
             highlights_json=list(payload.get("highlights") or []),
             resource_links_json=list(payload.get("resource_links") or []),
         )
 
     def _update_project_profile(self, profile: ProjectProfile, payload: dict[str, object]) -> None:
-        detail_media_kind = payload["detail_media_kind"]
-        if isinstance(detail_media_kind, ProjectDetailMediaKind):
-            normalized_media_kind = detail_media_kind
-        else:
-            normalized_media_kind = ProjectDetailMediaKind(str(detail_media_kind))
         profile.period_label = str(payload["period_label"])
         profile.role_summary = str(payload["role_summary"])
         profile.project_intro = (
             str(payload["project_intro"]).strip() if payload.get("project_intro") else None
         )
         profile.card_image_url = str(payload["card_image_url"])
-        profile.detail_media_kind = normalized_media_kind
-        profile.detail_image_url = payload.get("detail_image_url")
-        profile.youtube_url = payload.get("youtube_url")
-        profile.detail_video_url = payload.get("detail_video_url")
         profile.highlights_json = list(payload.get("highlights") or [])
         profile.resource_links_json = list(payload.get("resource_links") or [])

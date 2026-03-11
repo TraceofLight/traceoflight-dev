@@ -19,6 +19,10 @@ def _build_project_payload(slug: str) -> dict[str, object]:
         "excerpt": "project excerpt",
         "body_markdown": "body",
         "cover_image_url": "/media/project-cover.png",
+        "top_media_kind": "youtube",
+        "top_media_image_url": None,
+        "top_media_youtube_url": "https://www.youtube.com/watch?v=abcdefghijk",
+        "top_media_video_url": None,
         "series_title": "Rendering Deep Dive",
         "content_kind": PostContentKind.PROJECT,
         "status": PostStatus.PUBLISHED,
@@ -30,9 +34,6 @@ def _build_project_payload(slug: str) -> dict[str, object]:
             "role_summary": "Graphics programmer",
             "project_intro": "interactive fluid simulation plugin overview",
             "card_image_url": "/media/project-card.png",
-            "detail_media_kind": "youtube",
-            "detail_image_url": None,
-            "youtube_url": "https://www.youtube.com/watch?v=abcdefghijk",
             "highlights_json": ["Render graph", "Shader toolchain"],
             "resource_links_json": [{"label": "GitHub", "href": "https://github.com/traceoflight"}],
         },
@@ -109,7 +110,8 @@ def test_project_detail_includes_profile_and_related_series_posts() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["content_kind"] == "project"
-    assert payload["project_profile"]["detail_media_kind"] == "youtube"
+    assert payload["top_media_kind"] == "youtube"
+    assert payload["top_media_youtube_url"] == "https://www.youtube.com/watch?v=abcdefghijk"
     assert payload["project_profile"]["project_intro"] == "interactive fluid simulation plugin overview"
     assert payload["related_series_posts"][0]["slug"] == "graphics-post-1"
     assert service.get_called_with == {
@@ -123,10 +125,10 @@ def test_project_detail_allows_uploaded_video_media_payload() -> None:
 
     def _video_payload(slug: str) -> dict[str, object]:
         payload = _build_project_payload(slug)
-        payload["project_profile"]["detail_media_kind"] = "video"  # type: ignore[index]
-        payload["project_profile"]["detail_image_url"] = None  # type: ignore[index]
-        payload["project_profile"]["youtube_url"] = None  # type: ignore[index]
-        payload["project_profile"]["detail_video_url"] = "/media/project-demo.mp4"  # type: ignore[index]
+        payload["top_media_kind"] = "video"
+        payload["top_media_image_url"] = None
+        payload["top_media_youtube_url"] = None
+        payload["top_media_video_url"] = "/media/project-demo.mp4"
         return payload
 
     service.get_project_by_slug = lambda slug, include_private=False: _video_payload(slug)  # type: ignore[assignment]
@@ -137,5 +139,5 @@ def test_project_detail_allows_uploaded_video_media_payload() -> None:
     app.dependency_overrides.clear()
     assert response.status_code == 200
     payload = response.json()
-    assert payload["project_profile"]["detail_media_kind"] == "video"
-    assert payload["project_profile"]["detail_video_url"] == "/media/project-demo.mp4"
+    assert payload["top_media_kind"] == "video"
+    assert payload["top_media_video_url"] == "/media/project-demo.mp4"

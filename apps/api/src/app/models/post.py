@@ -31,6 +31,12 @@ class PostContentKind(str, enum.Enum):
     PROJECT = 'project'
 
 
+class PostTopMediaKind(str, enum.Enum):
+    IMAGE = "image"
+    YOUTUBE = "youtube"
+    VIDEO = "video"
+
+
 def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
     return [member.value for member in enum_cls]
 
@@ -43,6 +49,13 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     excerpt: Mapped[str | None] = mapped_column(String(400), nullable=True)
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
     cover_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    top_media_kind: Mapped[PostTopMediaKind] = mapped_column(
+        Enum(PostTopMediaKind, name="post_top_media_kind", values_callable=_enum_values),
+        default=PostTopMediaKind.IMAGE,
+    )
+    top_media_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    top_media_youtube_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    top_media_video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     series_title: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
     content_kind: Mapped[PostContentKind] = mapped_column(
         Enum(PostContentKind, name='post_content_kind', values_callable=_enum_values),

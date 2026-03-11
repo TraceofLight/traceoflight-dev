@@ -33,10 +33,10 @@ export interface ProjectItem {
   intro: string;
   stack: string[];
   coverImageUrl?: string;
-  detailMediaKind: "image" | "youtube" | "video";
-  detailImageUrl?: string;
-  youtubeUrl?: string;
-  detailVideoUrl?: string;
+  topMediaKind: "image" | "youtube" | "video";
+  topMediaImageUrl?: string;
+  topMediaYoutubeUrl?: string;
+  topMediaVideoUrl?: string;
   highlights: string[];
   links: ProjectLink[];
   relatedSeriesPosts: RelatedSeriesPost[];
@@ -52,10 +52,6 @@ interface DbProjectProfile {
   role_summary: string;
   project_intro: string | null;
   card_image_url: string;
-  detail_media_kind: "image" | "youtube" | "video";
-  detail_image_url: string | null;
-  youtube_url: string | null;
-  detail_video_url: string | null;
   highlights_json: string[];
   resource_links_json: DbProjectLink[];
 }
@@ -82,6 +78,10 @@ interface DbProjectPost {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  top_media_kind: "image" | "youtube" | "video";
+  top_media_image_url: string | null;
+  top_media_youtube_url: string | null;
+  top_media_video_url: string | null;
   series_title: string | null;
   content_kind: "project";
   tags: DbProjectTag[];
@@ -105,14 +105,12 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
     period: profile.period_label,
     stack: Array.isArray(project.tags) ? project.tags.map((tag) => tag.label || tag.slug) : [],
     coverImageUrl: resolveBackendAssetUrl(profile.card_image_url || project.cover_image_url || undefined),
-    detailMediaKind: profile.detail_media_kind,
-    detailImageUrl: resolveBackendAssetUrl(
-      profile.detail_media_kind === "image"
-        ? profile.card_image_url || project.cover_image_url || undefined
-        : profile.detail_image_url || project.cover_image_url || undefined,
+    topMediaKind: project.top_media_kind ?? "image",
+    topMediaImageUrl: resolveBackendAssetUrl(
+      project.top_media_image_url || profile.card_image_url || project.cover_image_url || undefined,
     ),
-    youtubeUrl: profile.youtube_url ?? undefined,
-    detailVideoUrl: resolveBackendAssetUrl(profile.detail_video_url || undefined),
+    topMediaYoutubeUrl: project.top_media_youtube_url ?? undefined,
+    topMediaVideoUrl: resolveBackendAssetUrl(project.top_media_video_url || undefined),
     highlights: Array.isArray(profile.highlights_json) ? profile.highlights_json : [],
     links: Array.isArray(profile.resource_links_json) ? profile.resource_links_json : [],
     relatedSeriesPosts: Array.isArray(project.related_series_posts)

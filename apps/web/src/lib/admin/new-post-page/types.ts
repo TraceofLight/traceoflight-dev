@@ -1,7 +1,7 @@
 export type PostStatus = "draft" | "published";
 export type PostVisibility = "public" | "private";
 export type PostContentKind = "blog" | "project";
-export type ProjectDetailMediaKind = "image" | "youtube" | "video";
+export type PostTopMediaKind = "image" | "youtube" | "video";
 export type AssetKind = "image" | "video" | "file";
 
 export interface UploadUrlResponse {
@@ -22,6 +22,10 @@ export interface AdminPostPayload {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  top_media_kind?: PostTopMediaKind;
+  top_media_image_url?: string | null;
+  top_media_youtube_url?: string | null;
+  top_media_video_url?: string | null;
   content_kind?: PostContentKind;
   series_title?: string | null;
   status: PostStatus;
@@ -51,10 +55,6 @@ export interface AdminProjectProfile {
   role_summary: string;
   project_intro?: string | null;
   card_image_url: string;
-  detail_media_kind: ProjectDetailMediaKind;
-  detail_image_url: string | null;
-  youtube_url: string | null;
-  detail_video_url?: string | null;
   highlights_json?: string[];
   highlights?: string[];
   resource_links_json?: AdminProjectResourceLink[];

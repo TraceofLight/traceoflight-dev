@@ -50,14 +50,15 @@ test("admin writer edit page keeps the project publish fields", async () => {
   assert.match(source, /id="project-period"/);
   assert.match(source, /id="project-role-summary"/);
   assert.match(source, /id="project-intro"/);
-  assert.match(source, /id="project-detail-media-kind"/);
-  assert.match(source, /id="project-youtube-url"/);
-  assert.match(source, /id="project-detail-video-url"/);
-  assert.match(source, /id="project-video-upload-trigger"/);
-  assert.match(source, /id="project-video-upload-input"/);
-  assert.match(source, /id="project-video-preview"/);
   assert.match(source, /id="project-highlights"/);
   assert.match(source, /id="project-resource-links"/);
+  assert.match(source, /id="writer-top-media-kind"/);
+  assert.match(source, /id="writer-top-media-preview"/);
+  assert.match(source, /id="writer-top-media-image-url"/);
+  assert.match(source, /id="writer-top-media-youtube-url"/);
+  assert.match(source, /id="writer-top-media-video-url"/);
+  assert.match(source, /id="writer-top-media-upload-trigger"/);
+  assert.match(source, /id="writer-top-media-upload-input"/);
 });
 
 test("admin writer layout preloads milkdown theme css statically", async () => {
@@ -105,9 +106,7 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-preview-content"/);
   assert.match(source, /id="writer-preview-meta"/);
   assert.match(source, /id="writer-preview-meta-kinds"/);
-  assert.match(source, /id="writer-preview-meta-summary"/);
   assert.match(source, /id="writer-preview-meta-series"/);
-  assert.match(source, /id="writer-preview-meta-tags"/);
   assert.match(source, /id="writer-preview-meta-project"/);
   assert.match(source, /id="writer-preview-meta-highlights"/);
   assert.match(source, /id="writer-preview-meta-links"/);
@@ -125,6 +124,13 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-cover-preview-image"/);
   assert.match(source, /id="writer-cover-preview-empty"/);
   assert.match(source, /id="writer-cover-upload-input"/);
+  assert.match(source, /id="writer-top-media-kind"/);
+  assert.match(source, /id="writer-top-media-preview"/);
+  assert.match(source, /id="writer-top-media-image-url"/);
+  assert.match(source, /id="writer-top-media-youtube-url"/);
+  assert.match(source, /id="writer-top-media-video-url"/);
+  assert.match(source, /id="writer-top-media-upload-trigger"/);
+  assert.match(source, /id="writer-top-media-upload-input"/);
   assert.doesNotMatch(source, /id="writer-upload-trigger"/);
   assert.doesNotMatch(source, /id="writer-upload-input"/);
   assert.match(source, /class="writer-publish-body"/);
@@ -148,15 +154,22 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(metaPanelMatch[0], /id="writer-project-fields"/);
   assert.match(metaPanelMatch[0], /id="project-intro"/);
   assert.match(metaPanelMatch[0], /id="project-intro"[\s\S]*rows="2"/);
-  assert.match(source, /id="project-detail-video-url"/);
-  assert.match(source, /id="project-video-upload-trigger"/);
-  assert.match(source, /id="project-video-upload-input"/);
-  assert.match(source, /id="project-video-preview"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-detail-media-kind"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-youtube-url"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-detail-video-url"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-video-upload-trigger"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-video-upload-input"/);
+  assert.doesNotMatch(metaPanelMatch[0], /id="project-video-preview"/);
   assert.doesNotMatch(metaPanelMatch[0], /id="project-detail-image-url"/);
   assert.match(publishBodyMatch[0], /id="post-tags"/);
   assert.match(publishBodyMatch[0], /id="writer-tag-chip-list"/);
   assert.match(publishBodyMatch[0], /id="writer-meta-chip-rail"/);
   assert.match(publishBodyMatch[0], /id="writer-tag-suggestions"/);
+  assert.match(publishBodyMatch[0], /id="writer-top-media-kind"/);
+  assert.match(publishBodyMatch[0], /id="writer-top-media-preview"/);
+  assert.match(publishBodyMatch[0], /id="writer-top-media-image-url"/);
+  assert.match(publishBodyMatch[0], /id="writer-top-media-youtube-url"/);
+  assert.match(publishBodyMatch[0], /id="writer-top-media-video-url"/);
   assert.doesNotMatch(
     source,
     /class="writer-publish-body"[\s\S]*id="post-visibility"/,
@@ -227,6 +240,7 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
   assert.match(source, /\.writer-preview-head[\s\S]*position:\s*relative/);
   assert.match(source, /\.writer-preview-kicker[\s\S]*position:\s*absolute/);
   assert.match(source, /\.writer-preview-head h1[\s\S]*min-height:\s*56px/);
+  assert.match(source, /\.writer-preview-top-media-frame[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
 });
 
 test("admin writer has editor-side bottom bar and publish layer style", async () => {

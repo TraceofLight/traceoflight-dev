@@ -15,7 +15,7 @@
 .writer-preview-kicker {
   margin: 0;
   position: absolute;
-  top: 0.55rem;
+  top: 0.35rem;
   right: 1.2rem;
   color: var(--writer-text-muted);
   font-size: 0.72rem;
@@ -42,7 +42,7 @@
   display: grid;
   align-content: start;
   align-self: stretch;
-  gap: 0.55rem;
+  gap: 0.7rem;
   padding: 1rem 1.1rem 0.9rem;
   overflow: hidden;
   border-left: 1px solid var(--writer-border);
@@ -61,6 +61,22 @@
   border-radius: 0.85rem;
   background: var(--writer-surface);
   padding: 0.62rem 0.75rem;
+}
+
+#writer-preview-meta-series {
+  min-height: 72px;
+}
+
+#writer-preview-meta-project {
+  min-height: 118px;
+}
+
+#writer-preview-meta-highlights {
+  min-height: 116px;
+}
+
+#writer-preview-meta-links {
+  min-height: 104px;
 }
 
 .writer-preview-meta-label {
@@ -169,6 +185,30 @@
 .writer-preview-empty {
   margin: 0;
   color: color-mix(in srgb, var(--writer-text-muted) 70%, white);
+}
+
+.writer-preview-top-media-frame,
+.writer-preview-content > .writer-preview-top-media-frame {
+  overflow: hidden;
+  border: 1px solid var(--writer-border);
+  border-radius: 1rem;
+  background: var(--writer-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.writer-preview-top-media-frame {
+  aspect-ratio: 16 / 9;
+  margin: 0 0 1rem;
+}
+
+.writer-preview-top-media-frame img,
+.writer-preview-top-media-frame iframe,
+.writer-preview-top-media-frame video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
 }
 
 .writer-toast {

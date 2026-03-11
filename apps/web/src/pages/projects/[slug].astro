@@ -75,8 +75,8 @@ const adminSeries = relatedSeries
     }
   : null;
 const youtubeEmbedUrl =
-  project?.detailMediaKind === "youtube"
-    ? toYoutubeEmbedUrl(project.youtubeUrl)
+  project && project.topMediaKind === "youtube"
+    ? toYoutubeEmbedUrl(project.topMediaYoutubeUrl)
     : null;
 
 if (!project) {
@@ -150,12 +150,12 @@ if (!project) {
 
         <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           {
-            project?.detailMediaKind === "video" && project.detailVideoUrl ? (
+            project.topMediaKind === "video" && project.topMediaVideoUrl ? (
               <video
                 class="aspect-[16/9] h-full w-full object-cover"
                 controls
                 preload="metadata"
-                src={project.detailVideoUrl}
+                src={project.topMediaVideoUrl}
               >
               </video>
             ) : youtubeEmbedUrl ? (
@@ -174,7 +174,7 @@ if (!project) {
                 class="aspect-[16/9] h-full w-full object-cover"
                 height={780}
                 loading="lazy"
-                src={project.detailImageUrl ?? project.coverImageUrl ?? "/images/empty-series-image.png"}
+                src={project.topMediaImageUrl ?? project.coverImageUrl ?? "/images/empty-series-image.png"}
                 width={1400}
               />
             )

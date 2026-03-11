@@ -14,7 +14,8 @@ test("blog post layout keeps top and bottom archive navigation in the new shell"
   assert.match(source, /href="\/blog\/"/);
   assert.match(source, /블로그로 돌아가기/);
   assert.match(source, /모든 글 보기/);
-  assert.match(source, /inline-flex items-center gap-2 rounded-full border/);
+  assert.match(source, /PUBLIC_SURFACE_ACTION_CLASS/);
+  assert.match(source, /class=\{PUBLIC_SURFACE_ACTION_CLASS\}/);
   assert.doesNotMatch(source, /button button-ghost/);
 });
 

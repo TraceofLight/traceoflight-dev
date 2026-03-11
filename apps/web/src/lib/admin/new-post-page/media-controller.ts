@@ -15,9 +15,9 @@ interface WriterMediaBindings {
     | "coverPreview"
     | "coverUploadInput"
     | "coverInput"
-    | "projectVideoUploadTrigger"
-    | "projectVideoUploadInput"
-    | "projectDetailVideoUrlInput"
+    | "topMediaUploadTrigger"
+    | "topMediaUploadInput"
+    | "topMediaVideoUrlInput"
   >;
   setDropTargetState: (target: DropTarget) => void;
   clearDropTargetState: () => void;
@@ -29,7 +29,7 @@ interface WriterMediaBindings {
   insertSnippet: (snippet: string) => Promise<void>;
   queuePreviewRefresh: () => void;
   normalizeCoverInputValue: (withMessage: boolean) => string;
-  syncProjectDetailMediaUi: () => void;
+  syncTopMediaUi: () => void;
 }
 
 export function bindWriterMediaInteractions(
@@ -45,7 +45,7 @@ export function bindWriterMediaInteractions(
     insertSnippet,
     queuePreviewRefresh,
     normalizeCoverInputValue,
-    syncProjectDetailMediaUi,
+    syncTopMediaUi,
   } = bindings;
   const {
     editorRoot,
@@ -53,9 +53,9 @@ export function bindWriterMediaInteractions(
     coverPreview,
     coverUploadInput,
     coverInput,
-    projectVideoUploadTrigger,
-    projectVideoUploadInput,
-    projectDetailVideoUrlInput,
+    topMediaUploadTrigger,
+    topMediaUploadInput,
+    topMediaVideoUrlInput,
   } = elements;
 
   let isUploading = false;
@@ -121,9 +121,9 @@ export function bindWriterMediaInteractions(
     }
   };
 
-  const uploadOneFileToProjectVideo = async (file: File) => {
+  const uploadOneFileToTopMediaVideo = async (file: File) => {
     if (!file.type.startsWith("video/")) {
-      showFeedback("프로젝트 상단 영상은 비디오 파일만 지원합니다.", "error");
+      showFeedback("상단 미디어 영상은 비디오 파일만 지원합니다.", "error");
       return;
     }
 
@@ -136,23 +136,23 @@ export function bindWriterMediaInteractions(
     }
 
     isUploading = true;
-    showFeedback("프로젝트 영상 업로드 중...", "info", 0);
+    showFeedback("상단 미디어 영상 업로드 중...", "info", 0);
 
     try {
       const bundle = await createUploadBundle(file, mediaBaseUrl);
-      projectDetailVideoUrlInput.value = bundle.mediaUrl;
-      syncProjectDetailMediaUi();
+      topMediaVideoUrlInput.value = bundle.mediaUrl;
+      syncTopMediaUi();
       queuePreviewRefresh();
-      showFeedback("프로젝트 영상 업로드 완료.", "ok");
+      showFeedback("상단 미디어 영상 업로드 완료.", "ok");
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "프로젝트 영상 업로드 중 오류가 발생했습니다.";
+          : "상단 미디어 영상 업로드 중 오류가 발생했습니다.";
       showFeedback(message, "error");
     } finally {
       isUploading = false;
-      projectVideoUploadInput.value = "";
+      topMediaUploadInput.value = "";
     }
   };
 
@@ -228,15 +228,15 @@ export function bindWriterMediaInteractions(
     }
   };
 
-  const onProjectVideoUploadTriggerClick = () => {
+  const onTopMediaUploadTriggerClick = () => {
     if (isUploading) return;
-    projectVideoUploadInput.click();
+    topMediaUploadInput.click();
   };
 
-  const onProjectVideoUploadInputChange = async () => {
-    const file = projectVideoUploadInput.files?.[0];
+  const onTopMediaUploadInputChange = async () => {
+    const file = topMediaUploadInput.files?.[0];
     if (!file) return;
-    await uploadOneFileToProjectVideo(file);
+    await uploadOneFileToTopMediaVideo(file);
   };
 
   const onCoverInputPaste = async (event: Event) => {
@@ -308,14 +308,8 @@ export function bindWriterMediaInteractions(
   coverPreview.addEventListener("dragover", onCoverPreviewDragOver);
   coverPreview.addEventListener("drop", onCoverPreviewDrop);
   coverUploadInput.addEventListener("change", onCoverUploadInputChange);
-  projectVideoUploadTrigger.addEventListener(
-    "click",
-    onProjectVideoUploadTriggerClick,
-  );
-  projectVideoUploadInput.addEventListener(
-    "change",
-    onProjectVideoUploadInputChange,
-  );
+  topMediaUploadTrigger.addEventListener("click", onTopMediaUploadTriggerClick);
+  topMediaUploadInput.addEventListener("change", onTopMediaUploadInputChange);
   coverInput.addEventListener("paste", onCoverInputPaste);
   windowObject.addEventListener("dragenter", onWindowDragEnter);
   windowObject.addEventListener("dragover", onWindowDragOver);
@@ -332,14 +326,8 @@ export function bindWriterMediaInteractions(
     coverPreview.removeEventListener("dragover", onCoverPreviewDragOver);
     coverPreview.removeEventListener("drop", onCoverPreviewDrop);
     coverUploadInput.removeEventListener("change", onCoverUploadInputChange);
-    projectVideoUploadTrigger.removeEventListener(
-      "click",
-      onProjectVideoUploadTriggerClick,
-    );
-    projectVideoUploadInput.removeEventListener(
-      "change",
-      onProjectVideoUploadInputChange,
-    );
+    topMediaUploadTrigger.removeEventListener("click", onTopMediaUploadTriggerClick);
+    topMediaUploadInput.removeEventListener("change", onTopMediaUploadInputChange);
     coverInput.removeEventListener("paste", onCoverInputPaste);
     windowObject.removeEventListener("dragenter", onWindowDragEnter);
     windowObject.removeEventListener("dragover", onWindowDragOver);

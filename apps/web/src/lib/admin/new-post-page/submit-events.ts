@@ -15,8 +15,8 @@ import type {
   EditorBridge,
   PostContentKind,
   PostStatus,
+  PostTopMediaKind,
   PostVisibility,
-  ProjectDetailMediaKind,
 } from "./types";
 
 type FeedbackState = "info" | "ok" | "error";
@@ -32,15 +32,16 @@ export interface SubmitBindings {
   titleInput: HTMLInputElement;
   excerptInput: HTMLTextAreaElement;
   coverInput: HTMLInputElement;
+  topMediaKindInput: HTMLSelectElement;
+  topMediaImageUrlInput: HTMLInputElement;
+  topMediaYoutubeUrlInput: HTMLInputElement;
+  topMediaVideoUrlInput: HTMLInputElement;
   contentKindInput: HTMLSelectElement;
   visibilityInput: HTMLSelectElement;
   seriesInput: HTMLInputElement;
   projectPeriodInput: HTMLInputElement;
   projectRoleSummaryInput: HTMLInputElement;
   projectIntroInput: HTMLTextAreaElement;
-  projectDetailMediaKindInput: HTMLSelectElement;
-  projectYoutubeUrlInput: HTMLInputElement;
-  projectDetailVideoUrlInput: HTMLInputElement;
   projectHighlightsInput: HTMLTextAreaElement;
   projectResourceLinksInput: HTMLTextAreaElement;
   openPublishButton: HTMLButtonElement;
@@ -67,15 +68,16 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     titleInput,
     excerptInput,
     coverInput,
+    topMediaKindInput,
+    topMediaImageUrlInput,
+    topMediaYoutubeUrlInput,
+    topMediaVideoUrlInput,
     contentKindInput,
     visibilityInput,
     seriesInput,
     projectPeriodInput,
     projectRoleSummaryInput,
     projectIntroInput,
-    projectDetailMediaKindInput,
-    projectYoutubeUrlInput,
-    projectDetailVideoUrlInput,
     projectHighlightsInput,
     projectResourceLinksInput,
     openPublishButton,
@@ -118,10 +120,10 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       visibilityInput.value === "private" ? "private" : "public";
     const projectPeriod = projectPeriodInput.value.trim();
     const projectRole = projectRoleSummaryInput.value.trim();
-    const projectDetailMediaKind: ProjectDetailMediaKind =
-      projectDetailMediaKindInput.value === "youtube"
+    const topMediaKind: PostTopMediaKind =
+      topMediaKindInput.value === "youtube"
         ? "youtube"
-        : projectDetailMediaKindInput.value === "video"
+        : topMediaKindInput.value === "video"
           ? "video"
           : "image";
     const bodyMarkdown = normalizeMarkdownLinks(
@@ -171,6 +173,10 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       excerpt: excerptInput.value,
       bodyMarkdown,
       coverImageUrl: coverInput.value,
+      topMediaKind,
+      topMediaImageUrl: topMediaImageUrlInput.value,
+      topMediaYoutubeUrl: topMediaYoutubeUrlInput.value,
+      topMediaVideoUrl: topMediaVideoUrlInput.value,
       contentKind,
       status,
       visibility,
@@ -180,9 +186,6 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       projectPeriod: projectPeriod,
       projectRoleSummary: projectRole,
       projectIntro: projectIntroInput.value,
-      projectDetailMediaKind: projectDetailMediaKind,
-      projectYoutubeUrl: projectYoutubeUrlInput.value,
-      projectDetailVideoUrl: projectDetailVideoUrlInput.value,
       projectHighlights: projectHighlightsInput.value,
       projectResourceLinks: projectResourceLinksInput.value,
     });

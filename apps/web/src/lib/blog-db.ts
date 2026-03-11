@@ -13,6 +13,10 @@ export interface DbPost {
   excerpt: string | null;
   body_markdown: string;
   cover_image_url: string | null;
+  top_media_kind?: "image" | "youtube" | "video";
+  top_media_image_url?: string | null;
+  top_media_youtube_url?: string | null;
+  top_media_video_url?: string | null;
   status: 'draft' | 'published' | 'archived';
   visibility?: 'public' | 'private';
   tags: DbTag[];
@@ -35,6 +39,10 @@ export interface DbBlogPost {
   bodyMarkdown: string;
   coverImageUrl?: string;
   coverMedia?: CoverMedia;
+  topMediaKind: 'image' | 'youtube' | 'video';
+  topMediaImageUrl?: string;
+  topMediaYoutubeUrl?: string;
+  topMediaVideoUrl?: string;
   visibility: 'public' | 'private';
   tags: DbTag[];
   seriesContext?: DbSeriesContext;
@@ -76,6 +84,9 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
   const publishedDate = post.published_at ?? post.created_at;
   const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
   const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
+  const resolvedTopMediaImageUrl = resolveBackendAssetUrl(
+    normalizeOptionalImageUrl(post.top_media_image_url ?? post.cover_image_url),
+  );
   return {
     id: post.id,
     slug: post.slug,
@@ -84,6 +95,10 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     bodyMarkdown: post.body_markdown,
     coverImageUrl: resolvedCoverImageUrl,
     coverMedia: normalizeCoverMedia(resolvedCoverImageUrl),
+    topMediaKind: post.top_media_kind === 'youtube' ? 'youtube' : post.top_media_kind === 'video' ? 'video' : 'image',
+    topMediaImageUrl: resolvedTopMediaImageUrl,
+    topMediaYoutubeUrl: post.top_media_youtube_url ?? undefined,
+    topMediaVideoUrl: resolveBackendAssetUrl(normalizeOptionalImageUrl(post.top_media_video_url)),
     visibility: post.visibility === 'private' ? 'private' : 'public',
     tags: Array.isArray(post.tags) ? post.tags : [],
     seriesContext: post.series_context

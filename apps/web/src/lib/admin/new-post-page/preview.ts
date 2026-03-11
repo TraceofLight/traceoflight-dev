@@ -1,4 +1,5 @@
 import type { CompactView } from "./types";
+import { toYoutubeEmbedUrl } from "../../youtube";
 
 export interface CoverPreviewElements {
   coverPreview: HTMLElement;
@@ -52,9 +53,7 @@ export function markCoverPreviewLoaded(elements: CoverPreviewElements): void {
 export interface PreviewMetaElements {
   previewMeta: HTMLElement;
   previewMetaKinds: HTMLElement;
-  previewMetaSummary: HTMLElement;
   previewMetaSeries: HTMLElement;
-  previewMetaTags: HTMLElement;
   previewMetaProject: HTMLElement;
   previewMetaHighlights: HTMLElement;
   previewMetaLinks: HTMLElement;
@@ -70,7 +69,7 @@ function renderMetaBlock(
   element.hidden = false;
   element.innerHTML = `
     <p class="writer-preview-meta-label">${title}</p>
-    <p class="writer-preview-meta-value${trimmed ? "" : " is-empty"}">${trimmed || emptyMessage}</p>
+    <p class="writer-preview-meta-value${trimmed ? "" : " is-empty"}">${escapeHtml(trimmed || emptyMessage)}</p>
   `;
 }
 
@@ -86,9 +85,7 @@ function escapeHtml(value: string): string {
 export interface RenderPreviewMetaOptions {
   contentKind: "blog" | "project";
   visibility: "public" | "private";
-  excerpt: string;
   seriesTitle: string;
-  tags: string[];
   periodLabel: string;
   roleSummary: string;
   projectIntro: string;
@@ -103,9 +100,7 @@ export function renderPreviewMeta(
   const {
     previewMeta,
     previewMetaKinds,
-    previewMetaSummary,
     previewMetaSeries,
-    previewMetaTags,
     previewMetaProject,
     previewMetaHighlights,
     previewMetaLinks,
@@ -113,9 +108,7 @@ export function renderPreviewMeta(
   const {
     contentKind,
     visibility,
-    excerpt,
     seriesTitle,
-    tags,
     periodLabel,
     roleSummary,
     projectIntro,
@@ -134,14 +127,7 @@ export function renderPreviewMeta(
       <strong class="writer-preview-meta-strong">${visibility === "private" ? "Private" : "Public"}</strong>
     </div>
   `;
-  renderMetaBlock(previewMetaSummary, "요약", excerpt, "요약 입력 전입니다.");
   renderMetaBlock(previewMetaSeries, "시리즈", seriesTitle, "시리즈 없음");
-  renderMetaBlock(
-    previewMetaTags,
-    "태그",
-    tags.map((item) => `#${item}`).join(", "),
-    "태그 입력 전입니다.",
-  );
 
   const projectSummary = [
     periodLabel.trim().length > 0 ? `기간: ${periodLabel.trim()}` : "",
@@ -177,6 +163,56 @@ export function renderPreviewMeta(
     previewMetaLinks.hidden = true;
     previewMetaLinks.innerHTML = "";
   }
+}
+
+export interface RenderPreviewTopMediaOptions {
+  kind: "image" | "youtube" | "video";
+  imageUrl: string;
+  youtubeUrl: string;
+  videoUrl: string;
+}
+
+export function buildPreviewTopMediaMarkup(
+  options: RenderPreviewTopMediaOptions,
+): string {
+  const imageUrl = options.imageUrl.trim();
+  const youtubeUrl = options.youtubeUrl.trim();
+  const videoUrl = options.videoUrl.trim();
+
+  if (options.kind === "video" && videoUrl) {
+    return `
+      <div class="writer-preview-top-media-frame writer-preview-top-media-frame-video">
+        <video controls preload="metadata" src="${videoUrl}"></video>
+      </div>
+    `;
+  }
+
+  if (options.kind === "youtube" && youtubeUrl) {
+    const embedUrl = toYoutubeEmbedUrl(youtubeUrl);
+    if (!embedUrl) return "";
+    return `
+      <div class="writer-preview-top-media-frame writer-preview-top-media-frame-youtube">
+        <iframe
+          src="${embedUrl}"
+          title="상단 미디어 미리보기"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+      </div>
+    `;
+  }
+
+  if (imageUrl) {
+    return `
+      <div class="writer-preview-top-media-frame writer-preview-top-media-frame-image">
+        <img src="${imageUrl}" alt="상단 미디어 미리보기" />
+      </div>
+    `;
+  }
+
+  return "";
 }
 
 export function setCompactToggleLabel(
