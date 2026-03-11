@@ -162,7 +162,7 @@
 
 **Step 4: Rebuild the blog presentation layer**
 - Rewrite `PostCard.astro` to the new public card style.
-- Rewrite the archive hero/control layout to `shadcn`-style controls.
+- Rewrite the archive introduction/control layout to `shadcn`-style controls.
 - Rewrite blog detail layout classes to Tailwind utilities and typography utilities.
 
 **Step 5: Verify blog migration**
@@ -189,7 +189,7 @@
 - Modify: `apps/web/tests/home-page-layout.test.mjs`
 - Modify: `apps/web/tests/series-page.test.mjs`
 - Modify: `apps/web/tests/series-detail-page.test.mjs`
-- Modify: `apps/web/tests/hero-media-support.test.mjs`
+- Modify: `apps/web/tests/top-media-support.test.mjs`
 - Modify: `apps/web/tests/modularization.test.mjs`
 
 **Step 1: Write failing page and series admin tests**
@@ -200,7 +200,7 @@
   - reorder save action state
 
 **Step 2: Run targeted failing tests**
-- `cd apps/web && node --test tests/home-page-layout.test.mjs tests/series-page.test.mjs tests/series-detail-page.test.mjs tests/hero-media-support.test.mjs tests/modularization.test.mjs`
+- `cd apps/web && node --test tests/home-page-layout.test.mjs tests/series-page.test.mjs tests/series-detail-page.test.mjs tests/top-media-support.test.mjs tests/modularization.test.mjs`
 - `cd apps/web && npm run test:ui -- series-admin-panel`
 - Expected: FAIL because home/projects/series surfaces are still on legacy markup and inline series logic.
 
@@ -214,12 +214,12 @@
 - Keep the internal API routes and permissions model unchanged.
 
 **Step 5: Verify home/projects/series migration**
-- `cd apps/web && node --test tests/home-page-layout.test.mjs tests/series-page.test.mjs tests/series-detail-page.test.mjs tests/hero-media-support.test.mjs tests/modularization.test.mjs`
+- `cd apps/web && node --test tests/home-page-layout.test.mjs tests/series-page.test.mjs tests/series-detail-page.test.mjs tests/top-media-support.test.mjs tests/modularization.test.mjs`
 - `cd apps/web && npm run test:ui -- series-admin-panel`
 - Expected: PASS
 
 **Step 6: Commit**
-- `git add apps/web/src/components/ProjectCard.astro apps/web/src/pages/index.astro apps/web/src/pages/projects/index.astro apps/web/src/pages/projects/[slug].astro apps/web/src/pages/series/index.astro apps/web/src/pages/series/[slug].astro apps/web/src/components/public/SeriesAdminPanel.tsx apps/web/src/components/public/SeriesReorderList.tsx apps/web/tests/ui/series-admin-panel.test.tsx apps/web/tests/home-page-layout.test.mjs apps/web/tests/series-page.test.mjs apps/web/tests/series-detail-page.test.mjs apps/web/tests/hero-media-support.test.mjs apps/web/tests/modularization.test.mjs`
+- `git add apps/web/src/components/ProjectCard.astro apps/web/src/pages/index.astro apps/web/src/pages/projects/index.astro apps/web/src/pages/projects/[slug].astro apps/web/src/pages/series/index.astro apps/web/src/pages/series/[slug].astro apps/web/src/components/public/SeriesAdminPanel.tsx apps/web/src/components/public/SeriesReorderList.tsx apps/web/tests/ui/series-admin-panel.test.tsx apps/web/tests/home-page-layout.test.mjs apps/web/tests/series-page.test.mjs apps/web/tests/series-detail-page.test.mjs apps/web/tests/top-media-support.test.mjs apps/web/tests/modularization.test.mjs`
 - `git commit -m "feat(web): migrate remaining public pages to shadcn"`
 
 ### Task 5: Remove legacy public CSS and dead public wrappers
@@ -234,7 +234,7 @@
 - Modify: `apps/web/src/styles/components/admin.css`
 - Modify: `apps/web/src/components/HeaderLink.astro`
 - Modify: `apps/web/src/components/FooterIconLink.astro`
-- Modify only if now-unused: `apps/web/src/components/HeroMediaImage.astro`
+- Modify only if now-unused: `apps/web/src/components/TopMediaImage.astro`
 - Modify only if now-unused: `apps/web/src/components/FormattedDate.astro`
 
 **Step 1: Write failing cleanup guards**
@@ -256,7 +256,7 @@
 - Expected: PASS
 
 **Step 5: Commit**
-- `git add apps/web/src/styles/global.css apps/web/src/styles/components.css apps/web/src/styles/layout.css apps/web/src/styles/components/blog.css apps/web/src/styles/components/common.css apps/web/src/styles/components/home.css apps/web/src/styles/components/admin.css apps/web/src/components/HeaderLink.astro apps/web/src/components/FooterIconLink.astro apps/web/src/components/HeroMediaImage.astro apps/web/src/components/FormattedDate.astro`
+- `git add apps/web/src/styles/global.css apps/web/src/styles/components.css apps/web/src/styles/layout.css apps/web/src/styles/components/blog.css apps/web/src/styles/components/common.css apps/web/src/styles/components/home.css apps/web/src/styles/components/admin.css apps/web/src/components/HeaderLink.astro apps/web/src/components/FooterIconLink.astro apps/web/src/components/TopMediaImage.astro apps/web/src/components/FormattedDate.astro`
 - `git commit -m "refactor(web): remove legacy public css after shadcn migration"`
 
 ### Task 6: Final verification and script tightening

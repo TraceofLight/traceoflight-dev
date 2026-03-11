@@ -89,6 +89,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /relatedSeriesPosts|related series/i);
   assert.match(source, /연관된 포스팅 시리즈/);
   assert.match(source, /모든 프로젝트 보기/);
+  assert.match(source, /class="markdown-prose mt-5 text-base leading-8 text-foreground\/85"/);
   assert.match(source, /project\.relatedSeriesPosts\.length > 0[\s\S]*SeriesAdminPanel client:load series=\{adminSeries\}/);
   assert.match(source, /toYoutubeEmbedUrl/);
   assert.match(source, /topMediaKind === "video"/);

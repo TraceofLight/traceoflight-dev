@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Promote `상단 미디어` to a shared post-level concept for both blog and project content, move those controls into publish settings, simplify preview metadata, and remove leftover `hero` terminology from code.
+**Goal:** Promote `상단 미디어` to a shared post-level concept for both blog and project content, move those controls into publish settings, simplify preview metadata, and remove leftover legacy top-section terminology from code.
 
 **Architecture:** `posts` owns both `썸네일` and `상단 미디어`. `project_profiles` keeps only project-specific descriptive metadata. The writer keeps classification and project text metadata in the persistent metadata section, while publish settings owns slug/summary/tags/thumbnail/top-media configuration. Public blog/project detail pages both render the shared top-media field.
 
@@ -91,17 +91,17 @@
 3. Preserve project intro/highlights/links behavior.
 4. Keep thumbnail rendering unchanged for cards/lists.
 
-### Task 6: Remove remaining `hero` naming from code-facing identifiers
+### Task 6: Remove remaining legacy top-section naming from code-facing identifiers
 
 **Files:**
 - Modify: `apps/web/src/lib/ui-effects.ts`
 - Modify: `apps/web/src/pages/index.astro`
 - Modify: `apps/web/tests/home-page-layout.test.mjs`
 - Modify: `apps/api/src/app/schemas/series.py`
-- Modify: affected docs referencing `hero`
+- Modify: affected docs referencing legacy top-section wording
 
 **Steps:**
-1. Rename top-level constants and local variables from `hero` to `top media`.
+1. Rename top-level constants and local variables from legacy top-section names to `top media`.
 2. Update tests and textual schema descriptions accordingly.
 
 ### Task 7: Verify

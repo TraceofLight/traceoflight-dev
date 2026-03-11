@@ -4,7 +4,7 @@
 
 ## Goal
 
-Unify `썸네일` and `상단 미디어` handling across blog posts and project posts, keep the writer preview aligned with the editor layout, and remove the remaining `hero` terminology from implementation-facing code.
+Unify `썸네일` and `상단 미디어` handling across blog posts and project posts, keep the writer preview aligned with the editor layout, and remove the remaining legacy top-section terminology from implementation-facing code.
 
 ## Current Problems
 
@@ -12,7 +12,7 @@ Unify `썸네일` and `상단 미디어` handling across blog posts and project 
 - Blog posts can only use `cover_image_url`, while projects have separate project-profile media fields.
 - The writer preview currently wastes space because it lacks a shared `상단 미디어` preview block.
 - The preview metadata block still carries list-style density and fields that do not need to appear during editing.
-- Internal code still uses `hero` terminology even though the product language uses `상단 미디어`.
+- Internal code still uses legacy top-section terminology even though the product language uses `상단 미디어`.
 
 ## Recommended Approach
 
@@ -76,13 +76,13 @@ Public detail pages:
 - project detail reads shared `상단 미디어`
 - project-specific intro/highlights/links remain in project profile
 
-### 4. Remove `hero` naming from code-facing surfaces
+### 4. Remove legacy top-section naming from code-facing surfaces
 
-Rename UI effect constants and local variable names that still use `hero`:
+Rename UI effect constants and local variable names that still use legacy top-section wording:
 
 - `PUBLIC_HERO_*` -> `PUBLIC_TOP_MEDIA_*`
-- `heroShellClass` -> `topMediaShellClass`
-- `heroCopyPanelClass` -> `topMediaCopyPanelClass`
+- `legacy top-section shell variable` -> `topMediaShellClass`
+- `legacy top-section copy-panel variable` -> `topMediaCopyPanelClass`
 
 This is an internal naming cleanup only. No runtime behavior changes are required for the home page.
 

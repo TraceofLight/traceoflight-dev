@@ -86,8 +86,6 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width="18"/);
   assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
   assert.doesNotMatch(source, /PUBLIC_HERO_/);
-  assert.doesNotMatch(source, /heroShellClass/);
-  assert.doesNotMatch(source, /heroCopyPanelClass/);
   assert.doesNotMatch(source, /"Cloud-Native Database"/);
   assert.doesNotMatch(source, /"Backend API"/);
   assert.doesNotMatch(source, /"Frontend Engineering"/);

@@ -96,7 +96,7 @@
 
 **Steps:**
 
-1. `hero`, `field`, `popover`, `modal`, `nav active` 역할 상수를 추가한다.
-2. 홈 hero, profile/skill panel, 아카이브 field wrapper, admin imports file display에 새 역할 상수를 적용한다.
+1. `top media`, `field`, `popover`, `modal`, `nav active` 역할 상수를 추가한다.
+2. 홈 상단 미디어, profile/skill panel, 아카이브 field wrapper, admin imports file display에 새 역할 상수를 적용한다.
 3. input/select/dialog/sheet/alert-dialog가 새 공용 surface를 재사용하도록 정리한다.
 4. 관련 소스 테스트를 공용 상수 사용 기준으로 갱신한다.

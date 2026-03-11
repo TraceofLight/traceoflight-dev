@@ -1,10 +1,6 @@
 .container {
-  width: min(1180px, calc(100% - 2.4rem));
-  margin-inline: auto;
-}
-
-html.page-blog-post .container {
   width: min(1360px, calc(100% - 2.4rem));
+  margin-inline: auto;
 }
 
 .site-shell {
@@ -44,10 +40,6 @@ html.page-blog-post .container {
 
 @media (max-width: 620px) {
   .container {
-    width: min(var(--max-width), calc(100% - 1.4rem));
-  }
-
-  html.page-blog-post .container {
     width: min(1360px, calc(100% - 1.4rem));
   }
 }
