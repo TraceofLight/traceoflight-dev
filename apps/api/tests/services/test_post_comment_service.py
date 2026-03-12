@@ -73,6 +73,28 @@ def test_create_root_comment_hashes_guest_password() -> None:
     assert stored.password_hash.startswith("$argon2")
 
 
+def test_create_guest_comment_without_name_is_rejected() -> None:
+    db = _build_session()
+    _seed_post(db)
+    service = _service(db)
+
+    try:
+        service.create_comment(
+            "sample-post",
+            PostCommentCreate(
+                author_name="",
+                password="secret123",
+                visibility="public",
+                body="anonymous root",
+            ),
+            is_admin=False,
+        )
+    except CommentAuthError as exc:
+        assert str(exc) == "이름을 입력해 주세요."
+    else:
+        raise AssertionError("expected blank guest name to be rejected")
+
+
 def test_create_reply_to_reply_stays_in_same_root_thread() -> None:
     db = _build_session()
     _seed_post(db)
@@ -231,7 +253,7 @@ def test_admin_comment_uses_fixed_author_without_password() -> None:
         is_admin=True,
     )
 
-    assert created.author_name == "@TraceofLight"
+    assert created.author_name == "TraceofLight"
     assert created.author_type == "admin"
     stored = service.repo.get_comment_model(created.id)
     assert stored is not None

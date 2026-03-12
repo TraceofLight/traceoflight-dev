@@ -77,7 +77,7 @@ export function PostCommentComposer({
       </div>
 
       {isAdminViewer ? (
-        <div className={PUBLIC_FIELD_DISPLAY_CLASS}>@TraceofLight로 작성</div>
+        <div className={PUBLIC_FIELD_DISPLAY_CLASS}>TraceofLight로 작성</div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">

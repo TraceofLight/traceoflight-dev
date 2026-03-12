@@ -11,6 +11,8 @@ import PostCommentComposer from "./PostCommentComposer";
 import PostCommentPasswordDialog from "./PostCommentPasswordDialog";
 import PostCommentThread from "./PostCommentThread";
 
+const DEFAULT_GUEST_AUTHOR_NAME = "ㅇㅇ";
+
 type PostCommentsProps = {
   initialComments: PostCommentThreadList;
   isAdminViewer: boolean;
@@ -24,21 +26,38 @@ export function PostComments({
 }: PostCommentsProps) {
   const [comments, setComments] = useState(initialComments);
   const [body, setBody] = useState("");
-  const [authorName, setAuthorName] = useState("");
+  const [authorName, setAuthorName] = useState(DEFAULT_GUEST_AUTHOR_NAME);
   const [password, setPassword] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [replyTarget, setReplyTarget] = useState<PostCommentItem | null>(null);
   const [editTarget, setEditTarget] = useState<PostCommentItem | null>(null);
   const [busy, startTransition] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<PostCommentItem | null>(null);
+  const [feedback, setFeedback] = useState("");
 
   function resetComposer() {
-    setAuthorName("");
+    setAuthorName(DEFAULT_GUEST_AUTHOR_NAME);
     setBody("");
     setPassword("");
     setVisibility("public");
     setReplyTarget(null);
     setEditTarget(null);
+    setFeedback("");
+  }
+
+  async function resolveResponseMessage(response: Response, fallbackMessage: string) {
+    try {
+      const payload = (await response.json()) as { detail?: string; message?: string };
+      if (typeof payload.detail === "string" && payload.detail.trim()) {
+        return payload.detail.trim();
+      }
+      if (typeof payload.message === "string" && payload.message.trim()) {
+        return payload.message.trim();
+      }
+    } catch {
+      return fallbackMessage;
+    }
+    return fallbackMessage;
   }
 
   async function refreshComments() {
@@ -53,6 +72,7 @@ export function PostComments({
   }
 
   async function handleSubmit() {
+    setFeedback("");
     if (editTarget) {
       const payload: PostCommentUpdatePayload = {
         visibility,
@@ -65,6 +85,7 @@ export function PostComments({
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
+        setFeedback(await resolveResponseMessage(response, "댓글 수정에 실패했습니다."));
         return;
       }
       resetComposer();
@@ -84,6 +105,7 @@ export function PostComments({
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
+      setFeedback(await resolveResponseMessage(response, "댓글 등록에 실패했습니다."));
       return;
     }
     resetComposer();
@@ -98,9 +120,11 @@ export function PostComments({
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
+      setFeedback(await resolveResponseMessage(response, "댓글 삭제에 실패했습니다."));
       return;
     }
     setDeleteTarget(null);
+    setFeedback("");
     await refreshComments();
   }
 
@@ -134,6 +158,12 @@ export function PostComments({
         visibility={visibility}
       />
 
+      {feedback ? (
+        <p className="rounded-2xl border border-rose-200/80 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {feedback}
+        </p>
+      ) : null}
+
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">
           댓글 {comments.comment_count}개
@@ -151,6 +181,7 @@ export function PostComments({
           setDeleteTarget(comment);
         }}
         onEdit={(comment) => {
+          setFeedback("");
           setDeleteTarget(null);
           setReplyTarget(null);
           setEditTarget(comment);
@@ -166,6 +197,7 @@ export function PostComments({
           );
         }}
         onReply={(comment) => {
+          setFeedback("");
           setDeleteTarget(null);
           setEditTarget(null);
           setReplyTarget(comment);

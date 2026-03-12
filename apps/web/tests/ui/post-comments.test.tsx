@@ -38,13 +38,13 @@ const initialComments: PostCommentThreadList = {
           id: "reply-2",
           root_comment_id: "root-1",
           reply_to_comment_id: "reply-1",
-          author_name: "GuestC",
+          author_name: "TraceofLight",
           author_type: "guest",
           visibility: "private",
           status: "deleted",
           body: "삭제된 댓글입니다.",
           can_reply: false,
-          reply_to_author_name: "GuestB",
+          reply_to_author_name: "TraceofLight",
           created_at: "2026-03-13T00:20:00Z",
           updated_at: "2026-03-13T00:20:00Z",
         },
@@ -72,12 +72,15 @@ describe("PostComments", () => {
     );
 
     expect(screen.getByLabelText("이름")).toBeInTheDocument();
+    expect(screen.getByLabelText("이름")).toHaveValue("ㅇㅇ");
     expect(screen.getByLabelText("비밀번호")).toBeInTheDocument();
     expect(screen.getByLabelText("공개 범위")).toBeInTheDocument();
     expect(screen.getByLabelText("댓글 내용")).toBeInTheDocument();
     expect(screen.getByText("댓글 3개")).toBeInTheDocument();
     expect(screen.getByText("첫 댓글")).toBeInTheDocument();
     expect(screen.getByText("@GuestA")).toBeInTheDocument();
+    expect(screen.getByText("@TraceofLight")).toBeInTheDocument();
+    expect(screen.queryByText("@@TraceofLight")).not.toBeInTheDocument();
     expect(screen.getByText("삭제된 댓글입니다.")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "답글" })).toHaveLength(2);
     expect(screen.getByRole("button", { name: "삭제된 댓글에는 답글을 달 수 없습니다." })).toBeDisabled();
@@ -94,7 +97,7 @@ describe("PostComments", () => {
 
     expect(screen.queryByLabelText("이름")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("비밀번호")).not.toBeInTheDocument();
-    expect(screen.getByText("@TraceofLight로 작성")).toBeInTheDocument();
+    expect(screen.getByText("TraceofLight로 작성")).toBeInTheDocument();
     expect(screen.getByLabelText("댓글 내용")).toBeInTheDocument();
   });
 
@@ -152,6 +155,32 @@ describe("PostComments", () => {
       visibility: "public",
       body: "수정된 답글",
     });
+  });
+
+  it("shows backend validation feedback when guest comment creation fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ detail: "비밀번호를 4자 이상 입력해 주세요." }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <PostComments
+        initialComments={initialComments}
+        isAdminViewer={false}
+        postSlug="sample-post"
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("댓글 내용"), {
+      target: { value: "새 댓글" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "댓글 등록" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(await screen.findByText("비밀번호를 4자 이상 입력해 주세요.")).toBeInTheDocument();
   });
 
   it("submits admin comment edits without guest credentials", async () => {

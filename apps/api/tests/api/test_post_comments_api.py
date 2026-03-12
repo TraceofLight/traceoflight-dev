@@ -15,6 +15,7 @@ from app.schemas.post_comment import (
     PostCommentThreadItem,
     PostCommentThreadList,
 )
+from app.services.post_comment_service import CommentAuthError
 
 
 def _comment_read(
@@ -75,7 +76,7 @@ class _StubPostCommentService:
         }
         return _comment_read(
             body=payload.body,
-            author_name="@TraceofLight" if is_admin else (payload.author_name or "Guest"),
+            author_name="TraceofLight" if is_admin else (payload.author_name or "anonymous"),
             author_type="admin" if is_admin else "guest",
             visibility=payload.visibility,
         )
@@ -111,6 +112,11 @@ class _StubPostCommentService:
                 )
             ],
         )
+
+
+class _RejectingPostCommentService(_StubPostCommentService):
+    def create_comment(self, post_slug: str, payload, *, is_admin: bool):  # type: ignore[no-untyped-def]
+        raise CommentAuthError("이름을 입력해 주세요.")
 
 
 def _client_with_service(service: _StubPostCommentService) -> TestClient:
@@ -190,7 +196,27 @@ def test_admin_comment_create_uses_internal_secret(monkeypatch) -> None:
     assert response.status_code == 200
     assert service.create_call is not None
     assert service.create_call["is_admin"] is True
-    assert response.json()["author_name"] == "@TraceofLight"
+    assert response.json()["author_name"] == "TraceofLight"
+
+
+def test_guest_comment_create_rejects_blank_author_name_with_detail(monkeypatch) -> None:
+    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    service = _RejectingPostCommentService()
+    client = _client_with_service(service)
+
+    response = client.post(
+        "/api/v1/posts/sample-post/comments",
+        json={
+            "author_name": "",
+            "password": "secret123",
+            "visibility": "public",
+            "body": "hello",
+        },
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 401
+    assert response.json() == {"detail": "이름을 입력해 주세요."}
 
 
 def test_guest_comment_patch_and_delete_forward_password_without_internal_secret(monkeypatch) -> None:

@@ -13,7 +13,7 @@ from app.models.post_comment import (
 
 
 class PostCommentCreate(BaseModel):
-    author_name: str | None = Field(default=None, min_length=2, max_length=24)
+    author_name: str | None = Field(default=None, max_length=24)
     password: str | None = Field(default=None, min_length=4, max_length=64)
     visibility: PostCommentVisibility = Field(default=PostCommentVisibility.PUBLIC)
     body: str = Field(min_length=2, max_length=2000)

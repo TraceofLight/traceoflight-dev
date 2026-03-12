@@ -85,7 +85,7 @@ def create_post_comment(
     except CommentNotFoundError as exc:
         raise HTTPException(status_code=404, detail="post not found") from exc
     except CommentAuthError as exc:
-        raise HTTPException(status_code=401, detail="authentication failed") from exc
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
     except CommentConflictError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

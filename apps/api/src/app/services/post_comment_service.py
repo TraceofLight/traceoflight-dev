@@ -25,7 +25,7 @@ from app.schemas.post_comment import (
     PostCommentUpdate,
 )
 
-ADMIN_COMMENT_AUTHOR_NAME = "@TraceofLight"
+ADMIN_COMMENT_AUTHOR_NAME = "TraceofLight"
 PRIVATE_COMMENT_PLACEHOLDER = "비공개된 댓글입니다."
 DELETED_COMMENT_PLACEHOLDER = "삭제된 댓글입니다."
 
@@ -97,8 +97,12 @@ class PostCommentService:
         else:
             author_name = (payload.author_name or "").strip()
             password = payload.password or ""
-            if len(author_name) < 2 or len(password) < 4:
-                raise CommentAuthError("guest credentials are required")
+            if not author_name:
+                raise CommentAuthError("이름을 입력해 주세요.")
+            if len(password) < 4:
+                raise CommentAuthError("비밀번호를 4자 이상 입력해 주세요.")
+            if len(author_name) < 2:
+                raise CommentAuthError("이름을 2자 이상 입력해 주세요.")
             author_type = PostCommentAuthorType.GUEST
             password_hash = self._password_hasher.hash(password)
 
@@ -227,7 +231,10 @@ class PostCommentService:
             body = PRIVATE_COMMENT_PLACEHOLDER
 
         reply_to_author_name = (
-            comment.reply_to_comment.author_name
+            self._normalize_author_name(
+                comment.reply_to_comment.author_name,
+                comment.reply_to_comment.author_type,
+            )
             if comment.reply_to_comment is not None
             else None
         )
@@ -236,7 +243,7 @@ class PostCommentService:
             id=comment.id,
             root_comment_id=comment.root_comment_id,
             reply_to_comment_id=comment.reply_to_comment_id,
-            author_name=comment.author_name,
+            author_name=self._normalize_author_name(comment.author_name, comment.author_type),
             author_type=comment.author_type,
             visibility=comment.visibility,
             status=comment.status,
@@ -247,3 +254,12 @@ class PostCommentService:
             created_at=comment.created_at,
             updated_at=comment.updated_at,
         )
+
+    def _normalize_author_name(
+        self,
+        author_name: str,
+        author_type: PostCommentAuthorType,
+    ) -> str:
+        if author_type == PostCommentAuthorType.ADMIN:
+            return author_name.removeprefix("@")
+        return author_name
