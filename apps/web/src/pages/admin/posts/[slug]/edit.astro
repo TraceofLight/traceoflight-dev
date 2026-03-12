@@ -1,15 +1,51 @@
 ---
 import AdminWriterLayout from "../../../../layouts/AdminWriterLayout.astro";
+import { requestBackend } from "../../../../lib/backend-api";
+import { normalizeAdminPostPayload } from "../../../../lib/admin/new-post-page/posts-api";
 
 const siteUrl = import.meta.env.SITE_URL?.trim() ?? "";
 const defaultMediaBaseUrl = siteUrl
   ? `${siteUrl.replace(/\/+$/, "")}/media`
   : "/media";
 const slug = (Astro.params.slug ?? "").trim();
+let initialPayload = null;
 
 if (!slug) {
   Astro.response.status = 404;
+} else {
+  try {
+    const response = await requestBackend(`/posts/${encodeURIComponent(slug)}`);
+    if (response.ok) {
+      initialPayload = normalizeAdminPostPayload(await response.json());
+    } else if (response.status === 404) {
+      Astro.response.status = 404;
+    } else {
+      Astro.response.status = response.status;
+    }
+  } catch {
+    Astro.response.status = 503;
+  }
 }
+
+const initialContentKind =
+  initialPayload?.content_kind === "project" ? "project" : "blog";
+const initialVisibility =
+  initialPayload?.visibility === "private" ? "private" : "public";
+const initialSeriesTitle = initialPayload?.series_title?.trim() ?? "";
+const initialTitle = initialPayload?.title?.trim() ?? "";
+const initialProjectPeriod = initialPayload?.project_profile?.period_label ?? "";
+const initialProjectRole = initialPayload?.project_profile?.role_summary ?? "";
+const initialProjectIntro = initialPayload?.project_profile?.project_intro ?? "";
+const initialProjectHighlights = (
+  initialPayload?.project_profile?.highlights_json ??
+  initialPayload?.project_profile?.highlights ??
+  []
+).join("\n");
+const initialProjectLinks = (
+  initialPayload?.project_profile?.resource_links_json ??
+  initialPayload?.project_profile?.resource_links ??
+  []
+).map((link) => `${link.label} | ${link.href}`).join("\n");
 ---
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
@@ -30,28 +66,28 @@ if (!slug) {
             class="writer-title-input"
             type="text"
             placeholder="제목을 입력하세요"
+            value={initialTitle}
           />
         </div>
 
         <div class="writer-meta-panel-wrap">
-          <aside id="writer-meta-panel" class="writer-pane writer-pane-meta" data-content-kind="blog">
+          <aside id="writer-meta-panel" class="writer-pane writer-pane-meta" data-content-kind={initialContentKind}>
             <div class="writer-meta-head">
-              <p class="writer-preview-kicker">Metadata</p>
               <h2>작성 설정</h2>
             </div>
             <div class="writer-meta-body">
             <label class="writer-field">
               <span>콘텐츠 타입</span>
               <select id="post-content-kind" name="content_kind">
-                <option value="blog">Blog</option>
-                <option value="project">Project</option>
+                <option value="blog" selected={initialContentKind === "blog"}>Blog</option>
+                <option value="project" selected={initialContentKind === "project"}>Project</option>
               </select>
             </label>
             <label class="writer-field">
               <span>공개 범위</span>
               <select id="post-visibility" name="visibility">
-                <option value="public">Public</option>
-                <option value="private">Private</option>
+                <option value="public" selected={initialVisibility === "public"}>Public</option>
+                <option value="private" selected={initialVisibility === "private"}>Private</option>
               </select>
             </label>
             <label class="writer-field">
@@ -62,6 +98,7 @@ if (!slug) {
                 type="text"
                 list="writer-series-suggestions"
                 placeholder="시리즈 이름 입력 (선택)"
+                value={initialSeriesTitle}
               />
               <datalist id="writer-series-suggestions"></datalist>
             </label>
@@ -69,28 +106,28 @@ if (!slug) {
             <section
               id="writer-project-fields"
               class="writer-project-grid"
-              hidden
-              data-content-kind="blog"
+              hidden={initialContentKind !== "project"}
+              data-content-kind={initialContentKind}
             >
               <label class="writer-field">
                 <span>프로젝트 작업 기간</span>
-                <input id="project-period" type="text" placeholder="2026.03 - ongoing" />
+                <input id="project-period" type="text" placeholder="2026.03 - ongoing" value={initialProjectPeriod} />
               </label>
               <label class="writer-field">
                 <span>프로젝트 역할 요약</span>
-                <input id="project-role-summary" type="text" placeholder="Lead developer" />
+                <input id="project-role-summary" type="text" placeholder="Lead developer" value={initialProjectRole} />
               </label>
               <label class="writer-field writer-field-span-2">
                 <span>프로젝트 소개</span>
-                <textarea id="project-intro" rows="2" placeholder="프로젝트 소개 문구를 입력하세요"></textarea>
+                <textarea id="project-intro" rows="2" placeholder="프로젝트 소개 문구를 입력하세요">{initialProjectIntro}</textarea>
               </label>
               <label class="writer-field writer-field-span-2">
                 <span>주요 항목</span>
-                <textarea id="project-highlights" rows="5" placeholder="한 줄에 하나씩 입력"></textarea>
+                <textarea id="project-highlights" rows="5" placeholder="한 줄에 하나씩 입력">{initialProjectHighlights}</textarea>
               </label>
               <label class="writer-field writer-field-span-2">
                 <span>관련 링크</span>
-                <textarea id="project-resource-links" rows="4" placeholder="GitHub | https://github.com/..."></textarea>
+                <textarea id="project-resource-links" rows="4" placeholder="GitHub | https://github.com/...">{initialProjectLinks}</textarea>
               </label>
             </section>
             </div>
@@ -160,9 +197,9 @@ if (!slug) {
         <section id="writer-preview-meta" class="writer-preview-meta">
           <div id="writer-preview-meta-kinds" class="writer-preview-meta-grid"></div>
           <div id="writer-preview-meta-series" class="writer-preview-meta-block"></div>
-          <div id="writer-preview-meta-project" class="writer-preview-meta-block" hidden></div>
-          <div id="writer-preview-meta-highlights" class="writer-preview-meta-block" hidden></div>
-          <div id="writer-preview-meta-links" class="writer-preview-meta-block" hidden></div>
+          <div id="writer-preview-meta-project" class="writer-preview-meta-block" hidden={initialContentKind !== "project"}></div>
+          <div id="writer-preview-meta-highlights" class="writer-preview-meta-block" hidden={initialContentKind !== "project"}></div>
+          <div id="writer-preview-meta-links" class="writer-preview-meta-block" hidden={initialContentKind !== "project"}></div>
         </section>
         <article id="writer-preview-content" class="writer-preview-content">
         </article>
@@ -448,7 +485,7 @@ if (!slug) {
                 출간 전에 로그인 세션이 만료되었습니다. 다시 로그인한 뒤 이어서 출간합니다.
               </p>
             </div>
-            <form id="writer-reauth-form" class="writer-reauth-form">
+            <div id="writer-reauth-form" class="writer-reauth-form" role="group" aria-labelledby="writer-reauth-title">
               <label class="writer-field">
                 <span>아이디</span>
                 <input
@@ -487,12 +524,12 @@ if (!slug) {
                 <button
                   id="writer-reauth-confirm"
                   class="writer-action writer-action-primary"
-                  type="submit"
+                  type="button"
                 >
                   다시 로그인
                 </button>
               </div>
-            </form>
+            </div>
           </section>
         </div>
       </section>
@@ -509,10 +546,9 @@ if (!slug) {
       글 작성을 시작하세요.
     </p>
   </form>
+  <script
+    id="writer-initial-payload"
+    type="application/json"
+    set:html={JSON.stringify(initialPayload)}
+  ></script>
 </AdminWriterLayout>
-
-<script>
-  import { initNewPostAdminPage } from "../../../../lib/admin/new-post-page";
-
-  void initNewPostAdminPage({ mode: "edit" });
-</script>

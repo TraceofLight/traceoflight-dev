@@ -12,6 +12,10 @@ const layoutPath = new URL(
   "../src/layouts/AdminWriterLayout.astro",
   import.meta.url,
 );
+const bootstrapPath = new URL(
+  "../src/lib/admin/writer-page-bootstrap.ts",
+  import.meta.url,
+);
 const stylePath = new URL(
   "../src/styles/components/writer.css",
   import.meta.url,
@@ -33,13 +37,30 @@ test("admin writer page renders post form shell", async () => {
   assert.match(source, /id="writer-publish-layer"/);
   assert.match(source, /id="writer-reauth-layer"/);
   assert.match(source, /id="writer-reauth-form"/);
+  assert.doesNotMatch(source, /<form id="writer-reauth-form"/);
   assert.match(source, /id="writer-toast"/);
   assert.doesNotMatch(source, /class="writer-topbar"/);
+  assert.doesNotMatch(source, />Metadata</);
 });
 
 test("admin writer page bootstraps writer module", async () => {
-  const source = await readFile(pagePath, "utf8");
-  assert.match(source, /initNewPostAdminPage/);
+  const [pageSource, layoutSource, bootstrapSource] = await Promise.all([
+    readFile(pagePath, "utf8"),
+    readFile(layoutPath, "utf8"),
+    readFile(bootstrapPath, "utf8"),
+  ]);
+  assert.match(pageSource, /id="writer-initial-payload"/);
+  assert.doesNotMatch(pageSource, /initNewPostAdminPage/);
+  assert.doesNotMatch(layoutSource, /import\s*\{\s*initNewPostAdminPage\s*\}/);
+  assert.match(layoutSource, /bootAdminWriterPage/);
+  assert.match(layoutSource, /import\(["']\.\.\/lib\/admin\/writer-page-bootstrap["']\)/);
+  assert.match(layoutSource, /astro:page-load/);
+  assert.match(bootstrapSource, /initNewPostAdminPage/);
+  assert.match(bootstrapSource, /dataset\.writerInitialized/);
+  assert.match(bootstrapSource, /dataset\.writerBooting/);
+  assert.match(bootstrapSource, /if\s*\(initialized\s*===\s*true\)/);
+  assert.match(bootstrapSource, /delete form\.dataset\.writerBooting/);
+  assert.match(bootstrapSource, /delete form\.dataset\.writerInitialized/);
 });
 
 test("admin writer edit page keeps the project publish fields", async () => {
@@ -82,7 +103,7 @@ test("admin writer layout preloads milkdown theme css statically", async () => {
 test("admin writer page has split editor and preview layout", async () => {
   const source = await readFile(pagePath, "utf8");
   const metaPanelMatch = source.match(
-    /<aside id="writer-meta-panel"[\s\S]*?<\/aside>/,
+    /<aside[\s\S]*?id="writer-meta-panel"[\s\S]*?<\/aside>/,
   );
   const publishBodyMatch = source.match(
     /<div class="writer-publish-body">[\s\S]*?<\/div>\s*<\/div>\s*<div class="writer-publish-actions">/,
@@ -114,15 +135,15 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-preview-meta-links"/);
   assert.match(
     source,
-    /id="writer-preview-meta-project" class="writer-preview-meta-block" hidden><\/div>/,
+    /id="writer-preview-meta-project"[\s\S]*class="writer-preview-meta-block"[\s\S]*hidden=\{initialContentKind !== "project"\}/,
   );
   assert.match(
     source,
-    /id="writer-preview-meta-highlights" class="writer-preview-meta-block" hidden><\/div>/,
+    /id="writer-preview-meta-highlights"[\s\S]*class="writer-preview-meta-block"[\s\S]*hidden=\{initialContentKind !== "project"\}/,
   );
   assert.match(
     source,
-    /id="writer-preview-meta-links" class="writer-preview-meta-block" hidden><\/div>/,
+    /id="writer-preview-meta-links"[\s\S]*class="writer-preview-meta-block"[\s\S]*hidden=\{initialContentKind !== "project"\}/,
   );
   assert.match(source, /id="writer-preview-title"><\/h1>/);
   assert.doesNotMatch(source, /id="writer-preview-title">제목 없음</);

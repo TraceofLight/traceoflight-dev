@@ -68,7 +68,7 @@ export function BlogArchiveFilters({
   isAdminViewer,
   posts,
   tagFilters,
-  writeHref = "/admin/posts/new",
+  writeHref = "/admin/posts/new?content_kind=blog",
 }: BlogArchiveFiltersProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("latest");

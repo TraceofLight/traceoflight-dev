@@ -20,5 +20,23 @@ const { title, description } = Astro.props;
     <main class="writer-page">
       <slot />
     </main>
+    <script>
+      let writerBootstrapPromise;
+
+      const loadWriterBootstrap = async () => {
+        writerBootstrapPromise ??= import("../lib/admin/writer-page-bootstrap");
+        return writerBootstrapPromise;
+      };
+
+      const bootWriterPage = async () => {
+        const { bootAdminWriterPage } = await loadWriterBootstrap();
+        await bootAdminWriterPage();
+      };
+
+      void bootWriterPage();
+      document.addEventListener("astro:page-load", () => {
+        void bootWriterPage();
+      });
+    </script>
   </body>
 </html>

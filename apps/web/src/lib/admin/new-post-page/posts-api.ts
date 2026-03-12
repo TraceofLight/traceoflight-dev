@@ -6,7 +6,11 @@ import type {
 } from "./types";
 import type { SubmitPayload, SubmitRequestInfo } from "./submit";
 
-export type PostLoadFailureKind = "not_found" | "http_error" | "network_error";
+export type PostLoadFailureKind =
+  | "not_found"
+  | "unauthorized"
+  | "http_error"
+  | "network_error";
 
 export type PostLoadResult =
   | {
@@ -73,11 +77,14 @@ export async function requestPostBySlug(slug: string): Promise<PostLoadResult> {
     if (response.status === 404) {
       return { ok: false, reason: "not_found" };
     }
+    if (response.status === 401) {
+      return { ok: false, reason: "unauthorized" };
+    }
     if (!response.ok) {
       return { ok: false, reason: "http_error" };
     }
     const rawPayload = (await response.json()) as unknown;
-    const payload = normalizeDraftPayload(rawPayload);
+    const payload = normalizeAdminPostPayload(rawPayload);
     return { ok: true, payload };
   } catch {
     return { ok: false, reason: "network_error" };
@@ -92,11 +99,14 @@ export async function requestDraftBySlug(slug: string): Promise<PostLoadResult> 
     if (response.status === 404) {
       return { ok: false, reason: "not_found" };
     }
+    if (response.status === 401) {
+      return { ok: false, reason: "unauthorized" };
+    }
     if (!response.ok) {
       return { ok: false, reason: "http_error" };
     }
     const rawPayload = (await response.json()) as unknown;
-    const payload = normalizeDraftPayload(rawPayload);
+    const payload = normalizeAdminPostPayload(rawPayload);
     return { ok: true, payload };
   } catch {
     return { ok: false, reason: "network_error" };
@@ -220,7 +230,7 @@ export async function requestAdminLogin(
   return { ok: true };
 }
 
-function normalizeDraftPayload(raw: unknown): Partial<AdminPostPayload> {
+export function normalizeAdminPostPayload(raw: unknown): Partial<AdminPostPayload> {
   if (!raw || typeof raw !== "object") {
     return {};
   }
@@ -344,15 +354,9 @@ function normalizeSeriesList(raw: unknown): SeriesListItem[] {
 function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
   if (!raw || typeof raw !== "object") return null;
   const value = raw as Record<string, unknown>;
-  if (
-    typeof value.period_label !== "string" ||
-    typeof value.role_summary !== "string"
-  ) {
-    return null;
-  }
   return {
-    period_label: value.period_label.trim(),
-    role_summary: value.role_summary.trim(),
+    period_label: typeof value.period_label === "string" ? value.period_label.trim() : "",
+    role_summary: typeof value.role_summary === "string" ? value.role_summary.trim() : "",
     project_intro:
       typeof value.project_intro === "string" || value.project_intro === null
         ? value.project_intro
@@ -368,6 +372,13 @@ function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
         : [],
     resource_links_json: Array.isArray(value.resource_links_json)
       ? value.resource_links_json.flatMap((item) => {
+          if (!item || typeof item !== "object") return [];
+          const link = item as Record<string, unknown>;
+          if (typeof link.label !== "string" || typeof link.href !== "string") return [];
+          return [{ label: link.label, href: link.href }];
+        })
+      : Array.isArray(value.resource_links)
+        ? value.resource_links.flatMap((item) => {
           if (!item || typeof item !== "object") return [];
           const link = item as Record<string, unknown>;
           if (typeof link.label !== "string" || typeof link.href !== "string") return [];

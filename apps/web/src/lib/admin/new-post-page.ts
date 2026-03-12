@@ -28,17 +28,20 @@ import {
   normalizeCoverUrl,
   normalizeMarkdownLinks,
 } from "./new-post-page/link-normalization";
+import { normalizeAdminPostPayload } from "./new-post-page/posts-api";
 import { toYoutubeEmbedUrl } from "../youtube";
 import {
   doesSlugExist,
   slugify,
 } from "./new-post-page/slug";
 import { normalizeMediaBaseUrl } from "./new-post-page/upload";
-import type { CompactView } from "./new-post-page/types";
+import type { CompactView, PostContentKind } from "./new-post-page/types";
 
 export interface WriterPageInitOptions {
   mode?: "create" | "edit";
   slug?: string;
+  contentKind?: PostContentKind;
+  initialPayload?: Partial<import("./new-post-page/types").AdminPostPayload> | null;
 }
 
 function resolveWriterMode(rawMode: string | undefined): "create" | "edit" {
@@ -50,11 +53,15 @@ function normalizeInitialSlug(rawSlug: string | undefined): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function resolveInitialContentKind(rawKind: string | undefined): PostContentKind {
+  return rawKind === "project" ? "project" : "blog";
+}
+
 export async function initNewPostAdminPage(
   options: WriterPageInitOptions = {},
-): Promise<void> {
+): Promise<boolean> {
   const dom = queryWriterDomElements();
-  if (!dom) return;
+  if (!dom) return false;
 
   const {
     form,
@@ -118,7 +125,6 @@ export async function initNewPostAdminPage(
     closePublishButton,
     confirmPublishButton,
     reauthLayer,
-    reauthForm,
     reauthUsernameInput,
     reauthPasswordInput,
     reauthFeedback,
@@ -129,6 +135,12 @@ export async function initNewPostAdminPage(
   } = dom;
   const mode = resolveWriterMode(options.mode ?? form.dataset.writerMode);
   const initialEditSlug = normalizeInitialSlug(options.slug ?? form.dataset.editSlug);
+  const initialContentKind = resolveInitialContentKind(
+    options.contentKind ?? form.dataset.initialContentKind,
+  );
+  const initialPayload = options.initialPayload
+    ? normalizeAdminPostPayload(options.initialPayload)
+    : null;
   const toastTimer = { id: null as number | null };
   const showFeedback = (
     message: string,
@@ -377,7 +389,8 @@ export async function initNewPostAdminPage(
       reauthFeedback.dataset.state = "info";
       reauthFeedback.textContent =
         "세션이 만료되었습니다. 다시 로그인한 뒤 출간을 이어갑니다.";
-      reauthForm.reset();
+      reauthUsernameInput.value = "";
+      reauthPasswordInput.value = "";
     }
   };
 
@@ -492,6 +505,8 @@ export async function initNewPostAdminPage(
   };
 
   const compactMediaQuery = window.matchMedia("(max-width: 1200px)");
+
+  contentKindInput.value = initialContentKind;
 
   const setCompactView = (view: CompactView) => {
     writerShell.dataset.compactView = view;
@@ -793,7 +808,6 @@ export async function initNewPostAdminPage(
     projectResourceLinksInput,
     openPublishButton,
     confirmPublishButton,
-    reauthForm,
     reauthUsernameInput,
     reauthPasswordInput,
     reauthFeedback,
@@ -837,7 +851,12 @@ export async function initNewPostAdminPage(
   void loadTagSuggestions();
   void loadSeriesSuggestions();
   if (mode === "edit") {
-    if (initialEditSlug) {
+    if (initialPayload && initialEditSlug) {
+      await loadExistingPostBySlug(initialEditSlug, {
+        showToast: false,
+        initialPayload,
+      });
+    } else if (initialEditSlug) {
       await loadExistingPostBySlug(initialEditSlug, { showToast: false });
     } else {
       showFeedback("수정할 게시글 주소를 찾지 못했습니다.", "error");
@@ -849,4 +868,5 @@ export async function initNewPostAdminPage(
   syncTopMediaUi();
   syncCompactViewForViewport();
   await refreshPreview();
+  return true;
 }

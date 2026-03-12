@@ -46,7 +46,6 @@ export interface SubmitBindings {
   projectResourceLinksInput: HTMLTextAreaElement;
   openPublishButton: HTMLButtonElement;
   confirmPublishButton: HTMLButtonElement;
-  reauthForm: HTMLFormElement;
   reauthUsernameInput: HTMLInputElement;
   reauthPasswordInput: HTMLInputElement;
   reauthFeedback: HTMLElement;
@@ -89,7 +88,6 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     projectResourceLinksInput,
     openPublishButton,
     confirmPublishButton,
-    reauthForm,
     reauthUsernameInput,
     reauthPasswordInput,
     reauthFeedback,
@@ -333,9 +331,7 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     resetReauthForm();
   });
 
-  reauthForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
+  const handleReauthSubmit = async () => {
     if (!pendingPublishRetry) {
       setReauthFeedback("다시 시도할 출간 요청이 없습니다.", "error");
       return;
@@ -368,5 +364,18 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       reauthConfirmButton.disabled = false;
       reauthCancelButton.disabled = false;
     }
+  };
+
+  reauthConfirmButton.addEventListener("click", () => {
+    void handleReauthSubmit();
   });
+
+  const handleReauthEnterKey = (event: KeyboardEvent) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    void handleReauthSubmit();
+  };
+
+  reauthUsernameInput.addEventListener("keydown", handleReauthEnterKey);
+  reauthPasswordInput.addEventListener("keydown", handleReauthEnterKey);
 }

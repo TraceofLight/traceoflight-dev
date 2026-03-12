@@ -5,6 +5,10 @@ const siteUrl = import.meta.env.SITE_URL?.trim() ?? "";
 const defaultMediaBaseUrl = siteUrl
   ? `${siteUrl.replace(/\/+$/, "")}/media`
   : "/media";
+const initialContentKind =
+  Astro.url.searchParams.get("content_kind")?.trim().toLowerCase() === "project"
+    ? "project"
+    : "blog";
 ---
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
@@ -13,6 +17,7 @@ const defaultMediaBaseUrl = siteUrl
     class="writer-form"
     data-media-base-url={defaultMediaBaseUrl}
     data-writer-mode="create"
+    data-initial-content-kind={initialContentKind}
     novalidate
   >
     <div class="writer-shell" data-compact-view="editor">
@@ -28,9 +33,12 @@ const defaultMediaBaseUrl = siteUrl
         </div>
 
         <div class="writer-meta-panel-wrap">
-          <aside id="writer-meta-panel" class="writer-pane writer-pane-meta" data-content-kind="blog">
+          <aside
+            id="writer-meta-panel"
+            class="writer-pane writer-pane-meta"
+            data-content-kind={initialContentKind}
+          >
             <div class="writer-meta-head">
-              <p class="writer-preview-kicker">Metadata</p>
               <h2>작성 설정</h2>
             </div>
             <div class="writer-meta-body">
@@ -63,8 +71,8 @@ const defaultMediaBaseUrl = siteUrl
             <section
               id="writer-project-fields"
               class="writer-project-grid"
-              hidden
-              data-content-kind="blog"
+              hidden={initialContentKind !== "project"}
+              data-content-kind={initialContentKind}
             >
               <label class="writer-field">
                 <span>프로젝트 작업 기간</span>
@@ -154,9 +162,21 @@ const defaultMediaBaseUrl = siteUrl
         <section id="writer-preview-meta" class="writer-preview-meta">
           <div id="writer-preview-meta-kinds" class="writer-preview-meta-grid"></div>
           <div id="writer-preview-meta-series" class="writer-preview-meta-block"></div>
-          <div id="writer-preview-meta-project" class="writer-preview-meta-block" hidden></div>
-          <div id="writer-preview-meta-highlights" class="writer-preview-meta-block" hidden></div>
-          <div id="writer-preview-meta-links" class="writer-preview-meta-block" hidden></div>
+          <div
+            id="writer-preview-meta-project"
+            class="writer-preview-meta-block"
+            hidden={initialContentKind !== "project"}
+          ></div>
+          <div
+            id="writer-preview-meta-highlights"
+            class="writer-preview-meta-block"
+            hidden={initialContentKind !== "project"}
+          ></div>
+          <div
+            id="writer-preview-meta-links"
+            class="writer-preview-meta-block"
+            hidden={initialContentKind !== "project"}
+          ></div>
         </section>
         <article id="writer-preview-content" class="writer-preview-content">
         </article>
@@ -442,7 +462,7 @@ const defaultMediaBaseUrl = siteUrl
                 출간 전에 로그인 세션이 만료되었습니다. 다시 로그인한 뒤 이어서 출간합니다.
               </p>
             </div>
-            <form id="writer-reauth-form" class="writer-reauth-form">
+            <div id="writer-reauth-form" class="writer-reauth-form" role="group" aria-labelledby="writer-reauth-title">
               <label class="writer-field">
                 <span>아이디</span>
                 <input
@@ -481,12 +501,12 @@ const defaultMediaBaseUrl = siteUrl
                 <button
                   id="writer-reauth-confirm"
                   class="writer-action writer-action-primary"
-                  type="submit"
+                  type="button"
                 >
                   다시 로그인
                 </button>
               </div>
-            </form>
+            </div>
           </section>
         </div>
       </section>
@@ -503,10 +523,5 @@ const defaultMediaBaseUrl = siteUrl
       글 작성을 시작하세요.
     </p>
   </form>
+  <script id="writer-initial-payload" type="application/json">null</script>
 </AdminWriterLayout>
-
-<script>
-  import { initNewPostAdminPage } from "../../../lib/admin/new-post-page";
-
-  void initNewPostAdminPage({ mode: "create" });
-</script>

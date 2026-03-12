@@ -44,4 +44,16 @@ test("project payload normalization tolerates missing project card image", async
     /card_image_url:\s*[\s\S]*typeof value\.card_image_url === "string" \|\| value\.card_image_url === null/,
   );
   assert.match(typesSource, /card_image_url\?: string \| null;/);
+  assert.doesNotMatch(
+    postsApiSource,
+    /typeof value\.period_label !== "string"\s*\|\|\s*typeof value\.role_summary !== "string"/,
+  );
+  assert.match(
+    postsApiSource,
+    /period_label:\s*typeof value\.period_label === "string"[\s\S]*:\s*["']/,
+  );
+  assert.match(
+    postsApiSource,
+    /role_summary:\s*typeof value\.role_summary === "string"[\s\S]*:\s*["']/,
+  );
 });

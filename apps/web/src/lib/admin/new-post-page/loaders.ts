@@ -82,7 +82,10 @@ export interface WriterLoaders {
   loadDraftFromQuery: () => Promise<void>;
   loadExistingPostBySlug: (
     postSlug: string,
-    options?: { showToast?: boolean },
+    options?: {
+      showToast?: boolean;
+      initialPayload?: Partial<AdminPostPayload> | null;
+    },
   ) => Promise<boolean>;
   loadDraftList: () => Promise<void>;
 }
@@ -143,6 +146,11 @@ export function createWriterLoaders(
     projectFields.dataset.contentKind = isProject ? "project" : "blog";
     slugPrefix.textContent = isProject ? "/projects/" : "/blog/";
     metaPanel.dataset.contentKind = isProject ? "project" : "blog";
+  };
+
+  const redirectToAdminLogin = () => {
+    const nextPath = `${windowObject.location.pathname}${windowObject.location.search}`;
+    windowObject.location.assign(`/?admin_login=1&next=${encodeURIComponent(nextPath)}`);
   };
 
   const updateDraftQueryParam = (draftSlug: string | null) => {
@@ -249,6 +257,9 @@ export function createWriterLoaders(
     if (!draftResponse.ok) {
       if (draftResponse.reason === "not_found") {
         showFeedback("요청한 임시저장 글을 찾지 못했습니다.", "error");
+      } else if (draftResponse.reason === "unauthorized") {
+        showFeedback("관리자 세션이 만료되었습니다. 다시 로그인해 주세요.", "error");
+        redirectToAdminLogin();
       } else if (draftResponse.reason === "http_error") {
         showFeedback("임시저장 글을 불러오지 못했습니다.", "error");
       } else {
@@ -283,24 +294,34 @@ export function createWriterLoaders(
 
   const loadExistingPostBySlug = async (
     postSlug: string,
-    options: { showToast?: boolean } = {},
+    options: {
+      showToast?: boolean;
+      initialPayload?: Partial<AdminPostPayload> | null;
+    } = {},
   ): Promise<boolean> => {
     const normalizedSlug = postSlug.trim();
     if (!normalizedSlug) return false;
 
-    const postResponse = await requestPostBySlug(normalizedSlug);
-    if (!postResponse.ok) {
-      if (postResponse.reason === "not_found") {
-        showFeedback("수정할 게시글을 찾지 못했습니다.", "error");
-      } else if (postResponse.reason === "http_error") {
-        showFeedback("게시글을 불러오지 못했습니다.", "error");
-      } else {
-        showFeedback("네트워크 오류로 게시글을 불러오지 못했습니다.", "error");
+    const resolvedPayload = options.initialPayload ?? null;
+    if (!resolvedPayload) {
+      const postResponse = await requestPostBySlug(normalizedSlug);
+      if (!postResponse.ok) {
+        if (postResponse.reason === "not_found") {
+          showFeedback("수정할 게시글을 찾지 못했습니다.", "error");
+        } else if (postResponse.reason === "unauthorized") {
+          showFeedback("관리자 세션이 만료되었습니다. 다시 로그인해 주세요.", "error");
+          redirectToAdminLogin();
+        } else if (postResponse.reason === "http_error") {
+          showFeedback("게시글을 불러오지 못했습니다.", "error");
+        } else {
+          showFeedback("네트워크 오류로 게시글을 불러오지 못했습니다.", "error");
+        }
+        return false;
       }
-      return false;
+      await applyDraftPayload(postResponse.payload, normalizedSlug);
+    } else {
+      await applyDraftPayload(resolvedPayload, normalizedSlug);
     }
-
-    await applyDraftPayload(postResponse.payload, normalizedSlug);
     updateDraftQueryParam(null);
     if (options.showToast !== false) {
       showFeedback(

@@ -60,7 +60,7 @@ export interface WriterDomElements {
   closePublishButton: HTMLButtonElement;
   confirmPublishButton: HTMLButtonElement;
   reauthLayer: HTMLElement;
-  reauthForm: HTMLFormElement;
+  reauthForm: HTMLElement;
   reauthUsernameInput: HTMLInputElement;
   reauthPasswordInput: HTMLInputElement;
   reauthFeedback: HTMLElement;
@@ -283,7 +283,7 @@ export function queryWriterDomElements(
       WRITER_SELECTORS.confirmPublishButton,
     ),
     reauthLayer: queryElement<HTMLElement>(root, WRITER_SELECTORS.reauthLayer),
-    reauthForm: queryElement<HTMLFormElement>(root, WRITER_SELECTORS.reauthForm),
+    reauthForm: queryElement<HTMLElement>(root, WRITER_SELECTORS.reauthForm),
     reauthUsernameInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.reauthUsernameInput),
     reauthPasswordInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.reauthPasswordInput),
     reauthFeedback: queryElement<HTMLElement>(root, WRITER_SELECTORS.reauthFeedback),

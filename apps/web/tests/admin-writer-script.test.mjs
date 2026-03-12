@@ -158,6 +158,8 @@ test("writer script has fallback text editor for init failure", async () => {
   assert.doesNotMatch(bridgeSource, /import \{ Crepe \} from ["']@milkdown\/crepe["']/);
   assert.match(domSource, /#writer-toast/);
   assert.match(feedbackSource, /data-visible/);
+  assert.match(writerSource, /Promise<boolean>/);
+  assert.match(writerSource, /if \(!dom\) return false;/);
 });
 
 test("writer script supports publish-layer open and confirm submit flow", async () => {
@@ -368,7 +370,11 @@ test("writer script supports create and edit initialization modes", async () => 
   const source = await readFile(scriptPath, "utf8");
   assert.match(source, /interface WriterPageInitOptions/);
   assert.match(source, /mode\?:\s*["']create["']\s*\|\s*["']edit["']/);
+  assert.match(source, /contentKind\?:\s*PostContentKind/);
   assert.match(source, /options:\s*WriterPageInitOptions\s*=\s*\{\}/);
+  assert.match(source, /function resolveInitialContentKind/);
+  assert.match(source, /const initialContentKind = resolveInitialContentKind/);
+  assert.match(source, /contentKindInput\.value = initialContentKind/);
   assert.match(source, /if\s*\(mode\s*===\s*["']edit["']\)/);
   assert.match(source, /loadExistingPostBySlug/);
 });
