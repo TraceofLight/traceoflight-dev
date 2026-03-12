@@ -25,3 +25,6 @@ class SeriesService:
 
     def replace_series_posts_by_slug(self, slug: str, post_slugs: list[str]):
         return self.repo.replace_posts_by_slug(slug=slug, raw_post_slugs=post_slugs)
+
+    def replace_series_order(self, series_slugs: list[str]):
+        return self.repo.replace_series_order(series_slugs)

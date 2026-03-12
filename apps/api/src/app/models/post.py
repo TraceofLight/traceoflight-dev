@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, String, Text
+from sqlalchemy import DateTime, Enum, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -56,6 +56,7 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     top_media_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     top_media_youtube_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     top_media_video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    project_order_index: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     series_title: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
     content_kind: Mapped[PostContentKind] = mapped_column(
         Enum(PostContentKind, name='post_content_kind', values_callable=_enum_values),

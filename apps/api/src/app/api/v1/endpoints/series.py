@@ -8,7 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from app.api.deps import get_series_service
 from app.core.config import settings
 from app.repositories.series_repository import SeriesConflictError, SeriesValidationError
-from app.schemas.series import SeriesDetailRead, SeriesPostsReplace, SeriesRead, SeriesUpsert
+from app.schemas.series import (
+    SeriesDetailRead,
+    SeriesOrderReplace,
+    SeriesPostsReplace,
+    SeriesRead,
+    SeriesUpsert,
+)
 from app.services.series_service import SeriesService
 
 router = APIRouter()
@@ -76,6 +82,32 @@ def list_series(
     trusted_internal = is_trusted_internal_request(request, x_internal_api_secret)
     effective_include_private = (include_private if include_private is not None else True) if trusted_internal else False
     return service.list_series(include_private=effective_include_private, limit=limit, offset=offset)
+
+
+@router.put(
+    "/order",
+    response_model=list[SeriesRead],
+    summary="Replace ordered series list",
+    responses={
+        400: {"description": "Invalid series slug payload"},
+        401: {"description": "Missing or invalid internal API secret"},
+    },
+)
+def replace_series_order(
+    request: Request,
+    payload: SeriesOrderReplace,
+    x_internal_api_secret: str | None = Header(
+        default=None,
+        alias="x-internal-api-secret",
+        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
+    ),
+    service: SeriesService = Depends(get_series_service),
+) -> list[SeriesRead]:
+    ensure_trusted_internal_request(request, x_internal_api_secret)
+    try:
+        return service.replace_series_order(payload.series_slugs)
+    except SeriesValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get(
@@ -235,3 +267,4 @@ def replace_series_posts(
     if replaced is None:
         raise HTTPException(status_code=404, detail="series not found")
     return replaced
+

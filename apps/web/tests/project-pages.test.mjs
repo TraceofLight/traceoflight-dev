@@ -14,11 +14,16 @@ const projectDetailPath = new URL(
   "../src/pages/projects/[slug].astro",
   import.meta.url,
 );
+const projectOrderPanelPath = new URL(
+  "../src/components/public/ProjectOrderPanel.tsx",
+  import.meta.url,
+);
 
 test("project card and list page use the new public card shell", async () => {
-  const [cardSource, indexSource] = await Promise.all([
+  const [cardSource, indexSource, orderPanelSource] = await Promise.all([
     readFile(projectCardPath, "utf8"),
     readFile(projectIndexPath, "utf8"),
+    readFile(projectOrderPanelPath, "utf8"),
   ]);
 
   assert.match(
@@ -42,11 +47,14 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(indexSource, /<section class="flex w-full flex-col gap-8 py-10 sm:py-12">/);
   assert.match(indexSource, /<header class="space-y-4 text-center">/);
   assert.match(indexSource, /listPublishedDbProjects|getPublishedProjectBySlug|listPublishedDbProjectPosts/);
-  assert.match(indexSource, /\/admin\/projects/);
+  assert.match(indexSource, /ProjectOrderPanel/);
   assert.match(indexSource, /\/admin\/posts\/new\?content_kind=project/);
-  assert.match(indexSource, /순서 조정/);
   assert.match(indexSource, /글 작성/);
   assert.match(indexSource, /isAdminViewer && \(/);
+  assert.match(indexSource, /<ProjectOrderPanel client:load projects=\{projects\} \/>/);
+  assert.match(orderPanelSource, />\s*순서 조정\s*</);
+  assert.match(orderPanelSource, /프로젝트 순서 조정/);
+  assert.match(orderPanelSource, /\/internal-api\/projects\/order/);
   assert.doesNotMatch(indexSource, /getProjects\(/);
   assert.doesNotMatch(
     indexSource,
@@ -65,7 +73,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
 
   assert.match(source, /getPublishedDbProjectBySlug/);
   assert.match(source, /getSeriesBySlug/);
-  assert.match(source, /SeriesAdminPanel/);
+  assert.doesNotMatch(source, /SeriesAdminPanel/);
   assert.match(source, /PostAdminActions/);
   assert.match(source, /ADMIN_ACCESS_COOKIE/);
   assert.match(source, /verifyAccessToken/);
@@ -92,7 +100,6 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /모든 프로젝트 보기/);
   assert.match(source, /상세 내용/);
   assert.match(source, /class="markdown-prose mt-5 text-base leading-8 text-foreground\/85"/);
-  assert.match(source, /project\.relatedSeriesPosts\.length > 0[\s\S]*SeriesAdminPanel client:load series=\{adminSeries\}/);
   assert.match(source, /toYoutubeEmbedUrl/);
   assert.match(source, /topMediaKind === "video"/);
   assert.match(source, /topMediaVideoUrl/);

@@ -30,6 +30,18 @@ def _normalize_post_slugs(raw_values: Iterable[str]) -> list[str]:
     return normalized
 
 
+def _normalize_series_slugs(raw_values: Iterable[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_values:
+        slug = raw.strip()
+        if not slug or slug in seen:
+            continue
+        seen.add(slug)
+        normalized.append(slug)
+    return normalized
+
+
 class SeriesRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -91,7 +103,7 @@ class SeriesRepository:
         stmt = (
             select(Series)
             .options(selectinload(Series.series_posts).selectinload(SeriesPost.post))
-            .order_by(Series.updated_at.desc())
+            .order_by(Series.list_order_index.asc().nulls_last(), Series.updated_at.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -197,3 +209,20 @@ class SeriesRepository:
         if replaced is None:
             raise SeriesValidationError("series post replacement failed")
         return replaced
+
+    def replace_series_order(self, raw_series_slugs: list[str]) -> list[dict[str, object]]:
+        series_slugs = _normalize_series_slugs(raw_series_slugs)
+        if not series_slugs:
+            return []
+
+        rows = list(self.db.scalars(select(Series).where(Series.slug.in_(series_slugs))))
+        by_slug = {row.slug: row for row in rows}
+        missing = [slug for slug in series_slugs if slug not in by_slug]
+        if missing:
+            raise SeriesValidationError(f"unknown series slugs: {', '.join(missing)}")
+
+        for index, slug in enumerate(series_slugs, start=1):
+            by_slug[slug].list_order_index = index
+
+        self.db.commit()
+        return self.list(include_private=True, limit=max(len(series_slugs), 1), offset=0)

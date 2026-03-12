@@ -95,6 +95,10 @@ class _StubSeriesService:
         payload["post_count"] = len(post_slugs)
         return payload
 
+    def replace_series_order(self, series_slugs: list[str]):  # type: ignore[no-untyped-def]
+        self.write_calls.append("reorder-series")
+        return [_series_payload(slug) for slug in series_slugs]
+
 
 def _client_with_service(service: _StubSeriesService) -> TestClient:
     app.dependency_overrides[get_series_service] = lambda: service
@@ -154,3 +158,33 @@ def test_series_write_requires_internal_secret(monkeypatch) -> None:
     assert delete_response.status_code == 401
     assert reorder_response.status_code == 401
     assert service.write_calls == []
+
+
+def test_series_order_write_requires_internal_secret(monkeypatch) -> None:
+    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    service = _StubSeriesService()
+    client = _client_with_service(service)
+
+    response = client.put("/api/v1/series/order", json={"series_slugs": ["my-series"]})
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 401
+    assert service.write_calls == []
+
+
+def test_series_order_replaces_sequence_for_internal_requests(monkeypatch) -> None:
+    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    service = _StubSeriesService()
+    client = _client_with_service(service)
+
+    response = client.put(
+        "/api/v1/series/order",
+        headers={"x-internal-api-secret": "test-shared-secret"},
+        json={"series_slugs": ["my-series", "next-series"]},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.write_calls[-1] == "reorder-series"
+    payload = response.json()
+    assert [row["slug"] for row in payload] == ["my-series", "next-series"]

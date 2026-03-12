@@ -1,19 +1,18 @@
 ---
 import ProjectCard from "../../components/ProjectCard.astro";
+import ProjectOrderPanel from "../../components/public/ProjectOrderPanel";
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { listPublishedDbProjects } from "../../lib/projects";
 import {
   PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
 } from "../../lib/ui-effects";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 const projects = await listPublishedDbProjects();
 const projectWriteHref = "/admin/posts/new?content_kind=project";
-const projectManageHref = "/admin/projects";
 ---
 
 <BaseLayout
@@ -32,9 +31,7 @@ const projectManageHref = "/admin/projects";
       </p>
       {isAdminViewer && (
         <div class="flex w-full justify-center gap-3 sm:justify-end">
-          <a class={PUBLIC_SURFACE_ACTION_CLASS} href={projectManageHref}>
-            순서 조정
-          </a>
+          <ProjectOrderPanel client:load projects={projects} />
           <a class={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS} href={projectWriteHref}>
             글 작성
           </a>

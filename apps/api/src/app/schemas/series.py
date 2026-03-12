@@ -36,6 +36,13 @@ class SeriesPostsReplace(BaseModel):
     )
 
 
+class SeriesOrderReplace(BaseModel):
+    series_slugs: list[str] = Field(
+        default_factory=list,
+        description="Ordered series slug list for series archive layout.",
+    )
+
+
 class SeriesPostRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

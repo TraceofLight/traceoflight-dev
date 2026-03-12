@@ -11,11 +11,16 @@ const seriesCardPath = new URL(
   import.meta.url,
 );
 const headerConstPath = new URL("../src/consts.ts", import.meta.url);
+const seriesOrderPanelPath = new URL(
+  "../src/components/public/SeriesOrderPanel.tsx",
+  import.meta.url,
+);
 
 test("series index page renders archive list and links to detail route", async () => {
-  const [source, cardSource] = await Promise.all([
+  const [source, cardSource, orderPanelSource] = await Promise.all([
     readFile(seriesPagePath, "utf8"),
     readFile(seriesCardPath, "utf8"),
+    readFile(seriesOrderPanelPath, "utf8"),
   ]);
 
   assert.match(source, /id="series-archive"/);
@@ -41,6 +46,12 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(source, /\/images\/empty-series-image\.png/);
   assert.match(source, /TraceofLight의 다양한 이야기를 주제별로 엮은 서고/);
   assert.match(source, /<header class="space-y-4 text-center">/);
+  assert.match(source, /SeriesOrderPanel/);
+  assert.match(source, /isAdminViewer && \(/);
+  assert.match(source, /<SeriesOrderPanel client:load series=\{series\} \/>/);
+  assert.match(orderPanelSource, />\s*순서 조정\s*</);
+  assert.match(orderPanelSource, /시리즈 순서 조정/);
+  assert.match(orderPanelSource, /\/internal-api\/series\/order/);
   assert.doesNotMatch(
     source,
     /<header[\s\S]*rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,

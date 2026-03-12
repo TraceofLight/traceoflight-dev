@@ -1,7 +1,6 @@
 ---
 import { SITE_TITLE } from "../../consts";
 import PostAdminActions from "../../components/public/PostAdminActions";
-import SeriesAdminPanel from "../../components/public/SeriesAdminPanel";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostCard from "../../components/PostCard.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
@@ -55,24 +54,6 @@ const relatedSeries = relatedSeriesSlug
   ? await getSeriesBySlug(relatedSeriesSlug, { includePrivate: isAdminViewer }).catch(
       () => null,
     )
-  : null;
-const adminSeries = relatedSeries
-  ? {
-      slug: relatedSeries.slug,
-      title: relatedSeries.title,
-      description: relatedSeries.description,
-      coverImageUrl: relatedSeries.coverImageUrl ?? "",
-      defaultCoverImage: "/images/empty-series-image.png",
-      posts: relatedSeries.posts
-        .filter((post) => post.slug !== project?.slug)
-        .map((post) => ({
-          slug: post.slug,
-          title: post.title,
-          excerpt: post.excerpt,
-          coverImageUrl: post.coverImageUrl ?? "",
-          orderIndex: post.orderIndex,
-        })),
-    }
   : null;
 const youtubeEmbedUrl =
   project && project.topMediaKind === "youtube"
@@ -266,11 +247,6 @@ if (!project) {
             </section>
           )
         }
-
-        {isAdminViewer && adminSeries ? (
-          <SeriesAdminPanel client:load series={adminSeries} />
-        ) : null}
-
         <nav class="flex justify-center" aria-label="Projects archive">
           <a
             class={PUBLIC_SURFACE_ACTION_CLASS}

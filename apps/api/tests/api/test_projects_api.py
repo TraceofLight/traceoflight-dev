@@ -57,6 +57,7 @@ class _StubProjectService:
     def __init__(self) -> None:
         self.list_called_with: dict[str, object] | None = None
         self.get_called_with: dict[str, object] | None = None
+        self.reorder_called_with: list[str] | None = None
 
     def list_projects(self, limit=20, offset=0, include_private=False):  # type: ignore[no-untyped-def]
         self.list_called_with = {
@@ -74,6 +75,10 @@ class _StubProjectService:
         if slug == "missing":
             return None
         return _build_project_payload(slug)
+
+    def replace_project_order(self, project_slugs: list[str]):  # type: ignore[no-untyped-def]
+        self.reorder_called_with = project_slugs
+        return [_build_project_payload(slug) for slug in project_slugs]
 
 
 def _client_with_service(service: _StubProjectService) -> TestClient:
@@ -141,3 +146,40 @@ def test_project_detail_allows_uploaded_video_media_payload() -> None:
     payload = response.json()
     assert payload["top_media_kind"] == "video"
     assert payload["top_media_video_url"] == "/media/project-demo.mp4"
+
+
+def test_projects_order_write_requires_internal_secret(monkeypatch) -> None:
+    from app.api.v1.endpoints import projects as projects_endpoint
+
+    monkeypatch.setattr(projects_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    service = _StubProjectService()
+    client = _client_with_service(service)
+
+    response = client.put(
+        "/api/v1/projects/order",
+        json={"project_slugs": ["trace-renderer", "second-project"]},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 401
+    assert service.reorder_called_with is None
+
+
+def test_projects_order_replaces_sequence_for_internal_requests(monkeypatch) -> None:
+    from app.api.v1.endpoints import projects as projects_endpoint
+
+    monkeypatch.setattr(projects_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    service = _StubProjectService()
+    client = _client_with_service(service)
+
+    response = client.put(
+        "/api/v1/projects/order",
+        headers={"x-internal-api-secret": "test-shared-secret"},
+        json={"project_slugs": ["trace-renderer", "second-project"]},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.reorder_called_with == ["trace-renderer", "second-project"]
+    payload = response.json()
+    assert [row["slug"] for row in payload] == ["trace-renderer", "second-project"]

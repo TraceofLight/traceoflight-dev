@@ -1,5 +1,6 @@
 ---
 import SeriesCard from "../../components/SeriesCard.astro";
+import SeriesOrderPanel from "../../components/public/SeriesOrderPanel";
 import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
@@ -40,6 +41,11 @@ try {
       <p class="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
         TraceofLight의 다양한 이야기를 주제별로 엮은 서고
       </p>
+      {isAdminViewer && (
+        <div class="flex w-full justify-center gap-3 sm:justify-end">
+          <SeriesOrderPanel client:load series={series} />
+        </div>
+      )}
     </header>
 
     {

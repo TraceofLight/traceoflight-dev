@@ -70,3 +70,6 @@ class ProjectService:
 
         setattr(project, "related_series_posts", related_series_posts)
         return project
+
+    def replace_project_order(self, project_slugs: list[str]):
+        return self.post_repo.replace_project_order(project_slugs)

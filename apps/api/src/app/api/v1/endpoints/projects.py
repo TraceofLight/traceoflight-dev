@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from app.api.deps import get_project_service
 from app.core.config import settings
-from app.schemas.project import ProjectRead
+from app.schemas.project import ProjectRead, ProjectsOrderReplace
 from app.services.project_service import ProjectService
 
 router = APIRouter()
@@ -26,6 +26,12 @@ def is_trusted_internal_request(request: Request, request_secret: str | None = N
     if not request_secret:
         return False
     return secrets.compare_digest(request_secret, configured_secret)
+
+
+def ensure_trusted_internal_request(request: Request, request_secret: str | None = None) -> None:
+    if is_trusted_internal_request(request, request_secret):
+        return
+    raise HTTPException(status_code=401, detail="unauthorized")
 
 
 @router.get("", response_model=list[ProjectRead], summary="List published projects")
@@ -64,3 +70,28 @@ def get_project_by_slug(
     if project is None:
         raise HTTPException(status_code=404, detail="project not found")
     return project
+
+
+@router.put(
+    "/order",
+    response_model=list[ProjectRead],
+    summary="Replace ordered projects",
+    responses={
+        401: {"description": "Missing or invalid internal API secret"},
+    },
+)
+def replace_project_order(
+    request: Request,
+    payload: ProjectsOrderReplace,
+    x_internal_api_secret: str | None = Header(
+        default=None,
+        alias="x-internal-api-secret",
+        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
+    ),
+    service: ProjectService = Depends(get_project_service),
+) -> list[ProjectRead]:
+    ensure_trusted_internal_request(request, x_internal_api_secret)
+    try:
+        return service.replace_project_order(payload.project_slugs)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

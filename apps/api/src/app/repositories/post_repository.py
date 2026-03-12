@@ -28,6 +28,18 @@ def _normalize_series_title(value: str | None) -> str | None:
     return normalized or None
 
 
+def _normalize_slug_list(raw_values: Iterable[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_values:
+        slug = raw.strip().lower()
+        if not slug or slug in seen:
+            continue
+        seen.add(slug)
+        normalized.append(slug)
+    return normalized
+
+
 class PostRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -108,6 +120,11 @@ class PostRepository:
                 Post.created_at.desc(),
                 Post.slug.desc(),
             ]
+        if content_kind == PostContentKind.PROJECT:
+            ordering = [
+                Post.project_order_index.asc().nulls_last(),
+                *ordering,
+            ]
 
         stmt = (
             select(Post)
@@ -135,6 +152,34 @@ class PostRepository:
         rows = list(self.db.scalars(stmt))
         public_only = status == PostStatus.PUBLISHED and visibility == PostVisibility.PUBLIC
         return self._apply_series_context(rows, public_only=public_only)
+
+    def replace_project_order(self, raw_project_slugs: list[str]) -> list[Post]:
+        project_slugs = _normalize_slug_list(raw_project_slugs)
+        if not project_slugs:
+            return []
+
+        projects = list(
+            self.db.scalars(
+                select(Post).where(
+                    Post.slug.in_(project_slugs),
+                    Post.content_kind == PostContentKind.PROJECT,
+                )
+            )
+        )
+        by_slug = {project.slug: project for project in projects}
+        missing = [slug for slug in project_slugs if slug not in by_slug]
+        if missing:
+            raise ValueError(f"unknown project slugs: {', '.join(missing)}")
+
+        for index, slug in enumerate(project_slugs, start=1):
+            by_slug[slug].project_order_index = index
+
+        self.db.commit()
+        return self.list(
+            limit=max(len(project_slugs), 1),
+            offset=0,
+            content_kind=PostContentKind.PROJECT,
+        )
 
     def get_by_slug(
         self,

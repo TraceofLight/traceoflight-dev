@@ -20,6 +20,7 @@ class Series(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     cover_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    list_order_index: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     series_posts: Mapped[list["SeriesPost"]] = relationship(
         "SeriesPost",
