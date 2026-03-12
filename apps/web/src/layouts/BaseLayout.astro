@@ -26,11 +26,11 @@ const htmlClassName = bodyClass.trim() || undefined;
   </head>
   <body class="site-shell">
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <Header transition:persist />
+    <Header />
     <main id="main-content" class="page container" transition:name="page-content">
       <slot />
     </main>
-    <Footer transition:persist />
+    <Footer />
     <FloatingUtilityButtons client:only="react" />
   </body>
 </html>

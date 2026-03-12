@@ -15,6 +15,7 @@ const writerPreviewPath = new URL(
   "../src/lib/admin/new-post-page/preview.ts",
   import.meta.url,
 );
+const tokensCssPath = new URL("../src/styles/tokens.css", import.meta.url);
 const newWriterPagePath = new URL("../src/pages/admin/posts/new.astro", import.meta.url);
 const editWriterPagePath = new URL(
   "../src/pages/admin/posts/[slug]/edit.astro",
@@ -34,6 +35,7 @@ test("public shell avoids known console-noise regressions", async () => {
     newWriterPageSource,
     editWriterPageSource,
     projectDetailSource,
+    tokensCssSource,
   ] = await Promise.all([
     readFile(baseHeadPath, "utf8"),
     readFile(baseLayoutPath, "utf8"),
@@ -45,11 +47,15 @@ test("public shell avoids known console-noise regressions", async () => {
     readFile(newWriterPagePath, "utf8"),
     readFile(editWriterPagePath, "utf8"),
     readFile(projectDetailPath, "utf8"),
+    readFile(tokensCssPath, "utf8"),
   ]);
 
   assert.doesNotMatch(baseHeadSource, /PretendardVariable\.woff2/);
   assert.doesNotMatch(baseHeadSource, /meta name="generator"/);
+  assert.doesNotMatch(tokensCssSource, /woff2-variations/);
+  assert.match(tokensCssSource, /src:\s*url\('\/fonts\/PretendardVariable\.woff2'\)\s*format\('woff2'\)/);
   assert.match(baseLayoutSource, /<FloatingUtilityButtons client:only="react" \/>/);
+  assert.doesNotMatch(baseLayoutSource, /transition:persist/);
   assert.match(headerSource, /<MobileNavSheet client:only="react"/);
   assert.match(footerSource, /<FooterAdminModal\s+client:only="react"/);
 
