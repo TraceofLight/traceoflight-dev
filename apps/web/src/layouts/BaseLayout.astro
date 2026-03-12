@@ -6,6 +6,7 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import PageTransitions from '../components/PageTransitions.astro';
 import FloatingUtilityButtons from '../components/public/FloatingUtilityButtons';
+import { getGa4VisitorSummary } from '../lib/server/ga4-summary';
 
 interface Props {
   title: string;
@@ -16,6 +17,7 @@ interface Props {
 
 const { title, description, image, bodyClass = '' } = Astro.props;
 const htmlClassName = bodyClass.trim() || undefined;
+const visitorSummary = await getGa4VisitorSummary();
 ---
 
 <!doctype html>
@@ -30,7 +32,7 @@ const htmlClassName = bodyClass.trim() || undefined;
     <main id="main-content" class="page container" transition:name="page-content">
       <slot />
     </main>
-    <Footer />
+    <Footer visitorSummary={visitorSummary} />
     <FloatingUtilityButtons client:only="react" />
   </body>
 </html>

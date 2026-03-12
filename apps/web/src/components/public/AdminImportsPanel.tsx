@@ -1,4 +1,4 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
 import { DownloadIcon, FileTextIcon, ShieldIcon, UploadIcon } from "lucide-react";
 
@@ -25,6 +25,10 @@ type FeedbackState = "info" | "pending" | "ok" | "error";
 type StatusMessage = {
   message: string;
   state: FeedbackState;
+};
+
+type TimeoutRef = {
+  current: ReturnType<typeof setTimeout> | null;
 };
 
 const adminActionButtonClass =
@@ -91,7 +95,7 @@ export function AdminImportsPanel({
 
   function setButtonStatus(
     setter: Dispatch<SetStateAction<StatusMessage | null>>,
-    timeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>,
+    timeoutRef: TimeoutRef,
     nextStatus: StatusMessage,
   ) {
     if (timeoutRef.current) {
@@ -488,14 +492,6 @@ export function AdminImportsPanel({
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
                 Resume PDF
               </p>
-              <h3 className="text-xl font-semibold tracking-tight text-foreground">
-                이력서 PDF 관리
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                바깥 공개 경로는 닫혀 있지만, 내부 관리자 경로로는 업로드와 교체를 계속 진행할 수 있습니다.
-              </p>
-            </div>
-            <div className="space-y-1">
               <h3 className="text-xl font-semibold tracking-tight text-foreground">
                 이력서 파일 교체
               </h3>

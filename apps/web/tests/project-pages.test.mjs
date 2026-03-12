@@ -80,7 +80,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   const source = await readFile(projectDetailPath, "utf8");
 
   assert.match(source, /getPublishedDbProjectBySlug/);
-  assert.match(source, /getSeriesBySlug/);
+  assert.doesNotMatch(source, /getSeriesBySlug/);
   assert.doesNotMatch(source, /SeriesAdminPanel/);
   assert.match(source, /PostAdminActions/);
   assert.match(source, /ADMIN_ACCESS_COOKIE/);

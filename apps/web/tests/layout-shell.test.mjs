@@ -17,7 +17,7 @@ test('base layout uses site-shell body for sticky footer layout', async () => {
 
   assert.match(layoutSource, /<body class="site-shell">/);
   assert.match(layoutSource, /<Header \/>/);
-  assert.match(layoutSource, /<Footer \/>/);
+  assert.match(layoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
   assert.doesNotMatch(layoutSource, /transition:persist/);
   assert.match(cssSource, /body\s*\{/);
   assert.doesNotMatch(headerSource, /class="site-header"/);

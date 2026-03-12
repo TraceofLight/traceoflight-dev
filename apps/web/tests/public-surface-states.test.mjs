@@ -76,6 +76,10 @@ test("footer icons use the same filled pill treatment as the admin entry button"
     footerSource,
     /class="site-footer-dock flex items-center gap-3 rounded-full border border-white\/70 bg-white\/72 px-3 py-2 shadow-\[0_20px_50px_rgba\(15,23,42,0\.08\)\]"/,
   );
+  assert.match(
+    footerSource,
+    /<div class="space-y-1">[\s\S]*Today \{visitorSummary\.todayVisitors\} \/ Total \{visitorSummary\.totalVisitors\}[\s\S]*<\/div>/,
+  );
   assert.match(footerIconSource, /import \{ PUBLIC_ICON_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(footerIconSource, /class=\{PUBLIC_ICON_ACTION_CLASS\}/);
   assert.match(

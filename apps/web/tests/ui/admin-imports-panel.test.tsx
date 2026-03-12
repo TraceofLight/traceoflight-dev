@@ -35,13 +35,16 @@ describe("AdminImportsPanel", () => {
     expect(screen.getByText("서비스 중인 내용 Save & Load")).toBeInTheDocument();
     expect(screen.getByText("PDF Utility")).toBeInTheDocument();
     expect(screen.getByText("PDF 파일 관리")).toBeInTheDocument();
-    expect(screen.getByText("이력서 PDF 관리")).toBeInTheDocument();
     expect(screen.getByText("현재 상태 저장")).toBeInTheDocument();
     expect(screen.getByText("백업 ZIP으로 복원")).toBeInTheDocument();
     expect(screen.getAllByText("Portfolio PDF")).toHaveLength(1);
     expect(screen.getAllByText("Resume PDF")).toHaveLength(1);
     expect(screen.getByText("포트폴리오 파일 교체")).toBeInTheDocument();
     expect(screen.getByText("이력서 파일 교체")).toBeInTheDocument();
+    expect(screen.queryByText("이력서 PDF 관리")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("바깥 공개 경로는 닫혀 있지만, 내부 관리자 경로로는 업로드와 교체를 계속 진행할 수 있습니다."),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("복원 전 체크")).toBeInTheDocument();
     expect(
       screen.queryByText("복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다."),

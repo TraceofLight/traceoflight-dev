@@ -54,6 +54,7 @@ test("public shell avoids known console-noise regressions", async () => {
   assert.doesNotMatch(baseHeadSource, /meta name="generator"/);
   assert.doesNotMatch(tokensCssSource, /woff2-variations/);
   assert.match(tokensCssSource, /src:\s*url\('\/fonts\/PretendardVariable\.woff2'\)\s*format\('woff2'\)/);
+  assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
   assert.match(baseLayoutSource, /<FloatingUtilityButtons client:only="react" \/>/);
   assert.doesNotMatch(baseLayoutSource, /transition:persist/);
   assert.match(headerSource, /<MobileNavSheet client:only="react"/);

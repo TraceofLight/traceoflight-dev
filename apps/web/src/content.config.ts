@@ -1,9 +1,17 @@
+import { existsSync, readdirSync } from "node:fs";
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
+const blogContentRoot = new URL("./content/blog/", import.meta.url);
+const hasBlogEntries = existsSync(blogContentRoot) && readdirSync(blogContentRoot, { recursive: true }).some((entry) =>
+	typeof entry === "string" && /\.(md|mdx)$/i.test(entry),
+);
+
 const blog = defineCollection({
 	// Load Markdown and MDX files in the `src/content/blog/` directory.
-	loader: glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' }),
+	loader: hasBlogEntries
+		? glob({ base: './src', pattern: 'content/blog/**/*.{md,mdx}' })
+		: async () => [],
 	// Type-check frontmatter using a schema
 	schema: ({ image }) =>
 		z.object({

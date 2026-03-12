@@ -12,34 +12,32 @@ export function unauthorizedImportsResponse(): Response {
   });
 }
 
-export function proxyTextResponse(
+export async function proxyTextResponse(
   response: Response,
   fallbackContentType = "application/json",
 ): Promise<Response> {
-  return response.text().then((responseBody) =>
-    new Response(responseBody, {
-      status: response.status,
-      headers: {
-        "content-type": response.headers.get("content-type") ?? fallbackContentType,
-      },
-    }),
-  );
+  const responseBody = await response.text();
+  return new Response(responseBody, {
+    status: response.status,
+    headers: {
+      "content-type": response.headers.get("content-type") ?? fallbackContentType,
+    },
+  });
 }
 
-export function proxyBinaryResponse(
+export async function proxyBinaryResponse(
   response: Response,
   fallbackContentType: string,
 ): Promise<Response> {
-  return response.arrayBuffer().then((payload) => {
-    const headers = new Headers();
-    headers.set("content-type", response.headers.get("content-type") ?? fallbackContentType);
-    const disposition = response.headers.get("content-disposition");
-    if (disposition) {
-      headers.set("content-disposition", disposition);
-    }
-    return new Response(payload, {
-      status: response.status,
-      headers,
-    });
+  const payload = await response.arrayBuffer();
+  const headers = new Headers();
+  headers.set("content-type", response.headers.get("content-type") ?? fallbackContentType);
+  const disposition = response.headers.get("content-disposition");
+  if (disposition) {
+    headers.set("content-disposition", disposition);
+  }
+  return new Response(payload, {
+    status: response.status,
+    headers,
   });
 }

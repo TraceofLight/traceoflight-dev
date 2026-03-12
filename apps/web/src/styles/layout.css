@@ -11,7 +11,7 @@
 
 .page {
   flex: 1 0 auto;
-  padding: 4rem 0 6rem;
+  padding: 2.5rem 0 6rem;
 }
 
 html.page-home .page {
@@ -38,7 +38,7 @@ html.page-home .page {
 
 @media (max-width: 840px) {
   .page {
-    padding-top: 2.8rem;
+    padding-top: 1.75rem;
   }
 
   html.page-home .page {

@@ -52,7 +52,6 @@ export default function FloatingUtilityButtons() {
   const scrollTopClass = isDark
     ? "border-slate-700/80 bg-slate-900/92 text-sky-300 shadow-[0_12px_34px_rgba(15,23,42,0.16)] hover:border-sky-300/60 hover:text-white"
     : "border-slate-200/80 bg-white/86 text-slate-500 shadow-[0_12px_34px_rgba(15,23,42,0.08)] hover:border-sky-300/70 hover:bg-white hover:text-sky-700";
-
   return (
     <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       <button

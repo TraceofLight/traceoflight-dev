@@ -21,6 +21,7 @@
     "@astrojs/react": "^4.4.2",
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
+    "@google-analytics/data": "^5.2.1",
     "@milkdown/crepe": "^7.19.0",
     "@node-rs/argon2": "^2.0.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",

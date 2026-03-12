@@ -31,6 +31,15 @@ const linkNormalizationPath = new URL(
   "../src/lib/admin/new-post-page/link-normalization.ts",
   import.meta.url,
 );
+const adminImportsPanelPath = new URL(
+  "../src/components/public/AdminImportsPanel.tsx",
+  import.meta.url,
+);
+const importsProxyPath = new URL(
+  "../src/lib/server/imports-proxy.ts",
+  import.meta.url,
+);
+const projectDetailPath = new URL("../src/pages/projects/[slug].astro", import.meta.url);
 
 test("deprecated Astro and React type patterns are removed from the UI layer", async () => {
   const [
@@ -45,6 +54,9 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
     separatorSource,
     editorBridgeSource,
     linkNormalizationSource,
+    adminImportsPanelSource,
+    importsProxySource,
+    projectDetailSource,
   ] = await Promise.all([
     readFile(pageTransitionsPath, "utf8"),
     readFile(baseHeadPath, "utf8"),
@@ -57,6 +69,9 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
     readFile(separatorPath, "utf8"),
     readFile(editorBridgePath, "utf8"),
     readFile(linkNormalizationPath, "utf8"),
+    readFile(adminImportsPanelPath, "utf8"),
+    readFile(importsProxyPath, "utf8"),
+    readFile(projectDetailPath, "utf8"),
   ]);
 
   assert.match(pageTransitionsSource, /ClientRouter/);
@@ -79,4 +94,8 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
 
   assert.doesNotMatch(editorBridgeSource, /return await markdown;/);
   assert.doesNotMatch(linkNormalizationSource, /\(full, prefix, rawUrl, suffix\)/);
+  assert.doesNotMatch(adminImportsPanelSource, /MutableRefObject/);
+  assert.match(importsProxySource, /export async function proxyTextResponse/);
+  assert.match(importsProxySource, /export async function proxyBinaryResponse/);
+  assert.doesNotMatch(projectDetailSource, /const relatedSeries =/);
 });

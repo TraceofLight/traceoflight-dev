@@ -6,7 +6,6 @@ import PostCard from "../../components/PostCard.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { getPublishedDbProjectBySlug } from "../../lib/projects";
 import { normalizeCoverMedia } from "../../lib/cover-media";
-import { getSeriesBySlug } from "../../lib/series-db";
 import {
   PUBLIC_BADGE_STRONG_CLASS,
   PUBLIC_EMPTY_STATE_CLASS,
@@ -27,33 +26,6 @@ const projectProfile = project
       highlights: project.highlights,
       links: project.links,
     }
-  : null;
-const relatedSeriesSlug = project?.seriesTitle
-  ? project.seriesTitle
-      .trim()
-      .split("")
-      .reduce(
-        (state, char) => {
-          if (/[\p{L}\p{N}]/u.test(char)) {
-            state.chars.push(char);
-            state.lastWasDash = false;
-            return state;
-          }
-          if (!state.lastWasDash) {
-            state.chars.push("-");
-            state.lastWasDash = true;
-          }
-          return state;
-        },
-        { chars: [] as string[], lastWasDash: false },
-      )
-      .chars.join("")
-      .replace(/^-+|-+$/g, "") || "series"
-  : null;
-const relatedSeries = relatedSeriesSlug
-  ? await getSeriesBySlug(relatedSeriesSlug, { includePrivate: isAdminViewer }).catch(
-      () => null,
-    )
   : null;
 const youtubeEmbedUrl =
   project && project.topMediaKind === "youtube"

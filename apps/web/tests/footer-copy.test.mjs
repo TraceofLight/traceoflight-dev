@@ -6,14 +6,16 @@ const footerPath = new URL("../src/components/Footer.astro", import.meta.url);
 const constsPath = new URL("../src/consts.ts", import.meta.url);
 const blogPostPagePath = new URL("../src/pages/blog/[...slug].astro", import.meta.url);
 
-test("footer uses single-line rights copy with auto year and styled copyright format", async () => {
+test("footer uses compact two-line rights copy with visitor summary metadata", async () => {
   const source = await readFile(footerPath, "utf8");
 
   assert.match(source, /const currentYear = new Date\(\)\.getFullYear\(\);/);
+  assert.match(source, /interface Props \{\s*visitorSummary\?:/);
   assert.match(
     source,
     /ⓒ \{currentYear\}\. \{SITE_TITLE\} All rights reserved\./,
   );
+  assert.match(source, /Today \{visitorSummary\.todayVisitors\} \/ Total \{visitorSummary\.totalVisitors\}/);
   assert.doesNotMatch(source, /\{SITE_DESCRIPTION\}/);
   assert.match(source, /FooterAdminModal/);
   assert.match(source, /shouldOpenOnLoad=\{shouldOpenAdminLogin\}/);

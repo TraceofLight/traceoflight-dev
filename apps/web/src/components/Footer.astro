@@ -2,10 +2,16 @@
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { ADMIN_IMPORTS_PATH } from "../lib/admin/imports-page";
 import { sanitizeNextPath } from "../lib/admin-redirect";
+import type { VisitorSummary } from "../lib/server/ga4-summary";
 import FooterIconLink from "./FooterIconLink.astro";
 import FooterAdminModal from "./public/FooterAdminModal";
 import { GITHUB_URL, SITE_TITLE } from "../consts";
 
+interface Props {
+  visitorSummary?: VisitorSummary | null;
+}
+
+const { visitorSummary = null } = Astro.props;
 const currentYear = new Date().getFullYear();
 const shouldOpenAdminLogin = Astro.url.searchParams.get("admin_login") === "1";
 const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
@@ -19,6 +25,13 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
       <p class="text-sm text-muted-foreground">
         ⓒ {currentYear}. {SITE_TITLE} All rights reserved.
       </p>
+      {
+        visitorSummary ? (
+          <p class="text-sm text-muted-foreground">
+            Today {visitorSummary.todayVisitors} / Total {visitorSummary.totalVisitors}
+          </p>
+        ) : null
+      }
     </div>
 
     <div class="site-footer-dock flex items-center gap-3 rounded-full border border-white/70 bg-white/72 px-3 py-2 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">

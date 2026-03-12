@@ -19,6 +19,7 @@ test("admin post edit page bootstraps writer in edit mode", async () => {
   assert.match(source, /value=\{initialTitle\}/);
   assert.match(source, /hidden=\{initialContentKind !== "project"\}/);
   assert.match(source, /id="writer-initial-payload"/);
+  assert.match(source, /<script[\s\S]*is:inline[\s\S]*id="writer-initial-payload"/);
   assert.match(source, /type="application\/json"/);
   assert.match(source, /JSON\.stringify\(initialPayload\)/);
   assert.match(source, /Astro\.request\.headers\.get\(["']referer["']\)/);
@@ -38,6 +39,7 @@ test("admin new writer page keeps create mode bootstrap", async () => {
   assert.match(source, /id="writer-meta-panel"[\s\S]*data-content-kind=\{initialContentKind\}/);
   assert.match(source, /id="writer-project-fields"[\s\S]*hidden=\{initialContentKind !== "project"\}/);
   assert.match(source, /id="writer-initial-payload"/);
+  assert.match(source, /<script id="writer-initial-payload" is:inline type="application\/json">null<\/script>/);
   assert.match(source, />null<\/script>/);
   assert.match(source, /Astro\.request\.headers\.get\(["']referer["']\)/);
   assert.match(source, /const fallbackBackHref = initialContentKind === "project" \? "\/projects\/" : "\/blog\/"/);

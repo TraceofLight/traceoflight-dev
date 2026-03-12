@@ -21,6 +21,22 @@ test("blog content schema accepts both optimized images and string cover paths",
 
   assert.match(
     source,
+    /import \{ existsSync, readdirSync \} from "node:fs";/,
+  );
+  assert.match(
+    source,
+    /const blogContentRoot = new URL\("\.\/content\/blog\/", import\.meta\.url\);/,
+  );
+  assert.match(
+    source,
+    /const hasBlogEntries = existsSync\(blogContentRoot\) && readdirSync\(blogContentRoot, \{ recursive: true \}\)\.some\(\(entry\) =>/,
+  );
+  assert.match(
+    source,
+    /loader:\s*hasBlogEntries\s*\?\s*glob\(\{\s*base:\s*['"]\.\/src['"],\s*pattern:\s*['"]content\/blog\/\*\*\/\*\.\{md,mdx\}['"]\s*\}\)\s*:\s*async\s*\(\)\s*=>\s*\[\s*\]/,
+  );
+  assert.match(
+    source,
     /coverImage:\s*z\.union\(\[image\(\),\s*z\.string\(\)\]\)\.optional\(\)/,
   );
 });

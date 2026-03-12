@@ -121,12 +121,14 @@ test("base head and base layout provide a persistent global theme toggle in a fl
   assert.match(headerSource, /site-header-surface/);
   assert.doesNotMatch(headerSource, /ThemeToggle/);
   assert.match(baseLayoutSource, /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons['"];/);
+  assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
   assert.match(baseLayoutSource, /<FloatingUtilityButtons client:only="react" \/>/);
   assert.match(floatingUtilitySource, /window\.scrollTo\(\{ top: 0, behavior: "smooth" \}\)/);
   assert.match(floatingUtilitySource, /<ThemeToggle \/>/);
   assert.match(floatingUtilitySource, /bg-white\/86/);
   assert.match(floatingUtilitySource, /border-slate-200\/80/);
   assert.match(floatingUtilitySource, /bg-slate-900\/92/);
+  assert.doesNotMatch(floatingUtilitySource, /Powered by TraceofLight/);
 });
 
 test("theme toggle keeps visible secondary icons, symmetric thumb travel, and softer light-mode chrome", async () => {

@@ -47,6 +47,9 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /포트폴리오 파일 교체/);
   assert.match(panelSource, /Resume PDF/);
   assert.match(panelSource, /이력서 파일 교체/);
+  assert.doesNotMatch(panelSource, /바깥 공개 경로는 닫혀 있지만/);
+  assert.doesNotMatch(panelSource, /내부 관리자 경로로는 업로드와 교체를 계속 진행할 수 있습니다/);
+  assert.doesNotMatch(panelSource, /이력서 PDF 관리/);
   assert.match(panelSource, /Comment Review/);
   assert.match(panelSource, /최근 댓글 검토/);
   assert.match(panelSource, /복원 전 체크/);
