@@ -31,6 +31,8 @@ test("admin writer page renders post form shell", async () => {
   assert.match(source, /id="writer-bottom-bar"/);
   assert.match(source, /id="writer-open-publish"/);
   assert.match(source, /id="writer-publish-layer"/);
+  assert.match(source, /id="writer-reauth-layer"/);
+  assert.match(source, /id="writer-reauth-form"/);
   assert.match(source, /id="writer-toast"/);
   assert.doesNotMatch(source, /class="writer-topbar"/);
 });
@@ -131,6 +133,11 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-top-media-video-url"/);
   assert.match(source, /id="writer-top-media-upload-trigger"/);
   assert.match(source, /id="writer-top-media-upload-input"/);
+  assert.match(source, /id="writer-reauth-layer"/);
+  assert.match(source, /id="writer-reauth-username"/);
+  assert.match(source, /id="writer-reauth-password"/);
+  assert.match(source, /id="writer-reauth-confirm"/);
+  assert.match(source, /id="writer-reauth-cancel"/);
   assert.doesNotMatch(source, /id="writer-upload-trigger"/);
   assert.doesNotMatch(source, /id="writer-upload-input"/);
   assert.match(source, /class="writer-publish-body"/);
@@ -241,6 +248,10 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
   assert.match(source, /\.writer-preview-kicker[\s\S]*position:\s*absolute/);
   assert.match(source, /\.writer-preview-head h1[\s\S]*min-height:\s*56px/);
   assert.match(source, /\.writer-preview-top-media-frame[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
+  assert.match(source, /\.writer-preview-content :not\(pre\) > code[\s\S]*color:\s*#20426a/);
+  assert.match(source, /\.writer-preview-content pre code[\s\S]*color:\s*#f8f8f2/);
+  assert.match(source, /\.writer-preview-content \.hljs-keyword[\s\S]*color:\s*#ff79c6/);
+  assert.doesNotMatch(source, /\.writer-preview-content code\s*\{/);
 });
 
 test("admin writer has editor-side bottom bar and publish layer style", async () => {

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     minio_presigned_expire_seconds: int = Field(default=900, alias='MINIO_PRESIGNED_EXPIRE_SECONDS')
     internal_api_secret: str = Field(default='', alias='INTERNAL_API_SECRET')
     draft_retention_days: int = Field(default=7, alias='DRAFT_RETENTION_DAYS')
+    media_orphan_retention_days: int = Field(default=7, alias='MEDIA_ORPHAN_RETENTION_DAYS')
     draft_cleanup_start_hour: int = Field(default=0, alias='DRAFT_CLEANUP_START_HOUR')
     draft_cleanup_end_hour: int = Field(default=5, alias='DRAFT_CLEANUP_END_HOUR')
     series_projection_rebuild_debounce_seconds: float = Field(

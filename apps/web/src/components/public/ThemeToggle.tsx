@@ -29,9 +29,12 @@ export default function ThemeToggle() {
 
   const isDark = theme === "dark";
   const trackClass = isDark
-    ? "border-slate-700/80 bg-slate-900/92 shadow-[0_12px_34px_rgba(15,23,42,0.16)] hover:border-sky-300/60"
+    ? "border-white/15 bg-slate-950/92 shadow-[0_12px_34px_rgba(15,23,42,0.32)] hover:border-white/30"
     : "border-slate-200/80 bg-white/86 shadow-[0_12px_34px_rgba(15,23,42,0.08)] hover:border-sky-300/70 hover:bg-white";
-  const railIconClass = isDark ? "text-sky-300/85" : "text-slate-400/85";
+  const railIconClass = isDark ? "text-white/55" : "text-slate-400/85";
+  const thumbClass = isDark
+    ? "translate-x-10 bg-white text-slate-950 shadow-[0_12px_28px_rgba(15,23,42,0.34)] ring-1 ring-black/10"
+    : "translate-x-0 bg-sky-950/92 text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]";
 
   return (
     <button
@@ -51,11 +54,7 @@ export default function ThemeToggle() {
         <MoonStarIcon className={`h-4 w-4 ${railIconClass}`} />
       </span>
       <span
-        className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)] transition-all duration-300 ${
-          isDark
-            ? "translate-x-10"
-            : "translate-x-0"
-        }`}
+        className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${thumbClass}`}
       >
         {isDark ? (
           <MoonStarIcon className="h-4 w-4" />

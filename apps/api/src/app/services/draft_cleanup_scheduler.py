@@ -11,6 +11,8 @@ from sqlalchemy import delete
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.post import Post, PostStatus
+from app.services.media_cleanup_service import purge_orphaned_media
+from app.storage.minio_client import MinioStorageClient
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,22 @@ def purge_expired_drafts() -> int:
         return deleted
 
 
+def purge_expired_orphan_media() -> int:
+    retention_days = max(1, int(settings.media_orphan_retention_days))
+    with SessionLocal() as db:
+        storage = MinioStorageClient()
+        return purge_orphaned_media(db, storage=storage, retention_days=retention_days)
+
+
+def purge_maintenance() -> dict[str, int]:
+    deleted_drafts = purge_expired_drafts()
+    deleted_media = purge_expired_orphan_media()
+    return {
+        "deleted_drafts": deleted_drafts,
+        "deleted_media": deleted_media,
+    }
+
+
 async def run_draft_cleanup_loop(stop_event: asyncio.Event) -> None:
     last_run_local_date: date | None = None
 
@@ -90,8 +108,12 @@ async def run_draft_cleanup_loop(stop_event: asyncio.Event) -> None:
             break
 
         try:
-            deleted_count = purge_expired_drafts()
-            logger.info('draft cleanup completed: deleted=%s', deleted_count)
+            summary = purge_maintenance()
+            logger.info(
+                'draft/media cleanup completed: deleted_drafts=%s deleted_media=%s',
+                summary["deleted_drafts"],
+                summary["deleted_media"],
+            )
         except Exception:  # pragma: no cover - log and continue
             logger.exception('draft cleanup failed')
         finally:

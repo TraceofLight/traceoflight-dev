@@ -37,3 +37,15 @@ def test_next_run_at_skips_same_day_after_run(monkeypatch) -> None:
     scheduled = scheduler._next_run_at(now_local=now_local, last_run_local_date=now_local.date())
 
     assert scheduled == datetime(2026, 3, 5, 1, 0, 0, tzinfo=tz)
+
+
+def test_purge_maintenance_runs_draft_and_media_cleanup(monkeypatch) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(scheduler, "purge_expired_drafts", lambda: calls.append("draft") or 2)
+    monkeypatch.setattr(scheduler, "purge_expired_orphan_media", lambda: calls.append("media") or 3)
+
+    result = scheduler.purge_maintenance()
+
+    assert result == {"deleted_drafts": 2, "deleted_media": 3}
+    assert calls == ["draft", "media"]

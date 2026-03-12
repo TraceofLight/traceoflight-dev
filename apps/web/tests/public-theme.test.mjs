@@ -121,7 +121,7 @@ test("base head and base layout provide a persistent global theme toggle in a fl
   assert.match(headerSource, /site-header-surface/);
   assert.doesNotMatch(headerSource, /ThemeToggle/);
   assert.match(baseLayoutSource, /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons['"];/);
-  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:load \/>/);
+  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:only="react" \/>/);
   assert.match(floatingUtilitySource, /window\.scrollTo\(\{ top: 0, behavior: "smooth" \}\)/);
   assert.match(floatingUtilitySource, /<ThemeToggle \/>/);
   assert.match(floatingUtilitySource, /bg-white\/86/);
@@ -135,11 +135,12 @@ test("theme toggle keeps visible secondary icons, symmetric thumb travel, and so
   assert.match(source, /w-\[5\.25rem\]/);
   assert.match(source, /bg-white\/86/);
   assert.match(source, /border-slate-200\/80/);
-  assert.match(source, /bg-slate-900\/92/);
+  assert.match(source, /bg-slate-950\/92/);
   assert.match(source, /justify-between px-2\.5/);
-  assert.match(source, /text-sky-300\/85/);
+  assert.match(source, /text-white\/55/);
   assert.match(source, /text-slate-400\/85/);
   assert.match(source, /translate-x-10/);
-  assert.match(source, /bg-slate-900 text-white/);
+  assert.match(source, /bg-sky-950\/92 text-white/);
+  assert.match(source, /bg-white text-slate-950/);
   assert.doesNotMatch(source, /translate-x-\[2rem\]/);
 });

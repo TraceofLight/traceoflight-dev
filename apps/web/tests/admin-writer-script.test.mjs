@@ -178,6 +178,12 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   ]);
   assert.match(domSource, /#writer-open-publish/);
   assert.match(domSource, /#writer-publish-layer/);
+  assert.match(domSource, /#writer-reauth-layer/);
+  assert.match(domSource, /#writer-reauth-form/);
+  assert.match(domSource, /#writer-reauth-username/);
+  assert.match(domSource, /#writer-reauth-password/);
+  assert.match(domSource, /#writer-reauth-confirm/);
+  assert.match(domSource, /#writer-reauth-cancel/);
   assert.match(domSource, /#writer-confirm-publish/);
   assert.match(domSource, /#post-content-kind/);
   assert.match(domSource, /#writer-project-fields/);
@@ -204,6 +210,10 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.match(submitEventsSource, /buildSubmitPayload/);
   assert.match(submitEventsSource, /resolveSubmitRequest/);
   assert.match(submitEventsSource, /requestPostSubmit/);
+  assert.match(submitEventsSource, /requestAdminLogin/);
+  assert.match(submitEventsSource, /submitResult\.status === 401/);
+  assert.match(submitEventsSource, /setReauthLayerOpen\(true\)/);
+  assert.match(submitEventsSource, /pendingPublishRetry/);
   assert.match(submitEventsSource, /seriesInput\.value\.trim/);
   assert.match(submitEventsSource, /seriesTitle:\s*seriesName/);
   assert.match(submitEventsSource, /contentKind:/);
@@ -229,6 +239,7 @@ test("writer script supports publish-layer open and confirm submit flow", async 
   assert.doesNotMatch(domSource, /#project-detail-image-url/);
   assert.match(submitSource, /series_title/);
   assert.match(postsApiSource, /requestPostSubmit/);
+  assert.match(postsApiSource, /requestAdminLogin/);
   assert.match(postsApiSource, /requestSeriesList/);
   assert.match(postsApiSource, /content_kind/);
   assert.match(postsApiSource, /project_profile/);

@@ -15,7 +15,7 @@ test("footer keeps login modal and routes admin viewers to imports console", asy
   ]);
 
   assert.match(footerSource, /FooterAdminModal/);
-  assert.match(footerSource, /client:load/);
+  assert.match(footerSource, /client:only="react"/);
   assert.match(footerSource, /ADMIN_ACCESS_COOKIE/);
   assert.match(footerSource, /verifyAccessToken/);
   assert.match(footerSource, /shouldOpenOnLoad=\{shouldOpenAdminLogin\}/);

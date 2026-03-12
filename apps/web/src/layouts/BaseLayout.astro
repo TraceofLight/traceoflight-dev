@@ -31,6 +31,6 @@ const htmlClassName = bodyClass.trim() || undefined;
       <slot />
     </main>
     <Footer transition:persist />
-    <FloatingUtilityButtons client:load />
+    <FloatingUtilityButtons client:only="react" />
   </body>
 </html>

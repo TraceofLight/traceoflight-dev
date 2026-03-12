@@ -4,7 +4,7 @@ import {
   normalizeJsonError,
 } from "./feedback";
 import { normalizeMarkdownLinks } from "./link-normalization";
-import { requestPostSubmit } from "./posts-api";
+import { requestAdminLogin, requestPostSubmit } from "./posts-api";
 import { suggestAvailableSlug } from "./slug";
 import {
   buildSubmitPayload,
@@ -46,9 +46,16 @@ export interface SubmitBindings {
   projectResourceLinksInput: HTMLTextAreaElement;
   openPublishButton: HTMLButtonElement;
   confirmPublishButton: HTMLButtonElement;
+  reauthForm: HTMLFormElement;
+  reauthUsernameInput: HTMLInputElement;
+  reauthPasswordInput: HTMLInputElement;
+  reauthFeedback: HTMLElement;
+  reauthCancelButton: HTMLButtonElement;
+  reauthConfirmButton: HTMLButtonElement;
   editorBridge: EditorBridge;
   isPublishLayerOpen: () => boolean;
   setPublishLayerOpen: (nextOpen: boolean) => void;
+  setReauthLayerOpen: (nextOpen: boolean) => void;
   ensureTitleExists: (message: string) => boolean;
   validateSlugAvailability: (source: "typing" | "submit") => Promise<boolean>;
   normalizeCoverInputValue: (withMessage: boolean) => string;
@@ -82,9 +89,16 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     projectResourceLinksInput,
     openPublishButton,
     confirmPublishButton,
+    reauthForm,
+    reauthUsernameInput,
+    reauthPasswordInput,
+    reauthFeedback,
+    reauthCancelButton,
+    reauthConfirmButton,
     editorBridge,
     isPublishLayerOpen,
     setPublishLayerOpen,
+    setReauthLayerOpen,
     ensureTitleExists,
     validateSlugAvailability,
     normalizeCoverInputValue,
@@ -96,6 +110,105 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     setEditingPostSlug,
     getSelectedTags,
   } = bindings;
+
+  type PendingPublishRetry = {
+    request: SubmitRequestInfo;
+    payload: ReturnType<typeof buildSubmitPayload>;
+    contentKind: PostContentKind;
+    status: PostStatus;
+  };
+
+  let pendingPublishRetry: PendingPublishRetry | null = null;
+
+  const setReauthFeedback = (message: string, state: FeedbackState) => {
+    reauthFeedback.dataset.state = state;
+    reauthFeedback.textContent = message;
+  };
+
+  const resetReauthForm = () => {
+    reauthPasswordInput.value = "";
+    setReauthFeedback("세션이 만료되었습니다. 다시 로그인한 뒤 출간을 이어갑니다.", "info");
+  };
+
+  const submitPost = async (
+    context: PendingPublishRetry,
+    desiredStatus: string | null,
+  ): Promise<void> => {
+    const { request, payload, contentKind, status } = context;
+
+    const submitResult = await requestPostSubmit(request, payload);
+    if (!submitResult.ok) {
+      if (submitResult.status === 401 && status === "published") {
+        pendingPublishRetry = context;
+        setReauthLayerOpen(true);
+        setReauthFeedback("세션이 만료되었습니다. 다시 로그인해 주세요.", "error");
+        reauthUsernameInput.focus();
+        return;
+      }
+
+      if (
+        submitResult.status === 409 &&
+        isSlugAlreadyExistsError(submitResult.errorPayload)
+      ) {
+        let suggestedSlug: string | null = null;
+        try {
+          suggestedSlug = await suggestAvailableSlug(payload.slug);
+        } catch {
+          suggestedSlug = null;
+        }
+
+        if (desiredStatus === "published" && !isPublishLayerOpen()) {
+          setPublishLayerOpen(true);
+        }
+
+        if (suggestedSlug && suggestedSlug !== payload.slug) {
+          setSlugValidationState(
+            "error",
+            `이미 사용 중인 주소입니다. 예: ${suggestedSlug}`,
+          );
+        } else {
+          setSlugValidationState(
+            "error",
+            "이미 사용 중인 주소입니다. 다른 Post URL을 입력해 주세요.",
+          );
+        }
+
+        slugInput.focus();
+        return;
+      }
+
+      throw new Error(normalizeJsonError(submitResult.errorPayload));
+    }
+
+    pendingPublishRetry = null;
+    setReauthLayerOpen(false);
+    resetReauthForm();
+
+    const created = submitResult.created;
+    if (created.slug) {
+      slugInput.value = created.slug;
+      setEditingPostSlug(created.slug);
+      setSlugValidationState("idle");
+      queuePreviewRefresh();
+    }
+    const createdStatus = (created.status ?? status).toLowerCase();
+    const publicPath =
+      createdStatus === "published"
+        ? contentKind === "project"
+          ? `/projects/${created.slug}`
+          : `/blog/${created.slug}/`
+        : contentKind === "project"
+          ? "/projects/"
+          : "/blog/";
+    if (createdStatus === "published") {
+      setPublishLayerOpen(false);
+      updateDraftQueryParam(null);
+      window.location.assign(publicPath);
+      return;
+    }
+    updateDraftQueryParam(created.slug);
+    showFeedback("임시저장 완료", "ok");
+  };
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -196,65 +309,15 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     confirmPublishButton.disabled = true;
 
     try {
-      const submitResult = await requestPostSubmit(submitRequest, payload);
-      if (!submitResult.ok) {
-        if (
-          submitResult.status === 409 &&
-          isSlugAlreadyExistsError(submitResult.errorPayload)
-        ) {
-          let suggestedSlug: string | null = null;
-          try {
-            suggestedSlug = await suggestAvailableSlug(slug);
-          } catch {
-            suggestedSlug = null;
-          }
-
-          if (desiredStatus === "published" && !isPublishLayerOpen()) {
-            setPublishLayerOpen(true);
-          }
-
-          if (suggestedSlug && suggestedSlug !== slug) {
-            setSlugValidationState(
-              "error",
-              `이미 사용 중인 주소입니다. 예: ${suggestedSlug}`,
-            );
-          } else {
-            setSlugValidationState(
-              "error",
-              "이미 사용 중인 주소입니다. 다른 Post URL을 입력해 주세요.",
-            );
-          }
-
-          slugInput.focus();
-          return;
-        }
-        throw new Error(normalizeJsonError(submitResult.errorPayload));
-      }
-
-      const created = submitResult.created;
-      if (created.slug) {
-        slugInput.value = created.slug;
-        setEditingPostSlug(created.slug);
-        setSlugValidationState("idle");
-        queuePreviewRefresh();
-      }
-      const createdStatus = (created.status ?? status).toLowerCase();
-      const publicPath =
-        createdStatus === "published"
-          ? contentKind === "project"
-            ? `/projects/${created.slug}`
-            : `/blog/${created.slug}/`
-          : contentKind === "project"
-            ? "/projects/"
-            : "/blog/";
-      if (createdStatus === "published") {
-        setPublishLayerOpen(false);
-        updateDraftQueryParam(null);
-        window.location.assign(publicPath);
-        return;
-      }
-      updateDraftQueryParam(created.slug);
-      showFeedback("임시저장 완료", "ok");
+      await submitPost(
+        {
+          request: submitRequest,
+          payload,
+          contentKind,
+          status,
+        },
+        desiredStatus,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.";
@@ -262,6 +325,48 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     } finally {
       openPublishButton.disabled = false;
       confirmPublishButton.disabled = false;
+    }
+  });
+
+  reauthCancelButton.addEventListener("click", () => {
+    setReauthLayerOpen(false);
+    resetReauthForm();
+  });
+
+  reauthForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!pendingPublishRetry) {
+      setReauthFeedback("다시 시도할 출간 요청이 없습니다.", "error");
+      return;
+    }
+
+    reauthConfirmButton.disabled = true;
+    reauthCancelButton.disabled = true;
+    setReauthFeedback("로그인 처리 중...", "pending");
+
+    try {
+      const loginResult = await requestAdminLogin(
+        reauthUsernameInput.value,
+        reauthPasswordInput.value,
+      );
+      if (!loginResult.ok) {
+        setReauthFeedback(
+          normalizeJsonError(loginResult.errorPayload),
+          "error",
+        );
+        return;
+      }
+
+      setReauthFeedback("다시 출간 중...", "pending");
+      await submitPost(pendingPublishRetry, "published");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "로그인 중 오류가 발생했습니다.";
+      setReauthFeedback(message, "error");
+    } finally {
+      reauthConfirmButton.disabled = false;
+      reauthCancelButton.disabled = false;
     }
   });
 }

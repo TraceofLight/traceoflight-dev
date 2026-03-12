@@ -84,7 +84,7 @@ function installYoutubeDirective(markdown: MarkdownIt): void {
     const embedUrl = tokens[idx].meta?.embedUrl;
     if (typeof embedUrl !== "string" || embedUrl.length === 0) return "";
     const escapedUrl = markdown.utils.escapeHtml(embedUrl);
-    return `<div class="md-video-embed"><iframe src="${escapedUrl}" title="YouTube video player" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    return `<div class="md-video-embed"><iframe src="${escapedUrl}" title="YouTube video player" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
   };
 }
 

@@ -337,7 +337,6 @@ const defaultMediaBaseUrl = siteUrl
                   class="writer-top-media-preview-frame"
                   title="Top media preview"
                   loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowfullscreen
                   hidden
                 >
@@ -423,6 +422,72 @@ const defaultMediaBaseUrl = siteUrl
           >
             지금 출간
           </button>
+        </div>
+        <div
+          id="writer-reauth-layer"
+          class="writer-reauth-layer"
+          data-open="false"
+          hidden
+        >
+          <section
+            class="writer-reauth-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="writer-reauth-title"
+          >
+            <div class="writer-reauth-head">
+              <p class="writer-publish-kicker">Session</p>
+              <h3 id="writer-reauth-title">세션 재인증</h3>
+              <p class="writer-reauth-description">
+                출간 전에 로그인 세션이 만료되었습니다. 다시 로그인한 뒤 이어서 출간합니다.
+              </p>
+            </div>
+            <form id="writer-reauth-form" class="writer-reauth-form">
+              <label class="writer-field">
+                <span>아이디</span>
+                <input
+                  id="writer-reauth-username"
+                  name="username"
+                  type="text"
+                  autocomplete="username"
+                  required
+                />
+              </label>
+              <label class="writer-field">
+                <span>비밀번호</span>
+                <input
+                  id="writer-reauth-password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                />
+              </label>
+              <p
+                id="writer-reauth-feedback"
+                class="writer-reauth-feedback"
+                data-state="info"
+              >
+                세션이 만료되었습니다. 다시 로그인한 뒤 출간을 이어갑니다.
+              </p>
+              <div class="writer-reauth-actions">
+                <button
+                  id="writer-reauth-cancel"
+                  class="writer-action writer-action-muted"
+                  type="button"
+                >
+                  취소
+                </button>
+                <button
+                  id="writer-reauth-confirm"
+                  class="writer-action writer-action-primary"
+                  type="submit"
+                >
+                  다시 로그인
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
       </section>
     </div>

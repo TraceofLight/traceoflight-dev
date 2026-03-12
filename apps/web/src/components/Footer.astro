@@ -38,7 +38,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
           />
         ) : (
           <FooterAdminModal
-            client:load
+            client:only="react"
             adminNextPath={adminNextPath}
             shouldOpenOnLoad={shouldOpenAdminLogin}
           />

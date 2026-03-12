@@ -174,12 +174,85 @@
 }
 
 .writer-preview-content pre {
-  background: #111827;
+  position: relative;
+  margin-bottom: 1.35rem;
+  padding: 3.15rem 1.3rem 1.25rem;
+  border: 1px solid #44475a;
+  border-radius: 1.4rem;
+  background: linear-gradient(180deg, #343746 0%, #282a36 18%);
+  box-shadow: 0 20px 56px rgba(40, 42, 54, 0.22);
+  overflow-x: auto;
 }
 
-.writer-preview-content code {
+.writer-preview-content pre::before {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  left: 1.15rem;
+  width: 0.68rem;
+  height: 0.68rem;
+  border-radius: 999px;
+  background: #ff5f56;
+  box-shadow: 1.1rem 0 0 #ffbd2e, 2.2rem 0 0 #27c93f;
+}
+
+.writer-preview-content :not(pre) > code {
   background: #e8eef7;
   color: #20426a;
+}
+
+.writer-preview-content pre code,
+.writer-preview-content pre code.hljs {
+  padding: 0;
+  background: transparent;
+  color: #f8f8f2;
+}
+
+.writer-preview-content .hljs-comment,
+.writer-preview-content .hljs-quote {
+  color: #6272a4;
+}
+
+.writer-preview-content .hljs-keyword,
+.writer-preview-content .hljs-selector-tag,
+.writer-preview-content .hljs-literal,
+.writer-preview-content .hljs-section,
+.writer-preview-content .hljs-link {
+  color: #ff79c6;
+}
+
+.writer-preview-content .hljs-string,
+.writer-preview-content .hljs-title,
+.writer-preview-content .hljs-name,
+.writer-preview-content .hljs-type,
+.writer-preview-content .hljs-attribute,
+.writer-preview-content .hljs-symbol,
+.writer-preview-content .hljs-bullet,
+.writer-preview-content .hljs-addition {
+  color: #f1fa8c;
+}
+
+.writer-preview-content .hljs-number,
+.writer-preview-content .hljs-variable,
+.writer-preview-content .hljs-template-variable,
+.writer-preview-content .hljs-subst,
+.writer-preview-content .hljs-meta,
+.writer-preview-content .hljs-meta .hljs-keyword {
+  color: #bd93f9;
+}
+
+.writer-preview-content .hljs-function,
+.writer-preview-content .hljs-title.function_,
+.writer-preview-content .hljs-title.class_ {
+  color: #50fa7b;
+}
+
+.writer-preview-content .hljs-params,
+.writer-preview-content .hljs-built_in,
+.writer-preview-content .hljs-operator,
+.writer-preview-content .hljs-punctuation,
+.writer-preview-content .hljs-deletion {
+  color: #f8f8f2;
 }
 
 .writer-preview-empty {

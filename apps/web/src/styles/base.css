@@ -82,16 +82,17 @@ pre > code {
   padding: 0;
   border-radius: 0;
   background: transparent;
+  color: #f8f8f2;
 }
 
 pre code.hljs {
   display: block;
-  color: #dbeafe;
+  color: #f8f8f2;
 }
 
 .hljs-comment,
 .hljs-quote {
-  color: #7c8fb0;
+  color: #6272a4;
   font-style: italic;
 }
 
@@ -100,7 +101,7 @@ pre code.hljs {
 .hljs-literal,
 .hljs-section,
 .hljs-link {
-  color: #93c5fd;
+  color: #ff79c6;
 }
 
 .hljs-string,
@@ -111,7 +112,7 @@ pre code.hljs {
 .hljs-symbol,
 .hljs-bullet,
 .hljs-addition {
-  color: #86efac;
+  color: #f1fa8c;
 }
 
 .hljs-number,
@@ -120,13 +121,13 @@ pre code.hljs {
 .hljs-subst,
 .hljs-meta,
 .hljs-meta .hljs-keyword {
-  color: #f9a8d4;
+  color: #bd93f9;
 }
 
 .hljs-function,
 .hljs-title.function_,
 .hljs-title.class_ {
-  color: #fcd34d;
+  color: #50fa7b;
 }
 
 .hljs-params,
@@ -134,7 +135,7 @@ pre code.hljs {
 .hljs-operator,
 .hljs-punctuation,
 .hljs-deletion {
-  color: #cbd5f5;
+  color: #f8f8f2;
 }
 
 .markdown-prose :not(pre) > code {

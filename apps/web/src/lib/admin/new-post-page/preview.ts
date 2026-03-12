@@ -197,7 +197,6 @@ export function buildPreviewTopMediaMarkup(
           title="상단 미디어 미리보기"
           loading="lazy"
           referrerpolicy="strict-origin-when-cross-origin"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
         ></iframe>
       </div>

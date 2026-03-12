@@ -117,6 +117,13 @@ export async function initNewPostAdminPage(
     publishBackdrop,
     closePublishButton,
     confirmPublishButton,
+    reauthLayer,
+    reauthForm,
+    reauthUsernameInput,
+    reauthPasswordInput,
+    reauthFeedback,
+    reauthCancelButton,
+    reauthConfirmButton,
     editorDropZone,
     coverDropZone,
   } = dom;
@@ -354,11 +361,28 @@ export async function initNewPostAdminPage(
   const setPublishLayerOpen = (nextOpen: boolean) => {
     publishLayer.hidden = !nextOpen;
     publishLayer.setAttribute("data-open", nextOpen ? "true" : "false");
+    if (!nextOpen) {
+      setReauthLayerOpen(false);
+    }
     confirmPublishButton.disabled = false;
   };
 
   const isPublishLayerOpen = () =>
     publishLayer.getAttribute("data-open") === "true";
+
+  const setReauthLayerOpen = (nextOpen: boolean) => {
+    reauthLayer.hidden = !nextOpen;
+    reauthLayer.setAttribute("data-open", nextOpen ? "true" : "false");
+    if (!nextOpen) {
+      reauthFeedback.dataset.state = "info";
+      reauthFeedback.textContent =
+        "세션이 만료되었습니다. 다시 로그인한 뒤 출간을 이어갑니다.";
+      reauthForm.reset();
+    }
+  };
+
+  const isReauthLayerOpen = () =>
+    reauthLayer.getAttribute("data-open") === "true";
 
   const normalizeCoverInputValue = (withMessage: boolean) => {
     const normalized = normalizeCoverUrl(
@@ -655,6 +679,7 @@ export async function initNewPostAdminPage(
   const unobserveEditor = editorBridge.observeChanges(queuePreviewRefresh);
   setDraftLayerOpen(false);
   setPublishLayerOpen(false);
+  setReauthLayerOpen(false);
 
   bindDraftLayerEvents({
     openDraftsButton,
@@ -729,6 +754,11 @@ export async function initNewPostAdminPage(
 
   const onWindowKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
+    if (isReauthLayerOpen()) {
+      event.preventDefault();
+      setReauthLayerOpen(false);
+      return;
+    }
     if (isDraftLayerOpen()) {
       event.preventDefault();
       setDraftLayerOpen(false);
@@ -763,9 +793,16 @@ export async function initNewPostAdminPage(
     projectResourceLinksInput,
     openPublishButton,
     confirmPublishButton,
+    reauthForm,
+    reauthUsernameInput,
+    reauthPasswordInput,
+    reauthFeedback,
+    reauthCancelButton,
+    reauthConfirmButton,
     editorBridge,
     isPublishLayerOpen,
     setPublishLayerOpen,
+    setReauthLayerOpen,
     ensureTitleExists,
     validateSlugAvailability,
     normalizeCoverInputValue,

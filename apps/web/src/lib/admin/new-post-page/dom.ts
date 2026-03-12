@@ -59,6 +59,13 @@ export interface WriterDomElements {
   publishBackdrop: HTMLButtonElement;
   closePublishButton: HTMLButtonElement;
   confirmPublishButton: HTMLButtonElement;
+  reauthLayer: HTMLElement;
+  reauthForm: HTMLFormElement;
+  reauthUsernameInput: HTMLInputElement;
+  reauthPasswordInput: HTMLInputElement;
+  reauthFeedback: HTMLElement;
+  reauthCancelButton: HTMLButtonElement;
+  reauthConfirmButton: HTMLButtonElement;
   editorDropZone: HTMLElement;
   coverDropZone: HTMLElement;
 }
@@ -124,6 +131,13 @@ const WRITER_SELECTORS = {
   publishBackdrop: "#writer-publish-backdrop",
   closePublishButton: "#writer-cancel-publish",
   confirmPublishButton: "#writer-confirm-publish",
+  reauthLayer: "#writer-reauth-layer",
+  reauthForm: "#writer-reauth-form",
+  reauthUsernameInput: "#writer-reauth-username",
+  reauthPasswordInput: "#writer-reauth-password",
+  reauthFeedback: "#writer-reauth-feedback",
+  reauthCancelButton: "#writer-reauth-cancel",
+  reauthConfirmButton: "#writer-reauth-confirm",
   editorDropZone: "#writer-editor-drop-zone",
   coverDropZone: "#writer-cover-drop-zone",
 } as const;
@@ -268,6 +282,13 @@ export function queryWriterDomElements(
       root,
       WRITER_SELECTORS.confirmPublishButton,
     ),
+    reauthLayer: queryElement<HTMLElement>(root, WRITER_SELECTORS.reauthLayer),
+    reauthForm: queryElement<HTMLFormElement>(root, WRITER_SELECTORS.reauthForm),
+    reauthUsernameInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.reauthUsernameInput),
+    reauthPasswordInput: queryElement<HTMLInputElement>(root, WRITER_SELECTORS.reauthPasswordInput),
+    reauthFeedback: queryElement<HTMLElement>(root, WRITER_SELECTORS.reauthFeedback),
+    reauthCancelButton: queryElement<HTMLButtonElement>(root, WRITER_SELECTORS.reauthCancelButton),
+    reauthConfirmButton: queryElement<HTMLButtonElement>(root, WRITER_SELECTORS.reauthConfirmButton),
     editorDropZone: queryElement<HTMLElement>(
       root,
       WRITER_SELECTORS.editorDropZone,

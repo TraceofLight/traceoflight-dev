@@ -38,7 +38,8 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(indexSource, /import ProjectCard from/);
   assert.match(indexSource, /ADMIN_ACCESS_COOKIE/);
   assert.match(indexSource, /verifyAccessToken/);
-  assert.match(indexSource, /max-w-6xl/);
+  assert.doesNotMatch(indexSource, /max-w-6xl/);
+  assert.match(indexSource, /<section class="flex w-full flex-col gap-8 py-10 sm:py-12">/);
   assert.match(indexSource, /<header class="space-y-4 text-center">/);
   assert.match(indexSource, /listPublishedDbProjects|getPublishedProjectBySlug|listPublishedDbProjectPosts/);
   assert.match(indexSource, /\/admin\/projects/);
@@ -76,7 +77,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /PUBLIC_SECTION_SURFACE_CLASS/);
   assert.match(source, /class=\{PUBLIC_SURFACE_ACTION_CLASS\}/);
   assert.match(source, /class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} px-6 py-12 text-center`\}/);
-  assert.match(source, /PROJECT DETAIL/);
+  assert.match(source, /ABOUT PROJECT/);
   assert.match(source, /project\.projectProfile|projectProfile/);
   assert.match(source, /project\.summary/);
   assert.match(source, /project\.intro/);
@@ -89,6 +90,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /relatedSeriesPosts|related series/i);
   assert.match(source, /연관된 포스팅 시리즈/);
   assert.match(source, /모든 프로젝트 보기/);
+  assert.match(source, /상세 내용/);
   assert.match(source, /class="markdown-prose mt-5 text-base leading-8 text-foreground\/85"/);
   assert.match(source, /project\.relatedSeriesPosts\.length > 0[\s\S]*SeriesAdminPanel client:load series=\{adminSeries\}/);
   assert.match(source, /toYoutubeEmbedUrl/);

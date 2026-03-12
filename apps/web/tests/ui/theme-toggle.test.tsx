@@ -16,6 +16,7 @@ describe("ThemeToggle", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(toggle.className).toContain("bg-white/86");
+    expect(toggle.innerHTML).toContain("bg-sky-950/92 text-white");
     expect(toggle.querySelectorAll("svg")).toHaveLength(3);
 
     fireEvent.click(toggle);
@@ -23,7 +24,8 @@ describe("ThemeToggle", () => {
     expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem("traceoflight-theme")).toBe("dark");
-    expect(toggle.className).toContain("bg-slate-900/92");
+    expect(toggle.className).toContain("bg-slate-950/92");
+    expect(toggle.innerHTML).toContain("bg-white text-slate-950");
     expect(toggle.innerHTML).toContain("translate-x-10");
 
     fireEvent.click(toggle);

@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  PUBLIC_DANGER_OUTLINE_ACTION_EFFECT_CLASS,
   PUBLIC_DANGER_OUTLINE_ACTION_CLASS,
   PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+  PUBLIC_SURFACE_ACTION_EFFECT_CLASS,
 } from "@/lib/ui-effects";
 
 type PostAdminActionsProps = {
@@ -139,8 +141,18 @@ export function PostAdminActions({
             {feedback.message}
           </p>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>취소</AlertDialogCancel>
-            <Button disabled={busy} onClick={handleDelete} variant="destructive">
+            <AlertDialogCancel
+              className={PUBLIC_SURFACE_ACTION_EFFECT_CLASS}
+              disabled={busy}
+            >
+              취소
+            </AlertDialogCancel>
+            <Button
+              className={PUBLIC_DANGER_OUTLINE_ACTION_EFFECT_CLASS}
+              disabled={busy}
+              onClick={handleDelete}
+              variant="outline"
+            >
               삭제 확인
             </Button>
           </AlertDialogFooter>

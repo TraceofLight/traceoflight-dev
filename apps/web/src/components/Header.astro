@@ -50,7 +50,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
         }
       </nav>
       <div class="md:hidden">
-        <MobileNavSheet client:load items={NAV_LINKS} isAdminViewer={isAdminViewer} />
+        <MobileNavSheet client:only="react" items={NAV_LINKS} isAdminViewer={isAdminViewer} />
       </div>
     </div>
   </div>

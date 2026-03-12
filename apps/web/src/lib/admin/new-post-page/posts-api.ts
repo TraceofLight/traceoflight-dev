@@ -63,6 +63,10 @@ export type SubmitPostResult =
   | { ok: true; created: SubmitCreatedPost }
   | { ok: false; status: number; errorPayload: unknown };
 
+export type AdminLoginResult =
+  | { ok: true }
+  | { ok: false; status: number; errorPayload: unknown };
+
 export async function requestPostBySlug(slug: string): Promise<PostLoadResult> {
   try {
     const response = await fetch(`/internal-api/posts/${encodeURIComponent(slug)}`);
@@ -189,6 +193,31 @@ export async function requestPostSubmit(
 
   const created = (await response.json()) as SubmitCreatedPost;
   return { ok: true, created };
+}
+
+export async function requestAdminLogin(
+  username: string,
+  password: string,
+): Promise<AdminLoginResult> {
+  const response = await fetch("/internal-api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      username: username.trim(),
+      password,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorPayload = (await response.json().catch(() => null)) as unknown;
+    return {
+      ok: false,
+      status: response.status,
+      errorPayload,
+    };
+  }
+
+  return { ok: true };
 }
 
 function normalizeDraftPayload(raw: unknown): Partial<AdminPostPayload> {
