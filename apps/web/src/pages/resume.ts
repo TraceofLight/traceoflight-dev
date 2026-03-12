@@ -4,7 +4,7 @@ import { requestBackend } from "../lib/backend-api";
 
 export const prerender = false;
 
-function renderResumeUnavailableHtml(status: number, message: string) {
+function renderResumeUnavailableHtml(message: string) {
   const safeMessage = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   return `<!doctype html>
@@ -57,7 +57,7 @@ export const GET: APIRoute = async () => {
     });
   } catch {
     return new Response(
-      renderResumeUnavailableHtml(503, "이력서 PDF를 불러오지 못했습니다."),
+      renderResumeUnavailableHtml("이력서 PDF를 불러오지 못했습니다."),
       {
         status: 503,
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -67,7 +67,7 @@ export const GET: APIRoute = async () => {
 
   if (response.status === 404) {
     return new Response(
-      renderResumeUnavailableHtml(404, "등록된 이력서 PDF가 없습니다."),
+      renderResumeUnavailableHtml("등록된 이력서 PDF가 없습니다."),
       {
         status: 404,
         headers: { "content-type": "text/html; charset=utf-8" },

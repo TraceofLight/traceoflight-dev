@@ -27,7 +27,7 @@ interface Props {
 
 const {
   series,
-  imageWidth = 1200,
+  imageWidth = 960,
   imageHeight = 640,
   fallbackCoverImageSrc,
 } = Astro.props;
@@ -35,13 +35,14 @@ const fallbackCoverImage = "/images/empty-series-image.png";
 const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl(fallbackCoverImage, {
   width: imageWidth,
   height: imageHeight,
-  fit: "cover",
+  fit: "inside",
 });
 const coverImageFallbackOnError = buildImageFallbackOnError(resolvedFallbackCoverImageSrc);
 const resolvedCoverImageSrc = series.coverImageUrl
   ? toBrowserImageUrl(series.coverImageUrl, {
       width: imageWidth,
       height: imageHeight,
+      fit: "inside",
     })
   : resolvedFallbackCoverImageSrc;
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;

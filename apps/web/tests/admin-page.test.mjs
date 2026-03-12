@@ -15,15 +15,23 @@ const editWriterPath = new URL(
   import.meta.url,
 );
 
-test("admin dashboard route is removed and writer back links return to blog", async () => {
+test("admin dashboard route is removed and writer back links fall back to public sections", async () => {
   await assert.rejects(access(adminIndexPath));
   const [newWriterSource, editWriterSource] = await Promise.all([
     readFile(newWriterPath, "utf8"),
     readFile(editWriterPath, "utf8"),
   ]);
 
-  assert.match(newWriterSource, /href="\/blog\/"/);
-  assert.match(editWriterSource, /href="\/blog\/"/);
+  assert.match(
+    newWriterSource,
+    /const fallbackBackHref = initialContentKind === "project" \? "\/projects\/" : "\/blog\/";/,
+  );
+  assert.match(
+    editWriterSource,
+    /const fallbackBackHref = initialContentKind === "project" \? "\/projects\/" : "\/blog\/";/,
+  );
+  assert.match(newWriterSource, /href=\{backHref\}/);
+  assert.match(editWriterSource, /href=\{backHref\}/);
   assert.doesNotMatch(newWriterSource, /href="\/admin"/);
   assert.doesNotMatch(editWriterSource, /href="\/admin"/);
 });

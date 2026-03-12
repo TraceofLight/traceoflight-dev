@@ -9,6 +9,22 @@ const initialContentKind =
   Astro.url.searchParams.get("content_kind")?.trim().toLowerCase() === "project"
     ? "project"
     : "blog";
+const fallbackBackHref = initialContentKind === "project" ? "/projects/" : "/blog/";
+const rawReferer = Astro.request.headers.get("referer")?.trim() ?? "";
+let backHref = fallbackBackHref;
+
+try {
+  if (rawReferer) {
+    const refererUrl = new URL(rawReferer);
+    if (refererUrl.origin === Astro.url.origin) {
+      backHref =
+        `${refererUrl.pathname}${refererUrl.search}${refererUrl.hash}` ||
+        fallbackBackHref;
+    }
+  }
+} catch {
+  backHref = fallbackBackHref;
+}
 ---
 
 <AdminWriterLayout title="Admin Writer" description="TraceofLight admin writer">
@@ -120,7 +136,7 @@ const initialContentKind =
 
         <div id="writer-bottom-bar" class="writer-bottom-bar">
           <div class="writer-bottom-left">
-            <a class="writer-bottom-back" href="/blog/">뒤로가기</a>
+            <a class="writer-bottom-back" href={backHref}>뒤로가기</a>
             <button
               id="writer-open-drafts"
               class="writer-bottom-back writer-bottom-drafts"

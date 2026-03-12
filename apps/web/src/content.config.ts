@@ -13,6 +13,10 @@ const blog = defineCollection({
 			pubDate: z.coerce.date(),
 			updatedDate: z.coerce.date().optional(),
 			coverImage: z.union([image(), z.string()]).optional(),
+			topMediaKind: z.enum(["image", "youtube", "video"]).optional(),
+			topMediaImageUrl: z.string().optional(),
+			topMediaYoutubeUrl: z.string().optional(),
+			topMediaVideoUrl: z.string().optional(),
 		}),
 });
 

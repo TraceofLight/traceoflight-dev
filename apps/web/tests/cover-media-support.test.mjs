@@ -57,7 +57,7 @@ test("post cards consume the shared cover media renderer instead of inline branc
   assert.doesNotMatch(source, /typeof post\.(coverImage|coverMedia) === 'string'/);
 });
 
-test("blog post layout reuses shared cover media helpers for rendering and og image fallback", async () => {
+test("blog post layout reuses shared cover media helpers for top media rendering and og image fallback", async () => {
   const source = await readFile(blogPostLayoutPath, "utf8");
 
   assert.match(
@@ -70,7 +70,8 @@ test("blog post layout reuses shared cover media helpers for rendering and og im
   );
   assert.match(source, /const coverMedia = normalizeCoverMedia\(coverImage\);/);
   assert.match(source, /image=\{getCoverMediaMetadata\(coverMedia\)\}/);
-  assert.match(source, /<CoverMediaImage[\s\S]*media=\{coverMedia\}[\s\S]*alt=\{title\}/);
+  assert.match(source, /const topMediaImage = normalizeCoverMedia\(topMediaImageUrl \?\? coverImage\);/);
+  assert.match(source, /<CoverMediaImage[\s\S]*media=\{topMediaImage\}[\s\S]*alt=\{title\}/);
   assert.match(source, /const detailCoverWidth = 1400;/);
   assert.match(source, /const detailCoverHeight = 1000;/);
   assert.match(source, /toBrowserImageUrl\("\/images\/empty-article-image\.png",\s*\{[\s\S]*width:\s*detailCoverWidth,[\s\S]*height:\s*detailCoverHeight,[\s\S]*fit:\s*"inside"/);
@@ -79,9 +80,9 @@ test("blog post layout reuses shared cover media helpers for rendering and og im
   assert.doesNotMatch(source, /className="mt-8 aspect-\[16\/9\] w-full rounded-3xl border/);
   assert.match(source, /width=\{detailCoverWidth\}/);
   assert.match(source, /height=\{detailCoverHeight\}/);
-  assert.match(source, /rounded-3xl border border-white\/80 bg-white\/96 p-5 shadow-\[0_28px_70px_rgba\(15,23,42,0\.12\)\]/);
+  assert.match(source, /rounded-3xl bg-white\/96 p-5 \$\{PUBLIC_PANEL_SURFACE_CLASS\}/);
   assert.match(source, /\{seriesContext\.totalPosts\}개 글 중 \{seriesContext\.orderIndex\}번째/);
-  assert.match(source, /group grid grid-cols-\[124px_minmax\(0,1fr\)\] items-center gap-4 rounded-2xl border border-white\/80 bg-white\/92 p-3\.5 shadow-\[0_18px_40px_rgba\(15,23,42,0\.08\)\]/);
+  assert.match(source, /group grid grid-cols-\[124px_minmax\(0,1fr\)\] items-center gap-4 rounded-2xl p-3\.5 transition duration-200 hover:-translate-y-0\.5 hover:border-sky-200\/70 hover:bg-white \$\{PUBLIC_PANEL_SURFACE_SOFT_CLASS\}/);
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });
 

@@ -1,7 +1,7 @@
 export function setFeedback(
   target: HTMLElement,
   message: string,
-  type: "error" | "ok" | "info",
+  type: "error" | "ok" | "info" | "pending",
   options: { autoHideMs?: number; hideTimerRef?: { id: number | null } } = {},
 ): void {
   const autoHideMs = options.autoHideMs ?? 3200;

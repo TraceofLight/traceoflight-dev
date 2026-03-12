@@ -52,7 +52,7 @@ function getCoverImageAlt(title: string) {
 const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png", {
   width: 960,
   height: 640,
-  fit: "cover",
+  fit: "inside",
 });
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
 const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;

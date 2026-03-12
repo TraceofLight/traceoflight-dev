@@ -23,7 +23,7 @@ export const PUBLIC_HOVER_CARD_CLASS =
   `${PUBLIC_CARD_SURFACE_CLASS} transition duration-300 hover:-translate-y-2 hover:bg-white hover:shadow-[0_38px_90px_rgba(15,23,42,0.14)]`;
 
 export const PUBLIC_MEDIA_FRAME_CLASS =
-  "relative h-56 overflow-hidden rounded-[1.5rem] bg-slate-100 sm:h-64";
+  "relative aspect-[3/2] overflow-hidden rounded-[1.5rem] bg-slate-100";
 
 export const PUBLIC_FIELD_SURFACE_CLASS =
   "flex h-11 w-full rounded-2xl border border-white/80 bg-white/92 px-4 py-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)]";

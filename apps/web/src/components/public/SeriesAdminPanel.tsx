@@ -9,7 +9,6 @@ import { ImagePlusIcon, LoaderCircleIcon, SaveIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  PUBLIC_ICON_ACTION_CLASS,
   PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
 } from "@/lib/ui-effects";
 import { Input } from "@/components/ui/input";

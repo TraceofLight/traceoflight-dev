@@ -69,13 +69,13 @@ function resolveCoverImageSrc(
     return toBrowserImageUrl("/images/empty-article-image.png", {
       width,
       height,
-      fit: "cover",
+      fit: "inside",
     });
   }
 
   return post.coverMedia.kind === "optimized"
     ? post.coverMedia.src.src
-    : toBrowserImageUrl(post.coverMedia.src, { width, height });
+    : toBrowserImageUrl(post.coverMedia.src, { width, height, fit: "inside" });
 }
 
 const archivePosts: BlogArchivePost[] = posts.map((post) => ({

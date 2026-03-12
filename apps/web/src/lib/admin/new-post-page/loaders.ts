@@ -63,6 +63,7 @@ interface WriterLoaderDependencies {
   setTagSuggestionSequence: (value: number) => void;
   getSeriesSuggestionSequence: () => number;
   setSeriesSuggestionSequence: (value: number) => void;
+  getSelectedTags: () => string[];
   setSelectedTags: (tags: string[]) => void;
   syncTagUi: () => void;
   setSlugValidationState: (state: "idle" | "error", message?: string) => void;
@@ -107,6 +108,7 @@ export function createWriterLoaders(
     setTagSuggestionSequence,
     getSeriesSuggestionSequence,
     setSeriesSuggestionSequence,
+    getSelectedTags,
     setSelectedTags,
     syncTagUi,
     setSlugValidationState,
@@ -203,7 +205,7 @@ export function createWriterLoaders(
       .join("\n");
     syncProjectFieldVisibility();
     syncTopMediaUi();
-    setSelectedTags(dedupeTagSlugs(loaded.tags ?? []));
+    setSelectedTags(dedupeTagSlugs(loaded.tags ?? getSelectedTags()));
     syncTagUi();
     await editorBridge.setMarkdown(loaded.body_markdown ?? "");
     setSlugValidationState("idle");

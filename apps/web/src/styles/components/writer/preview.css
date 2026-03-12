@@ -10,6 +10,7 @@
   border-left: 1px solid var(--writer-border);
   border-bottom: 1px solid var(--writer-border);
   background: var(--writer-surface-strong);
+  font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif;
 }
 
 .writer-preview-kicker {
@@ -47,6 +48,7 @@
   overflow: hidden;
   border-left: 1px solid var(--writer-border);
   background: var(--writer-surface-soft);
+  font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif;
 }
 
 .writer-preview-meta-grid {
@@ -123,6 +125,7 @@
   background: var(--writer-surface-soft);
   color: color-mix(in srgb, var(--writer-text) 88%, white);
   line-height: 1.75;
+  font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif;
 }
 
 .writer-preview-content a {

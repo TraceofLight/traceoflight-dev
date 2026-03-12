@@ -57,16 +57,16 @@ test("placeholder images also route through browser-sized cover image URLs", asy
     ]);
 
   assert.match(postCardSource, /toBrowserImageUrl\(fallbackCoverImage,\s*\{/);
-  assert.match(postCardSource, /fit:\s*"cover"/);
+  assert.match(postCardSource, /fit:\s*"inside"/);
   assert.match(blogIndexSource, /toBrowserImageUrl\(["']\/images\/empty-article-image\.png["']/);
-  assert.match(blogIndexSource, /fit:\s*"cover"/);
+  assert.match(blogIndexSource, /fit:\s*"inside"/);
   assert.match(seriesIndexSource, /toBrowserImageUrl\(defaultSeriesCoverImage,\s*\{/);
   assert.match(seriesIndexSource, /fit:\s*"cover"/);
   assert.match(seriesDetailSource, /toBrowserImageUrl\(defaultSeriesCoverImage,\s*\{/);
   assert.match(seriesDetailSource, /toBrowserImageUrl\(defaultSeriesPostCoverImage,\s*\{/);
   assert.match(seriesDetailSource, /fit:\s*"cover"/);
   assert.match(seriesCardSource, /toBrowserImageUrl\(fallbackCoverImage,\s*\{/);
-  assert.match(seriesCardSource, /fit:\s*"cover"/);
+  assert.match(seriesCardSource, /fit:\s*"inside"/);
 });
 
 test("home intro section uses separate copy and profile panels with centered profile space", async () => {
@@ -77,14 +77,17 @@ test("home intro section uses separate copy and profile panels with centered pro
   assert.match(source, /id="home-intro-profile-panel"/);
   assert.match(source, /id="home-intro-profile-frame"/);
   assert.match(source, /lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\]/);
-  assert.match(source, /id="home-intro-copy-panel"[\s\S]*class="grid h-full content-center gap-6 rounded-\[2\.1rem\] border border-white\/80 bg-white\/92 px-6 py-7/);
+  assert.match(source, /const topMediaCopyPanelClass =/);
+  assert.match(source, /id="home-intro-copy-panel"[\s\S]*class=\{`grid h-full content-center gap-6 \$\{topMediaCopyPanelClass\}`\}/);
   assert.match(source, /class="flex h-full items-center justify-center px-4 py-2 sm:px-6 sm:py-4"/);
   assert.match(source, /space-y-2\.5 text-base leading-\[1\.65\] text-muted-foreground sm:text-lg sm:leading-\[1\.7\]/);
   assert.match(source, /id="home-intro-profile-frame"[\s\S]*class="aspect-square w-full max-w-\[18rem\] sm:max-w-\[19rem\]"/);
   assert.doesNotMatch(source, /flex h-full w-full items-center justify-center rounded-\[2\.1rem\] border border-white\/80 bg-white\/90 p-6/);
   assert.match(source, /class="h-full w-full object-contain"/);
   assert.match(source, /src=\{profileImage\}/);
-  assert.match(source, /class="inline-flex items-center gap-2 rounded-full border border-sky-200\/70 bg-white\/96 px-5 py-2\.5 text-sm font-medium text-sky-700/);
+  assert.match(source, /const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;/);
+  assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/projects">/);
+  assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/blog">/);
   assert.doesNotMatch(source, /h\u0065roRoleTokens/);
 });
 
@@ -118,8 +121,8 @@ test("series cards and sidebars route db cover images through browser-sized urls
 
   assert.match(seriesCardSource, /const resolvedCoverImageSrc = series\.coverImageUrl[\s\S]*\?/);
   assert.match(seriesCardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{/);
+  assert.match(seriesCardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(seriesCardSource, /imageHeight = 640/);
-  assert.match(seriesCardSource, /const mediaFrameClass = "relative h-56 overflow-hidden rounded-\[1\.5rem\] bg-slate-100 sm:h-64";/);
   assert.match(seriesCardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(seriesCardSource, /src=\{resolvedCoverImageSrc\}/);
   assert.match(seriesDetailSource, /const resolvedSeriesCoverImageSrc = series\?\.coverImageUrl[\s\S]*\?/);

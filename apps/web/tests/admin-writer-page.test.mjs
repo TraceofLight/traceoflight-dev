@@ -261,6 +261,14 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
   );
   assert.match(
     source,
+    /\.writer-editor-shell \.milkdown \.editor[\s\S]*font-family:\s*'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif/,
+  );
+  assert.match(
+    source,
+    /\.writer-fallback-textarea[\s\S]*font-family:\s*'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif/,
+  );
+  assert.match(
+    source,
     /\.writer-editor-shell \.milkdown \.milkdown-link-edit > \.link-edit > \.button/,
   );
   assert.doesNotMatch(source, /\.writer-editor-guide/);
@@ -278,6 +286,18 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
     /\.writer-field-feedback\[data-state=["']error["']][\s\S]*color:\s*#b43a3a/,
   );
   assert.match(source, /\.writer-preview-head[\s\S]*position:\s*relative/);
+  assert.match(
+    source,
+    /\.writer-preview-head[\s\S]*font-family:\s*'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif/,
+  );
+  assert.match(
+    source,
+    /\.writer-preview-meta[\s\S]*font-family:\s*'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif/,
+  );
+  assert.match(
+    source,
+    /\.writer-preview-content[\s\S]*font-family:\s*'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif/,
+  );
   assert.match(source, /\.writer-preview-kicker[\s\S]*position:\s*absolute/);
   assert.match(source, /\.writer-preview-kicker[\s\S]*left:\s*1\.2rem/);
   assert.match(source, /\.writer-preview-head h1[\s\S]*min-height:\s*56px/);

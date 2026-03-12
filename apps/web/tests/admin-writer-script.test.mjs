@@ -129,7 +129,11 @@ test("writer script updates title in preview and syncs cover preview", async () 
 
 test("writer script starts editor with empty content and toggles empty guide state", async () => {
   const source = await readFile(scriptPath, "utf8");
-  assert.match(source, /createEditorBridge\(editorRoot,\s*["']["']\)/);
+  assert.match(
+    source,
+    /const initialMarkdown = initialPayload\?\.body_markdown \?\? ["']["'];/,
+  );
+  assert.match(source, /createEditorBridge\(editorRoot,\s*initialMarkdown\)/);
   assert.match(source, /data-has-content/);
   assert.match(source, /setAttribute\(\s*["']data-has-content["']/);
 });
@@ -145,6 +149,9 @@ test("writer script has fallback text editor for init failure", async () => {
   assert.match(writerSource, /createEditorBridge/);
   assert.match(bridgeSource, /writer-fallback-textarea/);
   assert.match(bridgeSource, /createEditorBridge/);
+  assert.match(bridgeSource, /withTimeout/);
+  assert.match(bridgeSource, /Milkdown runtime loading timed out/);
+  assert.match(bridgeSource, /Milkdown editor initialization timed out/);
   assert.match(bridgeSource, /await import\(["']@milkdown\/crepe["']\)/);
   assert.match(bridgeSource, /await import\(["']@milkdown\/utils["']\)/);
   assert.doesNotMatch(

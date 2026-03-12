@@ -124,6 +124,9 @@ test("admin writer script delegates helper concerns to sub-modules", async () =>
   await exists("src/lib/admin/new-post-page/editor-markdown.ts");
   await exists("src/lib/admin/new-post-page/upload.ts");
   await exists("src/lib/admin/new-post-page/editor-bridge.ts");
+  await exists("src/lib/admin/new-post-page/loaders.ts");
+  await exists("src/lib/admin/new-post-page/media-controller.ts");
+  await exists("src/lib/admin/new-post-page/tags.ts");
 
   const [writerScript, submitEventsScript] = await Promise.all([
     read("src/lib/admin/new-post-page.ts"),
@@ -138,15 +141,16 @@ test("admin writer script delegates helper concerns to sub-modules", async () =>
   assert.match(writerScript, /from ["']\.\/new-post-page\/types["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/feedback["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/slug["']/);
-  assert.match(writerScript, /from ["']\.\/new-post-page\/drafts["']/);
+  assert.match(writerScript, /from ["']\.\/new-post-page\/loaders["']/);
+  assert.match(writerScript, /from ["']\.\/new-post-page\/media-controller["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/preview["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/submit-events["']/);
   assert.match(
     writerScript,
     /from ["']\.\/new-post-page\/draft-layer-events["']/,
   );
-  assert.match(writerScript, /from ["']\.\/new-post-page\/drag-drop["']/);
   assert.match(writerScript, /from ["']\.\/new-post-page\/posts-api["']/);
+  assert.match(writerScript, /from ["']\.\/new-post-page\/tags["']/);
   assert.match(
     writerScript,
     /from ["']\.\/new-post-page\/link-normalization["']/,
@@ -158,4 +162,6 @@ test("admin writer script delegates helper concerns to sub-modules", async () =>
   assert.doesNotMatch(writerScript, /function slugify\(/);
   assert.doesNotMatch(writerScript, /function normalizeMarkdownLinks\(/);
   assert.doesNotMatch(writerScript, /async function createUploadBundle\(/);
+  assert.doesNotMatch(writerScript, /function buildDraftQueryPath\(/);
+  assert.doesNotMatch(writerScript, /function isMediaFileDrag\(/);
 });

@@ -82,10 +82,11 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
-  assert.match(source, /const fallbackCoverImageSrc = toBrowserImageUrl\([\s\S]*fit:\s*"cover"/);
+  assert.match(source, /const fallbackCoverImageSrc = toBrowserImageUrl\([\s\S]*fit:\s*"inside"/);
   assert.match(source, /onError=\{\(event\) => \{/);
   assert.match(source, /event\.currentTarget\.src !== fallbackCoverImageSrc/);
   assert.match(source, /event\.currentTarget\.src = fallbackCoverImageSrc/);
+  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
 });
 
 test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", async () => {
@@ -102,6 +103,7 @@ test("post card uses a wide image-led public card structure", async () => {
     source,
     /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
+  assert.match(source, /imageWidth = 960/);
   assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);

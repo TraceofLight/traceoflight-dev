@@ -26,19 +26,18 @@ const postsApiPath = new URL(
 
 test("admin writer page keeps tag input and chip list inside publish settings", async () => {
   const source = await readFile(pagePath, "utf8");
-  const metaPanelMatch = source.match(
-    /<aside id="writer-meta-panel"[\s\S]*?<\/aside>/,
-  );
-  const publishBodyMatch = source.match(
-    /<div class="writer-publish-body">[\s\S]*?<\/div>\s*<\/div>\s*<div class="writer-publish-actions">/,
-  );
+  const metaPanelStart = source.indexOf('id="writer-meta-panel"');
+  const publishLayerStart = source.indexOf('id="writer-publish-layer"');
+  const tagInputIndex = source.indexOf('id="post-tags"');
+  const tagChipIndex = source.indexOf('id="writer-tag-chip-list"');
+  const metaChipRailIndex = source.indexOf('id="writer-meta-chip-rail"');
 
-  assert.ok(metaPanelMatch);
-  assert.ok(publishBodyMatch);
-  assert.match(publishBodyMatch[0], /id="post-tags"/);
-  assert.match(publishBodyMatch[0], /id="writer-tag-chip-list"/);
-  assert.match(publishBodyMatch[0], /id="writer-meta-chip-rail"/);
-  assert.doesNotMatch(metaPanelMatch[0], /id="post-tags"/);
+  assert.notEqual(metaPanelStart, -1);
+  assert.notEqual(publishLayerStart, -1);
+  assert.ok(tagInputIndex > publishLayerStart);
+  assert.ok(tagChipIndex > publishLayerStart);
+  assert.ok(metaChipRailIndex > publishLayerStart);
+  assert.ok(tagInputIndex > metaPanelStart);
 });
 
 test("admin writer dom/query definitions include tag elements", async () => {

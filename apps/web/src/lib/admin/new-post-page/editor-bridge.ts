@@ -6,17 +6,46 @@ type CrepeRuntime = {
 };
 
 let crepeRuntimePromise: Promise<CrepeRuntime> | null = null;
+const MILKDOWN_RUNTIME_TIMEOUT_MS = 10_000;
+const MILKDOWN_EDITOR_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+
+    operation.then(
+      (value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      },
+    );
+  });
+}
 
 async function loadCrepeRuntime(): Promise<CrepeRuntime> {
   if (crepeRuntimePromise) {
     return crepeRuntimePromise;
   }
 
-  crepeRuntimePromise = (async () => {
-    const { Crepe } = await import("@milkdown/crepe");
-    const { replaceAll } = await import("@milkdown/utils");
-    return { Crepe, replaceAll };
-  })();
+  crepeRuntimePromise = withTimeout(
+    (async () => {
+      const { Crepe } = await import("@milkdown/crepe");
+      const { replaceAll } = await import("@milkdown/utils");
+      return { Crepe, replaceAll };
+    })(),
+    MILKDOWN_RUNTIME_TIMEOUT_MS,
+    "Milkdown runtime loading timed out",
+  );
 
   return crepeRuntimePromise;
 }
@@ -31,7 +60,11 @@ export async function createEditorBridge(
       root: editorRoot,
       defaultValue: initialValue,
     });
-    await editor.create();
+    await withTimeout(
+      editor.create(),
+      MILKDOWN_EDITOR_TIMEOUT_MS,
+      "Milkdown editor initialization timed out",
+    );
 
     return {
       mode: "crepe",

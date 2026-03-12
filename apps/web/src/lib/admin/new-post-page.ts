@@ -144,7 +144,7 @@ export async function initNewPostAdminPage(
   const toastTimer = { id: null as number | null };
   const showFeedback = (
     message: string,
-    type: "error" | "ok" | "info",
+    type: "error" | "ok" | "info" | "pending",
     autoHideMs?: number,
   ) => {
     setFeedback(feedback, message, type, {
@@ -195,7 +195,8 @@ export async function initNewPostAdminPage(
     form.dataset.mediaBaseUrl ?? "",
     window.location.origin,
   );
-  const editorBridge = await createEditorBridge(editorRoot, "");
+  const initialMarkdown = initialPayload?.body_markdown ?? "";
+  const editorBridge = await createEditorBridge(editorRoot, initialMarkdown);
   if (editorBridge.mode === "fallback") {
     showFeedback(
       `Editor initialization failed, switched to fallback textarea: ${editorBridge.initError ?? "unknown"}`,

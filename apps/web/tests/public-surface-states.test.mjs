@@ -80,7 +80,7 @@ test("footer icons use the same filled pill treatment as the admin entry button"
   assert.match(footerIconSource, /class=\{PUBLIC_ICON_ACTION_CLASS\}/);
   assert.match(
     footerAdminModalSource,
-    /import \{ PUBLIC_ICON_ACTION_CLASS \} from "@\/lib\/ui-effects";/,
+    /import \{[\s\S]*PUBLIC_ICON_ACTION_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
   );
   assert.match(footerAdminModalSource, /className=\{`\$\{PUBLIC_ICON_ACTION_CLASS\} focus-visible:outline-none/);
   assert.match(footerAdminModalSource, /type="button"/);

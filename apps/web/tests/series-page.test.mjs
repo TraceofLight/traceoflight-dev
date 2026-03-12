@@ -34,10 +34,17 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(source, /class="flex w-full flex-col gap-8"/);
   assert.match(
     cardSource,
+    /import \{[\s\S]*buildImageFallbackOnError[\s\S]*toBrowserImageUrl[\s\S]*\} from "\.\.\/lib\/cover-media";/,
+  );
+  assert.match(
+    cardSource,
     /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
   assert.match(cardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(cardSource, /class=\{`flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`\}/);
+  assert.match(cardSource, /imageWidth = 960/);
+  assert.match(cardSource, /imageHeight = 640/);
+  assert.match(cardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{[\s\S]*fit:\s*"inside"/);
   assert.match(cardSource, /<img[\s\S]*class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center/);
   assert.match(cardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(cardSource, /object-cover object-center/);

@@ -10,6 +10,7 @@ import {
   buildSubmitPayload,
   resolveSubmitRequest,
   resolveSubmitStatus,
+  type SubmitRequestInfo,
 } from "./submit";
 import type {
   EditorBridge,
@@ -19,7 +20,7 @@ import type {
   PostVisibility,
 } from "./types";
 
-type FeedbackState = "info" | "ok" | "error";
+type FeedbackState = "info" | "pending" | "ok" | "error";
 type ShowFeedback = (
   message: string,
   type: FeedbackState,
@@ -130,7 +131,7 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
 
   const submitPost = async (
     context: PendingPublishRetry,
-    desiredStatus: string | null,
+    desiredStatus: PostStatus | null,
   ): Promise<void> => {
     const { request, payload, contentKind, status } = context;
 
@@ -189,7 +190,8 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       setSlugValidationState("idle");
       queuePreviewRefresh();
     }
-    const createdStatus = (created.status ?? status).toLowerCase();
+    const createdStatus: PostStatus =
+      created.status === "published" ? "published" : status;
     const publicPath =
       createdStatus === "published"
         ? contentKind === "project"
@@ -212,9 +214,13 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
     event.preventDefault();
 
     const submitter = (event as SubmitEvent).submitter as HTMLElement | null;
-    const desiredStatus = submitter?.getAttribute("data-submit-status");
+    const submitterStatus = submitter?.getAttribute("data-submit-status");
+    const desiredStatus: PostStatus | null =
+      submitterStatus === "published" || submitterStatus === "draft"
+        ? submitterStatus
+        : null;
     const status: PostStatus = resolveSubmitStatus({
-      desiredStatus: desiredStatus ?? null,
+      desiredStatus,
       submitterIsNull: submitter === null,
       publishLayerOpen: isPublishLayerOpen(),
     });

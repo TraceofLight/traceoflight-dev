@@ -23,7 +23,7 @@ interface Props {
 const {
   post,
   variant = "default",
-  imageWidth = 1200,
+  imageWidth = 960,
   imageHeight = 640,
   showVisibility = false,
 } = Astro.props;
@@ -70,6 +70,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
                   alt={post.title}
                   width={imageWidth}
                   height={imageHeight}
+                  fit="inside"
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                   fallbackSrc={fallbackCoverImageSrc}
                 />
@@ -129,6 +130,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
                   alt={post.title}
                   width={imageWidth}
                   height={imageHeight}
+                  fit="inside"
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                   fallbackSrc={fallbackCoverImageSrc}
                 />

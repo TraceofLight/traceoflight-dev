@@ -55,7 +55,7 @@ if (provider === "db") {
 } else {
   posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
 }
-let projects = [];
+let projects: Awaited<ReturnType<typeof listPublishedDbProjects>> = [];
 try {
   projects = await listPublishedDbProjects(3);
 } catch {

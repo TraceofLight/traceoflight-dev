@@ -1,6 +1,10 @@
 ---
 import type { ProjectItem } from "../lib/projects";
 import {
+  buildImageFallbackOnError,
+  toBrowserImageUrl,
+} from "../lib/cover-media";
+import {
   PUBLIC_HOVER_CARD_CLASS,
   PUBLIC_MEDIA_FRAME_CLASS,
 } from "../lib/ui-effects";
@@ -14,7 +18,7 @@ interface Props {
 
 const {
   project,
-  imageWidth = 1200,
+  imageWidth = 960,
   imageHeight = 640,
   stackLimit,
 } = Astro.props;
@@ -22,6 +26,18 @@ const visibleStack =
   typeof stackLimit === "number"
     ? project.stack.slice(0, stackLimit)
     : project.stack;
+const fallbackCoverImage = "/images/empty-series-image.png";
+const resolvedCoverImageSrc = toBrowserImageUrl(project.coverImageUrl ?? fallbackCoverImage, {
+  width: imageWidth,
+  height: imageHeight,
+  fit: "inside",
+});
+const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
+  width: imageWidth,
+  height: imageHeight,
+  fit: "inside",
+});
+const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
 const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
 ---
@@ -38,7 +54,8 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
         class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
         height={imageHeight}
         loading="lazy"
-        src={project.coverImageUrl ?? "/images/empty-series-image.png"}
+        onerror={coverImageFallbackOnError}
+        src={resolvedCoverImageSrc}
         width={imageWidth}
       />
     </div>
