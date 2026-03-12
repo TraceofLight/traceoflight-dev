@@ -9,7 +9,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   const source = await readFile(homePagePath, "utf8");
 
   assert.doesNotMatch(source, /max-w-6xl/);
-  assert.match(source, /<div class="flex w-full flex-col gap-8 py-10 sm:py-12">/);
+  assert.match(source, /<div class="flex w-full flex-col gap-8 py-4 sm:py-6">/);
   assert.doesNotMatch(source, /class="home-resume"/);
   assert.doesNotMatch(source, /class="home-panel home-profile"/);
   assert.doesNotMatch(source, /import "\.\.\/styles\/components\/home\.css";/);

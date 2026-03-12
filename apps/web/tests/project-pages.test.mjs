@@ -44,7 +44,7 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(indexSource, /ADMIN_ACCESS_COOKIE/);
   assert.match(indexSource, /verifyAccessToken/);
   assert.doesNotMatch(indexSource, /max-w-6xl/);
-  assert.match(indexSource, /<section class="flex w-full flex-col gap-8 py-10 sm:py-12">/);
+  assert.match(indexSource, /<section class="flex w-full flex-col gap-8">/);
   assert.match(indexSource, /<header class="space-y-4 text-center">/);
   assert.match(indexSource, /listPublishedDbProjects|getPublishedProjectBySlug|listPublishedDbProjectPosts/);
   assert.match(indexSource, /ProjectOrderPanel/);

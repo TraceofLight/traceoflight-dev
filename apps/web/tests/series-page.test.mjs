@@ -31,7 +31,7 @@ test("series index page renders archive list and links to detail route", async (
   );
   assert.match(source, /<h1[\s\S]*?>\s*Series\s*<\/h1>/);
   assert.doesNotMatch(source, /max-w-6xl/);
-  assert.match(source, /class="flex w-full flex-col gap-8 py-10 sm:py-12"/);
+  assert.match(source, /class="flex w-full flex-col gap-8"/);
   assert.match(
     cardSource,
     /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,

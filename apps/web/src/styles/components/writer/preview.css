@@ -16,7 +16,7 @@
   margin: 0;
   position: absolute;
   top: 0.35rem;
-  right: 1.2rem;
+  left: 1.2rem;
   color: var(--writer-text-muted);
   font-size: 0.72rem;
   font-weight: 700;

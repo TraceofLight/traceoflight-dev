@@ -112,6 +112,18 @@ test("admin writer page has split editor and preview layout", async () => {
   assert.match(source, /id="writer-preview-meta-project"/);
   assert.match(source, /id="writer-preview-meta-highlights"/);
   assert.match(source, /id="writer-preview-meta-links"/);
+  assert.match(
+    source,
+    /id="writer-preview-meta-project" class="writer-preview-meta-block" hidden><\/div>/,
+  );
+  assert.match(
+    source,
+    /id="writer-preview-meta-highlights" class="writer-preview-meta-block" hidden><\/div>/,
+  );
+  assert.match(
+    source,
+    /id="writer-preview-meta-links" class="writer-preview-meta-block" hidden><\/div>/,
+  );
   assert.match(source, /id="writer-preview-title"><\/h1>/);
   assert.doesNotMatch(source, /id="writer-preview-title">제목 없음</);
   assert.doesNotMatch(source, /id="writer-preview-excerpt"/);
@@ -246,6 +258,7 @@ test("admin writer style prevents milkdown link tooltip clipping and button blee
   );
   assert.match(source, /\.writer-preview-head[\s\S]*position:\s*relative/);
   assert.match(source, /\.writer-preview-kicker[\s\S]*position:\s*absolute/);
+  assert.match(source, /\.writer-preview-kicker[\s\S]*left:\s*1\.2rem/);
   assert.match(source, /\.writer-preview-head h1[\s\S]*min-height:\s*56px/);
   assert.match(source, /\.writer-preview-top-media-frame[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
   assert.match(source, /\.writer-preview-content :not\(pre\) > code[\s\S]*color:\s*#20426a/);
