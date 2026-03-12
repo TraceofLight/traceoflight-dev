@@ -36,6 +36,14 @@ test("admin auth middleware and routes are present", async () => {
     middleware,
     /pathname\.startsWith\(["']\/internal-api\/media\/browser-image["']\)/,
   );
+  assert.match(
+    middleware,
+    /\/internal-api\\\/posts\\\/\.\+\\\/comments/,
+  );
+  assert.match(
+    middleware,
+    /\/internal-api\\\/comments\\\/\.\+/,
+  );
   assert.match(middleware, /admin_login=1/);
   assert.doesNotMatch(middleware, /\/admin\/login/);
   assert.doesNotMatch(middleware, /\/admin\/logout/);
