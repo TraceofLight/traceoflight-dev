@@ -31,8 +31,11 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /admin-imports-backup-download/);
   assert.match(panelSource, /admin-imports-backup-file/);
   assert.match(panelSource, /admin-imports-backup-load/);
+  assert.match(panelSource, /admin-imports-portfolio-file/);
+  assert.match(panelSource, /admin-imports-portfolio-upload/);
   assert.match(panelSource, /admin-imports-resume-file/);
   assert.match(panelSource, /admin-imports-resume-upload/);
+  assert.match(panelSource, /admin-imports-resume-panel/);
   assert.match(panelSource, /AdminCommentsPanel/);
   assert.match(panelSource, /admin-comments-panel/);
   assert.doesNotMatch(panelSource, /admin-imports-feedback/);
@@ -40,8 +43,10 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /백업 ZIP으로 복원/);
   assert.match(panelSource, /PDF Utility/);
   assert.match(panelSource, /Portfolio PDF/);
-  assert.match(panelSource, /포트폴리오 PDF 관리/);
+  assert.match(panelSource, /PDF 파일 관리/);
   assert.match(panelSource, /포트폴리오 파일 교체/);
+  assert.match(panelSource, /Resume PDF/);
+  assert.match(panelSource, /이력서 파일 교체/);
   assert.match(panelSource, /Comment Review/);
   assert.match(panelSource, /최근 댓글 검토/);
   assert.match(panelSource, /복원 전 체크/);
@@ -70,9 +75,13 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.doesNotMatch(panelSource, /function resolveErrorMessage/);
   assert.doesNotMatch(panelSource, /async function readJsonSafe/);
   assert.match(clientLibSource, /export async function downloadPostsBackupZip/);
+  assert.match(clientLibSource, /export async function getPortfolioPdfStatus/);
+  assert.match(clientLibSource, /export async function uploadPortfolioPdf/);
   assert.match(clientLibSource, /export async function getResumePdfStatus/);
   assert.match(clientLibSource, /export async function uploadResumePdf/);
   assert.match(clientLibSource, /export async function restorePostsBackupZip/);
+  assert.match(clientLibSource, /\/internal-api\/portfolio\/status/);
+  assert.match(clientLibSource, /\/internal-api\/portfolio\/upload/);
   assert.match(clientLibSource, /\/internal-api\/resume\/status/);
   assert.match(clientLibSource, /\/internal-api\/resume\/upload/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/posts\.zip/);

@@ -21,7 +21,8 @@ OPENAPI_TAGS = [
     {'name': 'series', 'description': 'Series discovery endpoints and internal series management operations.'},
     {'name': 'tags', 'description': 'Tag query endpoints and internal tag management operations.'},
     {'name': 'media', 'description': 'Media upload URL issuance, proxy upload, and metadata registration.'},
-    {'name': 'resume', 'description': 'Public resume PDF retrieval and internal resume upload operations.'},
+    {'name': 'portfolio', 'description': 'Public portfolio PDF retrieval and internal portfolio upload operations.'},
+    {'name': 'resume', 'description': 'Closed legacy resume PDF routes kept for future reuse.'},
 ]
 
 

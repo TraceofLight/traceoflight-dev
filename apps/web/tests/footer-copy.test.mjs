@@ -20,8 +20,8 @@ test("footer uses single-line rights copy with auto year and styled copyright fo
   assert.match(source, /adminNextPath=\{adminNextPath\}/);
   assert.match(source, /ADMIN_IMPORTS_PATH/);
   assert.match(source, /href=\{ADMIN_IMPORTS_PATH\}/);
-  assert.match(source, /href="\/resume"/);
-  assert.match(source, /label="Resume PDF"/);
+  assert.match(source, /href="\/portfolio"/);
+  assert.match(source, /label="Portfolio PDF"/);
   assert.match(source, /icon="resume"/);
   assert.match(source, /label="Admin Console"/);
   assert.match(source, /icon="admin"/);

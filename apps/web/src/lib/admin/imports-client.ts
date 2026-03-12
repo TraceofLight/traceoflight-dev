@@ -38,6 +38,23 @@ export async function restorePostsBackupZip(file: File) {
   return { response, payload };
 }
 
+export async function getPortfolioPdfStatus() {
+  const response = await fetch("/internal-api/portfolio/status");
+  const payload = await readJsonSafe(response);
+  return { response, payload };
+}
+
+export async function uploadPortfolioPdf(file: File) {
+  const body = new FormData();
+  body.set("file", file, file.name);
+  const response = await fetch("/internal-api/portfolio/upload", {
+    method: "POST",
+    body,
+  });
+  const payload = await readJsonSafe(response);
+  return { response, payload };
+}
+
 export async function getResumePdfStatus() {
   const response = await fetch("/internal-api/resume/status");
   const payload = await readJsonSafe(response);

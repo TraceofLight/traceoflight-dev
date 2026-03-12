@@ -26,17 +26,22 @@ describe("AdminImportsPanel", () => {
     const downloadButton = screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" });
     const chooseFileButton = screen.getByRole("button", { name: "ZIP 파일 선택" });
     const restoreButton = screen.getByRole("button", { name: "ZIP 불러와 DB 복원" });
-    const chooseResumeButton = screen.getByRole("button", { name: "PDF 파일 선택" });
-    const uploadResumeButton = screen.getByRole("button", { name: "Portfolio PDF 업로드" });
+    const choosePortfolioButton = screen.getByRole("button", { name: "포트폴리오 PDF 선택" });
+    const uploadPortfolioButton = screen.getByRole("button", { name: "Portfolio PDF 업로드" });
+    const chooseResumeButton = screen.getByRole("button", { name: "이력서 PDF 선택" });
+    const uploadResumeButton = screen.getByRole("button", { name: "Resume PDF 업로드" });
 
     expect(screen.getByText("Backup Utility")).toBeInTheDocument();
     expect(screen.getByText("서비스 중인 내용 Save & Load")).toBeInTheDocument();
     expect(screen.getByText("PDF Utility")).toBeInTheDocument();
-    expect(screen.getByText("포트폴리오 PDF 관리")).toBeInTheDocument();
+    expect(screen.getByText("PDF 파일 관리")).toBeInTheDocument();
+    expect(screen.getByText("이력서 PDF 관리")).toBeInTheDocument();
     expect(screen.getByText("현재 상태 저장")).toBeInTheDocument();
     expect(screen.getByText("백업 ZIP으로 복원")).toBeInTheDocument();
     expect(screen.getAllByText("Portfolio PDF")).toHaveLength(1);
+    expect(screen.getAllByText("Resume PDF")).toHaveLength(1);
     expect(screen.getByText("포트폴리오 파일 교체")).toBeInTheDocument();
+    expect(screen.getByText("이력서 파일 교체")).toBeInTheDocument();
     expect(screen.getByText("복원 전 체크")).toBeInTheDocument();
     expect(
       screen.queryByText("복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다."),
@@ -49,9 +54,13 @@ describe("AdminImportsPanel", () => {
       screen.queryByText("`.zip` 형식의 백업 파일만 업로드할 수 있습니다."),
     ).not.toBeInTheDocument();
     expect(screen.getByLabelText("포트폴리오 PDF 파일")).toBeInTheDocument();
+    expect(screen.getByLabelText("이력서 PDF 파일")).toBeInTheDocument();
     expect(screen.getByText("등록된 포트폴리오 PDF가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("등록된 이력서 PDF가 없습니다.")).toBeInTheDocument();
+    expect(choosePortfolioButton).toBeInTheDocument();
     expect(chooseResumeButton).toBeInTheDocument();
     expect(uploadResumeButton).toBeInTheDocument();
+    expect(uploadPortfolioButton).toBeInTheDocument();
     expect(downloadButton).toBeInTheDocument();
     expect(restoreButton).toBeInTheDocument();
     expect(
@@ -64,6 +73,8 @@ describe("AdminImportsPanel", () => {
     expect(restoreButton).toHaveClass("border-white/80");
     expect(restoreButton).toHaveClass("hover:border-sky-300/90");
     expect(restoreButton).toHaveClass("hover:text-sky-700");
+    expect(choosePortfolioButton).toHaveClass("border-white/80");
+    expect(uploadPortfolioButton).toHaveClass("border-white/80");
     expect(chooseResumeButton).toHaveClass("border-white/80");
     expect(uploadResumeButton).toHaveClass("border-white/80");
   });

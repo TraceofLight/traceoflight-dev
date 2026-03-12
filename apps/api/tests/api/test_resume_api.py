@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_resume_service
-from app.api.v1.endpoints import resume as resume_endpoint
+from app.api.v1.endpoints import portfolio as portfolio_endpoint
 from app.main import app
 from app.services.resume_service import ResumeDownload
 
@@ -44,12 +44,12 @@ def _client_with_service(service: _StubResumeService) -> TestClient:
     return TestClient(app)
 
 
-def test_resume_status_and_download_return_not_found_when_missing() -> None:
+def test_portfolio_status_and_download_return_not_found_when_missing() -> None:
     service = _StubResumeService(available=False)
     client = _client_with_service(service)
 
-    status_response = client.get("/api/v1/resume/status")
-    file_response = client.get("/api/v1/resume")
+    status_response = client.get("/api/v1/portfolio/status")
+    file_response = client.get("/api/v1/portfolio")
 
     app.dependency_overrides.clear()
     assert status_response.status_code == 200
@@ -57,11 +57,11 @@ def test_resume_status_and_download_return_not_found_when_missing() -> None:
     assert file_response.status_code == 404
 
 
-def test_resume_download_streams_pdf_when_available() -> None:
+def test_portfolio_download_streams_pdf_when_available() -> None:
     service = _StubResumeService(available=True, pdf_bytes=b"%PDF-1.7\nresume-data")
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/resume")
+    response = client.get("/api/v1/portfolio")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -70,13 +70,13 @@ def test_resume_download_streams_pdf_when_available() -> None:
     assert response.headers["content-disposition"] == 'inline; filename="portfolio.pdf"'
 
 
-def test_resume_upload_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(resume_endpoint.settings, "internal_api_secret", "test-shared-secret")
+def test_portfolio_upload_requires_internal_secret(monkeypatch) -> None:
+    monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=False)
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/resume",
+        "/api/v1/portfolio",
         files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
     )
 
@@ -85,13 +85,13 @@ def test_resume_upload_requires_internal_secret(monkeypatch) -> None:
     assert service.upload_filename is None
 
 
-def test_resume_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(resume_endpoint.settings, "internal_api_secret", "test-shared-secret")
+def test_portfolio_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
+    monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=False)
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/resume",
+        "/api/v1/portfolio",
         headers={"x-internal-api-secret": "test-shared-secret"},
         files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
     )
@@ -102,3 +102,20 @@ def test_resume_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
     assert service.upload_filename == "resume.pdf"
     assert service.upload_size == len(b"%PDF-1.7\nresume-data")
     assert service.upload_content_type == "application/pdf"
+
+
+def test_resume_routes_return_not_found() -> None:
+    service = _StubResumeService(available=True)
+    client = _client_with_service(service)
+
+    status_response = client.get("/api/v1/resume/status")
+    file_response = client.get("/api/v1/resume")
+    upload_response = client.post(
+        "/api/v1/resume",
+        files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
+    )
+
+    app.dependency_overrides.clear()
+    assert status_response.status_code == 404
+    assert file_response.status_code == 404
+    assert upload_response.status_code == 404

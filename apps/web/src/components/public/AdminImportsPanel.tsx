@@ -7,6 +7,7 @@ import {
   downloadPostsBackupZip,
   resolveImportsErrorMessage,
   restorePostsBackupZip,
+  uploadPortfolioPdf,
   uploadResumePdf,
 } from "@/lib/admin/imports-client";
 import {
@@ -33,25 +34,33 @@ const adminPrimaryActionButtonClass = `${adminActionButtonClass} w-full px-6`;
 const ACTION_STATUS_RESET_MS = 2500;
 
 type AdminImportsPanelProps = {
-  initialResumeAvailable?: boolean;
+  initialPortfolioAvailable?: boolean;
 };
 
 export function AdminImportsPanel({
-  initialResumeAvailable = false,
+  initialPortfolioAvailable = false,
 }: AdminImportsPanelProps) {
   const [busy, setBusy] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedPortfolioFile, setSelectedPortfolioFile] = useState<File | null>(null);
+  const portfolioFileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(null);
   const resumeFileInputRef = useRef<HTMLInputElement | null>(null);
   const saveResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restoreResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [saveStatus, setSaveStatus] = useState<StatusMessage | null>(null);
   const [restoreStatus, setRestoreStatus] = useState<StatusMessage | null>(null);
-  const [resumeStatus, setResumeStatus] = useState<StatusMessage>({
-    message: initialResumeAvailable
+  const [portfolioStatus, setPortfolioStatus] = useState<StatusMessage>({
+    message: initialPortfolioAvailable
       ? "등록된 포트폴리오 PDF가 있습니다."
       : "등록된 포트폴리오 PDF가 없습니다.",
+    state: "info",
+  });
+  const [resumeStatus, setResumeStatus] = useState<StatusMessage>({
+    message: initialPortfolioAvailable
+      ? "등록된 이력서 PDF가 있습니다."
+      : "등록된 이력서 PDF가 없습니다.",
     state: "info",
   });
 
@@ -202,6 +211,49 @@ export function AdminImportsPanel({
     }
   }
 
+  async function handlePortfolioUpload() {
+    if (!selectedPortfolioFile) {
+      setPortfolioStatus({
+        message: "업로드할 PDF 파일을 선택해 주세요.",
+        state: "error",
+      });
+      return;
+    }
+
+    setBusy(true);
+    setPortfolioStatus({
+      message: "포트폴리오 PDF를 업로드하는 중입니다...",
+      state: "pending",
+    });
+
+    try {
+      const { response, payload } = await uploadPortfolioPdf(selectedPortfolioFile);
+      if (!response.ok) {
+        setPortfolioStatus({
+          message: resolveImportsErrorMessage(payload, "포트폴리오 PDF 업로드에 실패했습니다."),
+          state: "error",
+        });
+        return;
+      }
+
+      setSelectedPortfolioFile(null);
+      if (portfolioFileInputRef.current) {
+        portfolioFileInputRef.current.value = "";
+      }
+      setPortfolioStatus({
+        message: "포트폴리오 PDF 업로드가 완료되었습니다.",
+        state: "ok",
+      });
+    } catch {
+      setPortfolioStatus({
+        message: "포트폴리오 PDF 업로드 중 네트워크 오류가 발생했습니다.",
+        state: "error",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleResumeUpload() {
     if (!selectedResumeFile) {
       setResumeStatus({
@@ -213,7 +265,7 @@ export function AdminImportsPanel({
 
     setBusy(true);
     setResumeStatus({
-      message: "포트폴리오 PDF를 업로드하는 중입니다...",
+      message: "이력서 PDF를 업로드하는 중입니다...",
       state: "pending",
     });
 
@@ -221,7 +273,7 @@ export function AdminImportsPanel({
       const { response, payload } = await uploadResumePdf(selectedResumeFile);
       if (!response.ok) {
         setResumeStatus({
-          message: resolveImportsErrorMessage(payload, "포트폴리오 PDF 업로드에 실패했습니다."),
+          message: resolveImportsErrorMessage(payload, "이력서 PDF 업로드에 실패했습니다."),
           state: "error",
         });
         return;
@@ -232,12 +284,12 @@ export function AdminImportsPanel({
         resumeFileInputRef.current.value = "";
       }
       setResumeStatus({
-        message: "포트폴리오 PDF 업로드가 완료되었습니다.",
+        message: "이력서 PDF 업로드가 완료되었습니다.",
         state: "ok",
       });
     } catch {
       setResumeStatus({
-        message: "포트폴리오 PDF 업로드 중 네트워크 오류가 발생했습니다.",
+        message: "이력서 PDF 업로드 중 네트워크 오류가 발생했습니다.",
         state: "error",
       });
     } finally {
@@ -367,7 +419,7 @@ export function AdminImportsPanel({
               PDF Utility
             </p>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              포트폴리오 PDF 관리
+              PDF 파일 관리
             </h2>
           </div>
         </div>
@@ -388,6 +440,72 @@ export function AdminImportsPanel({
                 aria-label="포트폴리오 PDF 파일"
                 className="sr-only"
                 disabled={busy}
+                id="admin-imports-portfolio-file"
+                ref={portfolioFileInputRef}
+                onChange={(event) => setSelectedPortfolioFile(event.target.files?.[0] ?? null)}
+                type="file"
+              />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button
+                  className={`${adminActionButtonClass} sm:min-w-36`}
+                  disabled={busy}
+                  onClick={() => portfolioFileInputRef.current?.click()}
+                  type="button"
+                  variant="outline"
+                >
+                  포트폴리오 PDF 선택
+                </Button>
+                <div className={`min-w-0 flex-1 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
+                  <span className="block truncate">
+                    {selectedPortfolioFile
+                      ? selectedPortfolioFile.name
+                      : "선택된 포트폴리오 PDF가 없습니다."}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button
+              className={`${adminActionButtonClass} px-6`}
+              disabled={busy}
+              id="admin-imports-portfolio-upload"
+              onClick={handlePortfolioUpload}
+              type="button"
+              variant="outline"
+            >
+              <FileTextIcon className="h-4 w-4" />
+              Portfolio PDF 업로드
+            </Button>
+            <div className={getStatusClass(portfolioStatus.state)}>
+              {portfolioStatus.message}
+            </div>
+          </section>
+
+          <section
+            className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}
+            id="admin-imports-resume-panel"
+          >
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                Resume PDF
+              </p>
+              <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                이력서 PDF 관리
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                바깥 공개 경로는 닫혀 있지만, 내부 관리자 경로로는 업로드와 교체를 계속 진행할 수 있습니다.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                이력서 파일 교체
+              </h3>
+            </div>
+            <div className="grid gap-2">
+              <input
+                accept=".pdf,application/pdf"
+                aria-label="이력서 PDF 파일"
+                className="sr-only"
+                disabled={busy}
                 id="admin-imports-resume-file"
                 ref={resumeFileInputRef}
                 onChange={(event) => setSelectedResumeFile(event.target.files?.[0] ?? null)}
@@ -401,13 +519,13 @@ export function AdminImportsPanel({
                   type="button"
                   variant="outline"
                 >
-                  PDF 파일 선택
+                  이력서 PDF 선택
                 </Button>
                 <div className={`min-w-0 flex-1 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
                   <span className="block truncate">
                     {selectedResumeFile
                       ? selectedResumeFile.name
-                      : "선택된 포트폴리오 PDF가 없습니다."}
+                      : "선택된 이력서 PDF가 없습니다."}
                   </span>
                 </div>
               </div>
@@ -421,7 +539,7 @@ export function AdminImportsPanel({
               variant="outline"
             >
               <FileTextIcon className="h-4 w-4" />
-              Portfolio PDF 업로드
+              Resume PDF 업로드
             </Button>
             <div className={getStatusClass(resumeStatus.state)}>
               {resumeStatus.message}

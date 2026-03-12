@@ -4,17 +4,17 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { requestBackend } from "../../lib/backend-api";
 import { ADMIN_IMPORTS_COPY } from "../../lib/admin/imports-page";
 
-let initialResumeAvailable = false;
+let initialPortfolioAvailable = false;
 try {
-  const response = await requestBackend("/resume/status", { method: "GET" });
+  const response = await requestBackend("/portfolio/status", { method: "GET" });
   if (response.ok) {
     const payload = (await response.json().catch(() => null)) as
       | { available?: boolean }
       | null;
-    initialResumeAvailable = payload?.available === true;
+    initialPortfolioAvailable = payload?.available === true;
   }
 } catch {
-  initialResumeAvailable = false;
+  initialPortfolioAvailable = false;
 }
 ---
 
@@ -23,6 +23,6 @@ try {
   description={ADMIN_IMPORTS_COPY.description}
 >
   <section class="mx-auto flex max-w-6xl flex-col py-10 sm:py-12">
-    <AdminImportsPanel client:load initialResumeAvailable={initialResumeAvailable} />
+    <AdminImportsPanel client:load initialPortfolioAvailable={initialPortfolioAvailable} />
   </section>
 </BaseLayout>

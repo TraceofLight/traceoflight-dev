@@ -6,6 +6,7 @@ from app.api.v1.endpoints.comments import router as comments_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.imports import router as imports_router
 from app.api.v1.endpoints.media import router as media_router
+from app.api.v1.endpoints.portfolio import router as portfolio_router
 from app.api.v1.endpoints.posts import router as posts_router
 from app.api.v1.endpoints.projects import router as projects_router
 from app.api.v1.endpoints.resume import router as resume_router
@@ -21,4 +22,5 @@ router.include_router(projects_router, prefix='/projects', tags=['projects'])
 router.include_router(series_router, prefix='/series', tags=['series'])
 router.include_router(tags_router, prefix='/tags', tags=['tags'])
 router.include_router(media_router, prefix='/media', tags=['media'])
+router.include_router(portfolio_router, prefix='/portfolio', tags=['portfolio'])
 router.include_router(resume_router, prefix='/resume', tags=['resume'])
