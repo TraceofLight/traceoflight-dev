@@ -17,6 +17,8 @@ test("post card uses reading-time helper instead of title-and-excerpt minute tex
   const source = await readFile(postCardPath, "utf8");
 
   assert.match(source, /formatReadingTimeLabel/);
+  assert.match(source, /post\.commentCount \?\? 0/);
+  assert.match(source, /댓글 \{commentCount\}개/);
   assert.match(source, /\{readingLabel\}/);
   assert.match(source, /text-xs text-muted-foreground/);
   assert.doesNotMatch(source, /post-card-archive-meta/);

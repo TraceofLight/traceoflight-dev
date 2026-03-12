@@ -21,6 +21,7 @@ export type BlogArchivePost = {
   tags: string[];
   publishedAt: string;
   publishedAtValue: number;
+  commentCount: number;
   readingLabel: string;
   coverImageSrc: string;
 };
@@ -287,6 +288,8 @@ export function BlogArchiveFilters({
                 <div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{formatDateLabel(post.publishedAt)}</span>
+                    <span aria-hidden="true">•</span>
+                    <span>댓글 {post.commentCount}개</span>
                     <span aria-hidden="true">•</span>
                     <span>{post.readingLabel}</span>
                     {isAdminViewer && post.visibility === "private" ? (

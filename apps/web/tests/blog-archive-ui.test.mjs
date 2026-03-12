@@ -35,6 +35,7 @@ test("blog archive page mounts a React filter island and passes server data", as
   assert.match(islandSource, /type BlogArchivePost/);
   assert.match(islandSource, /window\.history\.replaceState/);
   assert.match(pageSource, /toBrowserImageUrl\(/);
+  assert.match(pageSource, /commentCount: post\.commentCount \?\? 0,/);
   assert.match(pageSource, /coverImageSrc: resolveCoverImageSrc\(post,\s*960,\s*640\)/);
 });
 
@@ -87,6 +88,9 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /event\.currentTarget\.src !== fallbackCoverImageSrc/);
   assert.match(source, /event\.currentTarget\.src = fallbackCoverImageSrc/);
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  assert.match(source, /commentCount: number;/);
+  assert.match(source, /댓글 \{post\.commentCount\}개/);
+  assert.match(source, /댓글 \{post\.commentCount\}개[\s\S]*<span aria-hidden="true">•<\/span>[\s\S]*<span>\{post\.readingLabel\}<\/span>/);
 });
 
 test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", async () => {

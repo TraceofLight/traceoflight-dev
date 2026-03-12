@@ -43,6 +43,7 @@ const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
 const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
 const formattedPubDate = formatDateLabel(post.pubDate);
 const pubDateIso = toIsoDateTime(post.pubDate);
+const commentCount = post.commentCount ?? 0;
 const readingLabel = formatReadingTimeLabel(post.body ?? "");
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
 const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
@@ -113,6 +114,8 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
             <p class="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
               <time datetime={pubDateIso}>{formattedPubDate}</time>
               <span aria-hidden="true">•</span>
+              <span>댓글 {commentCount}개</span>
+              <span aria-hidden="true">•</span>
               <span>{readingLabel}</span>
             </p>
           </div>
@@ -148,6 +151,10 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
           <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
             <p class="flex items-center gap-2 text-xs text-muted-foreground">
               <time datetime={pubDateIso}>{formattedPubDate}</time>
+              <span aria-hidden="true">•</span>
+              <span>댓글 {commentCount}개</span>
+              <span aria-hidden="true">•</span>
+              <span>{readingLabel}</span>
               {
                 showVisibility && post.visibility === 'private' && (
                   <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[0.72rem] font-medium text-amber-700">

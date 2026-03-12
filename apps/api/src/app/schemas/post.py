@@ -137,6 +137,10 @@ class PostRead(BaseModel):
         default_factory=list,
         description='Normalized tag objects assigned to this post.',
     )
+    comment_count: int = Field(
+        default=0,
+        description='Total comments linked to this post.',
+    )
     series_context: PostSeriesContext | None = Field(
         default=None,
         description='Optional in-series projection used by post detail navigation.',

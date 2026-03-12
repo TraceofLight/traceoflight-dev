@@ -30,6 +30,7 @@ if (provider === "db") {
       title: post.title,
       description: post.description,
       body: post.bodyMarkdown,
+      commentCount: post.commentCount,
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
       coverMedia: post.coverMedia,
@@ -88,6 +89,7 @@ const archivePosts: BlogArchivePost[] = posts.map((post) => ({
     .filter(Boolean),
   publishedAt: post.pubDate.toISOString(),
   publishedAtValue: post.pubDate.valueOf(),
+  commentCount: post.commentCount ?? 0,
   readingLabel: formatReadingTimeLabel(post.body ?? ""),
   coverImageSrc: resolveCoverImageSrc(post, 960, 640),
 }));

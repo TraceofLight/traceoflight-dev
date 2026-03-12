@@ -107,3 +107,7 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="PostComment.created_at.asc()",
     )
+
+    @property
+    def comment_count(self) -> int:
+        return len(self.comments)

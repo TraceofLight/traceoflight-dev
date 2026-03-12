@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PostComments } from "@/components/public/PostComments";
@@ -116,7 +116,7 @@ describe("PostComments", () => {
     expect(screen.getByRole("button", { name: "답글 취소" })).toBeInTheDocument();
   });
 
-  it("submits guest comment edits with password verification", async () => {
+  it("edits a guest comment inline with password verification", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => initialComments,
@@ -132,15 +132,18 @@ describe("PostComments", () => {
     );
 
     fireEvent.click(screen.getAllByRole("button", { name: "수정" })[1]);
-    expect(screen.getByText("GuestB 댓글 수정 중")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "댓글 수정" })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("비밀번호"), {
+    expect(screen.queryByText("GuestB 댓글 수정 중")).not.toBeInTheDocument();
+    const commentCard = screen.getByTestId("comment-card-reply-1");
+    expect(within(commentCard).getByLabelText("댓글 내용")).toHaveValue("답글");
+    expect(within(commentCard).getByRole("button", { name: "저장" })).toBeInTheDocument();
+    expect(within(commentCard).getByRole("button", { name: "취소" })).toBeInTheDocument();
+    fireEvent.change(within(commentCard).getByLabelText("비밀번호"), {
       target: { value: "secret123" },
     });
-    fireEvent.change(screen.getByLabelText("댓글 내용"), {
+    fireEvent.change(within(commentCard).getByLabelText("댓글 내용"), {
       target: { value: "수정된 답글" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "댓글 수정" }));
+    fireEvent.click(within(commentCard).getByRole("button", { name: "저장" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
@@ -199,12 +202,13 @@ describe("PostComments", () => {
     );
 
     fireEvent.click(screen.getAllByRole("button", { name: "수정" })[0]);
-    expect(screen.getByText("GuestA 댓글 수정 중")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "댓글 수정" })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("댓글 내용"), {
+    const commentCard = screen.getByTestId("comment-card-root-1");
+    expect(within(commentCard).getByRole("button", { name: "저장" })).toBeInTheDocument();
+    expect(within(commentCard).queryByLabelText("비밀번호")).not.toBeInTheDocument();
+    fireEvent.change(within(commentCard).getByLabelText("댓글 내용"), {
       target: { value: "관리자 수정 댓글" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "댓글 수정" }));
+    fireEvent.click(within(commentCard).getByRole("button", { name: "저장" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();

@@ -20,6 +20,7 @@ export interface DbPost {
   status: 'draft' | 'published' | 'archived';
   visibility?: 'public' | 'private';
   tags: DbTag[];
+  comment_count?: number;
   series_context?: DbSeriesContextRaw | null;
   published_at: string | null;
   created_at: string;
@@ -37,6 +38,7 @@ export interface DbBlogPost {
   title: string;
   description: string;
   bodyMarkdown: string;
+  commentCount: number;
   coverImageUrl?: string;
   coverMedia?: CoverMedia;
   topMediaKind: 'image' | 'youtube' | 'video';
@@ -93,6 +95,7 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     title: post.title,
     description: post.excerpt?.trim() ?? '',
     bodyMarkdown: post.body_markdown,
+    commentCount: post.comment_count ?? 0,
     coverImageUrl: resolvedCoverImageUrl,
     coverMedia: normalizeCoverMedia(resolvedCoverImageUrl),
     topMediaKind: post.top_media_kind === 'youtube' ? 'youtube' : post.top_media_kind === 'video' ? 'video' : 'image',

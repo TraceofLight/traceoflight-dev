@@ -30,7 +30,11 @@ export function PostComments({
   const [password, setPassword] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [replyTarget, setReplyTarget] = useState<PostCommentItem | null>(null);
-  const [editTarget, setEditTarget] = useState<PostCommentItem | null>(null);
+  const [editingComment, setEditingComment] = useState<PostCommentItem | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editVisibility, setEditVisibility] = useState<"public" | "private">("public");
+  const [editFeedback, setEditFeedback] = useState("");
   const [busy, startTransition] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<PostCommentItem | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -41,8 +45,15 @@ export function PostComments({
     setPassword("");
     setVisibility("public");
     setReplyTarget(null);
-    setEditTarget(null);
     setFeedback("");
+  }
+
+  function resetInlineEdit() {
+    setEditingComment(null);
+    setEditBody("");
+    setEditPassword("");
+    setEditVisibility("public");
+    setEditFeedback("");
   }
 
   async function resolveResponseMessage(response: Response, fallbackMessage: string) {
@@ -73,26 +84,6 @@ export function PostComments({
 
   async function handleSubmit() {
     setFeedback("");
-    if (editTarget) {
-      const payload: PostCommentUpdatePayload = {
-        visibility,
-        body,
-        ...(isAdminViewer ? {} : { password }),
-      };
-      const response = await fetch(`/internal-api/comments/${encodeURIComponent(editTarget.id)}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        setFeedback(await resolveResponseMessage(response, "댓글 수정에 실패했습니다."));
-        return;
-      }
-      resetComposer();
-      await refreshComments();
-      return;
-    }
-
     const payload = {
       visibility,
       body,
@@ -109,6 +100,30 @@ export function PostComments({
       return;
     }
     resetComposer();
+    await refreshComments();
+  }
+
+  async function handleSaveEdit() {
+    if (!editingComment) {
+      return;
+    }
+
+    setEditFeedback("");
+    const payload: PostCommentUpdatePayload = {
+      visibility: editVisibility,
+      body: editBody,
+      ...(isAdminViewer ? {} : { password: editPassword }),
+    };
+    const response = await fetch(`/internal-api/comments/${encodeURIComponent(editingComment.id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      setEditFeedback(await resolveResponseMessage(response, "댓글 수정에 실패했습니다."));
+      return;
+    }
+    resetInlineEdit();
     await refreshComments();
   }
 
@@ -131,10 +146,7 @@ export function PostComments({
   const replyTargetLabel = replyTarget
     ? `${replyTarget.author_name}에게 답글 작성 중`
     : "";
-  const editTargetLabel = editTarget
-    ? `${editTarget.author_name} 댓글 수정 중`
-    : "";
-  const composerMode = editTarget ? "edit" : replyTarget ? "reply" : "create";
+  const composerMode = replyTarget ? "reply" : "create";
 
   return (
     <section className="mt-10 grid gap-5" id="post-comments">
@@ -142,7 +154,7 @@ export function PostComments({
         authorName={authorName}
         body={body}
         busy={busy}
-        editTargetLabel={editTargetLabel}
+        editTargetLabel=""
         isAdminViewer={isAdminViewer}
         mode={composerMode}
         onAuthorNameChange={setAuthorName}
@@ -171,8 +183,14 @@ export function PostComments({
       </div>
 
       <PostCommentThread
+        editBody={editBody}
+        editFeedback={editFeedback}
+        editingCommentId={editingComment?.id ?? null}
+        editPassword={editPassword}
+        editVisibility={editVisibility}
         isAdminViewer={isAdminViewer}
         items={comments.items}
+        onCancelEdit={resetInlineEdit}
         onDelete={(comment) => {
           if (isAdminViewer) {
             void handleDelete(comment);
@@ -180,15 +198,16 @@ export function PostComments({
           }
           setDeleteTarget(comment);
         }}
+        onEditBodyChange={setEditBody}
         onEdit={(comment) => {
           setFeedback("");
+          setEditFeedback("");
           setDeleteTarget(null);
           setReplyTarget(null);
-          setEditTarget(comment);
-          setAuthorName(comment.author_name);
-          setPassword("");
-          setVisibility(comment.visibility);
-          setBody(
+          setEditingComment(comment);
+          setEditPassword("");
+          setEditVisibility(comment.visibility);
+          setEditBody(
             !isAdminViewer && comment.visibility === "private"
               ? ""
               : comment.status === "deleted"
@@ -196,14 +215,19 @@ export function PostComments({
               : comment.body,
           );
         }}
+        onEditPasswordChange={setEditPassword}
+        onEditVisibilityChange={setEditVisibility}
         onReply={(comment) => {
           setFeedback("");
           setDeleteTarget(null);
-          setEditTarget(null);
+          resetInlineEdit();
           setReplyTarget(comment);
           setBody("");
           setPassword("");
           setVisibility("public");
+        }}
+        onSaveEdit={() => {
+          void handleSaveEdit();
         }}
       />
 

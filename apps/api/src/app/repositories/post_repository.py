@@ -128,7 +128,11 @@ class PostRepository:
 
         stmt = (
             select(Post)
-            .options(selectinload(Post.tags), selectinload(Post.project_profile))
+            .options(
+                selectinload(Post.tags),
+                selectinload(Post.project_profile),
+                selectinload(Post.comments),
+            )
             .order_by(*ordering)
         )
         if status is not None:
@@ -188,7 +192,15 @@ class PostRepository:
         visibility: PostVisibility | None = None,
         content_kind: PostContentKind | None = None,
     ) -> Post | None:
-        stmt = select(Post).options(selectinload(Post.tags), selectinload(Post.project_profile)).where(Post.slug == slug)
+        stmt = (
+            select(Post)
+            .options(
+                selectinload(Post.tags),
+                selectinload(Post.project_profile),
+                selectinload(Post.comments),
+            )
+            .where(Post.slug == slug)
+        )
         if status is not None:
             stmt = stmt.where(Post.status == status)
         if visibility is not None:

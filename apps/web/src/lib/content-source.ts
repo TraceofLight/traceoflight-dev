@@ -8,6 +8,7 @@ export interface PostCard {
     title: string;
     description: string;
     body?: string;
+    commentCount?: number;
     pubDate: Date;
     updatedDate?: Date;
     coverMedia?: CoverMedia;
@@ -65,6 +66,7 @@ export function toPostCard(post: BlogEntry): PostCard {
         title: post.data.title,
         description: post.data.description,
         body: post.body,
+        commentCount: 0,
         pubDate: post.data.pubDate,
         updatedDate: post.data.updatedDate,
         coverMedia: normalizeCoverMedia(post.data.coverImage),
