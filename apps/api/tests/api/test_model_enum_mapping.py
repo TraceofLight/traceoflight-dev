@@ -1,5 +1,6 @@
 from app.models.media import MediaAsset
 from app.models.post import Post
+from app.models.post_comment import PostComment
 from app.models.tag import PostTag, Tag
 
 
@@ -13,6 +14,27 @@ def test_post_status_enum_uses_value_literals() -> None:
 
 def test_post_visibility_enum_uses_value_literals() -> None:
     assert Post.__table__.c.visibility.type.enums == ["public", "private"]
+
+
+def test_post_comment_author_type_enum_uses_value_literals() -> None:
+    assert PostComment.__table__.c.author_type.type.enums == ["guest", "admin"]
+
+
+def test_post_comment_visibility_enum_uses_value_literals() -> None:
+    assert PostComment.__table__.c.visibility.type.enums == ["public", "private"]
+
+
+def test_post_comment_status_enum_uses_value_literals() -> None:
+    assert PostComment.__table__.c.status.type.enums == ["active", "deleted"]
+
+
+def test_post_exposes_comments_relationship() -> None:
+    assert "comments" in Post.__mapper__.relationships
+
+
+def test_post_comment_root_and_reply_foreign_keys_are_nullable() -> None:
+    assert PostComment.__table__.c.root_comment_id.nullable is True
+    assert PostComment.__table__.c.reply_to_comment_id.nullable is True
 
 
 def test_tag_slug_has_unique_constraint() -> None:

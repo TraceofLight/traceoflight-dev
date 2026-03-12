@@ -33,6 +33,8 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /admin-imports-backup-load/);
   assert.match(panelSource, /admin-imports-resume-file/);
   assert.match(panelSource, /admin-imports-resume-upload/);
+  assert.match(panelSource, /AdminCommentsPanel/);
+  assert.match(panelSource, /admin-comments-panel/);
   assert.doesNotMatch(panelSource, /admin-imports-feedback/);
   assert.match(panelSource, /현재 상태 저장/);
   assert.match(panelSource, /백업 ZIP으로 복원/);
@@ -40,6 +42,8 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /Portfolio PDF/);
   assert.match(panelSource, /포트폴리오 PDF 관리/);
   assert.match(panelSource, /포트폴리오 파일 교체/);
+  assert.match(panelSource, /Comment Review/);
+  assert.match(panelSource, /최근 댓글 검토/);
   assert.match(panelSource, /복원 전 체크/);
   assert.match(panelSource, /Backup Utility/);
   assert.match(panelSource, /서비스 중인 내용 Save & Load/);

@@ -10,6 +10,7 @@ from app.repositories.series_repository import SeriesRepository
 from app.repositories.tag_repository import TagRepository
 from app.services.import_service import ImportService
 from app.services.media_service import MediaService
+from app.services.post_comment_service import PostCommentService
 from app.services.post_service import PostService
 from app.services.project_service import ProjectService
 from app.services.resume_service import ResumeService
@@ -24,6 +25,10 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
 
 def get_post_service(db: Session = Depends(get_db)) -> PostService:
     return PostService(repo=PostRepository(db))
+
+
+def get_post_comment_service(db: Session = Depends(get_db)) -> PostCommentService:
+    return PostCommentService(db)
 
 
 def get_project_service(db: Session = Depends(get_db)) -> ProjectService:

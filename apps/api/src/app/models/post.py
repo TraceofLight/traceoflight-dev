@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.post_comment import PostComment
     from app.models.project_profile import ProjectProfile
     from app.models.series import SeriesPost
     from app.models.tag import PostTag, Tag
@@ -99,4 +100,10 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="post",
         uselist=False,
         cascade="all, delete-orphan",
+    )
+    comments: Mapped[list["PostComment"]] = relationship(
+        "PostComment",
+        back_populates="post",
+        cascade="all, delete-orphan",
+        order_by="PostComment.created_at.asc()",
     )

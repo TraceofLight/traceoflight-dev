@@ -7,10 +7,21 @@ describe("AdminImportsPanel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total_count: 0,
+        items: [],
+      }),
+    }));
   });
 
   it("renders dedicated backup controls", async () => {
     render(<AdminImportsPanel />);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
     const downloadButton = screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" });
     const chooseFileButton = screen.getByRole("button", { name: "ZIP 파일 선택" });
@@ -59,13 +70,26 @@ describe("AdminImportsPanel", () => {
 
   it("shows restore progress in the action button and resets after success", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        restored_posts: 2,
-        restored_media: 3,
-        restored_series_overrides: 1,
-      }),
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const requestUrl = String(input);
+      if (requestUrl.includes("/internal-api/admin/comments")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            total_count: 0,
+            items: [],
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          restored_posts: 2,
+          restored_media: 3,
+          restored_series_overrides: 1,
+        }),
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -102,12 +126,28 @@ describe("AdminImportsPanel", () => {
 
   it("shows save progress in the action button and resets after success", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      blob: async () => new Blob(["zip"], { type: "application/zip" }),
-      headers: new Headers({
-        "content-disposition": 'attachment; filename="backup.zip"',
-      }),
+    const anchorClickMock = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const requestUrl = String(input);
+      if (requestUrl.includes("/internal-api/admin/comments")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            total_count: 0,
+            items: [],
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        blob: async () => new Blob(["zip"], { type: "application/zip" }),
+        headers: new Headers({
+          "content-disposition": 'attachment; filename="backup.zip"',
+        }),
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
     const createObjectURL = vi.fn(() => "blob:mock");
@@ -137,5 +177,7 @@ describe("AdminImportsPanel", () => {
     expect(
       screen.getByRole("button", { name: "DB 저장 ZIP 다운로드" }),
     ).toBeInTheDocument();
+
+    anchorClickMock.mockRestore();
   });
 });

@@ -5,9 +5,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import BlogPost from "../../layouts/BlogPost.astro";
 import EmptyStateNotice from "../../components/EmptyStateNotice.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
+import { buildBackendApiUrl, requestBackend } from "../../lib/backend-api";
 import { getPublishedDbPostBySlug, renderDbMarkdown } from "../../lib/blog-db";
 import { getBlogSource, getContentProvider } from "../../lib/content-source";
 import { getSeriesBySlug } from "../../lib/series-db";
+import type { PostCommentThreadList } from "../../lib/post-comments";
 
 const slug = Astro.params.slug ?? "";
 const provider = getContentProvider();
@@ -36,11 +38,31 @@ let dbSeriesPostsForSidebar: {
   coverImageUrl?: string;
   relation: "prev" | "next";
 }[] = [];
+let commentsData: PostCommentThreadList = {
+  comment_count: 0,
+  items: [],
+};
+
+async function fetchInitialComments(postSlug: string, includePrivate: boolean) {
+  const path = `/posts/${encodeURIComponent(postSlug)}/comments`;
+  const response = includePrivate
+    ? await requestBackend(path)
+    : await fetch(buildBackendApiUrl(path), { cache: "no-store" });
+  if (response.status === 404) {
+    return commentsData;
+  }
+  if (!response.ok) {
+    return commentsData;
+  }
+  return (await response.json()) as PostCommentThreadList;
+}
 
 if (markdownPost) {
   ({ Content } = await render(markdownPost));
+  commentsData = await fetchInitialComments(slug, isAdminViewer).catch(() => commentsData);
 } else if (dbPost) {
   dbPostHtml = renderDbMarkdown(dbPost.bodyMarkdown);
+  commentsData = await fetchInitialComments(dbPost.slug, isAdminViewer).catch(() => commentsData);
   const seriesSlug = dbPost.seriesContext?.seriesSlug?.trim() ?? "";
   if (seriesSlug.length > 0) {
     try {
@@ -102,7 +124,7 @@ if (markdownPost) {
 
 {
   markdownPost && Content ? (
-    <BlogPost {...markdownPost.data} showAdminActions={false}>
+    <BlogPost {...markdownPost.data} postSlug={slug} showAdminActions={false} isAdminViewer={isAdminViewer} commentsData={commentsData}>
       <Content />
     </BlogPost>
   ) : dbPost && dbPostHtml ? (
@@ -119,8 +141,10 @@ if (markdownPost) {
       postSlug={dbPost.slug}
       adminPostSlug={dbPost.slug}
       showAdminActions={isAdminViewer}
+      isAdminViewer={isAdminViewer}
       seriesContext={dbPost.seriesContext}
       seriesPosts={dbSeriesPostsForSidebar}
+      commentsData={commentsData}
     >
       <div set:html={dbPostHtml} />
     </BlogPost>

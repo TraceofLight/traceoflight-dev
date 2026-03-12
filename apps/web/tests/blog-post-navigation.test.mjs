@@ -37,3 +37,13 @@ test("blog post layout gives markdown code blocks a dedicated shell instead of t
   assert.doesNotMatch(source, /\[\&_pre\]:bg-\[\#07142b\]/);
   assert.doesNotMatch(source, /\[\&_pre_code\]:bg-transparent/);
 });
+
+test("blog post layout mounts the comments surface below the archive action", async () => {
+  const source = await readFile(blogPostLayoutPath, "utf8");
+
+  assert.match(source, /PostComments/);
+  assert.match(source, /client:load/);
+  assert.match(source, /commentsData/);
+  assert.match(source, /isAdminViewer/);
+  assert.match(source, /모든 글 보기[\s\S]*<section class="mt-10"/);
+});

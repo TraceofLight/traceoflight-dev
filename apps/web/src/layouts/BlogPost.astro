@@ -3,6 +3,7 @@ import type { CollectionEntry } from "astro:content";
 
 import CoverMediaImage from "../components/CoverMediaImage.astro";
 import PostAdminActions from "../components/public/PostAdminActions";
+import PostComments from "../components/public/PostComments";
 import BaseLayout from "./BaseLayout.astro";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import {
@@ -18,6 +19,7 @@ import {
   PUBLIC_PANEL_SURFACE_SOFT_CLASS,
   PUBLIC_SURFACE_ACTION_CLASS,
 } from "../lib/ui-effects";
+import type { PostCommentThreadList } from "../lib/post-comments";
 
 type MarkdownPostData = CollectionEntry<"blog">["data"];
 
@@ -56,8 +58,10 @@ interface BlogPostAdminProps {
   postSlug?: string;
   adminPostSlug?: string;
   showAdminActions?: boolean;
+  isAdminViewer?: boolean;
   seriesContext?: SeriesContext;
   seriesPosts?: SeriesPostItem[];
+  commentsData?: PostCommentThreadList;
 }
 
 type Props = (MarkdownPostData | DbPostData) & BlogPostAdminProps;
@@ -72,10 +76,13 @@ const {
   topMediaImageUrl,
   topMediaYoutubeUrl,
   topMediaVideoUrl,
+  postSlug = "",
   adminPostSlug = "",
   showAdminActions = false,
+  isAdminViewer = false,
   seriesContext,
   seriesPosts = [],
+  commentsData = { comment_count: 0, items: [] },
 } = Astro.props;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const detailCoverWidth = 1400;
@@ -209,6 +216,19 @@ const topMediaImage = normalizeCoverMedia(topMediaImageUrl ?? coverImage);
           <span>모든 글 보기</span>
         </a>
       </nav>
+
+      {
+        postSlug && (
+          <section class="mt-10">
+            <PostComments
+              client:load
+              initialComments={commentsData}
+              isAdminViewer={isAdminViewer}
+              postSlug={postSlug}
+            />
+          </section>
+        )
+      }
     </article>
 
     {

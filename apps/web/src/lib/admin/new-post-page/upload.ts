@@ -24,7 +24,7 @@ function buildMarkdownSnippet(
   fileName: string,
   mediaUrl: string,
 ): string {
-  if (kind === "image") return `![${fileName}](${mediaUrl})`;
+  if (kind === "image") return `![](${mediaUrl})`;
   if (kind === "video") return `<video controls src="${mediaUrl}"></video>`;
   return `[${fileName}](${mediaUrl})`;
 }

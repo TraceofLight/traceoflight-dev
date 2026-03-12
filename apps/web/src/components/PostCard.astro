@@ -38,7 +38,7 @@ const fallbackCoverImage = "/images/empty-article-image.png";
 const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   width: imageWidth,
   height: imageHeight,
-  fit: "cover",
+  fit: "inside",
 });
 const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
 const formattedPubDate = formatDateLabel(post.pubDate);

@@ -221,6 +221,33 @@ pre code.hljs {
   color: #f8f8f2;
 }
 
+.markdown-prose .md-image-fallback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 1.1rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.95rem;
+  background: rgba(248, 250, 252, 0.92);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.92rem;
+}
+
+.markdown-prose .md-image-fallback::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.16);
+  color: #dc2626;
+  font-weight: 700;
+  line-height: 1;
+}
+
 html[data-theme='dark'] {
   color-scheme: dark;
 }

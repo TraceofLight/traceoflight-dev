@@ -335,6 +335,6 @@ test("post card uses a toss-team-like wide media block and fully filled imagery"
   assert.doesNotMatch(source, /const imageZoom = 1\.2;/);
   assert.doesNotMatch(source, /position=\{imagePosition\}/);
   assert.doesNotMatch(source, /zoom=\{imageZoom\}/);
-  assert.match(source, /toBrowserImageUrl\(fallbackCoverImage,\s*\{[\s\S]*fit = "cover"|fit:\s*"cover"/);
+  assert.match(source, /toBrowserImageUrl\(fallbackCoverImage,\s*\{[\s\S]*fit = "inside"|fit:\s*"inside"/);
   assert.doesNotMatch(source, /aspect-\[4\/5\]/);
 });

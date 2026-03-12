@@ -17,6 +17,7 @@ import {
   PUBLIC_SURFACE_ACTION_CLASS,
 } from "@/lib/ui-effects";
 import { cn } from "@/lib/utils";
+import AdminCommentsPanel from "./AdminCommentsPanel";
 
 type FeedbackState = "info" | "pending" | "ok" | "error";
 
@@ -428,6 +429,13 @@ export function AdminImportsPanel({
           </section>
         </div>
       </section>
+
+      <div
+        aria-label="Comment Review 최근 댓글 검토"
+        data-panel="admin-comments-panel"
+      >
+        <AdminCommentsPanel />
+      </div>
     </div>
   );
 }

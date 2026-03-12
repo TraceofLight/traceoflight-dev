@@ -8,6 +8,13 @@ type HighlightJsLike = {
 
 const YOUTUBE_DIRECTIVE_MARKER = ":::youtube";
 const YOUTUBE_DIRECTIVE_CLOSE = ":::";
+const IMAGE_FALLBACK_TEXT = "이미지를 불러올 수 없습니다.";
+
+function isPlaceholderImageAlt(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) return false;
+  return /^\d+(?:\.\d+)+$/.test(normalized);
+}
 
 function toYoutubeEmbedUrl(rawUrl: string): string | null {
   const normalized = rawUrl.trim();
@@ -107,28 +114,32 @@ export function configureMarkdownRenderer(
     },
   });
 
-  const defaultImageRule = markdown.renderer.rules.image;
   type RenderImageRule = NonNullable<typeof markdown.renderer.rules.image>;
   const renderImage: RenderImageRule = (
     tokens,
     idx,
-    options,
-    env,
-    self,
+    _options,
+    _env,
+    _self,
   ) => {
     const token = tokens[idx];
+    const src = (token.attrGet("src") ?? "").trim();
     const titleAttrIndex = token.attrIndex("title");
     const titleAttr =
       titleAttrIndex >= 0 ? token.attrs?.[titleAttrIndex] : undefined;
     const caption = (titleAttr?.[1] ?? "").trim();
+    const rawAlt = token.content.trim();
+    const alt = isPlaceholderImageAlt(rawAlt) ? "" : rawAlt;
+    const escapedSrc = markdown.utils.escapeHtml(src);
+    const escapedAlt = markdown.utils.escapeHtml(alt);
+    const escapedTitle = markdown.utils.escapeHtml(caption);
+    const escapedFallbackText = markdown.utils.escapeHtml(IMAGE_FALLBACK_TEXT);
+    const titleAttribute = caption ? ` title="${escapedTitle}"` : "";
+    const fallbackHtml = `<span class="md-image-fallback" hidden>${escapedFallbackText}</span>`;
+    const imageHtml = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttribute} loading="lazy" onerror="this.onerror=null; this.style.display='none'; var fallback=this.nextElementSibling; if (fallback) { fallback.hidden=false; }">`;
 
-    const imageHtml = defaultImageRule
-      ? defaultImageRule(tokens, idx, options, env, self)
-      : self.renderToken(tokens, idx, options);
-
-    if (!caption) return imageHtml;
-    const escapedCaption = markdown.utils.escapeHtml(caption);
-    return `<figure class="md-figure">${imageHtml}<figcaption>${escapedCaption}</figcaption></figure>`;
+    if (!caption) return `${imageHtml}${fallbackHtml}`;
+    return `<figure class="md-figure">${imageHtml}${fallbackHtml}<figcaption>${escapedTitle}</figcaption></figure>`;
   };
   markdown.renderer.rules.image = renderImage;
   installYoutubeDirective(markdown);

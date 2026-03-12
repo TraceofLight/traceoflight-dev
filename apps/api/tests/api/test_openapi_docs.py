@@ -77,6 +77,7 @@ def test_openapi_has_tag_descriptions_for_health_posts_media_and_tags() -> None:
     assert 'posts' in tags
     assert 'media' in tags
     assert 'tags' in tags
+    assert 'comments' in tags
     assert 'liveness' in tags['health']['description'].lower()
 
 
@@ -93,3 +94,19 @@ def test_openapi_includes_tags_endpoints_metadata() -> None:
     assert delete_op['summary'] == 'Delete tag'
     assert '401' in create_op['responses']
     assert '409' in create_op['responses']
+
+
+def test_openapi_includes_comment_endpoints_metadata() -> None:
+    schema = _openapi()
+    list_op = schema['paths']['/api/v1/posts/{slug}/comments']['get']
+    create_op = schema['paths']['/api/v1/posts/{slug}/comments']['post']
+    patch_op = schema['paths']['/api/v1/comments/{comment_id}']['patch']
+    delete_op = schema['paths']['/api/v1/comments/{comment_id}']['delete']
+    admin_op = schema['paths']['/api/v1/admin/comments']['get']
+
+    assert list_op['summary'] == 'List post comments'
+    assert create_op['summary'] == 'Create post comment'
+    assert patch_op['summary'] == 'Update comment'
+    assert delete_op['summary'] == 'Delete comment'
+    assert admin_op['summary'] == 'List admin comments'
+    assert '401' in admin_op['responses']
