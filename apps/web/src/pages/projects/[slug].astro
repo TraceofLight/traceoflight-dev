@@ -159,7 +159,7 @@ if (!project) {
           }
         </div>
 
-        <section class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <section class="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
           <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               프로젝트 소개
@@ -184,12 +184,12 @@ if (!project) {
             </h2>
             {
               (projectProfile?.links.length ?? 0) > 0 ? (
-                <div class="mt-4 flex flex-wrap gap-3">
+                <div class="mt-4 flex flex-col items-start gap-3">
                   {projectProfile?.links.map((link) => {
                     const isExternal = /^https?:\/\//.test(link.href);
                     return (
                       <a
-                        class={PUBLIC_SURFACE_ACTION_CLASS}
+                        class={`w-full justify-start ${PUBLIC_SURFACE_ACTION_CLASS}`}
                         href={link.href}
                         rel={isExternal ? "noreferrer" : undefined}
                         target={isExternal ? "_blank" : undefined}

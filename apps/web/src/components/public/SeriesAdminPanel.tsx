@@ -8,6 +8,10 @@ import {
 import { ImagePlusIcon, LoaderCircleIcon, SaveIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  PUBLIC_ICON_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -351,10 +355,12 @@ export function SeriesAdminPanel({ series }: SeriesAdminPanelProps) {
             </h2>
           </div>
           <Button
+            className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
             id="series-admin-save-meta"
             disabled={savingMeta}
             onClick={handleMetaSave}
             type="button"
+            variant="outline"
           >
             {savingMeta ? (
               <LoaderCircleIcon className="h-4 w-4 animate-spin" />
@@ -399,6 +405,7 @@ export function SeriesAdminPanel({ series }: SeriesAdminPanelProps) {
               />
               <div className="flex flex-wrap items-center gap-3">
                 <Button
+                  className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
                   id="series-admin-cover-upload-trigger"
                   disabled={uploadingCover}
                   onClick={openCoverFilePicker}

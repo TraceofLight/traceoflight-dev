@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FooterAdminModal } from "@/components/public/FooterAdminModal";
+import { PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS } from "@/lib/ui-effects";
 
 describe("FooterAdminModal", () => {
   beforeEach(() => {
@@ -28,6 +29,12 @@ describe("FooterAdminModal", () => {
     expect(screen.getByLabelText("아이디")).toBeInTheDocument();
     expect(screen.getByLabelText("비밀번호")).toBeInTheDocument();
     expect(screen.getByText("로그인 정보를 입력해 주세요.")).toBeInTheDocument();
+    const submitButton = screen.getByRole("button", { name: "로그인" });
+    expect(submitButton.className).toContain(
+      PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS.split(" ")[0],
+    );
+    expect(submitButton.className).toContain("border-sky-200/70");
+    expect(submitButton.className).toContain("text-sky-700");
     expect(
       screen.queryByText("관리자 인증 후 다음 화면으로 이동합니다."),
     ).not.toBeInTheDocument();

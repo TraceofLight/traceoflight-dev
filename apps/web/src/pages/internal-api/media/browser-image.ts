@@ -28,6 +28,20 @@ const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(
     .filter(Boolean),
 );
 
+function normalizeComparableHostname(hostname: string): string {
+  return hostname.trim().toLowerCase().replace(/^www\./, "");
+}
+
+function addHostWithVariants(target: Set<string>, hostname: string): void {
+  const normalizedHostname = normalizeComparableHostname(hostname);
+  if (!normalizedHostname) {
+    return;
+  }
+
+  target.add(normalizedHostname);
+  target.add(`www.${normalizedHostname}`);
+}
+
 function badRequest(detail: string, status = 400): Response {
   return new Response(JSON.stringify({ detail }), {
     status,
@@ -115,7 +129,10 @@ async function resolvesToBlockedAddress(hostname: string): Promise<boolean> {
 }
 
 function buildAllowedRemoteHosts(requestOrigin: string): Set<string> {
-  const allowedHosts = new Set<string>(ALLOWED_REMOTE_IMAGE_HOSTS);
+  const allowedHosts = new Set<string>();
+  for (const hostname of ALLOWED_REMOTE_IMAGE_HOSTS) {
+    addHostWithVariants(allowedHosts, hostname);
+  }
   const originCandidates = [requestOrigin, process.env.SITE_URL?.trim() || SITE_URL];
 
   const backendAssetOrigin = (() => {
@@ -130,7 +147,7 @@ function buildAllowedRemoteHosts(requestOrigin: string): Set<string> {
   for (const candidate of originCandidates) {
     if (!candidate) continue;
     try {
-      allowedHosts.add(new URL(candidate).hostname.toLowerCase());
+      addHostWithVariants(allowedHosts, new URL(candidate).hostname);
     } catch {
       continue;
     }
@@ -146,9 +163,34 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
   }
 
   const requestOrigin = new URL(request.url).origin;
+  const configuredSiteOrigin = process.env.SITE_URL?.trim() || SITE_URL;
+  const backendAssetOrigin = (() => {
+    try {
+      return new URL(getBackendApiBaseUrl()).origin;
+    } catch {
+      return "";
+    }
+  })();
   const isRelativeSource = trimmedSource.startsWith("/");
   if (!isRelativeSource) {
     const resolvedUrl = new URL(trimmedSource);
+    const trustedInternalHosts = new Set<string>();
+    for (const origin of [requestOrigin, configuredSiteOrigin, backendAssetOrigin]) {
+      if (!origin) continue;
+      try {
+        addHostWithVariants(trustedInternalHosts, new URL(origin.trim()).hostname);
+      } catch {
+        continue;
+      }
+    }
+
+    if (
+      trustedInternalHosts.has(normalizeComparableHostname(resolvedUrl.hostname)) &&
+      resolvedUrl.pathname.startsWith("/")
+    ) {
+      return buildSourceUrlCandidates(request, `${resolvedUrl.pathname}${resolvedUrl.search}`);
+    }
+
     const allowedRemoteHosts = buildAllowedRemoteHosts(requestOrigin);
 
     if (!["http:", "https:"].includes(resolvedUrl.protocol)) {
@@ -159,7 +201,7 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
       return [];
     }
 
-    if (!allowedRemoteHosts.has(resolvedUrl.hostname.toLowerCase())) {
+    if (!allowedRemoteHosts.has(normalizeComparableHostname(resolvedUrl.hostname))) {
       return [];
     }
 
@@ -170,14 +212,6 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
     return [resolvedUrl];
   }
 
-  const configuredSiteOrigin = process.env.SITE_URL?.trim() || SITE_URL;
-  const backendAssetOrigin = (() => {
-    try {
-      return new URL(getBackendApiBaseUrl()).origin;
-    } catch {
-      return "";
-    }
-  })();
   const originCandidates = trimmedSource.startsWith("/media/")
     ? [requestOrigin, backendAssetOrigin, configuredSiteOrigin]
     : [requestOrigin];

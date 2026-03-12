@@ -95,6 +95,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /project\.topMediaVideoUrl/);
   assert.match(source, /프로젝트 소개/);
   assert.match(source, /project\.intro \|\| "프로젝트 소개 문구를 준비 중입니다\."/);
+  assert.match(source, /<section class="grid gap-6 lg:grid-cols-\[minmax\(0,1\.7fr\)_minmax\(260px,0\.8fr\)\]">/);
   assert.match(source, /relatedSeriesPosts|related series/i);
   assert.match(source, /연관된 포스팅 시리즈/);
   assert.match(source, /모든 프로젝트 보기/);
@@ -107,6 +108,8 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /data-project-top-video/);
   assert.match(source, /<source/);
   assert.match(source, /type="video\/mp4"/);
+  assert.match(source, /class="mt-4 flex flex-col items-start gap-3"/);
+  assert.match(source, /class=\{`w-full justify-start \$\{PUBLIC_SURFACE_ACTION_CLASS\}`\}/);
   assert.match(source, /topMediaKind === "youtube"/);
   assert.match(source, /topMediaYoutubeUrl/);
   assert.match(source, /astro:page-load/);

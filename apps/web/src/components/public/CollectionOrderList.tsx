@@ -1,6 +1,10 @@
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, SaveIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  PUBLIC_ICON_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 
 export interface OrderableCollectionItem {
   slug: string;
@@ -40,9 +44,11 @@ export default function CollectionOrderList({
           </h3>
         </div>
         <Button
+          className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
           disabled={saving || items.length === 0}
           onClick={onSaveOrder}
           type="button"
+          variant="outline"
         >
           <SaveIcon className="h-4 w-4" />
           {saveLabel}
@@ -86,6 +92,7 @@ export default function CollectionOrderList({
                 <div className="flex items-center justify-end gap-2">
                   <Button
                     aria-label={`${item.title} 위로 이동`}
+                    className={PUBLIC_ICON_ACTION_CLASS}
                     data-order-move="up"
                     disabled={index === 0}
                     onClick={() => onMoveItem(item.slug, "up")}
@@ -97,6 +104,7 @@ export default function CollectionOrderList({
                   </Button>
                   <Button
                     aria-label={`${item.title} 아래로 이동`}
+                    className={PUBLIC_ICON_ACTION_CLASS}
                     data-order-move="down"
                     disabled={index === items.length - 1}
                     onClick={() => onMoveItem(item.slug, "down")}

@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PUBLIC_ICON_ACTION_CLASS } from "@/lib/ui-effects";
+import {
+  PUBLIC_ICON_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 
 type FooterAdminModalProps = {
   adminNextPath: string;
@@ -157,7 +160,11 @@ export function FooterAdminModal({
               value={password}
             />
           </div>
-          <Button className="w-full" type="submit">
+          <Button
+            className={`w-full ${PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}`}
+            type="submit"
+            variant="outline"
+          >
             <LogInIcon className="mr-1 h-4 w-4" />
             로그인
           </Button>

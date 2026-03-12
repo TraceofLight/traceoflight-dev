@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.db.session import SessionLocal
@@ -59,7 +60,11 @@ def _projection_order_key(post: Post) -> tuple[datetime, datetime, str]:
     return (primary, secondary, post.slug)
 
 
-def _build_projection_rows(posts: list[Post]) -> list[SeriesProjectionRow]:
+def _build_projection_rows(
+    posts: list[Post],
+    existing_order_by_slug: dict[str, dict[UUID, int]] | None = None,
+) -> list[SeriesProjectionRow]:
+    existing_order_by_slug = existing_order_by_slug or {}
     grouped_posts: dict[str, list[Post]] = defaultdict(list)
     grouped_titles: dict[str, tuple[datetime, str]] = {}
 
@@ -79,7 +84,14 @@ def _build_projection_rows(posts: list[Post]) -> list[SeriesProjectionRow]:
 
     projection_rows: list[SeriesProjectionRow] = []
     for slug in sorted(grouped_posts):
-        ordered_posts = sorted(grouped_posts[slug], key=_projection_order_key)
+        existing_order = existing_order_by_slug.get(slug, {})
+        ordered_posts = sorted(
+            grouped_posts[slug],
+            key=lambda post: (
+                existing_order.get(post.id, 10**9),
+                *_projection_order_key(post),
+            ),
+        )
         projection_rows.append(
             SeriesProjectionRow(
                 slug=slug,
@@ -93,9 +105,20 @@ def _build_projection_rows(posts: list[Post]) -> list[SeriesProjectionRow]:
 def rebuild_series_projection_cache() -> dict[str, int]:
     with SessionLocal() as db:
         posts = list(db.scalars(select(Post).where(Post.series_title.is_not(None))))
-        projection_rows = _build_projection_rows(posts)
+        existing_rows = list(
+            db.scalars(
+                select(Series).options(selectinload(Series.series_posts))
+            )
+        )
+        existing_order_by_slug = {
+            row.slug: {mapping.post_id: mapping.order_index for mapping in row.series_posts}
+            for row in existing_rows
+        }
+        projection_rows = _build_projection_rows(
+            posts,
+            existing_order_by_slug=existing_order_by_slug,
+        )
 
-        existing_rows = list(db.scalars(select(Series)))
         existing_by_slug = {row.slug: row for row in existing_rows}
         target_slugs = {row.slug for row in projection_rows}
 

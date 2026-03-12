@@ -121,3 +121,51 @@ def test_build_projection_rows_ignores_project_content_kind() -> None:
 
     assert [row.slug for row in rows] == ["Renderer-Basics"]
     assert list(rows[0].post_ids) == [UUID("00000000-0000-0000-0000-000000000101")]
+
+
+def test_build_projection_rows_preserves_existing_manual_order_for_remaining_posts() -> None:
+    posts = [
+        _PostStub(
+            id=UUID("00000000-0000-0000-0000-000000000201"),
+            slug="post-a",
+            series_title="Renderer Basics",
+            published_at=_dt(10),
+            created_at=_dt(10),
+            updated_at=_dt(10),
+        ),
+        _PostStub(
+            id=UUID("00000000-0000-0000-0000-000000000202"),
+            slug="post-b",
+            series_title="Renderer Basics",
+            published_at=_dt(11),
+            created_at=_dt(11),
+            updated_at=_dt(11),
+        ),
+        _PostStub(
+            id=UUID("00000000-0000-0000-0000-000000000203"),
+            slug="post-c",
+            series_title="Renderer Basics",
+            published_at=_dt(12),
+            created_at=_dt(12),
+            updated_at=_dt(12),
+        ),
+    ]
+
+    rows = projection_cache._build_projection_rows(  # noqa: SLF001
+        posts,
+        existing_order_by_slug={
+            "Renderer-Basics": {
+                UUID("00000000-0000-0000-0000-000000000202"): 1,
+                UUID("00000000-0000-0000-0000-000000000201"): 2,
+                UUID("00000000-0000-0000-0000-000000000204"): 3,
+                UUID("00000000-0000-0000-0000-000000000203"): 4,
+            }
+        },
+    )
+
+    assert [row.slug for row in rows] == ["Renderer-Basics"]
+    assert list(rows[0].post_ids) == [
+        UUID("00000000-0000-0000-0000-000000000202"),
+        UUID("00000000-0000-0000-0000-000000000201"),
+        UUID("00000000-0000-0000-0000-000000000203"),
+    ]

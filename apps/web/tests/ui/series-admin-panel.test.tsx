@@ -2,6 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SeriesAdminPanel } from "@/components/public/SeriesAdminPanel";
+import {
+  PUBLIC_ICON_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 
 const series = {
   coverImageUrl: "",
@@ -98,5 +102,22 @@ describe("SeriesAdminPanel", () => {
         }),
       );
     });
+  });
+
+  it("uses shared action effects for save and move controls", () => {
+    render(<SeriesAdminPanel series={series} />);
+
+    expect(screen.getByRole("button", { name: "저장" }).className).toContain(
+      PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS.split(" ")[0],
+    );
+    expect(screen.getByRole("button", { name: "글 순서 저장" }).className).toContain(
+      PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS.split(" ")[0],
+    );
+    expect(screen.getByRole("button", { name: "Intro 위로 이동" }).className).toContain(
+      PUBLIC_ICON_ACTION_CLASS.split(" ")[0],
+    );
+    expect(screen.getByRole("button", { name: "Intro 아래로 이동" }).className).toContain(
+      PUBLIC_ICON_ACTION_CLASS.split(" ")[0],
+    );
   });
 });

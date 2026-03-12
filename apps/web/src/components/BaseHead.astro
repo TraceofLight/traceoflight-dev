@@ -19,7 +19,7 @@ const ogImage = image
   ? new URL(image.src, canonicalBase)
   : new URL('/android-chrome-512x512.png', canonicalBase);
 const fullTitle = title.includes(SITE_TITLE) ? title : `${title} | ${SITE_TITLE}`;
-const iconVersion = '20260312';
+const iconVersion = '20260313';
 const ga4MeasurementIdRaw = (process.env.GA4_MEASUREMENT_ID ?? '').trim();
 const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4MeasurementIdRaw : '';
 ---

@@ -166,6 +166,8 @@ test("browser image route limits remote hosts to an allowlist and blocks wider i
 
   assert.match(source, /ALLOWED_REMOTE_IMAGE_HOSTS/);
   assert.doesNotMatch(source, /velog\.velcdn\.com/);
+  assert.match(source, /replace\(\s*\/\^www\\\.\//);
+  assert.match(source, /www\.\$\{normalizedHostname\}/);
   assert.match(source, /169\\\.254/);
   assert.match(source, /carrierGradeNatMatch/);
   assert.match(source, /benchmarkMatch/);
@@ -275,6 +277,47 @@ test("browser image route falls back to the backend asset origin for /media asse
   } finally {
     backendServer.close();
     siteServer.close();
+  }
+});
+
+test("browser image route accepts absolute same-origin /media urls by normalizing them into internal asset candidates", async () => {
+  const servedImageBuffer = await readFile(fallbackImageAssetPath);
+  const server = createServer((request, response) => {
+    if (request.url === "/media/test.png") {
+      response.writeHead(200, { "content-type": "image/png" });
+      response.end(servedImageBuffer);
+      return;
+    }
+
+    response.writeHead(404, { "content-type": "text/plain" });
+    response.end("not found");
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const address = server.address();
+    assert.notEqual(address, null);
+    assert.equal(typeof address, "object");
+
+    const absoluteMediaUrl = `http://127.0.0.1:${address.port}/media/test.png`;
+    const requestUrl = `http://127.0.0.1:${address.port}/internal-api/media/browser-image?${new URLSearchParams({
+      url: absoluteMediaUrl,
+      w: "64",
+      h: "64",
+    }).toString()}`;
+
+    const response = await invokeBrowserImageRoute({
+      cwd: appRootPath,
+      requestUrl,
+      siteUrl: `http://127.0.0.1:${address.port}`,
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.contentType, "image/webp");
+    assert.ok(response.bodyLength > 0);
+  } finally {
+    server.close();
   }
 });
 

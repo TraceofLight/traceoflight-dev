@@ -19,6 +19,7 @@ test("base head uses canonical site urls and custom favicon assets", async () =>
   );
   assert.match(source, /<meta property="og:url" content=\{canonicalURL\} \/>/);
   assert.match(source, /<meta property="twitter:url" content=\{canonicalURL\} \/>/);
+  assert.match(source, /const iconVersion = '20260313';/);
   assert.match(source, /<link rel="shortcut icon" href=\{`\/favicon\.ico\?v=\$\{iconVersion\}`\} \/>/);
   assert.match(source, /<link rel="icon" type="image\/png" sizes="32x32" href=\{`\/favicon-32x32\.png\?v=\$\{iconVersion\}`\} \/>/);
   assert.doesNotMatch(source, /meta name="generator"/);

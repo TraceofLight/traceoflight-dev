@@ -6,6 +6,10 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  PUBLIC_ICON_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "@/lib/ui-effects";
 
 export interface SeriesAdminPost {
   slug: string;
@@ -46,10 +50,12 @@ export default function SeriesReorderList({
           </h3>
         </div>
         <Button
+          className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
           id="series-admin-save-order"
           disabled={saving || posts.length === 0}
           onClick={onSaveOrder}
           type="button"
+          variant="outline"
         >
           <SaveIcon className="h-4 w-4" />글 순서 저장
         </Button>
@@ -95,6 +101,7 @@ export default function SeriesReorderList({
                   <div className="flex items-center justify-end gap-2">
                     <Button
                       aria-label={`${post.title} 위로 이동`}
+                      className={PUBLIC_ICON_ACTION_CLASS}
                       data-series-move="up"
                       disabled={index === 0}
                       onClick={() => onMovePost(post.slug, "up")}
@@ -106,6 +113,7 @@ export default function SeriesReorderList({
                     </Button>
                     <Button
                       aria-label={`${post.title} 아래로 이동`}
+                      className={PUBLIC_ICON_ACTION_CLASS}
                       data-series-move="down"
                       disabled={index === posts.length - 1}
                       onClick={() => onMovePost(post.slug, "down")}
