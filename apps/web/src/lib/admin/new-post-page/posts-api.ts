@@ -346,8 +346,7 @@ function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
   const value = raw as Record<string, unknown>;
   if (
     typeof value.period_label !== "string" ||
-    typeof value.role_summary !== "string" ||
-    typeof value.card_image_url !== "string"
+    typeof value.role_summary !== "string"
   ) {
     return null;
   }
@@ -358,7 +357,10 @@ function normalizeProjectProfile(raw: unknown): AdminProjectProfile | null {
       typeof value.project_intro === "string" || value.project_intro === null
         ? value.project_intro
         : null,
-    card_image_url: value.card_image_url.trim(),
+    card_image_url:
+      typeof value.card_image_url === "string" || value.card_image_url === null
+        ? value.card_image_url
+        : null,
     highlights_json: Array.isArray(value.highlights_json)
       ? value.highlights_json.filter((item): item is string => typeof item === "string")
       : Array.isArray(value.highlights)

@@ -54,7 +54,7 @@ export interface AdminProjectProfile {
   period_label: string;
   role_summary: string;
   project_intro?: string | null;
-  card_image_url: string;
+  card_image_url?: string | null;
   highlights_json?: string[];
   highlights?: string[];
   resource_links_json?: AdminProjectResourceLink[];

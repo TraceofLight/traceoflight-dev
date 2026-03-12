@@ -155,19 +155,22 @@ export function createWriterLoaders(
     fallbackSlug: string,
   ) => {
     const nextSlug = loaded.slug?.trim() || fallbackSlug;
+    const resolvedCoverImageUrl =
+      loaded.cover_image_url ?? loaded.project_profile?.card_image_url ?? "";
     setEditingPostSlug(nextSlug);
     titleInput.value = loaded.title?.trim() ?? "";
     slugInput.value = loaded.slug?.trim() || fallbackSlug;
     slugInput.dataset.touched = "true";
     excerptInput.value = loaded.excerpt ?? "";
-    coverInput.value = loaded.cover_image_url ?? "";
+    coverInput.value = resolvedCoverImageUrl;
     topMediaKindInput.value =
       loaded.top_media_kind === "youtube"
         ? "youtube"
         : loaded.top_media_kind === "video"
           ? "video"
           : "image";
-    topMediaImageUrlInput.value = loaded.top_media_image_url ?? loaded.cover_image_url ?? "";
+    topMediaImageUrlInput.value =
+      loaded.top_media_image_url ?? resolvedCoverImageUrl;
     topMediaYoutubeUrlInput.value = loaded.top_media_youtube_url ?? "";
     topMediaVideoUrlInput.value = loaded.top_media_video_url ?? "";
     contentKindInput.value = loaded.content_kind === "project" ? "project" : "blog";
