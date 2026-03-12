@@ -21,6 +21,7 @@ test("admin auth middleware and routes are present", async () => {
   await exists("src/pages/internal-api/auth/login.ts");
   await exists("src/pages/internal-api/auth/refresh.ts");
   await exists("src/pages/internal-api/auth/logout.ts");
+  await exists("src/pages/logout.ts");
   await exists("src/pages/admin/posts/new.astro");
   await exists("src/pages/admin/posts/[slug]/edit.astro");
 
@@ -40,9 +41,16 @@ test("admin auth middleware and routes are present", async () => {
   assert.doesNotMatch(middleware, /\/admin\/logout/);
 });
 
-test("logout route only allows POST", async () => {
-  const source = await read("src/pages/internal-api/auth/logout.ts");
+test("logout routes keep POST logout while preventing direct internal-api dead-end pages", async () => {
+  const [internalSource, publicSource] = await Promise.all([
+    read("src/pages/internal-api/auth/logout.ts"),
+    read("src/pages/logout.ts"),
+  ]);
 
-  assert.match(source, /export const POST: APIRoute = performLogout;/);
-  assert.doesNotMatch(source, /export const GET: APIRoute/);
+  assert.match(internalSource, /export const POST: APIRoute = performLogout;/);
+  assert.match(internalSource, /export const GET: APIRoute/);
+  assert.doesNotMatch(internalSource, /clearAdminAuthCookies\(cookies\)[\s\S]*export const GET/);
+  assert.match(publicSource, /export const POST: APIRoute/);
+  assert.match(publicSource, /createAdminLogoutResponse/);
+  assert.match(publicSource, /createAdminLogoutRedirect/);
 });

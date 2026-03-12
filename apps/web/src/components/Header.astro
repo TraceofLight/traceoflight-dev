@@ -28,7 +28,7 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
                 Admin
               </button>
             </form>
-            <form class="flex" method="POST" action="/internal-api/auth/logout?next=/">
+            <form class="flex" method="POST" action="/logout?next=/">
               <button
                 id="header-admin-logout"
                 class={DANGER_PILL_ACTION_CLASS}

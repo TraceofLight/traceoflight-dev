@@ -1,31 +1,14 @@
 import type { APIRoute } from 'astro';
 
 import {
-  ADMIN_REFRESH_COOKIE,
-  clearAdminAuthCookies,
-  revokeRefreshTokenFamily,
-} from '../../../lib/admin-auth';
-import { sanitizeNextPath } from '../../../lib/admin-redirect';
+  createAdminLogoutRedirect,
+  createAdminLogoutResponse,
+} from '../../../lib/admin-logout';
 
 export const prerender = false;
 
-const performLogout: APIRoute = async ({ cookies, request, url, redirect }) => {
-  const refreshToken = cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? '';
-  if (refreshToken) {
-    revokeRefreshTokenFamily(refreshToken);
-  }
-  clearAdminAuthCookies(cookies);
-
-  const accept = request.headers.get('accept') ?? '';
-  const nextPath = sanitizeNextPath(url.searchParams.get('next'));
-  if (accept.includes('text/html')) {
-    return redirect(nextPath);
-  }
-
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { 'content-type': 'application/json' },
-  });
-};
+const performLogout: APIRoute = (context) => createAdminLogoutResponse(context);
+const redirectAway: APIRoute = (context) => createAdminLogoutRedirect(context);
 
 export const POST: APIRoute = performLogout;
+export const GET: APIRoute = redirectAway;

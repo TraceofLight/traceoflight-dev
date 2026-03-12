@@ -4,13 +4,13 @@
   "description": "TraceofLight portfolio and engineering archive",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png?v=20260305",
+      "src": "/android-chrome-192x192.png?v=20260312",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/android-chrome-512x512.png?v=20260305",
+      "src": "/android-chrome-512x512.png?v=20260312",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

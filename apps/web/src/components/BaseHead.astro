@@ -15,16 +15,17 @@ const { title, description, image } = Astro.props;
 
 const canonicalBase = Astro.site ?? new URL(SITE_URL);
 const canonicalURL = new URL(Astro.url.pathname, canonicalBase);
-const ogImage = image ? new URL(image.src, Astro.url) : new URL('/android-chrome-512x512.png', Astro.url);
+const ogImage = image
+  ? new URL(image.src, canonicalBase)
+  : new URL('/android-chrome-512x512.png', canonicalBase);
 const fullTitle = title.includes(SITE_TITLE) ? title : `${title} | ${SITE_TITLE}`;
-const iconVersion = '20260305';
+const iconVersion = '20260312';
 const ga4MeasurementIdRaw = (process.env.GA4_MEASUREMENT_ID ?? '').trim();
 const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4MeasurementIdRaw : '';
 ---
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="generator" content={Astro.generator} />
 
 <meta name="application-name" content={SITE_TITLE} />
 <meta name="apple-mobile-web-app-title" content={SITE_TITLE} />
@@ -67,13 +68,13 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 <meta name="description" content={description} />
 
 <meta property="og:type" content="website" />
-<meta property="og:url" content={Astro.url} />
+<meta property="og:url" content={canonicalURL} />
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={ogImage} />
 
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:url" content={Astro.url} />
+<meta property="twitter:url" content={canonicalURL} />
 <meta property="twitter:title" content={fullTitle} />
 <meta property="twitter:description" content={description} />
 <meta property="twitter:image" content={ogImage} />

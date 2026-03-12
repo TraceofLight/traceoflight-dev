@@ -166,7 +166,7 @@ test("site header brand uses text-only mark without avatar image", async () => {
   assert.match(source, /id="header-admin-logout"/);
   assert.match(source, /<form class="flex" method="GET" action=\{ADMIN_IMPORTS_PATH\}>/);
   assert.match(source, /<button[\s\S]*id="header-admin-link"[\s\S]*type="submit"/);
-  assert.match(source, /\/internal-api\/auth\/logout/);
+  assert.match(source, /\/logout\?next=\//);
   assert.match(source, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(
     source,

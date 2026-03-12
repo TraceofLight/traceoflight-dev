@@ -1,0 +1,34 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { SITE_TITLE } from "../consts";
+import {
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+  PUBLIC_SECTION_SURFACE_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+} from "../lib/ui-effects";
+---
+
+<BaseLayout
+  title={`찾을 수 없는 페이지 | ${SITE_TITLE}`}
+  description="요청하신 페이지를 찾을 수 없습니다."
+>
+  <section class={`${PUBLIC_SECTION_SURFACE_CLASS} mx-auto my-12 max-w-4xl px-8 py-12 text-center sm:px-12 sm:py-16`}>
+    <div class="mx-auto max-w-2xl space-y-4">
+      <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
+        Not Found
+      </p>
+      <h1 class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+        찾을 수 없는 페이지
+      </h1>
+      <p class="text-base leading-7 text-muted-foreground sm:text-lg">
+        요청하신 주소가 없거나 이동되었습니다. 아래 링크에서 원하는 페이지로 다시 이동해 주세요.
+      </p>
+    </div>
+
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <a class={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS} href="/">메인으로 돌아가기</a>
+      <a class={PUBLIC_SURFACE_ACTION_CLASS} href="/blog">블로그 보기</a>
+      <a class={PUBLIC_SURFACE_ACTION_CLASS} href="/projects">프로젝트 보기</a>
+    </div>
+  </section>
+</BaseLayout>

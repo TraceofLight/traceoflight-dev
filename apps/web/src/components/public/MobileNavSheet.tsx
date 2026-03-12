@@ -44,7 +44,7 @@ export default function MobileNavSheet({
               >
                 Admin Imports
               </a>
-              <form action="/internal-api/auth/logout?next=/" className="pt-3" method="POST">
+              <form action="/logout?next=/" className="pt-3" method="POST">
                 <Button className="w-full justify-center" type="submit" variant="outline">
                   Logout
                 </Button>

@@ -45,7 +45,7 @@ test("header navigation keeps active and hover states without a heavy shared rai
   assert.doesNotMatch(headerSource, /bg-white\/88 px-4 py-2/);
   assert.match(headerSource, /class="hidden items-center gap-1 md:flex"/);
   assert.match(headerSource, /<form class="flex" method="GET" action=\{ADMIN_IMPORTS_PATH\}>/);
-  assert.match(headerSource, /<form class="flex" method="POST" action="\/internal-api\/auth\/logout\?next=\/">/);
+  assert.match(headerSource, /<form class="flex" method="POST" action="\/logout\?next=\/">/);
   assert.match(headerSource, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(
     headerSource,
