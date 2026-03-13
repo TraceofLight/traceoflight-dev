@@ -275,9 +275,7 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
                   coverImageUrl: series.coverImageUrl,
                 }) satisfies FeaturedSeriesCard,
             )
-            .filter(isFeaturedSeriesCard)
-            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-            .slice(0, 3);
+            .filter(isFeaturedSeriesCard);
         } catch {
           return [];
         }

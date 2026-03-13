@@ -94,6 +94,11 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /const dbPosts = await listPublishedDbPostSummaries\(3,\s*\{/);
   assert.match(source, /const featuredSeriesCards: FeaturedSeriesCard\[] =[\s\S]*listFeaturedSeries\(/);
   assert.doesNotMatch(source, /Promise\.all\(\s*seriesList\.map/);
+  assert.doesNotMatch(
+    source,
+    /featuredSeriesCards:[\s\S]*\.sort\(\(a,\s*b\) => b\.updatedAt\.getTime\(\) - a\.updatedAt\.getTime\(\)\)/,
+  );
+  assert.doesNotMatch(source, /featuredSeriesCards:[\s\S]*\.slice\(0,\s*3\)/);
   assert.match(source, /iconClass:\s*"theme-invert-on-light"/);
   assert.match(source, /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width="18"/);
   assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
@@ -190,4 +195,13 @@ test("site header brand uses text-only mark without avatar image", async () => {
   assert.match(source, /MobileNavSheet/);
   assert.doesNotMatch(source, /brand-avatar/);
   assert.doesNotMatch(source, /traceoflight-profile\.png/);
+});
+
+test("featured series helper preserves backend order instead of re-sorting by update time", async () => {
+  const source = await readFile(new URL("../src/lib/series-db.ts", import.meta.url), "utf8");
+
+  assert.match(source, /export async function listFeaturedSeries\(/);
+  assert.match(source, /limit:\s*limit,/);
+  assert.doesNotMatch(source, /\.sort\(\(left,\s*right\) => right\.updatedAt\.valueOf\(\) - left\.updatedAt\.valueOf\(\)\)/);
+  assert.doesNotMatch(source, /Math\.max\(limit \* 4,\s*limit\)/);
 });

@@ -130,12 +130,8 @@ export async function listFeaturedSeries(
   options: Omit<SeriesQueryOptions, "offset"> = {},
 ): Promise<SeriesSummary[]> {
   const limit = typeof options.limit === "number" ? options.limit : 3;
-  const rows = await listSeries({
+  return listSeries({
     includePrivate: options.includePrivate,
-    limit: Math.max(limit * 4, limit),
+    limit: limit,
   });
-
-  return rows
-    .sort((left, right) => right.updatedAt.valueOf() - left.updatedAt.valueOf())
-    .slice(0, limit);
 }
