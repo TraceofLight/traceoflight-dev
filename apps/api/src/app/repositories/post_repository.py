@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, distinct, func, select
+from sqlalchemy import delete, distinct, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from app.models.post import (
     Post,
@@ -19,6 +19,8 @@ from app.models.series import Series, SeriesPost
 from app.models.tag import Tag
 from app.repositories.tag_repository import normalize_tag_slugs
 from app.schemas.post import PostCreate
+
+DEFAULT_WORDS_PER_MINUTE = 200
 
 
 def _normalize_series_title(value: str | None) -> str | None:
@@ -38,6 +40,38 @@ def _normalize_slug_list(raw_values: Iterable[str]) -> list[str]:
         seen.add(slug)
         normalized.append(slug)
     return normalized
+
+
+def _markdown_to_plain_text(markdown_source: str = "") -> str:
+    return (
+        str(markdown_source)
+        .replace("```", " ``` ")
+    )
+
+
+def _count_reading_words(markdown_source: str = "") -> int:
+    import re
+
+    plain_text = (
+        str(markdown_source)
+        .replace("\r\n", "\n")
+    )
+    plain_text = re.sub(r"```[\s\S]*?```", " ", plain_text)
+    plain_text = re.sub(r"`[^`]*`", " ", plain_text)
+    plain_text = re.sub(r"!\[[^\]]*\]\([^)]+\)", " ", plain_text)
+    plain_text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r" \1 ", plain_text)
+    plain_text = re.sub(r"<[^>]+>", " ", plain_text)
+    plain_text = re.sub(r"[#>*_~=\-]+", " ", plain_text)
+    plain_text = re.sub(r"\s+", " ", plain_text).strip()
+    if not plain_text:
+        return 0
+    return len([token for token in plain_text.split(" ") if token])
+
+
+def _format_reading_label(markdown_source: str = "") -> str:
+    word_count = _count_reading_words(markdown_source)
+    minutes = max(1, -(-word_count // DEFAULT_WORDS_PER_MINUTE)) if word_count else 1
+    return f"{minutes} min read"
 
 
 class PostRepository:
@@ -103,44 +137,34 @@ class PostRepository:
             self._attach_series_context(post, public_only=public_only)
         return posts
 
-    def list(
+    def _apply_post_filters(
         self,
-        limit: int = 20,
-        offset: int = 0,
+        stmt,
+        *,
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
         content_kind: PostContentKind | None = PostContentKind.BLOG,
         tags: list[str] | None = None,
         tag_match: str = "any",
-    ) -> list[Post]:
-        ordering = [Post.created_at.desc(), Post.slug.desc()]
-        if status == PostStatus.PUBLISHED:
-            ordering = [
-                Post.published_at.desc().nulls_last(),
-                Post.created_at.desc(),
-                Post.slug.desc(),
-            ]
-        if content_kind == PostContentKind.PROJECT:
-            ordering = [
-                Post.project_order_index.asc().nulls_last(),
-                *ordering,
-            ]
-
-        stmt = (
-            select(Post)
-            .options(
-                selectinload(Post.tags),
-                selectinload(Post.project_profile),
-                selectinload(Post.comments),
-            )
-            .order_by(*ordering)
-        )
+        query: str | None = None,
+    ):
         if status is not None:
             stmt = stmt.where(Post.status == status)
         if visibility is not None:
             stmt = stmt.where(Post.visibility == visibility)
         if content_kind is not None:
             stmt = stmt.where(Post.content_kind == content_kind)
+
+        normalized_query = (query or "").strip()
+        if normalized_query:
+            pattern = f"%{normalized_query}%"
+            stmt = stmt.where(
+                or_(
+                    Post.title.ilike(pattern),
+                    Post.excerpt.ilike(pattern),
+                )
+            )
+
         normalized_tags = normalize_tag_slugs(tags or [])
         if normalized_tags:
             tag_stmt = (
@@ -152,10 +176,201 @@ class PostRepository:
             if tag_match == "all":
                 tag_stmt = tag_stmt.having(func.count(distinct(Tag.slug)) == len(normalized_tags))
             stmt = stmt.where(Post.id.in_(tag_stmt))
+
+        return stmt
+
+    def _build_post_ordering(
+        self,
+        *,
+        status: PostStatus | None = None,
+        content_kind: PostContentKind | None = PostContentKind.BLOG,
+        sort: str = "latest",
+    ):
+        if sort == "oldest":
+            ordering = [
+                Post.published_at.asc().nulls_last(),
+                Post.created_at.asc(),
+                Post.slug.asc(),
+            ]
+        elif sort == "title":
+            ordering = [
+                Post.title.asc(),
+                Post.published_at.desc().nulls_last(),
+                Post.created_at.desc(),
+                Post.slug.asc(),
+            ]
+        else:
+            ordering = [Post.created_at.desc(), Post.slug.desc()]
+            if status == PostStatus.PUBLISHED:
+                ordering = [
+                    Post.published_at.desc().nulls_last(),
+                    Post.created_at.desc(),
+                    Post.slug.desc(),
+                ]
+
+        if content_kind == PostContentKind.PROJECT:
+            return [
+                Post.project_order_index.asc().nulls_last(),
+                *ordering,
+            ]
+        return ordering
+
+    def _serialize_post_summary(self, post: Post) -> dict[str, object]:
+        return {
+            "id": post.id,
+            "slug": post.slug,
+            "title": post.title,
+            "excerpt": post.excerpt,
+            "cover_image_url": post.cover_image_url,
+            "top_media_kind": post.top_media_kind,
+            "top_media_image_url": post.top_media_image_url,
+            "top_media_youtube_url": post.top_media_youtube_url,
+            "top_media_video_url": post.top_media_video_url,
+            "series_title": post.series_title,
+            "content_kind": post.content_kind,
+            "status": post.status,
+            "visibility": post.visibility,
+            "published_at": post.published_at,
+            "reading_label": _format_reading_label(post.body_markdown),
+            "tags": post.tags,
+            "comment_count": post.comment_count,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+        }
+
+    def list(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        status: PostStatus | None = None,
+        visibility: PostVisibility | None = None,
+        content_kind: PostContentKind | None = PostContentKind.BLOG,
+        tags: list[str] | None = None,
+        tag_match: str = "any",
+    ) -> list[Post]:
+        ordering = self._build_post_ordering(
+            status=status,
+            content_kind=content_kind,
+        )
+
+        stmt = (
+            select(Post)
+            .options(
+                selectinload(Post.tags),
+                selectinload(Post.project_profile),
+                selectinload(Post.comments),
+            )
+            .order_by(*ordering)
+        )
+        stmt = self._apply_post_filters(
+            stmt,
+            status=status,
+            visibility=visibility,
+            content_kind=content_kind,
+            tags=tags,
+            tag_match=tag_match,
+        )
         stmt = stmt.limit(limit).offset(offset)
         rows = list(self.db.scalars(stmt))
         public_only = status == PostStatus.PUBLISHED and visibility == PostVisibility.PUBLIC
         return self._apply_series_context(rows, public_only=public_only)
+
+    def list_summaries(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        status: PostStatus | None = None,
+        visibility: PostVisibility | None = None,
+        content_kind: PostContentKind | None = PostContentKind.BLOG,
+        tags: list[str] | None = None,
+        tag_match: str = "any",
+        query: str | None = None,
+        sort: str = "latest",
+        include_tag_filters: bool = True,
+    ) -> dict[str, object]:
+        ordering = self._build_post_ordering(
+            status=status,
+            content_kind=content_kind,
+            sort=sort,
+        )
+        stmt = (
+            select(Post)
+            .options(
+                load_only(
+                    Post.id,
+                    Post.slug,
+                    Post.title,
+                    Post.excerpt,
+                    Post.body_markdown,
+                    Post.cover_image_url,
+                    Post.top_media_kind,
+                    Post.top_media_image_url,
+                    Post.top_media_youtube_url,
+                    Post.top_media_video_url,
+                    Post.series_title,
+                    Post.content_kind,
+                    Post.status,
+                    Post.visibility,
+                    Post.published_at,
+                    Post.created_at,
+                    Post.updated_at,
+                ),
+                selectinload(Post.tags),
+                selectinload(Post.comments),
+            )
+            .order_by(*ordering)
+        )
+        stmt = self._apply_post_filters(
+            stmt,
+            status=status,
+            visibility=visibility,
+            content_kind=content_kind,
+            tags=tags,
+            tag_match=tag_match,
+            query=query,
+        )
+        paged_stmt = stmt.limit(limit).offset(offset)
+        rows = list(self.db.scalars(paged_stmt))
+
+        count_stmt = self._apply_post_filters(
+            select(Post.id),
+            status=status,
+            visibility=visibility,
+            content_kind=content_kind,
+            tags=tags,
+            tag_match=tag_match,
+            query=query,
+        ).subquery()
+        total_count = int(self.db.scalar(select(func.count()).select_from(count_stmt)) or 0)
+        next_offset = offset + len(rows) if offset + len(rows) < total_count else None
+
+        tag_filters: list[dict[str, object]] = []
+        if include_tag_filters:
+            tag_stmt = (
+                select(Tag.slug, func.count(distinct(Post.id)))
+                .select_from(Post)
+                .join(Post.tags)
+            )
+            tag_stmt = self._apply_post_filters(
+                tag_stmt,
+                status=status,
+                visibility=visibility,
+                content_kind=content_kind,
+                query=query,
+            )
+            tag_stmt = tag_stmt.group_by(Tag.slug).order_by(Tag.slug.asc())
+            tag_filters = [
+                {"slug": slug, "count": int(count)}
+                for slug, count in self.db.execute(tag_stmt)
+            ]
+
+        return {
+            "items": [self._serialize_post_summary(row) for row in rows],
+            "total_count": total_count,
+            "next_offset": next_offset,
+            "has_more": next_offset is not None,
+            "tag_filters": tag_filters,
+        }
 
     def replace_project_order(self, raw_project_slugs: list[str]) -> list[Post]:
         project_slugs = _normalize_slug_list(raw_project_slugs)

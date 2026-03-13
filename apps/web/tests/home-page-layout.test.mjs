@@ -54,6 +54,10 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
   assert.match(source, /<SeriesCard series=\{card\} imageWidth=\{960\} imageHeight=\{640\} \/>/);
+  assert.match(source, /import \{ listPublishedDbPostSummaries \} from "\.\.\/lib\/blog-db";/);
+  assert.doesNotMatch(source, /import \{ listPublishedDbPosts \} from "\.\.\/lib\/blog-db";/);
+  assert.match(source, /import \{ listFeaturedSeries \} from "\.\.\/lib\/series-db";/);
+  assert.doesNotMatch(source, /getSeriesBySlug/);
   assert.match(source, /"Game Development"/);
   assert.match(source, /"Graphics Programming"/);
   assert.match(source, /"Database Engineering"/);
@@ -87,6 +91,9 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /<a class=\{surfaceActionClass\} href="\/series">\s*View All Series\s*<\/a>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_CLASS\}>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_STRONG_CLASS\}>/);
+  assert.match(source, /const dbPosts = await listPublishedDbPostSummaries\(3,\s*\{/);
+  assert.match(source, /const featuredSeriesCards: FeaturedSeriesCard\[] =[\s\S]*listFeaturedSeries\(/);
+  assert.doesNotMatch(source, /Promise\.all\(\s*seriesList\.map/);
   assert.match(source, /iconClass:\s*"theme-invert-on-light"/);
   assert.match(source, /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width="18"/);
   assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);

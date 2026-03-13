@@ -9,5 +9,6 @@ test('backend api helper attaches internal shared secret header when configured'
 
   assert.match(source, /INTERNAL_API_SECRET/);
   assert.match(source, /x-internal-api-secret/);
-  assert.match(source, /headers:\s*buildBackendRequestHeaders\(init\?\.headers\)/);
+  assert.match(source, /headers:\s*buildBackendRequestHeaders\(init\?\.headers,\s*includeInternalSecret\)/);
+  assert.match(source, /export async function requestBackendPublic/);
 });

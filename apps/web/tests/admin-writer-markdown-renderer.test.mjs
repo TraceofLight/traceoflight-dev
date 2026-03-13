@@ -45,7 +45,8 @@ test("writer and blog db share markdown renderer with figure caption output", as
   assert.match(rendererSource, /import hljs from ["']highlight\.js["'];/);
   assert.match(lazyRendererSource, /export async function loadMarkdownRenderer/);
   assert.match(lazyRendererSource, /import\(["']markdown-it["']\)/);
-  assert.match(lazyRendererSource, /import\(["']highlight\.js\/lib\/common["']\)/);
+  assert.match(lazyRendererSource, /import\(["']highlight\.js\/lib\/core["']\)/);
+  assert.match(lazyRendererSource, /registerLanguage/);
   assert.match(rendererCoreSource, /highlight:\s*\(code,\s*language\)\s*=>/);
   assert.match(
     rendererCoreSource,
@@ -56,6 +57,10 @@ test("writer and blog db share markdown renderer with figure caption output", as
   assert.match(rendererCoreSource, /<figure/);
   assert.match(rendererCoreSource, /<figcaption/);
   assert.match(writerSource, /markdownPreviewPromise/);
+  assert.match(
+    writerSource,
+    /syncCompactViewForViewport\(\);\s*queuePreviewRefresh\(\);\s*return true;/,
+  );
 });
 
 test("writer preview figcaption style is isolated from blog styles", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,16 +31,32 @@ export type BlogArchiveTagFilter = {
   count: number;
 };
 
+type SortMode = "latest" | "oldest" | "title";
+type VisibilityMode = "all" | "public" | "private";
+
+type BlogArchiveSummaryResponse = {
+  items: BlogArchivePost[];
+  totalCount: number;
+  nextOffset: number | null;
+  hasMore: boolean;
+  tagFilters: BlogArchiveTagFilter[];
+};
+
 type BlogArchiveFiltersProps = {
   initialSelectedTags: string[];
+  initialQuery?: string;
+  initialSort?: SortMode;
+  initialVisibility?: VisibilityMode;
   isAdminViewer: boolean;
-  posts: BlogArchivePost[];
+  initialPosts: BlogArchivePost[];
+  initialHasMore: boolean;
+  initialOffset: number;
+  initialTotalCount?: number;
   tagFilters: BlogArchiveTagFilter[];
   writeHref?: string;
 };
 
-type SortMode = "latest" | "oldest" | "title";
-type VisibilityMode = "all" | "public" | "private";
+const PAGE_SIZE = 24;
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
@@ -48,6 +64,78 @@ function normalize(value: string) {
 
 function getCoverImageAlt(title: string) {
   return `${title} 대표 이미지`;
+}
+
+function buildSummaryRequestUrl(options: {
+  offset: number;
+  query: string;
+  sort: SortMode;
+  visibility: VisibilityMode;
+  selectedTag: string;
+  isAdminViewer: boolean;
+}) {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String(options.offset),
+    sort: options.sort,
+  });
+
+  const normalizedQuery = options.query.trim();
+  if (normalizedQuery) {
+    params.set("query", normalizedQuery);
+  }
+
+  if (
+    options.visibility !== "all" &&
+    (options.visibility === "public" ||
+      (options.isAdminViewer && options.visibility === "private"))
+  ) {
+    params.set("visibility", options.visibility);
+  }
+
+  if (options.selectedTag) {
+    params.append("tag", options.selectedTag);
+  }
+
+  return `/internal-api/posts/summary?${params.toString()}`;
+}
+
+function toSummaryResponse(payload: unknown): BlogArchiveSummaryResponse {
+  const normalizedPayload =
+    payload && typeof payload === "object"
+      ? (payload as Partial<BlogArchiveSummaryResponse>)
+      : {};
+  return {
+    items: Array.isArray(normalizedPayload.items)
+      ? (normalizedPayload.items as BlogArchivePost[])
+      : [],
+    totalCount:
+      typeof normalizedPayload.totalCount === "number"
+        ? normalizedPayload.totalCount
+        : 0,
+    nextOffset:
+      typeof normalizedPayload.nextOffset === "number"
+        ? normalizedPayload.nextOffset
+        : null,
+    hasMore: Boolean(normalizedPayload.hasMore),
+    tagFilters: Array.isArray(normalizedPayload.tagFilters)
+      ? (normalizedPayload.tagFilters as BlogArchiveTagFilter[])
+      : [],
+  };
+}
+
+function mergeUniquePosts(
+  currentPosts: BlogArchivePost[],
+  nextPosts: BlogArchivePost[],
+) {
+  const seen = new Set(currentPosts.map((post) => post.slug));
+  const merged = [...currentPosts];
+  for (const post of nextPosts) {
+    if (seen.has(post.slug)) continue;
+    seen.add(post.slug);
+    merged.push(post);
+  }
+  return merged;
 }
 
 const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png", {
@@ -66,55 +154,189 @@ const filterChipActiveClass =
 
 export function BlogArchiveFilters({
   initialSelectedTags,
+  initialQuery = "",
+  initialSort = "latest",
+  initialVisibility = "all",
   isAdminViewer,
-  posts,
+  initialPosts,
+  initialHasMore,
+  initialOffset,
+  initialTotalCount = initialPosts.length,
   tagFilters,
   writeHref = "/admin/posts/new?content_kind=blog",
 }: BlogArchiveFiltersProps) {
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortMode>("latest");
-  const [visibility, setVisibility] = useState<VisibilityMode>("all");
+  const [query, setQuery] = useState(initialQuery);
+  const deferredQuery = useDeferredValue(query);
+  const [sort, setSort] = useState<SortMode>(initialSort);
+  const [visibility, setVisibility] = useState<VisibilityMode>(initialVisibility);
   const [selectedTag, setSelectedTag] = useState(
     normalize(initialSelectedTags[0] ?? ""),
   );
+  const [posts, setPosts] = useState(initialPosts);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextOffset, setNextOffset] = useState(initialOffset);
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [availableTagFilters, setAvailableTagFilters] = useState(tagFilters);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const hasMountedFiltersRef = useRef(false);
+  const requestSequenceRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.delete("tag");
+    url.searchParams.delete("query");
+    url.searchParams.delete("sort");
+    url.searchParams.delete("visibility");
     if (selectedTag) {
       url.searchParams.set("tag", selectedTag);
+    }
+    if (deferredQuery) {
+      url.searchParams.set("query", deferredQuery);
+    }
+    if (sort !== "latest") {
+      url.searchParams.set("sort", sort);
+    }
+    if (isAdminViewer && visibility !== "all") {
+      url.searchParams.set("visibility", visibility);
     }
     window.history.replaceState(
       {},
       "",
       `${url.pathname}${url.search}${url.hash}`,
     );
-  }, [selectedTag]);
+  }, [deferredQuery, isAdminViewer, selectedTag, sort, visibility]);
 
-  const normalizedQuery = normalize(query);
-  const filteredPosts = [...posts]
-    .filter((post) => {
-      const matchesSearch =
-        !normalizedQuery ||
-        normalize(post.title).includes(normalizedQuery) ||
-        normalize(post.description).includes(normalizedQuery);
-      const matchesVisibility =
-        visibility === "all" || post.visibility === visibility;
-      const matchesTag =
-        !selectedTag || post.tags.some((tag) => tag === selectedTag);
+  useEffect(() => {
+    if (!hasMountedFiltersRef.current) {
+      hasMountedFiltersRef.current = true;
+      return;
+    }
 
-      return matchesSearch && matchesVisibility && matchesTag;
-    })
-    .sort((left, right) => {
-      if (sort === "oldest") {
-        return left.publishedAtValue - right.publishedAtValue;
+    let cancelled = false;
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
+    setIsRefreshing(true);
+    setErrorMessage("");
+
+    void (async () => {
+      const response = await fetch(
+        buildSummaryRequestUrl({
+          offset: 0,
+          query: deferredQuery,
+          sort,
+          visibility,
+          selectedTag,
+          isAdminViewer,
+        }),
+        { method: "GET" },
+      );
+      if (!response.ok) {
+        throw new Error(`archive fetch failed: ${response.status}`);
       }
-      if (sort === "title") {
-        return left.title.localeCompare(right.title, "ko-KR");
+      const payload = toSummaryResponse(await response.json());
+      if (cancelled || requestSequenceRef.current !== requestSequence) {
+        return;
       }
-      return right.publishedAtValue - left.publishedAtValue;
-    });
+      setPosts(payload.items);
+      setHasMore(payload.hasMore);
+      setNextOffset(payload.nextOffset ?? payload.items.length);
+      setTotalCount(payload.totalCount);
+      setAvailableTagFilters(payload.tagFilters);
+    })()
+      .catch(() => {
+        if (cancelled || requestSequenceRef.current !== requestSequence) {
+          return;
+        }
+        setPosts([]);
+        setHasMore(false);
+        setNextOffset(0);
+        setTotalCount(0);
+        setErrorMessage("포스트 목록을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (cancelled || requestSequenceRef.current !== requestSequence) {
+          return;
+        }
+        setIsRefreshing(false);
+      });
 
+    return () => {
+      cancelled = true;
+    };
+  }, [deferredQuery, isAdminViewer, selectedTag, sort, visibility]);
+
+  useEffect(() => {
+    if (!hasMore || isRefreshing || isLoadingMore) {
+      return;
+    }
+    if (typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const target = sentinelRef.current;
+    if (!target) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const shouldLoadMore = entries.some((entry) => entry.isIntersecting);
+        if (!shouldLoadMore) {
+          return;
+        }
+        observer.unobserve(target);
+        setIsLoadingMore(true);
+        setErrorMessage("");
+        void (async () => {
+          const response = await fetch(
+            buildSummaryRequestUrl({
+              offset: nextOffset,
+              query: deferredQuery,
+              sort,
+              visibility,
+              selectedTag,
+              isAdminViewer,
+            }),
+            { method: "GET" },
+          );
+          if (!response.ok) {
+            throw new Error(`archive fetch failed: ${response.status}`);
+          }
+          const payload = toSummaryResponse(await response.json());
+          setPosts((currentPosts) => mergeUniquePosts(currentPosts, payload.items));
+          setHasMore(payload.hasMore);
+          setNextOffset(payload.nextOffset ?? nextOffset + payload.items.length);
+          setTotalCount(payload.totalCount);
+        })()
+          .catch(() => {
+            setErrorMessage("추가 포스트를 불러오지 못했습니다.");
+          })
+          .finally(() => {
+            setIsLoadingMore(false);
+          });
+      },
+      { rootMargin: "320px 0px" },
+    );
+
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+    };
+  }, [
+    deferredQuery,
+    hasMore,
+    isAdminViewer,
+    isLoadingMore,
+    isRefreshing,
+    nextOffset,
+    selectedTag,
+    sort,
+    visibility,
+  ]);
+
+  const filteredPosts = posts;
   const publicCount = posts.filter((post) => post.visibility === "public").length;
   const privateCount = posts.filter(
     (post) => post.visibility === "private",
@@ -131,7 +353,7 @@ export function BlogArchiveFilters({
         </p>
       </header>
 
-        <section
+      <section
         aria-label="Blog archive controls"
         className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}
       >
@@ -189,11 +411,11 @@ export function BlogArchiveFilters({
                   ? filterChipActiveClass
                   : filterChipInactiveClass,
               )}
-              onClick={() => setVisibility("all")}
               data-active={visibility === "all"}
+              onClick={() => setVisibility("all")}
               type="button"
             >
-              전체 ({posts.length})
+              전체 ({totalCount})
             </button>
             {isAdminViewer ? (
               <>
@@ -205,8 +427,8 @@ export function BlogArchiveFilters({
                       ? filterChipActiveClass
                       : filterChipInactiveClass,
                   )}
-                  onClick={() => setVisibility("public")}
                   data-active={visibility === "public"}
+                  onClick={() => setVisibility("public")}
                   type="button"
                 >
                   공개 ({publicCount})
@@ -219,8 +441,8 @@ export function BlogArchiveFilters({
                       ? filterChipActiveClass
                       : filterChipInactiveClass,
                   )}
-                  onClick={() => setVisibility("private")}
                   data-active={visibility === "private"}
+                  onClick={() => setVisibility("private")}
                   type="button"
                 >
                   비공개 ({privateCount})
@@ -229,9 +451,9 @@ export function BlogArchiveFilters({
             ) : null}
           </div>
 
-          {tagFilters.length > 0 ? (
+          {availableTagFilters.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
-              {tagFilters.map((tag) => {
+              {availableTagFilters.map((tag) => {
                 const isActive = selectedTag === tag.slug;
 
                 return (
@@ -242,12 +464,12 @@ export function BlogArchiveFilters({
                       filterChipClass,
                       isActive ? filterChipActiveClass : filterChipInactiveClass,
                     )}
+                    data-active={isActive}
                     onClick={() =>
                       setSelectedTag((current) =>
                         current === tag.slug ? "" : tag.slug,
                       )
                     }
-                    data-active={isActive}
                     type="button"
                   >
                     {tag.slug} ({tag.count})
@@ -260,72 +482,95 @@ export function BlogArchiveFilters({
       </section>
 
       <p className="text-sm text-muted-foreground">
-        총 {filteredPosts.length}개의 포스트
+        총 {totalCount}개의 포스트
       </p>
 
+      {errorMessage ? (
+        <div className="rounded-3xl border border-dashed border-rose-200/70 bg-rose-50/80 px-6 py-4 text-sm text-rose-700">
+          {errorMessage}
+        </div>
+      ) : null}
+
       {filteredPosts.length > 0 ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredPosts.map((post) => (
-            <article key={post.slug} className="group h-full">
-              <a
-                aria-label={`${post.title} 읽기`}
-                className={anchorClass}
-                href={`/blog/${post.slug}/`}
-              >
-                <div className={mediaFrameClass}>
-                  <img
-                    alt={getCoverImageAlt(post.title)}
-                    className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-300 group-hover:scale-[1.06]"
-                    loading="lazy"
-                    onError={(event) => {
-                      if (event.currentTarget.src !== fallbackCoverImageSrc) {
-                        event.currentTarget.src = fallbackCoverImageSrc;
-                      }
-                    }}
-                    src={post.coverImageSrc}
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span>{formatDateLabel(post.publishedAt)}</span>
-                    <span aria-hidden="true">•</span>
-                    <span>댓글 {post.commentCount}개</span>
-                    <span aria-hidden="true">•</span>
-                    <span>{post.readingLabel}</span>
-                    {isAdminViewer && post.visibility === "private" ? (
-                      <Badge className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700">
-                        Private
-                      </Badge>
+        <>
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredPosts.map((post) => (
+              <article key={post.slug} className="group h-full">
+                <a
+                  aria-label={`${post.title} 읽기`}
+                  className={anchorClass}
+                  href={`/blog/${post.slug}/`}
+                >
+                  <div className={mediaFrameClass}>
+                    <img
+                      alt={getCoverImageAlt(post.title)}
+                      className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-300 group-hover:scale-[1.06]"
+                      loading="lazy"
+                      onError={(event) => {
+                        if (event.currentTarget.src !== fallbackCoverImageSrc) {
+                          event.currentTarget.src = fallbackCoverImageSrc;
+                        }
+                      }}
+                      src={post.coverImageSrc}
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatDateLabel(post.publishedAt)}</span>
+                      <span aria-hidden="true">•</span>
+                      <span>댓글 {post.commentCount}개</span>
+                      <span aria-hidden="true">•</span>
+                      <span>{post.readingLabel}</span>
+                      {isAdminViewer && post.visibility === "private" ? (
+                        <Badge className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700">
+                          Private
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold tracking-tight">
+                        {post.title}
+                      </h3>
+                      <p className="line-clamp-2 text-sm text-muted-foreground">
+                        {post.description || " "}
+                      </p>
+                    </div>
+
+                    {post.tags.length > 0 ? (
+                      <div className="mt-auto flex flex-wrap gap-2">
+                        {post.tags.map((tag) => (
+                          <Badge
+                            key={`${post.slug}-${tag}`}
+                            className="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground"
+                            variant="outline"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
+                </a>
+              </article>
+            ))}
+          </section>
 
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold tracking-tight">
-                      {post.title}
-                    </h3>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">
-                      {post.description || " "}
-                    </p>
-                  </div>
+          {hasMore ? (
+            <div
+              ref={sentinelRef}
+              aria-hidden="true"
+              className="h-10 w-full"
+              data-loading={isLoadingMore || isRefreshing}
+            />
+          ) : null}
 
-                  {post.tags.length > 0 ? (
-                    <div className="mt-auto flex flex-wrap gap-2">
-                      {post.tags.map((tag) => (
-                        <Badge
-                          key={`${post.slug}-${tag}`}
-                          className="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground"
-                          variant="outline"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </a>
-            </article>
-          ))}
-        </section>
+          {isRefreshing || isLoadingMore ? (
+            <p className="text-center text-sm text-muted-foreground">
+              포스트를 불러오는 중입니다.
+            </p>
+          ) : null}
+        </>
       ) : (
         <div className="rounded-3xl border border-dashed border-border/60 bg-card/50 px-6 py-14 text-center text-sm text-muted-foreground">
           게시글이 아직 없습니다.

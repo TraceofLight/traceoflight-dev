@@ -112,7 +112,7 @@ test("content and db sources both expose cover media through the shared type", a
   assert.match(contentSource, /coverMedia\?: CoverMedia;/);
   assert.match(contentSource, /coverMedia:\s*normalizeCoverMedia\(post\.data\.coverImage\)/);
   assert.match(blogDbSource, /import \{[\s\S]*normalizeCoverMedia[\s\S]*normalizeOptionalImageUrl[\s\S]*type CoverMedia[\s\S]*\} from '\.\/cover-media';/);
-  assert.match(blogDbSource, /import \{ requestBackend, resolveBackendAssetUrl \} from '\.\/backend-api';/);
+  assert.match(blogDbSource, /import \{[\s\S]*requestBackend[\s\S]*requestBackendPublic[\s\S]*resolveBackendAssetUrl[\s\S]*\} from '\.\/backend-api';/);
   assert.match(blogDbSource, /coverMedia\?: CoverMedia;/);
   assert.match(blogDbSource, /const normalizedCoverImageUrl = normalizeOptionalImageUrl\(post\.cover_image_url\)/);
   assert.match(blogDbSource, /const resolvedCoverImageUrl = resolveBackendAssetUrl\(normalizedCoverImageUrl\)/);

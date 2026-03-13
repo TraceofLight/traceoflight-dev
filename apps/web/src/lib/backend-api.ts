@@ -1,5 +1,9 @@
 const DEFAULT_BACKEND_API_URL = 'http://traceoflight-api:6654/api/v1';
 
+type BackendRequestInit = RequestInit & {
+  includeInternalSecret?: boolean;
+};
+
 function trimTrailingSlash(value: string): string {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }
@@ -37,7 +41,11 @@ export function resolveBackendAssetUrl(path: string | undefined): string | undef
   return normalizedPath;
 }
 
-function buildBackendRequestHeaders(existing: HeadersInit | undefined): HeadersInit | undefined {
+function buildBackendRequestHeaders(
+  existing: HeadersInit | undefined,
+  includeInternalSecret: boolean,
+): HeadersInit | undefined {
+  if (!includeInternalSecret) return existing;
   const sharedSecret = process.env.INTERNAL_API_SECRET?.trim() ?? '';
   if (!sharedSecret) return existing;
 
@@ -46,10 +54,19 @@ function buildBackendRequestHeaders(existing: HeadersInit | undefined): HeadersI
   return headers;
 }
 
-export async function requestBackend(path: string, init?: RequestInit): Promise<Response> {
+export async function requestBackend(path: string, init?: BackendRequestInit): Promise<Response> {
+  const includeInternalSecret = init?.includeInternalSecret ?? true;
   return fetch(buildBackendApiUrl(path), {
     ...init,
-    headers: buildBackendRequestHeaders(init?.headers),
-    cache: init?.cache ?? 'no-store',
+    headers: buildBackendRequestHeaders(init?.headers, includeInternalSecret),
+    cache: init?.cache ?? (includeInternalSecret ? 'no-store' : 'force-cache'),
+  });
+}
+
+export async function requestBackendPublic(path: string, init?: RequestInit): Promise<Response> {
+  return requestBackend(path, {
+    ...init,
+    includeInternalSecret: false,
+    cache: init?.cache ?? 'force-cache',
   });
 }

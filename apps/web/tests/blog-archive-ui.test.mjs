@@ -23,7 +23,10 @@ test("blog archive page mounts a React filter island and passes server data", as
     /import BlogArchiveFilters(?:,\s*\{[\s\S]*type BlogArchivePost[\s\S]*\})? from ["']\.\.\/\.\.\/components\/public\/BlogArchiveFilters["']/,
   );
   assert.match(pageSource, /<BlogArchiveFilters[\s\S]*client:load/);
-  assert.match(pageSource, /posts=\{archivePosts\}/);
+  assert.match(pageSource, /initialPosts=\{initialPosts\}/);
+  assert.match(pageSource, /initialHasMore=\{initialHasMore\}/);
+  assert.match(pageSource, /initialOffset=\{initialOffset\}/);
+  assert.match(pageSource, /initialTotalCount=\{initialTotalCount\}/);
   assert.match(pageSource, /tagFilters=\{tagFilters\}/);
   assert.match(pageSource, /initialSelectedTags=\{selectedTagsFromQuery\}/);
   assert.doesNotMatch(pageSource, /initializeBlogArchivePage/);
@@ -34,6 +37,8 @@ test("blog archive page mounts a React filter island and passes server data", as
 
   assert.match(islandSource, /type BlogArchivePost/);
   assert.match(islandSource, /window\.history\.replaceState/);
+  assert.match(islandSource, /IntersectionObserver/);
+  assert.match(islandSource, /return `\/internal-api\/posts\/summary\?\$\{params\.toString\(\)\}`;/);
   assert.match(pageSource, /toBrowserImageUrl\(/);
   assert.match(pageSource, /commentCount: post\.commentCount \?\? 0,/);
   assert.match(pageSource, /coverImageSrc: resolveCoverImageSrc\(post,\s*960,\s*640\)/);
@@ -54,7 +59,7 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /aria-label="정렬 방식"/);
   assert.match(source, /글 작성/);
   assert.match(source, /비공개/);
-  assert.match(source, /총 \{filteredPosts\.length\}개의 포스트/);
+  assert.match(source, /총 \{totalCount\}개의 포스트/);
   assert.doesNotMatch(source, /const archiveIntroClass =/);
   assert.match(source, /<header className="space-y-3 text-center">/);
   assert.match(source, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
@@ -91,13 +96,16 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /commentCount: number;/);
   assert.match(source, /댓글 \{post\.commentCount\}개/);
   assert.match(source, /댓글 \{post\.commentCount\}개[\s\S]*<span aria-hidden="true">•<\/span>[\s\S]*<span>\{post\.readingLabel\}<\/span>/);
+  assert.match(source, /const deferredQuery = useDeferredValue\(query\);/);
+  assert.match(source, /setAvailableTagFilters\(payload\.tagFilters\);/);
 });
 
 test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", async () => {
   const source = await readFile(blogIndexPath, "utf8");
 
-  assert.match(source, /listAllPublishedDbPosts\(/);
-  assert.doesNotMatch(source, /listPublishedDbPosts\(50,\s*\{/);
+  assert.match(source, /listPublishedDbPostSummaryPage\(/);
+  assert.doesNotMatch(source, /listAllPublishedDbPosts\(/);
+  assert.doesNotMatch(source, /body:\s*post\.bodyMarkdown/);
 });
 
 test("post card uses a wide image-led public card structure", async () => {

@@ -50,6 +50,7 @@ class _StubPostService:
         offset=0,
         status=None,
         visibility=None,
+        content_kind=None,
         tags=None,
         tag_match="any",
     ):
@@ -58,16 +59,18 @@ class _StubPostService:
             'offset': offset,
             'status': status,
             'visibility': visibility,
+            'content_kind': content_kind,
             'tags': tags,
             'tag_match': tag_match,
         }
         return []
 
-    def get_post_by_slug(self, slug: str, status=None, visibility=None):  # type: ignore[no-untyped-def]
+    def get_post_by_slug(self, slug: str, status=None, visibility=None, content_kind=None):  # type: ignore[no-untyped-def]
         self.get_call = {
             'slug': slug,
             'status': status,
             'visibility': visibility,
+            'content_kind': content_kind,
         }
         return _build_post_payload(slug=slug)
 
@@ -132,6 +135,19 @@ def test_posts_get_forces_public_filters_without_internal_secret(monkeypatch) ->
     assert service.get_call is not None
     assert service.get_call['status'] == PostStatus.PUBLISHED
     assert service.get_call['visibility'] == PostVisibility.PUBLIC
+
+
+def test_posts_get_accepts_content_kind_query(monkeypatch) -> None:
+    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    service = _StubPostService()
+    client = _client_with_service(service)
+
+    response = client.get('/api/v1/posts/hidden-post?content_kind=blog')
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.get_call is not None
+    assert service.get_call['content_kind'] == PostContentKind.BLOG
 
 
 def test_posts_write_requires_internal_secret(monkeypatch) -> None:

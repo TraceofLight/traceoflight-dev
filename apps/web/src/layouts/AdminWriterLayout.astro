@@ -22,6 +22,10 @@ const { title, description } = Astro.props;
     </main>
     <script>
       let writerBootstrapPromise;
+      let scheduledBootHandle: ReturnType<typeof globalThis.setTimeout> | number | null = null;
+      const idleWindow = /** @type {Window & typeof globalThis & {
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      }} */ (window);
 
       const loadWriterBootstrap = async () => {
         writerBootstrapPromise ??= import("../lib/admin/writer-page-bootstrap");
@@ -33,9 +37,29 @@ const { title, description } = Astro.props;
         await bootAdminWriterPage();
       };
 
-      void bootWriterPage();
+      const scheduleWriterBoot = () => {
+        if (scheduledBootHandle !== null) {
+          return;
+        }
+
+        const run = () => {
+          scheduledBootHandle = null;
+          void bootWriterPage();
+        };
+
+        if (typeof idleWindow.requestIdleCallback === "function") {
+          scheduledBootHandle = idleWindow.requestIdleCallback(run, {
+            timeout: 200,
+          });
+          return;
+        }
+
+        scheduledBootHandle = globalThis.setTimeout(run, 32);
+      };
+
+      scheduleWriterBoot();
       document.addEventListener("astro:page-load", () => {
-        void bootWriterPage();
+        scheduleWriterBoot();
       });
     </script>
   </body>

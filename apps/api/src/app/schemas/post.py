@@ -40,6 +40,11 @@ class ProjectProfileRead(BaseModel):
     resource_links_json: list[ProjectResourceLink] = Field(default_factory=list)
 
 
+class PostTagFilterRead(BaseModel):
+    slug: str
+    count: int
+
+
 class PostCreate(BaseModel):
     slug: str = Field(
         description='URL-friendly unique post identifier.',
@@ -151,3 +156,43 @@ class PostRead(BaseModel):
     )
     created_at: datetime
     updated_at: datetime
+
+
+class PostSummaryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    slug: str
+    title: str
+    excerpt: str | None
+    cover_image_url: str | None
+    top_media_kind: PostTopMediaKind = Field(default=PostTopMediaKind.IMAGE)
+    top_media_image_url: str | None = None
+    top_media_youtube_url: str | None = None
+    top_media_video_url: str | None = None
+    series_title: str | None = None
+    content_kind: PostContentKind = Field(default=PostContentKind.BLOG)
+    status: PostStatus
+    visibility: PostVisibility
+    published_at: datetime | None
+    reading_label: str = Field(
+        description='Estimated reading-time label derived from markdown content.',
+    )
+    tags: list[TagRead] = Field(
+        default_factory=list,
+        description='Normalized tag objects assigned to this post.',
+    )
+    comment_count: int = Field(
+        default=0,
+        description='Total comments linked to this post.',
+    )
+    created_at: datetime
+    updated_at: datetime
+
+
+class PostSummaryListRead(BaseModel):
+    items: list[PostSummaryRead] = Field(default_factory=list)
+    total_count: int
+    next_offset: int | None
+    has_more: bool
+    tag_filters: list[PostTagFilterRead] = Field(default_factory=list)

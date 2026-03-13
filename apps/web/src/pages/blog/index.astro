@@ -5,7 +5,7 @@ import BlogArchiveFilters, {
 import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
-import { listAllPublishedDbPosts } from "../../lib/blog-db";
+import { listPublishedDbPostSummaryPage } from "../../lib/blog-db";
 import {
   getBlogSource,
   getContentProvider,
@@ -18,18 +18,42 @@ import { formatReadingTimeLabel } from "../../lib/reading-time";
 const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const ARCHIVE_PAGE_SIZE = 24;
+const selectedTagsFromQuery = Astro.url.searchParams
+  .getAll("tag")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+const initialQuery = Astro.url.searchParams.get("query")?.trim() ?? "";
+const sortFromQuery = Astro.url.searchParams.get("sort");
+const initialSort =
+  sortFromQuery === "oldest" || sortFromQuery === "title" ? sortFromQuery : "latest";
+const visibilityFromQuery = Astro.url.searchParams.get("visibility");
+const initialVisibility =
+  visibilityFromQuery === "public" || (isAdminViewer && visibilityFromQuery === "private")
+    ? visibilityFromQuery
+    : "all";
 let posts: PostCardData[] = [];
+let initialHasMore = false;
+let initialOffset = 0;
+let initialTotalCount = 0;
+let tagFilters: { slug: string; count: number }[] = [];
 
 if (provider === "db") {
   try {
-    const dbPosts = await listAllPublishedDbPosts({
+    const summaryPage = await listPublishedDbPostSummaryPage({
       includePrivate: isAdminViewer,
+      limit: ARCHIVE_PAGE_SIZE,
+      offset: 0,
+      query: initialQuery,
+      sort: initialSort,
+      visibility: initialVisibility,
+      tags: selectedTagsFromQuery,
     });
-    posts = dbPosts.map((post) => ({
+    posts = summaryPage.items.map((post) => ({
       slug: post.slug,
       title: post.title,
       description: post.description,
-      body: post.bodyMarkdown,
+      readingLabel: post.readingLabel,
       commentCount: post.commentCount,
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
@@ -37,29 +61,34 @@ if (provider === "db") {
       visibility: post.visibility,
       tags: post.tags.map((tag) => tag.slug),
     }));
+    initialHasMore = summaryPage.hasMore;
+    initialOffset = summaryPage.nextOffset ?? summaryPage.items.length;
+    initialTotalCount = summaryPage.totalCount;
+    tagFilters = summaryPage.tagFilters;
   } catch {
     posts = [];
+    initialHasMore = false;
+    initialOffset = 0;
+    initialTotalCount = 0;
+    tagFilters = [];
   }
 } else {
   posts = (await getBlogSource().listPosts()).map(toPostCard);
-}
-
-const tagCountMap = new Map<string, number>();
-for (const post of posts) {
-  const normalizedTags = new Set(
-    (post.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean),
-  );
-  for (const tag of normalizedTags) {
-    tagCountMap.set(tag, (tagCountMap.get(tag) ?? 0) + 1);
+  const tagCountMap = new Map<string, number>();
+  for (const post of posts) {
+    const normalizedTags = new Set(
+      (post.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean),
+    );
+    for (const tag of normalizedTags) {
+      tagCountMap.set(tag, (tagCountMap.get(tag) ?? 0) + 1);
+    }
   }
+  tagFilters = Array.from(tagCountMap.entries())
+    .map(([slug, count]) => ({ slug, count }))
+    .sort((left, right) => left.slug.localeCompare(right.slug, "ko-KR"));
+  initialOffset = posts.length;
+  initialTotalCount = posts.length;
 }
-const tagFilters = Array.from(tagCountMap.entries())
-  .map(([slug, count]) => ({ slug, count }))
-  .sort((left, right) => left.slug.localeCompare(right.slug, "ko-KR"));
-const selectedTagsFromQuery = Astro.url.searchParams
-  .getAll("tag")
-  .map((value) => value.trim().toLowerCase())
-  .filter(Boolean);
 
 function resolveCoverImageSrc(
   post: PostCardData,
@@ -79,7 +108,7 @@ function resolveCoverImageSrc(
     : toBrowserImageUrl(post.coverMedia.src, { width, height, fit: "inside" });
 }
 
-const archivePosts: BlogArchivePost[] = posts.map((post) => ({
+const initialPosts: BlogArchivePost[] = posts.map((post) => ({
   slug: post.slug,
   title: post.title,
   description: post.description,
@@ -90,7 +119,7 @@ const archivePosts: BlogArchivePost[] = posts.map((post) => ({
   publishedAt: post.pubDate.toISOString(),
   publishedAtValue: post.pubDate.valueOf(),
   commentCount: post.commentCount ?? 0,
-  readingLabel: formatReadingTimeLabel(post.body ?? ""),
+  readingLabel: post.readingLabel ?? formatReadingTimeLabel(post.body ?? ""),
   coverImageSrc: resolveCoverImageSrc(post, 960, 640),
 }));
 ---
@@ -99,8 +128,14 @@ const archivePosts: BlogArchivePost[] = posts.map((post) => ({
   <BlogArchiveFilters
     client:load
     initialSelectedTags={selectedTagsFromQuery}
+    initialQuery={initialQuery}
+    initialSort={initialSort}
+    initialVisibility={initialVisibility}
     isAdminViewer={isAdminViewer}
-    posts={archivePosts}
+    initialPosts={initialPosts}
+    initialHasMore={initialHasMore}
+    initialOffset={initialOffset}
+    initialTotalCount={initialTotalCount}
     tagFilters={tagFilters}
   />
 </BaseLayout>

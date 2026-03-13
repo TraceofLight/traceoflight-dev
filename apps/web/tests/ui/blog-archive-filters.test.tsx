@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BlogArchiveFilters } from "@/components/public/BlogArchiveFilters";
 
@@ -48,17 +48,58 @@ const tagFilters = [
   { slug: "web", count: 1 },
 ];
 
+function createSummaryPayload(items: typeof posts, overrides?: Partial<{
+  totalCount: number;
+  nextOffset: number | null;
+  hasMore: boolean;
+  tagFilters: typeof tagFilters;
+}>) {
+  return {
+    items,
+    totalCount: overrides?.totalCount ?? items.length,
+    nextOffset: overrides?.nextOffset ?? null,
+    hasMore: overrides?.hasMore ?? false,
+    tagFilters: overrides?.tagFilters ?? tagFilters,
+  };
+}
+
 describe("BlogArchiveFilters", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/blog");
+    vi.restoreAllMocks();
   });
 
-  it("filters by search and tag while syncing the tag query string", () => {
+  it("requests filtered summaries by search and tag while syncing the tag query string", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          createSummaryPayload([posts[0], posts[2]], {
+            totalCount: 2,
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          createSummaryPayload([posts[2]], {
+            totalCount: 1,
+            tagFilters: [{ slug: "astro", count: 1 }],
+          }),
+      } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
     render(
       <BlogArchiveFilters
         initialSelectedTags={[]}
+        initialQuery=""
+        initialSort="latest"
+        initialVisibility="all"
         isAdminViewer={false}
-        posts={posts}
+        initialPosts={posts}
+        initialHasMore={false}
+        initialOffset={posts.length}
+        initialTotalCount={posts.length}
         tagFilters={tagFilters}
         writeHref="/admin/posts/new"
       />,
@@ -74,7 +115,15 @@ describe("BlogArchiveFilters", () => {
 
     fireEvent.click(astroTagButton);
 
-    expect(screen.getByText("총 2개의 포스트")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/internal-api/posts/summary?"),
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("총 2개의 포스트")).toBeInTheDocument();
+    });
     expect(window.location.search).toBe("?tag=astro");
     expect(astroTagButton).toHaveAttribute("aria-pressed", "true");
     expect(astroTagButton.className).toContain("blog-filter-chip");
@@ -95,18 +144,56 @@ describe("BlogArchiveFilters", () => {
       target: { value: "layouts" },
     });
 
-    expect(screen.getByText("총 1개의 포스트")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Astro Layouts 읽기/ }),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        expect.stringContaining("query=layouts"),
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("총 1개의 포스트")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: /Astro Layouts 읽기/ })).toBeInTheDocument();
   });
 
-  it("lets admin viewers switch visibility and sorting", () => {
+  it("lets admin viewers switch visibility and sorting", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          createSummaryPayload([posts[1]], {
+            totalCount: 1,
+            tagFilters: [{ slug: "react", count: 1 }],
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          createSummaryPayload([posts[0], posts[1], posts[2]], {
+            totalCount: 3,
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          createSummaryPayload([posts[0], posts[2], posts[1]], {
+            totalCount: 3,
+          }),
+      } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
     render(
       <BlogArchiveFilters
         initialSelectedTags={[]}
+        initialQuery=""
+        initialSort="latest"
+        initialVisibility="all"
         isAdminViewer
-        posts={posts}
+        initialPosts={posts}
+        initialHasMore={false}
+        initialOffset={posts.length}
+        initialTotalCount={posts.length}
         tagFilters={tagFilters}
         writeHref="/admin/posts/new"
       />,
@@ -114,12 +201,27 @@ describe("BlogArchiveFilters", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "비공개 (1)" }));
 
-    expect(screen.getByText("총 1개의 포스트")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        expect.stringContaining("visibility=private"),
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("총 1개의 포스트")).toBeInTheDocument();
+    });
     expect(screen.getByText("Private")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "전체 (3)" }));
+    fireEvent.click(screen.getByRole("button", { name: /^전체 \(/ }));
     fireEvent.change(screen.getByLabelText("정렬 방식"), {
       target: { value: "title" },
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        expect.stringContaining("sort=title"),
+        expect.objectContaining({ method: "GET" }),
+      );
     });
 
     const titles = screen
@@ -127,5 +229,88 @@ describe("BlogArchiveFilters", () => {
       .map((element) => element.textContent);
 
     expect(titles).toEqual(["Astro Intro", "Astro Layouts", "React Patterns"]);
+  });
+
+  it("requests the next archive batch when the infinite-scroll sentinel intersects", async () => {
+    const observedTargets: Element[] = [];
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            slug: "next-post",
+            title: "Next Post",
+            description: "Loaded later",
+            visibility: "public",
+            tags: ["astro"],
+            publishedAt: "2025-03-07T00:00:00.000Z",
+            publishedAtValue: new Date("2025-03-07T00:00:00.000Z").valueOf(),
+            commentCount: 0,
+            readingLabel: "2 min read",
+            coverImageSrc: "/images/empty-article-image.png",
+          },
+        ],
+        nextOffset: 4,
+        hasMore: false,
+      }),
+    }));
+
+    class IntersectionObserverMock {
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback;
+      }
+
+      callback: IntersectionObserverCallback;
+
+      observe(target: Element) {
+        observedTargets.push(target);
+        this.callback(
+          [{ isIntersecting: true, target } as IntersectionObserverEntry],
+          this as unknown as IntersectionObserver,
+        );
+      }
+
+      disconnect() {}
+
+      unobserve() {}
+    }
+
+    const originalFetch = global.fetch;
+    const originalObserver = global.IntersectionObserver;
+    global.fetch = fetchMock as unknown as typeof fetch;
+    global.IntersectionObserver =
+      IntersectionObserverMock as unknown as typeof IntersectionObserver;
+
+    try {
+      render(
+        <BlogArchiveFilters
+          initialSelectedTags={[]}
+          initialQuery=""
+          initialSort="latest"
+          initialVisibility="all"
+          isAdminViewer={false}
+          initialPosts={posts}
+          initialHasMore
+          initialOffset={posts.length}
+          initialTotalCount={posts.length + 1}
+          tagFilters={tagFilters}
+          writeHref="/admin/posts/new"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringMatching(/\/internal-api\/posts\/summary\?/),
+          expect.objectContaining({ method: "GET" }),
+        );
+      });
+      expect(observedTargets.length).toBeGreaterThan(0);
+      expect(
+        screen.getByRole("link", { name: /Next Post 읽기/ }),
+      ).toBeInTheDocument();
+    } finally {
+      global.fetch = originalFetch;
+      global.IntersectionObserver = originalObserver;
+    }
   });
 });

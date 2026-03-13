@@ -50,6 +50,7 @@ function isProtectedPath(pathname: string): boolean {
 function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/internal-api/auth/")) return true;
   if (pathname.startsWith("/internal-api/media/browser-image")) return true;
+  if (pathname === "/internal-api/posts/summary") return true;
   if (/^\/internal-api\/posts\/.+\/comments(?:\/|$)/.test(pathname)) return true;
   if (/^\/internal-api\/comments\/.+$/.test(pathname)) return true;
   return false;

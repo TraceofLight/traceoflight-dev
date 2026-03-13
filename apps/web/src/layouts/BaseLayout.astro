@@ -33,6 +33,6 @@ const visitorSummary = await getGa4VisitorSummary();
       <slot />
     </main>
     <Footer visitorSummary={visitorSummary} />
-    <FloatingUtilityButtons client:only="react" />
+    <FloatingUtilityButtons client:idle />
   </body>
 </html>

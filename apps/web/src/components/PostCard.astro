@@ -44,7 +44,7 @@ const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSr
 const formattedPubDate = formatDateLabel(post.pubDate);
 const pubDateIso = toIsoDateTime(post.pubDate);
 const commentCount = post.commentCount ?? 0;
-const readingLabel = formatReadingTimeLabel(post.body ?? "");
+const readingLabel = post.readingLabel ?? formatReadingTimeLabel(post.body ?? "");
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
 const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
 ---

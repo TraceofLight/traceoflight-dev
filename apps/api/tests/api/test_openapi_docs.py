@@ -24,12 +24,15 @@ def test_health_operation_has_summary_and_description() -> None:
 def test_posts_operations_expose_reference_metadata() -> None:
     schema = _openapi()
     list_op = schema['paths']['/api/v1/posts']['get']
+    summary_op = schema['paths']['/api/v1/posts/summary']['get']
     create_op = schema['paths']['/api/v1/posts']['post']
     delete_op = schema['paths']['/api/v1/posts/{slug}']['delete']
 
     assert list_op['summary'] == 'List posts'
     assert 'public' in list_op['description'].lower()
     assert 'x-internal-api-secret' in str(list_op)
+    assert summary_op['summary'] == 'List post summaries'
+    assert 'body' not in str(summary_op).lower()
 
     assert create_op['summary'] == 'Create post'
     assert '401' in create_op['responses']
@@ -58,6 +61,7 @@ def test_post_and_media_component_schemas_have_field_descriptions() -> None:
     schema = _openapi()
     post_create = schema['components']['schemas']['PostCreate']['properties']
     post_read = schema['components']['schemas']['PostRead']['properties']
+    post_summary = schema['components']['schemas']['PostSummaryRead']['properties']
     media_upload = schema['components']['schemas']['MediaUploadRequest']['properties']
 
     assert post_create['slug']['description'] == 'URL-friendly unique post identifier.'
@@ -66,6 +70,8 @@ def test_post_and_media_component_schemas_have_field_descriptions() -> None:
     assert post_create['series_title']['description'] == 'Optional series title selected in writer publish settings.'
     assert post_read['tags']['description'] == 'Normalized tag objects assigned to this post.'
     assert post_read['comment_count']['description'] == 'Total comments linked to this post.'
+    assert 'body_markdown' not in post_summary
+    assert post_summary['comment_count']['description'] == 'Total comments linked to this post.'
     assert media_upload['filename']['description'] == 'Original file name from client.'
     assert 'example' in media_upload['mime_type']
 

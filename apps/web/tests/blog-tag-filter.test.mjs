@@ -27,7 +27,9 @@ test("blog archive filter island applies tag filtering and query sync", async ()
   assert.match(source, /searchParams\.delete\(["']tag["']\)/);
   assert.match(source, /url\.searchParams\.set\(["']tag["']/);
   assert.match(source, /window\.history\.replaceState/);
-  assert.match(source, /post\.tags\.some\(/);
+  assert.match(source, /buildSummaryRequestUrl/);
+  assert.match(source, /fetch\(/);
+  assert.match(source, /\/internal-api\/posts\/summary/);
 });
 
 test("post card exports normalized tag data and chips for the new card layout", async () => {

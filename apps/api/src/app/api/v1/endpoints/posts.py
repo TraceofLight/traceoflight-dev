@@ -13,8 +13,8 @@ from fastapi import Response
 
 from app.api.deps import get_post_service
 from app.core.config import settings
-from app.models.post import PostStatus, PostVisibility
-from app.schemas.post import PostCreate, PostRead
+from app.models.post import PostContentKind, PostStatus, PostVisibility
+from app.schemas.post import PostCreate, PostRead, PostSummaryListRead
 from app.services.post_service import PostService
 
 router = APIRouter()
@@ -52,6 +52,68 @@ def _integrity_conflict_detail(exc: IntegrityError) -> str:
 
 
 @router.get(
+    '/summary',
+    response_model=PostSummaryListRead,
+    summary='List post summaries',
+    description=(
+        'Return post-card summaries without markdown bodies. Public callers are restricted to '
+        'published/public posts. Internal callers may request draft/private filters via '
+        'x-internal-api-secret.'
+    ),
+    responses={
+        200: {'description': 'Post summaries returned'},
+    },
+)
+def list_post_summaries(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    status: PostStatus | None = Query(default=None),
+    visibility: PostVisibility | None = Query(default=None),
+    content_kind: PostContentKind | None = Query(default=None),
+    tag: list[str] | None = Query(
+        default=None,
+        description='Repeatable tag query parameter. Example: ?tag=fastapi&tag=astro',
+    ),
+    tag_match: Literal['any', 'all'] = Query(
+        default='any',
+        description='Tag match strategy. "any" matches at least one tag; "all" requires all requested tags.',
+    ),
+    query: str | None = Query(
+        default=None,
+        description='Optional search query matched against title and excerpt.',
+    ),
+    sort: Literal['latest', 'oldest', 'title'] = Query(
+        default='latest',
+        description='Archive sort mode.',
+    ),
+    x_internal_api_secret: str | None = Header(
+        default=None,
+        alias='x-internal-api-secret',
+        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
+    ),
+    service: PostService = Depends(get_post_service),
+) -> PostSummaryListRead:
+    effective_status = status
+    effective_visibility = visibility
+    if not is_trusted_internal_request(request, x_internal_api_secret):
+        effective_status = PostStatus.PUBLISHED
+        effective_visibility = PostVisibility.PUBLIC
+
+    return service.list_post_summaries(
+        limit=limit,
+        offset=offset,
+        status=effective_status,
+        visibility=effective_visibility,
+        tags=tag,
+        tag_match=tag_match,
+        query=query,
+        content_kind=content_kind,
+        sort=sort,
+    )
+
+
+@router.get(
     '',
     response_model=list[PostRead],
     summary='List posts',
@@ -69,6 +131,7 @@ def list_posts(
     offset: int = Query(default=0, ge=0),
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
+    content_kind: PostContentKind | None = Query(default=None),
     tag: list[str] | None = Query(
         default=None,
         description='Repeatable tag query parameter. Example: ?tag=fastapi&tag=astro',
@@ -96,6 +159,7 @@ def list_posts(
         offset=offset,
         status=effective_status,
         visibility=effective_visibility,
+        content_kind=content_kind,
         tags=tag,
         tag_match=tag_match,
     )
@@ -119,6 +183,7 @@ def get_post_by_slug(
     slug: str,
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
+    content_kind: PostContentKind | None = Query(default=None),
     x_internal_api_secret: str | None = Header(
         default=None,
         alias='x-internal-api-secret',
@@ -133,7 +198,12 @@ def get_post_by_slug(
         effective_status = PostStatus.PUBLISHED
         effective_visibility = PostVisibility.PUBLIC
 
-    post = service.get_post_by_slug(slug=slug, status=effective_status, visibility=effective_visibility)
+    post = service.get_post_by_slug(
+        slug=slug,
+        status=effective_status,
+        visibility=effective_visibility,
+        content_kind=content_kind,
+    )
     if post is None:
         raise HTTPException(status_code=404, detail='post not found')
     return post

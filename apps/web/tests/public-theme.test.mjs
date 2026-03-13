@@ -122,7 +122,7 @@ test("base head and base layout provide a persistent global theme toggle in a fl
   assert.doesNotMatch(headerSource, /ThemeToggle/);
   assert.match(baseLayoutSource, /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons['"];/);
   assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
-  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:only="react" \/>/);
+  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:idle \/>/);
   assert.match(floatingUtilitySource, /window\.scrollTo\(\{ top: 0, behavior: "smooth" \}\)/);
   assert.match(floatingUtilitySource, /<ThemeToggle \/>/);
   assert.match(floatingUtilitySource, /bg-white\/86/);

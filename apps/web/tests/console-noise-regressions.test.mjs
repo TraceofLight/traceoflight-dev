@@ -55,10 +55,10 @@ test("public shell avoids known console-noise regressions", async () => {
   assert.doesNotMatch(tokensCssSource, /woff2-variations/);
   assert.match(tokensCssSource, /src:\s*url\('\/fonts\/PretendardVariable\.woff2'\)\s*format\('woff2'\)/);
   assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
-  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:only="react" \/>/);
+  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:idle \/>/);
   assert.doesNotMatch(baseLayoutSource, /transition:persist/);
-  assert.match(headerSource, /<MobileNavSheet client:only="react"/);
-  assert.match(footerSource, /<FooterAdminModal\s+client:only="react"/);
+  assert.match(headerSource, /<MobileNavSheet client:media="\(\s*max-width:\s*767px\s*\)"/);
+  assert.match(footerSource, /<FooterAdminModal\s+client:idle/);
 
   for (const source of [
     blogPostSource,

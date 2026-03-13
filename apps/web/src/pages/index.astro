@@ -6,7 +6,7 @@ import SeriesCard from "../components/SeriesCard.astro";
 import profileImage from "../assets/traceoflight-profile.png";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { listPublishedDbPosts } from "../lib/blog-db";
+import { listPublishedDbPostSummaries } from "../lib/blog-db";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import {
   getBlogSource,
@@ -15,7 +15,7 @@ import {
   type PostCard as PostCardData,
 } from "../lib/content-source";
 import { listPublishedDbProjects } from "../lib/projects";
-import { getSeriesBySlug, listSeries } from "../lib/series-db";
+import { listFeaturedSeries } from "../lib/series-db";
 import {
   PUBLIC_BADGE_CLASS,
   PUBLIC_BADGE_STRONG_CLASS,
@@ -35,14 +35,14 @@ const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
 let posts: PostCardData[] = [];
 if (provider === "db") {
   try {
-    const dbPosts = await listPublishedDbPosts(3, {
+    const dbPosts = await listPublishedDbPostSummaries(3, {
       includePrivate: isAdminViewer,
     });
     posts = dbPosts.map((post) => ({
       slug: post.slug,
       title: post.title,
       description: post.description,
-      body: post.bodyMarkdown,
+      readingLabel: post.readingLabel,
       commentCount: post.commentCount,
       pubDate: post.publishedAt,
       updatedDate: post.updatedAt,
@@ -259,38 +259,22 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
   provider === "db"
     ? await (async () => {
         try {
-          const seriesList = await listSeries({
+          const seriesList = await listFeaturedSeries({
             includePrivate: isAdminViewer,
-            limit: 100,
+            limit: 3,
           });
-          const detailRows = await Promise.all(
-            seriesList.map(async (series): Promise<FeaturedSeriesCard | null> => {
-              const detail = await getSeriesBySlug(series.slug, {
-                includePrivate: isAdminViewer,
-              }).catch(() => null);
-              if (!detail) {
-                return null;
-              }
-
-              const updatedAt = detail.posts.reduce<Date>((latest, post) => {
-                const candidate = post.publishedAt ?? series.updatedAt;
-                return candidate.getTime() > latest.getTime()
-                  ? candidate
-                  : latest;
-              }, series.updatedAt);
-
-              return {
-                slug: series.slug,
-                title: series.title,
-                description: series.description,
-                postCount: detail.postCount,
-                updatedAt,
-                coverImageUrl: series.coverImageUrl,
-              } satisfies FeaturedSeriesCard;
-            }),
-          );
-
-          return detailRows
+          return seriesList
+            .map(
+              (series) =>
+                ({
+                  slug: series.slug,
+                  title: series.title,
+                  description: series.description,
+                  postCount: series.postCount,
+                  updatedAt: series.updatedAt,
+                  coverImageUrl: series.coverImageUrl,
+                }) satisfies FeaturedSeriesCard,
+            )
             .filter(isFeaturedSeriesCard)
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
             .slice(0, 3);

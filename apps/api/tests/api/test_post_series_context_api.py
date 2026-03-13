@@ -39,8 +39,8 @@ def _build_post_payload(slug: str) -> dict[str, object]:
 
 
 class _StubPostService:
-    def get_post_by_slug(self, slug: str, status=None, visibility=None):  # type: ignore[no-untyped-def]
-        del status, visibility
+    def get_post_by_slug(self, slug: str, status=None, visibility=None, content_kind=None):  # type: ignore[no-untyped-def]
+        del status, visibility, content_kind
         if slug == "missing":
             return None
         return _build_post_payload(slug)

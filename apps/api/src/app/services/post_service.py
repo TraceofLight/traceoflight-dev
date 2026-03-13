@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.models.post import PostStatus, PostVisibility
+from app.models.post import PostContentKind, PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PostCreate
 from app.services.series_projection_cache import request_series_projection_refresh
@@ -23,6 +23,7 @@ class PostService:
         offset: int = 0,
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
+        content_kind: PostContentKind | None = None,
         tags: list[str] | None = None,
         tag_match: str = "any",
     ):
@@ -31,8 +32,35 @@ class PostService:
             offset=offset,
             status=status,
             visibility=visibility,
+            content_kind=content_kind,
             tags=tags,
             tag_match=tag_match,
+        )
+
+    def list_post_summaries(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        status: PostStatus | None = None,
+        visibility: PostVisibility | None = None,
+        tags: list[str] | None = None,
+        tag_match: str = "any",
+        query: str | None = None,
+        content_kind: PostContentKind | None = None,
+        sort: str = "latest",
+        include_tag_filters: bool = True,
+    ):
+        return self.repo.list_summaries(
+            limit=limit,
+            offset=offset,
+            status=status,
+            visibility=visibility,
+            tags=tags,
+            tag_match=tag_match,
+            query=query,
+            content_kind=content_kind,
+            sort=sort,
+            include_tag_filters=include_tag_filters,
         )
 
     def get_post_by_slug(
@@ -40,8 +68,14 @@ class PostService:
         slug: str,
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
+        content_kind: PostContentKind | None = None,
     ):
-        return self.repo.get_by_slug(slug=slug, status=status, visibility=visibility)
+        return self.repo.get_by_slug(
+            slug=slug,
+            status=status,
+            visibility=visibility,
+            content_kind=content_kind,
+        )
 
     def create_post(self, payload: PostCreate):
         created = self.repo.create(payload)

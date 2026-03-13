@@ -8,6 +8,7 @@ export interface PostCard {
     title: string;
     description: string;
     body?: string;
+    readingLabel?: string;
     commentCount?: number;
     pubDate: Date;
     updatedDate?: Date;

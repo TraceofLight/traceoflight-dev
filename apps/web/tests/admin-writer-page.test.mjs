@@ -54,6 +54,8 @@ test("admin writer page bootstraps writer module", async () => {
   assert.doesNotMatch(layoutSource, /import\s*\{\s*initNewPostAdminPage\s*\}/);
   assert.match(layoutSource, /bootAdminWriterPage/);
   assert.match(layoutSource, /import\(["']\.\.\/lib\/admin\/writer-page-bootstrap["']\)/);
+  assert.match(layoutSource, /requestIdleCallback/);
+  assert.match(layoutSource, /setTimeout\(/);
   assert.match(layoutSource, /astro:page-load/);
   assert.match(bootstrapSource, /initNewPostAdminPage/);
   assert.match(bootstrapSource, /dataset\.writerInitialized/);

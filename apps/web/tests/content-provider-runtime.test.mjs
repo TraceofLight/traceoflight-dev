@@ -17,7 +17,7 @@ test('home page supports db provider posts', async () => {
   const source = await readFile(homePath, 'utf8');
 
   assert.match(source, /getContentProvider/);
-  assert.match(source, /listPublishedDbPosts/);
+  assert.match(source, /listPublishedDbPostSummaries/);
   assert.match(source, /provider === ["']db["']/);
   assert.match(source, /pubDate:\s*post\.publishedAt/);
 });

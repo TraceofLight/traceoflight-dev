@@ -125,3 +125,17 @@ export async function getSeriesBySlug(
     posts: Array.isArray(payload.posts) ? payload.posts.map(toSeriesPost) : [],
   };
 }
+
+export async function listFeaturedSeries(
+  options: Omit<SeriesQueryOptions, "offset"> = {},
+): Promise<SeriesSummary[]> {
+  const limit = typeof options.limit === "number" ? options.limit : 3;
+  const rows = await listSeries({
+    includePrivate: options.includePrivate,
+    limit: Math.max(limit * 4, limit),
+  });
+
+  return rows
+    .sort((left, right) => right.updatedAt.valueOf() - left.updatedAt.valueOf())
+    .slice(0, limit);
+}

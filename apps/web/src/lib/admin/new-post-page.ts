@@ -868,6 +868,6 @@ export async function initNewPostAdminPage(
   syncProjectFieldVisibility();
   syncTopMediaUi();
   syncCompactViewForViewport();
-  await refreshPreview();
+  queuePreviewRefresh();
   return true;
 }
