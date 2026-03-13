@@ -12,7 +12,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ cookies }) => {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  if (!accessToken || !verifyAccessToken(accessToken)) {
+  if (!accessToken || !(await verifyAccessToken(accessToken))) {
     return unauthorizedImportsResponse();
   }
 

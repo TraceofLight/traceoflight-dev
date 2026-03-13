@@ -10,7 +10,7 @@ import {
 } from "../../lib/ui-effects";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
 const projects = await listPublishedDbProjects();
 const projectWriteHref = "/admin/posts/new?content_kind=project";
 ---

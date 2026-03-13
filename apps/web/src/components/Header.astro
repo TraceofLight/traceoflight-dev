@@ -7,7 +7,7 @@ import HeaderLink from "./HeaderLink.astro";
 import MobileNavSheet from "./public/MobileNavSheet";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
 ---
 
 <header class="site-header-surface sticky top-0 z-40 border-b border-white/60 bg-white/78 backdrop-blur-xl supports-[backdrop-filter]:bg-white/64">

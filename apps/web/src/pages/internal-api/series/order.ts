@@ -7,7 +7,7 @@ export const prerender = false;
 
 export const PUT: APIRoute = async ({ request, cookies }) => {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  if (!accessToken || !verifyAccessToken(accessToken)) {
+  if (!accessToken || !(await verifyAccessToken(accessToken))) {
     return new Response(JSON.stringify({ message: "unauthorized" }), {
       status: 401,
       headers: { "content-type": "application/json" },

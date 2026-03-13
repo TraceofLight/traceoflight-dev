@@ -27,6 +27,7 @@ interface TokenPayload {
   jti: string;
   exp: number;
   iat: number;
+  credentialRevision: number;
 }
 
 interface RefreshState {
@@ -34,6 +35,7 @@ interface RefreshState {
   familyId: string;
   tokenHash: string;
   expiresAt: number;
+  credentialRevision: number;
   parentJti?: string;
   rotatedToJti?: string;
   used: boolean;
@@ -59,6 +61,7 @@ function decodePayloadUnsafe(token: string): TokenPayload | null {
     if (typeof parsed?.jti !== 'string' || parsed.jti.length === 0) return null;
     if (typeof parsed?.exp !== 'number') return null;
     if (typeof parsed?.iat !== 'number') return null;
+    if (typeof parsed?.credentialRevision !== 'number') return null;
     return parsed;
   } catch {
     return null;
@@ -121,12 +124,14 @@ export function createAdminAuthCore(options: CreateAdminAuthCoreOptions) {
     cleanupExpiredRefreshState();
 
     const issuedAt = nowEpochSeconds();
+    const credentialRevision = previousRefresh?.credentialRevision ?? 0;
     const accessPayload: TokenPayload = {
       sub: 'admin',
       type: 'access',
       jti: randomUUID(),
       iat: issuedAt,
       exp: issuedAt + options.accessMaxAgeSeconds,
+      credentialRevision,
     };
 
     const refreshJti = randomUUID();
@@ -137,6 +142,7 @@ export function createAdminAuthCore(options: CreateAdminAuthCoreOptions) {
       jti: refreshJti,
       iat: issuedAt,
       exp: issuedAt + options.refreshMaxAgeSeconds,
+      credentialRevision,
     };
 
     const accessToken = issueToken(accessPayload);
@@ -148,6 +154,7 @@ export function createAdminAuthCore(options: CreateAdminAuthCoreOptions) {
       tokenHash: hashToken(refreshToken),
       expiresAt: refreshPayload.exp,
       parentJti: previousRefresh?.jti,
+      credentialRevision,
       used: false,
       revoked: false,
     });
@@ -166,17 +173,59 @@ export function createAdminAuthCore(options: CreateAdminAuthCoreOptions) {
     };
   }
 
-  function issueLoginPair(): TokenPair {
-    return createTokenPair();
+  function issueLoginPair(credentialRevision = 0): TokenPair {
+    cleanupExpiredRefreshState();
+
+    const issuedAt = nowEpochSeconds();
+    const accessPayload: TokenPayload = {
+      sub: 'admin',
+      type: 'access',
+      jti: randomUUID(),
+      iat: issuedAt,
+      exp: issuedAt + options.accessMaxAgeSeconds,
+      credentialRevision,
+    };
+
+    const refreshJti = randomUUID();
+    const familyId = randomUUID();
+    const refreshPayload: TokenPayload = {
+      sub: 'admin',
+      type: 'refresh',
+      jti: refreshJti,
+      iat: issuedAt,
+      exp: issuedAt + options.refreshMaxAgeSeconds,
+      credentialRevision,
+    };
+
+    const accessToken = issueToken(accessPayload);
+    const refreshToken = issueToken(refreshPayload);
+
+    refreshStore.set(refreshJti, {
+      jti: refreshJti,
+      familyId,
+      tokenHash: hashToken(refreshToken),
+      expiresAt: refreshPayload.exp,
+      credentialRevision,
+      used: false,
+      revoked: false,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      accessMaxAgeSeconds: options.accessMaxAgeSeconds,
+      refreshMaxAgeSeconds: options.refreshMaxAgeSeconds,
+    };
   }
 
-  function verifyAccessToken(accessToken: string): boolean {
+  function verifyAccessToken(accessToken: string, activeCredentialRevision: number): boolean {
     const payload = verifyToken(accessToken, 'access');
     if (!payload) return false;
+    if (payload.credentialRevision !== activeCredentialRevision) return false;
     return payload.exp > nowEpochSeconds();
   }
 
-  function rotateRefresh(refreshToken: string): RotateResult {
+  function rotateRefresh(refreshToken: string, activeCredentialRevision = 0): RotateResult {
     cleanupExpiredRefreshState();
 
     const unsafePayload = decodePayloadUnsafe(refreshToken);
@@ -201,6 +250,10 @@ export function createAdminAuthCore(options: CreateAdminAuthCoreOptions) {
 
     const state = refreshStore.get(payload.jti);
     if (!state) return { kind: 'invalid' };
+    if (payload.credentialRevision !== activeCredentialRevision) {
+      state.revoked = true;
+      return { kind: 'invalid' };
+    }
 
     if (state.expiresAt <= now) {
       state.revoked = true;
@@ -227,6 +280,7 @@ export function createAdminAuthCore(options: CreateAdminAuthCoreOptions) {
       return { kind: 'reuse_detected' };
     }
 
+    state.credentialRevision = activeCredentialRevision;
     return { kind: 'rotated', pair: createTokenPair(state) };
   }
 

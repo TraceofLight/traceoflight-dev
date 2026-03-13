@@ -18,7 +18,7 @@ import {
 
 const slug = Astro.params.slug ?? "";
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
 const defaultSeriesCoverImage = "/images/empty-series-image.png";
 const defaultSeriesPostCoverImage = "/images/empty-series-image.png";
 const defaultSeriesCoverImageSrc = toBrowserImageUrl(defaultSeriesCoverImage, {

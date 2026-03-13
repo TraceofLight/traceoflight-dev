@@ -6,6 +6,7 @@ import {
   type RotateKind,
   type TokenPair,
 } from './admin-auth-core';
+import { requestBackend } from './backend-api';
 
 export const ADMIN_ACCESS_COOKIE = 'traceoflight_admin_access';
 export const ADMIN_REFRESH_COOKIE = 'traceoflight_admin_refresh';
@@ -14,12 +15,15 @@ const DEFAULT_ACCESS_MAX_AGE_SECONDS = 60 * 15;
 const DEFAULT_REFRESH_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
 
 interface AdminAuthConfig {
-  loginId: string;
-  loginPassword?: string;
-  loginPasswordHash?: string;
   sessionSecret: string;
   accessMaxAgeSeconds: number;
   refreshMaxAgeSeconds: number;
+}
+
+interface AdminCredentialConfig {
+  loginId: string;
+  loginPassword?: string;
+  loginPasswordHash?: string;
 }
 
 interface CookieWriter {
@@ -39,12 +43,26 @@ interface CookieWriter {
 
 interface RotateResult extends CoreRotateResult {}
 
+interface OperationalCredentialVerifyResult {
+  ok: boolean;
+  credentialSource?: 'operational' | 'master';
+  credentialRevision: number;
+}
+
+interface ActiveCredentialRevisionCache {
+  credentialRevision: number;
+  expiresAt: number;
+}
+
 let cachedCore:
   | {
       key: string;
       core: ReturnType<typeof createAdminAuthCore>;
     }
   | undefined;
+let activeCredentialRevisionCache: ActiveCredentialRevisionCache | undefined;
+
+const ACTIVE_CREDENTIAL_REVISION_TTL_MS = 5_000;
 
 function safeCompare(left: string, right: string): boolean {
   const leftBuffer = Buffer.from(left);
@@ -59,19 +77,11 @@ function parseMaxAge(rawValue: string | undefined, fallback: number): number {
   return Math.max(60, Math.floor(parsed));
 }
 
-function getConfig(): AdminAuthConfig | null {
-  const loginId = process.env.ADMIN_LOGIN_ID?.trim() ?? '';
+function getSessionConfig(): AdminAuthConfig | null {
   const sessionSecret = process.env.ADMIN_SESSION_SECRET?.trim() ?? '';
-  const loginPasswordHash = process.env.ADMIN_LOGIN_PASSWORD_HASH?.trim() ?? '';
-  const loginPassword = process.env.ADMIN_LOGIN_PASSWORD?.trim() ?? '';
-
-  const hasCredential = Boolean(loginPasswordHash || loginPassword);
-  if (!loginId || !sessionSecret || !hasCredential) return null;
+  if (!sessionSecret) return null;
 
   return {
-    loginId,
-    loginPassword: loginPassword || undefined,
-    loginPasswordHash: loginPasswordHash || undefined,
     sessionSecret,
     accessMaxAgeSeconds: parseMaxAge(
       process.env.ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS,
@@ -81,6 +91,19 @@ function getConfig(): AdminAuthConfig | null {
       process.env.ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS,
       DEFAULT_REFRESH_MAX_AGE_SECONDS,
     ),
+  };
+}
+
+function getMasterCredentialConfig(): AdminCredentialConfig | null {
+  const loginId = process.env.ADMIN_LOGIN_ID?.trim() ?? '';
+  const loginPasswordHash = process.env.ADMIN_LOGIN_PASSWORD_HASH?.trim() ?? '';
+  const loginPassword = process.env.ADMIN_LOGIN_PASSWORD?.trim() ?? '';
+  const hasCredential = Boolean(loginPasswordHash || loginPassword);
+  if (!loginId || !hasCredential) return null;
+  return {
+    loginId,
+    loginPassword: loginPassword || undefined,
+    loginPasswordHash: loginPasswordHash || undefined,
   };
 }
 
@@ -119,11 +142,11 @@ async function verifyHashPassword(hashValue: string, password: string): Promise<
 }
 
 export function isAdminAuthConfigured(): boolean {
-  return getConfig() !== null;
+  return getSessionConfig() !== null;
 }
 
 export async function verifyAdminCredentials(username: string, password: string): Promise<boolean> {
-  const config = getConfig();
+  const config = getMasterCredentialConfig();
   if (!config) return false;
   if (!safeCompare(username, config.loginId)) return false;
 
@@ -135,26 +158,108 @@ export async function verifyAdminCredentials(username: string, password: string)
   return safeCompare(password, config.loginPassword);
 }
 
-export function issueLoginTokenPair(): TokenPair | null {
-  const config = getConfig();
+async function readJsonSafe(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function setActiveAdminCredentialRevisionCache(credentialRevision: number): void {
+  activeCredentialRevisionCache = {
+    credentialRevision,
+    expiresAt: Date.now() + ACTIVE_CREDENTIAL_REVISION_TTL_MS,
+  };
+}
+
+function getCachedActiveAdminCredentialRevision(): number | null {
+  if (!activeCredentialRevisionCache) return null;
+  if (activeCredentialRevisionCache.expiresAt <= Date.now()) return null;
+  return activeCredentialRevisionCache.credentialRevision;
+}
+
+export async function getActiveAdminCredentialRevision(forceRefresh = false): Promise<number | null> {
+  if (!forceRefresh) {
+    const cachedRevision = getCachedActiveAdminCredentialRevision();
+    if (cachedRevision !== null) return cachedRevision;
+  }
+
+  try {
+    const response = await requestBackend('/admin/auth/revision', { method: 'GET' });
+    if (!response.ok) return null;
+    const payload = (await readJsonSafe(response)) as { credential_revision?: unknown } | null;
+    const credentialRevision =
+      typeof payload?.credential_revision === 'number' ? payload.credential_revision : null;
+    if (credentialRevision === null) return null;
+    setActiveAdminCredentialRevisionCache(credentialRevision);
+    return credentialRevision;
+  } catch {
+    return getCachedActiveAdminCredentialRevision();
+  }
+}
+
+export async function verifyOperationalAdminCredentials(
+  loginId: string,
+  password: string,
+): Promise<OperationalCredentialVerifyResult> {
+  try {
+    const response = await requestBackend('/admin/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        login_id: loginId.trim(),
+        password,
+      }),
+    });
+    if (!response.ok) {
+      return { ok: false, credentialRevision: 0 };
+    }
+
+    const payload = (await readJsonSafe(response)) as
+      | {
+          credential_source?: 'operational' | 'master';
+          credential_revision?: number;
+        }
+      | null;
+    const credentialRevision = typeof payload?.credential_revision === 'number' ? payload.credential_revision : 0;
+    if (credentialRevision >= 0) {
+      setActiveAdminCredentialRevisionCache(credentialRevision);
+    }
+    return {
+      ok: true,
+      credentialSource: payload?.credential_source,
+      credentialRevision,
+    };
+  } catch {
+    return { ok: false, credentialRevision: 0 };
+  }
+}
+
+export function issueLoginTokenPair(credentialRevision: number): TokenPair | null {
+  const config = getSessionConfig();
   if (!config) return null;
-  return getCore(config).issueLoginPair();
+  return getCore(config).issueLoginPair(credentialRevision);
 }
 
-export function verifyAccessToken(token: string): boolean {
-  const config = getConfig();
+export async function verifyAccessToken(token: string): Promise<boolean> {
+  const config = getSessionConfig();
   if (!config) return false;
-  return getCore(config).verifyAccessToken(token);
+  const activeCredentialRevision = await getActiveAdminCredentialRevision();
+  if (activeCredentialRevision === null) return false;
+  return getCore(config).verifyAccessToken(token, activeCredentialRevision);
 }
 
-export function rotateRefreshToken(refreshToken: string): RotateResult {
-  const config = getConfig();
+export async function rotateRefreshToken(refreshToken: string): Promise<RotateResult> {
+  const config = getSessionConfig();
   if (!config) return { kind: 'invalid' };
-  return getCore(config).rotateRefresh(refreshToken);
+  const activeCredentialRevision = await getActiveAdminCredentialRevision();
+  if (activeCredentialRevision === null) return { kind: 'invalid' };
+  return getCore(config).rotateRefresh(refreshToken, activeCredentialRevision);
 }
 
 export function revokeRefreshTokenFamily(refreshToken: string): void {
-  const config = getConfig();
+  const config = getSessionConfig();
   if (!config) return;
   getCore(config).revokeRefreshFamily(refreshToken);
 }

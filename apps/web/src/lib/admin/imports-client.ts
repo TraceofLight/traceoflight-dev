@@ -71,3 +71,16 @@ export async function uploadResumePdf(file: File) {
   const payload = await readJsonSafe(response);
   return { response, payload };
 }
+
+export async function updateOperationalAdminCredentials(loginId: string, password: string) {
+  const response = await fetch("/internal-api/auth/credentials", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      loginId,
+      password,
+    }),
+  });
+  const payload = await readJsonSafe(response);
+  return { response, payload };
+}

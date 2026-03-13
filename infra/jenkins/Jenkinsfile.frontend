@@ -22,17 +22,12 @@ pipeline {
             # Normalize Windows CRLF credentials to LF for safe shell parsing.
             sed -i 's/\r$//' apps/web/.env
 
-            for key in SITE_URL PORT CONTENT_PROVIDER API_BASE_URL ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
+            for key in SITE_URL PORT CONTENT_PROVIDER API_BASE_URL ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
               if ! grep -Eq "^${key}=.+" apps/web/.env; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
             done
-
-            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' apps/web/.env && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' apps/web/.env; then
-              echo "ERROR: at least one of ADMIN_LOGIN_PASSWORD_HASH or ADMIN_LOGIN_PASSWORD is required"
-              exit 1
-            fi
           '''
         }
       }

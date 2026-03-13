@@ -48,7 +48,13 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 function isPublicPath(pathname: string): boolean {
-  if (pathname.startsWith("/internal-api/auth/")) return true;
+  if (
+    pathname === "/internal-api/auth/login" ||
+    pathname === "/internal-api/auth/logout" ||
+    pathname === "/internal-api/auth/refresh"
+  ) {
+    return true;
+  }
   if (pathname.startsWith("/internal-api/media/browser-image")) return true;
   if (pathname === "/internal-api/posts/summary") return true;
   if (/^\/internal-api\/posts\/.+\/comments(?:\/|$)/.test(pathname)) return true;
@@ -132,14 +138,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const accessToken = context.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  if (accessToken && verifyAccessToken(accessToken)) {
+  if (accessToken && (await verifyAccessToken(accessToken))) {
     const response = await next();
     return applySecurityHeaders(response);
   }
 
   const refreshToken = context.cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? "";
   if (refreshToken) {
-    const rotation = rotateRefreshToken(refreshToken);
+    const rotation = await rotateRefreshToken(refreshToken);
     if (rotation.kind === "rotated" && rotation.pair) {
       const secure =
         process.env.NODE_ENV === "production" ||

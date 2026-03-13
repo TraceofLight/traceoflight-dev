@@ -19,7 +19,7 @@ function badRequest(detail: string): Response {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  if (!accessToken || !verifyAccessToken(accessToken)) {
+  if (!accessToken || !(await verifyAccessToken(accessToken))) {
     return unauthorizedImportsResponse();
   }
 

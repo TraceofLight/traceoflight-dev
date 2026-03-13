@@ -16,9 +16,11 @@ function guestBackendRequest(path: string, init?: RequestInit): Promise<Response
   });
 }
 
-function isAdminSession(cookies: { get: (name: string) => { value: string } | undefined }): boolean {
+async function isAdminSession(
+  cookies: { get: (name: string) => { value: string } | undefined },
+): Promise<boolean> {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  return Boolean(accessToken) && verifyAccessToken(accessToken);
+  return Boolean(accessToken) && (await verifyAccessToken(accessToken));
 }
 
 export const GET: APIRoute = async ({ params, cookies }) => {
@@ -32,7 +34,7 @@ export const GET: APIRoute = async ({ params, cookies }) => {
 
   let response: Response;
   try {
-    response = isAdminSession(cookies)
+    response = (await isAdminSession(cookies))
       ? await requestBackend(`/posts/${slug}/comments`)
       : await guestBackendRequest(`/posts/${slug}/comments`);
   } catch {
@@ -54,7 +56,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
   const body = await request.text();
   let response: Response;
   try {
-    response = isAdminSession(cookies)
+    response = (await isAdminSession(cookies))
       ? await requestBackend(`/posts/${slug}/comments`, {
           method: "POST",
           headers: { "content-type": "application/json" },

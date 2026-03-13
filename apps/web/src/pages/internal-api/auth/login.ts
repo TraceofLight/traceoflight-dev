@@ -5,7 +5,7 @@ import {
   isAdminAuthConfigured,
   issueLoginTokenPair,
   setAdminAuthCookies,
-  verifyAdminCredentials,
+  verifyOperationalAdminCredentials,
 } from '../../../lib/admin-auth';
 
 export const prerender = false;
@@ -35,14 +35,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const username = payload.username?.trim() ?? '';
   const password = payload.password ?? '';
-  if (!(await verifyAdminCredentials(username, password))) {
+  // Backend operational credential verification flows through POST /api/v1/admin/auth/login.
+  const verification = await verifyOperationalAdminCredentials(username, password);
+  if (!verification.ok) {
     return new Response(JSON.stringify({ detail: 'Invalid username or password' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
     });
   }
+  const credential_source = verification.credentialSource;
+  void credential_source;
 
-  const tokenPair = issueLoginTokenPair();
+  const tokenPair = issueLoginTokenPair(verification.credentialRevision);
   if (!tokenPair) {
     return new Response(JSON.stringify({ detail: 'Admin auth is not configured' }), {
       status: 500,

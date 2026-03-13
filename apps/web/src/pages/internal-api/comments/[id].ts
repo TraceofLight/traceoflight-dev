@@ -16,9 +16,11 @@ function guestBackendRequest(path: string, init?: RequestInit): Promise<Response
   });
 }
 
-function isAdminSession(cookies: { get: (name: string) => { value: string } | undefined }): boolean {
+async function isAdminSession(
+  cookies: { get: (name: string) => { value: string } | undefined },
+): Promise<boolean> {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  return Boolean(accessToken) && verifyAccessToken(accessToken);
+  return Boolean(accessToken) && (await verifyAccessToken(accessToken));
 }
 
 export const PATCH: APIRoute = async ({ params, request, cookies }) => {
@@ -33,7 +35,7 @@ export const PATCH: APIRoute = async ({ params, request, cookies }) => {
   const body = await request.text();
   let response: Response;
   try {
-    response = isAdminSession(cookies)
+    response = (await isAdminSession(cookies))
       ? await requestBackend(`/comments/${commentId}`, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
@@ -63,7 +65,7 @@ export const DELETE: APIRoute = async ({ params, request, cookies }) => {
   const body = await request.text();
   let response: Response;
   try {
-    response = isAdminSession(cookies)
+    response = (await isAdminSession(cookies))
       ? await requestBackend(`/comments/${commentId}`, {
           method: "DELETE",
           headers: { "content-type": "application/json" },

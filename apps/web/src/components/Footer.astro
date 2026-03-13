@@ -16,7 +16,7 @@ const currentYear = new Date().getFullYear();
 const shouldOpenAdminLogin = Astro.url.searchParams.get("admin_login") === "1";
 const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
 ---
 
 <footer class="site-footer-surface border-t border-white/60 bg-white/72 backdrop-blur-xl">

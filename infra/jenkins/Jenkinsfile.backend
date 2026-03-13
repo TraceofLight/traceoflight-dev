@@ -30,12 +30,17 @@ pipeline {
               exit 1
             fi
 
-            for key in API_PORT POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY INTERNAL_API_SECRET; do
+            for key in API_PORT POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY INTERNAL_API_SECRET ADMIN_LOGIN_ID; do
               if ! grep -Eq "^${key}=.+" infra/docker/api/.env; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
             done
+
+            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' infra/docker/api/.env && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' infra/docker/api/.env; then
+              echo "ERROR: at least one of ADMIN_LOGIN_PASSWORD_HASH or ADMIN_LOGIN_PASSWORD is required"
+              exit 1
+            fi
           '''
         }
       }

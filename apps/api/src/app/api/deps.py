@@ -4,10 +4,12 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
+from app.repositories.admin_credential_repository import AdminCredentialRepository
 from app.repositories.media_repository import MediaRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.series_repository import SeriesRepository
 from app.repositories.tag_repository import TagRepository
+from app.services.admin_auth_service import AdminAuthService
 from app.services.import_service import ImportService
 from app.services.media_service import MediaService
 from app.services.post_comment_service import PostCommentService
@@ -56,3 +58,7 @@ def get_import_service(db: Session = Depends(get_db)) -> ImportService:
 def get_resume_service() -> ResumeService:
     storage = MinioStorageClient()
     return ResumeService(storage=storage)
+
+
+def get_admin_auth_service(db: Session = Depends(get_db)) -> AdminAuthService:
+    return AdminAuthService(repo=AdminCredentialRepository(db))

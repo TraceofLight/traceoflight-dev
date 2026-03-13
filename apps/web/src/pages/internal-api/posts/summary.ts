@@ -47,7 +47,7 @@ function resolveVisibility(rawValue: string | null, isAdminViewer: boolean) {
 
 export const GET: APIRoute = async ({ cookies, url }) => {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  const isAdminViewer = accessToken ? verifyAccessToken(accessToken) : false;
+  const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
   const selectedTags = url.searchParams
     .getAll("tag")
     .map((value) => value.trim().toLowerCase())

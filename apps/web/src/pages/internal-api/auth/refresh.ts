@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   }
 
-  const rotation = rotateRefreshToken(refreshToken);
+  const rotation = await rotateRefreshToken(refreshToken);
   if (rotation.kind === 'rotated' && rotation.pair) {
     const secure = process.env.NODE_ENV === 'production' || request.url.startsWith('https://');
     setAdminAuthCookies(cookies, rotation.pair, secure);
@@ -53,7 +53,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   }
 
-  return new Response(JSON.stringify({ detail: 'Refresh token is invalid', code: 'RTR_INVALID' }), {
+  return new Response(JSON.stringify({
+    detail: 'Refresh token is invalid or its credential revision is no longer active',
+    code: 'RTR_INVALID',
+  }), {
     status: 401,
     headers: { 'content-type': 'application/json' },
   });
