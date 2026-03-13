@@ -190,9 +190,18 @@ class PostSummaryRead(BaseModel):
     updated_at: datetime
 
 
+class PostVisibilityCountsRead(BaseModel):
+    all: int = 0
+    public: int = 0
+    private: int = 0
+
+
 class PostSummaryListRead(BaseModel):
     items: list[PostSummaryRead] = Field(default_factory=list)
     total_count: int
     next_offset: int | None
     has_more: bool
     tag_filters: list[PostTagFilterRead] = Field(default_factory=list)
+    visibility_counts: PostVisibilityCountsRead = Field(
+        default_factory=PostVisibilityCountsRead,
+    )

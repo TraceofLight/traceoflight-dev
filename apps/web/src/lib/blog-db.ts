@@ -52,6 +52,7 @@ export interface DbBlogPost {
   visibility: 'public' | 'private';
   tags: DbTag[];
   seriesContext?: DbSeriesContext;
+  createdAt: Date;
   publishedAt: Date;
   updatedAt?: Date;
 }
@@ -91,6 +92,7 @@ export interface DbBlogPostSummary {
   visibility: 'public' | 'private';
   tags: DbTag[];
   readingLabel: string;
+  createdAt: Date;
   publishedAt: Date;
   updatedAt?: Date;
 }
@@ -106,6 +108,11 @@ export interface DbPostSummaryListResponse {
   next_offset: number | null;
   has_more: boolean;
   tag_filters: DbPostSummaryTagFilter[];
+  visibility_counts?: {
+    all?: number;
+    public?: number;
+    private?: number;
+  };
 }
 
 export interface DbBlogPostSummaryPage {
@@ -114,6 +121,11 @@ export interface DbBlogPostSummaryPage {
   nextOffset: number | null;
   hasMore: boolean;
   tagFilters: DbPostSummaryTagFilter[];
+  visibilityCounts: {
+    all: number;
+    public: number;
+    private: number;
+  };
 }
 
 export interface DbSeriesContextRaw {
@@ -156,7 +168,6 @@ export interface PublishedPostSummaryQueryOptions extends PublishedQueryOptions 
 const POSTS_PAGE_SIZE = 100;
 
 function toDbBlogPost(post: DbPost): DbBlogPost {
-  const publishedDate = post.published_at ?? post.created_at;
   const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
   const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
   const resolvedTopMediaImageUrl = resolveBackendAssetUrl(
@@ -189,13 +200,13 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
           nextPostTitle: post.series_context.next_post_title,
         }
       : undefined,
-    publishedAt: new Date(publishedDate),
+    createdAt: new Date(post.created_at),
+    publishedAt: new Date(post.published_at ?? post.created_at),
     updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
   };
 }
 
 function toDbBlogPostSummary(post: DbPostSummary): DbBlogPostSummary {
-  const publishedDate = post.published_at ?? post.created_at;
   const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
   const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
   const resolvedTopMediaImageUrl = resolveBackendAssetUrl(
@@ -216,7 +227,8 @@ function toDbBlogPostSummary(post: DbPostSummary): DbBlogPostSummary {
     visibility: post.visibility === 'private' ? 'private' : 'public',
     tags: Array.isArray(post.tags) ? post.tags : [],
     readingLabel: post.reading_label,
-    publishedAt: new Date(publishedDate),
+    createdAt: new Date(post.created_at),
+    publishedAt: new Date(post.published_at ?? post.created_at),
     updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
   };
 }
@@ -304,6 +316,20 @@ export async function listPublishedDbPostSummaryPage(
     nextOffset: payload.next_offset ?? null,
     hasMore: Boolean(payload.has_more),
     tagFilters: Array.isArray(payload.tag_filters) ? payload.tag_filters : [],
+    visibilityCounts: {
+      all:
+        typeof payload.visibility_counts?.all === 'number'
+          ? payload.visibility_counts.all
+          : payload.total_count ?? 0,
+      public:
+        typeof payload.visibility_counts?.public === 'number'
+          ? payload.visibility_counts.public
+          : 0,
+      private:
+        typeof payload.visibility_counts?.private === 'number'
+          ? payload.visibility_counts.private
+          : 0,
+    },
   };
 }
 

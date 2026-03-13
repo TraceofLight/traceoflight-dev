@@ -49,6 +49,7 @@ class PostService:
         content_kind: PostContentKind | None = None,
         sort: str = "latest",
         include_tag_filters: bool = True,
+        include_private_visibility_counts: bool = False,
     ):
         return self.repo.list_summaries(
             limit=limit,
@@ -61,6 +62,7 @@ class PostService:
             content_kind=content_kind,
             sort=sort,
             include_tag_filters=include_tag_filters,
+            include_private_visibility_counts=include_private_visibility_counts,
         )
 
     def get_post_by_slug(

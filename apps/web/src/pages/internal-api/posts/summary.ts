@@ -81,6 +81,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       nextOffset: summaryPage.nextOffset,
       hasMore: summaryPage.hasMore,
       tagFilters: summaryPage.tagFilters,
+      visibilityCounts: summaryPage.visibilityCounts,
     });
   } catch {
     return jsonResponse({ message: "backend unavailable" }, 503);

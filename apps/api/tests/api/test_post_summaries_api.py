@@ -24,6 +24,7 @@ class _StubPostService:
         query=None,
         content_kind=None,
         sort="latest",
+        include_private_visibility_counts=False,
     ):
         self.summary_call = {
             "limit": limit,
@@ -35,6 +36,7 @@ class _StubPostService:
             "query": query,
             "content_kind": content_kind,
             "sort": sort,
+            "include_private_visibility_counts": include_private_visibility_counts,
         }
         now = datetime.now(timezone.utc)
         return {
@@ -65,6 +67,7 @@ class _StubPostService:
             "next_offset": None,
             "has_more": False,
             "tag_filters": [{"slug": "astro", "count": 1}],
+            "visibility_counts": {"all": 3, "public": 2, "private": 1},
         }
 
 
@@ -82,6 +85,7 @@ def test_posts_summary_endpoint_returns_list_metadata_without_body_markdown() ->
     assert payload["total_count"] == 1
     assert payload["has_more"] is False
     assert payload["tag_filters"] == [{"slug": "astro", "count": 1}]
+    assert payload["visibility_counts"] == {"all": 3, "public": 2, "private": 1}
     assert "body_markdown" not in payload["items"][0]
     assert service.summary_call is not None
     assert service.summary_call["limit"] == 12
@@ -90,6 +94,7 @@ def test_posts_summary_endpoint_returns_list_metadata_without_body_markdown() ->
     assert service.summary_call["visibility"] == PostVisibility.PUBLIC
     assert service.summary_call["query"] == "astro"
     assert service.summary_call["sort"] == "latest"
+    assert service.summary_call["include_private_visibility_counts"] is False
 
 
 def test_posts_summary_endpoint_accepts_content_kind_query() -> None:

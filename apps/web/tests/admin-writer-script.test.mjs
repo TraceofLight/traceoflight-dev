@@ -438,3 +438,30 @@ test("writer script normalizes escaped markdown link syntax from editor output",
   assert.match(source, /normalizeMarkdownLinkTarget/);
   assert.match(source, /https:\/\/\$\{compactUrl\}/);
 });
+
+test("writer submit status does not promote submitter-null submits to published", async () => {
+  const submitSource = await readFile(submitPath, "utf8");
+
+  assert.match(
+    submitSource,
+    /if \(desiredStatus === "published"\) return "published";/,
+  );
+  assert.doesNotMatch(
+    submitSource,
+    /if \(submitterIsNull && publishLayerOpen\) return "published";/,
+  );
+});
+
+test("writer series input blocks Enter from submitting the form", async () => {
+  const source = await readFile(scriptPath, "utf8");
+
+  assert.match(source, /seriesInput\.addEventListener\("keydown", \(event\) => \{/);
+  assert.match(
+    source,
+    /seriesInput\.addEventListener\("keydown",[\s\S]*event\.key === "Enter"/,
+  );
+  assert.match(
+    source,
+    /seriesInput\.addEventListener\("keydown",[\s\S]*event\.preventDefault\(\)/,
+  );
+});

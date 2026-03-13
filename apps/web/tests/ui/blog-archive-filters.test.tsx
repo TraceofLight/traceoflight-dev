@@ -53,6 +53,7 @@ function createSummaryPayload(items: typeof posts, overrides?: Partial<{
   nextOffset: number | null;
   hasMore: boolean;
   tagFilters: typeof tagFilters;
+  visibilityCounts: { all: number; public: number; private: number };
 }>) {
   return {
     items,
@@ -60,6 +61,11 @@ function createSummaryPayload(items: typeof posts, overrides?: Partial<{
     nextOffset: overrides?.nextOffset ?? null,
     hasMore: overrides?.hasMore ?? false,
     tagFilters: overrides?.tagFilters ?? tagFilters,
+    visibilityCounts: overrides?.visibilityCounts ?? {
+      all: items.length,
+      public: items.filter((post) => post.visibility === "public").length,
+      private: items.filter((post) => post.visibility === "private").length,
+    },
   };
 }
 
@@ -100,6 +106,7 @@ describe("BlogArchiveFilters", () => {
         initialHasMore={false}
         initialOffset={posts.length}
         initialTotalCount={posts.length}
+        initialVisibilityCounts={{ all: 3, public: 2, private: 1 }}
         tagFilters={tagFilters}
         writeHref="/admin/posts/new"
       />,
@@ -194,10 +201,14 @@ describe("BlogArchiveFilters", () => {
         initialHasMore={false}
         initialOffset={posts.length}
         initialTotalCount={posts.length}
+        initialVisibilityCounts={{ all: 9, public: 8, private: 1 }}
         tagFilters={tagFilters}
         writeHref="/admin/posts/new"
       />,
     );
+
+    expect(screen.getByRole("button", { name: "공개 (8)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "비공개 (1)" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "비공개 (1)" }));
 
@@ -293,6 +304,7 @@ describe("BlogArchiveFilters", () => {
           initialHasMore
           initialOffset={posts.length}
           initialTotalCount={posts.length + 1}
+          initialVisibilityCounts={{ all: 4, public: 3, private: 1 }}
           tagFilters={tagFilters}
           writeHref="/admin/posts/new"
         />,

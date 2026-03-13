@@ -36,6 +36,7 @@ let posts: PostCardData[] = [];
 let initialHasMore = false;
 let initialOffset = 0;
 let initialTotalCount = 0;
+let initialVisibilityCounts = { all: 0, public: 0, private: 0 };
 let tagFilters: { slug: string; count: number }[] = [];
 
 if (provider === "db") {
@@ -64,12 +65,14 @@ if (provider === "db") {
     initialHasMore = summaryPage.hasMore;
     initialOffset = summaryPage.nextOffset ?? summaryPage.items.length;
     initialTotalCount = summaryPage.totalCount;
+    initialVisibilityCounts = summaryPage.visibilityCounts;
     tagFilters = summaryPage.tagFilters;
   } catch {
     posts = [];
     initialHasMore = false;
     initialOffset = 0;
     initialTotalCount = 0;
+    initialVisibilityCounts = { all: 0, public: 0, private: 0 };
     tagFilters = [];
   }
 } else {
@@ -88,6 +91,11 @@ if (provider === "db") {
     .sort((left, right) => left.slug.localeCompare(right.slug, "ko-KR"));
   initialOffset = posts.length;
   initialTotalCount = posts.length;
+  initialVisibilityCounts = {
+    all: posts.length,
+    public: posts.length,
+    private: 0,
+  };
 }
 
 function resolveCoverImageSrc(
@@ -136,6 +144,7 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
     initialHasMore={initialHasMore}
     initialOffset={initialOffset}
     initialTotalCount={initialTotalCount}
+    initialVisibilityCounts={initialVisibilityCounts}
     tagFilters={tagFilters}
   />
 </BaseLayout>

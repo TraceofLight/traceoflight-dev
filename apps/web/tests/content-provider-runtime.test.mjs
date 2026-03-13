@@ -5,6 +5,7 @@ import { test } from 'node:test';
 const contentSourcePath = new URL('../src/lib/content-source.ts', import.meta.url);
 const homePath = new URL('../src/pages/index.astro', import.meta.url);
 const rssPath = new URL('../src/pages/rss.xml.js', import.meta.url);
+const blogDetailPath = new URL('../src/pages/blog/[...slug].astro', import.meta.url);
 
 test('content provider reads runtime env before build env', async () => {
   const source = await readFile(contentSourcePath, 'utf8');
@@ -34,4 +35,17 @@ test('blog archive page maps db card dates from publishedAt', async () => {
   const source = await readFile(new URL('../src/pages/blog/index.astro', import.meta.url), 'utf8');
 
   assert.match(source, /pubDate:\s*post\.publishedAt/);
+});
+
+test('blog detail page maps db main date from publishedAt', async () => {
+  const source = await readFile(blogDetailPath, 'utf8');
+
+  assert.match(source, /pubDate=\{dbPost\.publishedAt\}/);
+});
+
+test('blog detail layout does not render public updated timestamp', async () => {
+  const source = await readFile(new URL('../src/layouts/BlogPost.astro', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(source, /updatedDate &&/);
+  assert.doesNotMatch(source, /updated\{" "\}/);
 });

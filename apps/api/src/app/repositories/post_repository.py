@@ -287,6 +287,7 @@ class PostRepository:
         query: str | None = None,
         sort: str = "latest",
         include_tag_filters: bool = True,
+        include_private_visibility_counts: bool = False,
     ) -> dict[str, object]:
         ordering = self._build_post_ordering(
             status=status,
@@ -364,12 +365,35 @@ class PostRepository:
                 for slug, count in self.db.execute(tag_stmt)
             ]
 
+        visibility_count_visibility = (
+            None if include_private_visibility_counts else PostVisibility.PUBLIC
+        )
+        visibility_count_stmt = self._apply_post_filters(
+            select(Post.visibility, func.count(distinct(Post.id)))
+            .select_from(Post)
+            .group_by(Post.visibility),
+            status=status,
+            visibility=visibility_count_visibility,
+            content_kind=content_kind,
+            tags=tags,
+            tag_match=tag_match,
+            query=query,
+        )
+        visibility_counts = {"all": 0, "public": 0, "private": 0}
+        for raw_visibility, count in self.db.execute(visibility_count_stmt):
+            key = "private" if raw_visibility == PostVisibility.PRIVATE else "public"
+            visibility_counts[key] = int(count)
+        visibility_counts["all"] = (
+            visibility_counts["public"] + visibility_counts["private"]
+        )
+
         return {
             "items": [self._serialize_post_summary(row) for row in rows],
             "total_count": total_count,
             "next_offset": next_offset,
             "has_more": next_offset is not None,
             "tag_filters": tag_filters,
+            "visibility_counts": visibility_counts,
         }
 
     def replace_project_order(self, raw_project_slugs: list[str]) -> list[Post]:
@@ -482,11 +506,15 @@ class PostRepository:
         if post is None:
             return None
 
+        existing_status = post.status
+        existing_published_at = post.published_at
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
         project_profile_data = post_data.pop("project_profile", None)
         post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
-        if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
+        if existing_status == PostStatus.PUBLISHED and post_data["status"] == PostStatus.PUBLISHED:
+            post_data["published_at"] = existing_published_at
+        elif post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
 
         for field, value in post_data.items():

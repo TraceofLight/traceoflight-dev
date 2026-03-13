@@ -659,6 +659,10 @@ export async function initNewPostAdminPage(
     const query = seriesInput.value.trim();
     void loadSeriesSuggestions(query);
   });
+  seriesInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.isComposing) return;
+    event.preventDefault();
+  });
 
   tagInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === ",") {

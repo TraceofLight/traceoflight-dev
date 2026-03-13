@@ -94,9 +94,10 @@ def list_post_summaries(
     ),
     service: PostService = Depends(get_post_service),
 ) -> PostSummaryListRead:
+    is_internal_request = is_trusted_internal_request(request, x_internal_api_secret)
     effective_status = status
     effective_visibility = visibility
-    if not is_trusted_internal_request(request, x_internal_api_secret):
+    if not is_internal_request:
         effective_status = PostStatus.PUBLISHED
         effective_visibility = PostVisibility.PUBLIC
 
@@ -110,6 +111,7 @@ def list_post_summaries(
         query=query,
         content_kind=content_kind,
         sort=sort,
+        include_private_visibility_counts=is_internal_request,
     )
 
 

@@ -31,6 +31,12 @@ export type BlogArchiveTagFilter = {
   count: number;
 };
 
+export type BlogArchiveVisibilityCounts = {
+  all: number;
+  public: number;
+  private: number;
+};
+
 type SortMode = "latest" | "oldest" | "title";
 type VisibilityMode = "all" | "public" | "private";
 
@@ -40,6 +46,7 @@ type BlogArchiveSummaryResponse = {
   nextOffset: number | null;
   hasMore: boolean;
   tagFilters: BlogArchiveTagFilter[];
+  visibilityCounts: BlogArchiveVisibilityCounts;
 };
 
 type BlogArchiveFiltersProps = {
@@ -52,6 +59,7 @@ type BlogArchiveFiltersProps = {
   initialHasMore: boolean;
   initialOffset: number;
   initialTotalCount?: number;
+  initialVisibilityCounts?: BlogArchiveVisibilityCounts;
   tagFilters: BlogArchiveTagFilter[];
   writeHref?: string;
 };
@@ -121,6 +129,33 @@ function toSummaryResponse(payload: unknown): BlogArchiveSummaryResponse {
     tagFilters: Array.isArray(normalizedPayload.tagFilters)
       ? (normalizedPayload.tagFilters as BlogArchiveTagFilter[])
       : [],
+    visibilityCounts:
+      normalizedPayload.visibilityCounts &&
+      typeof normalizedPayload.visibilityCounts === "object"
+        ? {
+            all:
+              typeof normalizedPayload.visibilityCounts.all === "number"
+                ? normalizedPayload.visibilityCounts.all
+                : typeof normalizedPayload.totalCount === "number"
+                  ? normalizedPayload.totalCount
+                  : 0,
+            public:
+              typeof normalizedPayload.visibilityCounts.public === "number"
+                ? normalizedPayload.visibilityCounts.public
+                : 0,
+            private:
+              typeof normalizedPayload.visibilityCounts.private === "number"
+                ? normalizedPayload.visibilityCounts.private
+                : 0,
+          }
+        : {
+            all:
+              typeof normalizedPayload.totalCount === "number"
+                ? normalizedPayload.totalCount
+                : 0,
+            public: 0,
+            private: 0,
+          },
   };
 }
 
@@ -162,6 +197,11 @@ export function BlogArchiveFilters({
   initialHasMore,
   initialOffset,
   initialTotalCount = initialPosts.length,
+  initialVisibilityCounts = {
+    all: initialTotalCount,
+    public: initialPosts.filter((post) => post.visibility === "public").length,
+    private: initialPosts.filter((post) => post.visibility === "private").length,
+  },
   tagFilters,
   writeHref = "/admin/posts/new?content_kind=blog",
 }: BlogArchiveFiltersProps) {
@@ -176,6 +216,7 @@ export function BlogArchiveFilters({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [nextOffset, setNextOffset] = useState(initialOffset);
   const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [visibilityCounts, setVisibilityCounts] = useState(initialVisibilityCounts);
   const [availableTagFilters, setAvailableTagFilters] = useState(tagFilters);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -244,6 +285,7 @@ export function BlogArchiveFilters({
       setHasMore(payload.hasMore);
       setNextOffset(payload.nextOffset ?? payload.items.length);
       setTotalCount(payload.totalCount);
+      setVisibilityCounts(payload.visibilityCounts);
       setAvailableTagFilters(payload.tagFilters);
     })()
       .catch(() => {
@@ -309,6 +351,7 @@ export function BlogArchiveFilters({
           setHasMore(payload.hasMore);
           setNextOffset(payload.nextOffset ?? nextOffset + payload.items.length);
           setTotalCount(payload.totalCount);
+          setVisibilityCounts(payload.visibilityCounts);
         })()
           .catch(() => {
             setErrorMessage("추가 포스트를 불러오지 못했습니다.");
@@ -337,10 +380,8 @@ export function BlogArchiveFilters({
   ]);
 
   const filteredPosts = posts;
-  const publicCount = posts.filter((post) => post.visibility === "public").length;
-  const privateCount = posts.filter(
-    (post) => post.visibility === "private",
-  ).length;
+  const publicCount = visibilityCounts.public;
+  const privateCount = visibilityCounts.private;
 
   return (
     <section className="space-y-8">
@@ -415,7 +456,7 @@ export function BlogArchiveFilters({
               onClick={() => setVisibility("all")}
               type="button"
             >
-              전체 ({totalCount})
+              전체 ({visibilityCounts.all})
             </button>
             {isAdminViewer ? (
               <>

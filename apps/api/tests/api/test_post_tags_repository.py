@@ -107,10 +107,10 @@ def test_list_published_posts_orders_by_published_at_before_created_at() -> None
     db.add_all(
         [
             Post(
-                slug="restored-old-post",
-                title="restored-old-post",
+                slug="newly-created-old-publish",
+                title="newly-created-old-publish",
                 excerpt=None,
-                body_markdown="# restored-old-post",
+                body_markdown="# newly-created-old-publish",
                 cover_image_url=None,
                 status=PostStatus.PUBLISHED,
                 visibility=PostVisibility.PUBLIC,
@@ -119,10 +119,10 @@ def test_list_published_posts_orders_by_published_at_before_created_at() -> None
                 updated_at=datetime(2026, 3, 11, tzinfo=timezone.utc),
             ),
             Post(
-                slug="latest-published-post",
-                title="latest-published-post",
+                slug="older-created-newer-publish",
+                title="older-created-newer-publish",
                 excerpt=None,
-                body_markdown="# latest-published-post",
+                body_markdown="# older-created-newer-publish",
                 cover_image_url=None,
                 status=PostStatus.PUBLISHED,
                 visibility=PostVisibility.PUBLIC,
@@ -131,10 +131,10 @@ def test_list_published_posts_orders_by_published_at_before_created_at() -> None
                 updated_at=datetime(2025, 7, 28, tzinfo=timezone.utc),
             ),
             Post(
-                slug="mid-published-post",
-                title="mid-published-post",
+                slug="middle-created-middle-publish",
+                title="middle-created-middle-publish",
                 excerpt=None,
-                body_markdown="# mid-published-post",
+                body_markdown="# middle-created-middle-publish",
                 cover_image_url=None,
                 status=PostStatus.PUBLISHED,
                 visibility=PostVisibility.PUBLIC,
@@ -149,10 +149,89 @@ def test_list_published_posts_orders_by_published_at_before_created_at() -> None
     listed = repo.list(status=PostStatus.PUBLISHED, visibility=PostVisibility.PUBLIC)
 
     assert [post.slug for post in listed] == [
-        "latest-published-post",
-        "mid-published-post",
-        "restored-old-post",
+        "older-created-newer-publish",
+        "middle-created-middle-publish",
+        "newly-created-old-publish",
     ]
+
+
+def test_update_published_post_preserves_existing_published_at() -> None:
+    db = _build_session()
+    repo = PostRepository(db)
+    original_published_at = datetime(2025, 3, 1, tzinfo=timezone.utc)
+
+    repo.create(
+        PostCreate(
+            slug="published-post",
+            title="published-post",
+            excerpt=None,
+            body_markdown="# published-post",
+            cover_image_url=None,
+            status=PostStatus.PUBLISHED,
+            visibility=PostVisibility.PUBLIC,
+            published_at=original_published_at,
+            tags=[],
+        )
+    )
+
+    updated = repo.update_by_slug(
+        "published-post",
+        PostCreate(
+            slug="published-post",
+            title="published-post edited",
+            excerpt=None,
+            body_markdown="# published-post edited",
+            cover_image_url=None,
+            status=PostStatus.PUBLISHED,
+            visibility=PostVisibility.PUBLIC,
+            published_at=datetime(2026, 3, 13, tzinfo=timezone.utc),
+            tags=[],
+        ),
+    )
+
+    assert updated is not None
+    assert updated.published_at is not None
+    assert updated.published_at.replace(tzinfo=timezone.utc) == original_published_at
+
+
+def test_visibility_toggle_preserves_existing_published_at() -> None:
+    db = _build_session()
+    repo = PostRepository(db)
+    original_published_at = datetime(2024, 7, 1, tzinfo=timezone.utc)
+
+    repo.create(
+        PostCreate(
+            slug="private-toggle-post",
+            title="private-toggle-post",
+            excerpt=None,
+            body_markdown="# private-toggle-post",
+            cover_image_url=None,
+            status=PostStatus.PUBLISHED,
+            visibility=PostVisibility.PUBLIC,
+            published_at=original_published_at,
+            tags=[],
+        )
+    )
+
+    hidden = repo.update_by_slug(
+        "private-toggle-post",
+        PostCreate(
+            slug="private-toggle-post",
+            title="private-toggle-post",
+            excerpt=None,
+            body_markdown="# private-toggle-post",
+            cover_image_url=None,
+            status=PostStatus.PUBLISHED,
+            visibility=PostVisibility.PRIVATE,
+            published_at=datetime(2026, 3, 13, tzinfo=timezone.utc),
+            tags=[],
+        ),
+    )
+
+    assert hidden is not None
+    assert hidden.visibility == PostVisibility.PRIVATE
+    assert hidden.published_at is not None
+    assert hidden.published_at.replace(tzinfo=timezone.utc) == original_published_at
 
 
 def test_list_posts_excludes_project_content_from_default_blog_queries() -> None:

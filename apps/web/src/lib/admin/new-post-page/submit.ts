@@ -87,9 +87,8 @@ function parseProjectResourceLinks(
 }
 
 export function resolveSubmitStatus(input: SubmitStatusInput): PostStatus {
-  const { desiredStatus, submitterIsNull, publishLayerOpen } = input;
+  const { desiredStatus } = input;
   if (desiredStatus === "published") return "published";
-  if (submitterIsNull && publishLayerOpen) return "published";
   return "draft";
 }
 

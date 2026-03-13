@@ -27,7 +27,6 @@ interface DbPostData {
   title: string;
   description: string;
   pubDate: Date;
-  updatedDate?: Date;
   coverImage?: CoverMediaSource;
   topMediaKind?: "image" | "youtube" | "video";
   topMediaImageUrl?: string;
@@ -70,7 +69,6 @@ const {
   title,
   description,
   pubDate,
-  updatedDate,
   coverImage,
   topMediaKind = "image",
   topMediaImageUrl,
@@ -102,8 +100,6 @@ const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 const coverMedia = normalizeCoverMedia(coverImage);
 const pubDateLabel = formatDateLabel(pubDate);
 const pubDateIso = toIsoDateTime(pubDate);
-const updatedDateLabel = updatedDate ? formatDateLabel(updatedDate) : "";
-const updatedDateIso = updatedDate ? toIsoDateTime(updatedDate) : "";
 const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSeriesPostCoverImageSrc);
 const topMediaEmbedUrl =
   topMediaKind === "youtube" ? toYoutubeEmbedUrl(topMediaYoutubeUrl) : null;
@@ -181,17 +177,6 @@ const topMediaImage = normalizeCoverMedia(topMediaImageUrl ?? coverImage);
           class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
         >
           <time datetime={pubDateIso}>{pubDateLabel}</time>
-          {
-            updatedDate && (
-              <>
-                <span aria-hidden="true">/</span>
-                <span>
-                  updated{" "}
-                  <time datetime={updatedDateIso}>{updatedDateLabel}</time>
-                </span>
-              </>
-            )
-          }
         </p>
         <h1
           class="text-balance text-4xl font-semibold tracking-tight sm:text-5xl"
