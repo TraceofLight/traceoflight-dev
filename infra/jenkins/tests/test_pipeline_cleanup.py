@@ -14,18 +14,20 @@ class JenkinsCleanupPipelineTests(unittest.TestCase):
 
         self.assertIn("skipDefaultCheckout(true)", source)
 
-    def test_frontend_pipeline_keeps_only_env_cleanup_in_post(self) -> None:
+    def test_frontend_pipeline_prunes_safe_docker_garbage_in_post(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.frontend")
 
         self.assertIn("rm -f apps/web/.env || true", source)
-        self.assertNotIn("docker image prune -f", source)
+        self.assertIn("docker container prune -f", source)
+        self.assertIn("docker image prune -f", source)
         self.assertNotIn("docker builder prune -f", source)
 
-    def test_backend_pipeline_keeps_only_env_cleanup_in_post(self) -> None:
+    def test_backend_pipeline_prunes_safe_docker_garbage_in_post(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.backend")
 
         self.assertIn("rm -f infra/docker/api/.env || true", source)
-        self.assertNotIn("docker image prune -f", source)
+        self.assertIn("docker container prune -f", source)
+        self.assertIn("docker image prune -f", source)
         self.assertNotIn("docker builder prune -f", source)
 
     def test_frontend_dockerfile_avoids_copying_node_modules_between_stages(self) -> None:

@@ -45,6 +45,8 @@ pipeline {
   post {
     always {
       sh 'rm -f apps/web/.env || true'
+      sh 'docker container prune -f || true'
+      sh 'docker image prune -f || true'
     }
   }
 }

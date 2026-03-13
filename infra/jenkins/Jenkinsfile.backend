@@ -108,6 +108,8 @@ pipeline {
   post {
     always {
       sh 'rm -f infra/docker/api/.env || true'
+      sh 'docker container prune -f || true'
+      sh 'docker image prune -f || true'
     }
   }
 }

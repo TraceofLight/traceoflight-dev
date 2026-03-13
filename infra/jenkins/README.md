@@ -14,9 +14,12 @@ Use `Pipeline script from SCM` and set script paths per job:
 - File content: backend runtime env (based on `infra/docker/api/.env.example`)
 
 Backend pipeline deploys only the `api` service (`--no-deps api`) to avoid unintended restarts of `postgres` and `minio`.
-- Backend/Frontend deploy jobs should not prune Docker images during `post` steps. Concurrent prune operations can remove legacy builder intermediates while another pipeline is still building.
+- Backend/Frontend deploy jobs prune only safe Docker garbage during `post` steps:
+  - `docker container prune -f`
+  - `docker image prune -f`
+- They intentionally do not run `docker builder prune` so active build cache cleanup is left alone during concurrent builds.
 
-`Jenkinsfile.infra` uses the same credential and manages only infra services (`postgres`, `minio`, `minio-init`) via `ACTION` parameter.
+`Jenkinsfile.infra` uses the same credential and manages infra services (`postgres`, `minio`, `redis`, `minio-init`) via `ACTION` parameter.
 - After each infra run, Jenkins removes the exited one-shot `minio-init` container with:
   - `docker compose --env-file .env rm -f minio-init`
 
@@ -34,8 +37,10 @@ Note:
   - `docker compose --env-file .env up -d --build --remove-orphans`
 - Required keys:
   - `SITE_URL`
-  - `ADMIN_LOGIN_ID`
-  - `ADMIN_LOGIN_PASSWORD_HASH` (preferred) or `ADMIN_LOGIN_PASSWORD` (fallback)
+  - `PORT`
+  - `CONTENT_PROVIDER`
+  - `API_BASE_URL`
   - `ADMIN_SESSION_SECRET`
   - `ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS`
   - `ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS`
+  - `INTERNAL_API_SECRET`
