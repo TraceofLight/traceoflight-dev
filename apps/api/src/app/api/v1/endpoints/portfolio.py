@@ -3,10 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.api.deps import get_resume_service
+from app.api.deps import get_portfolio_pdf_service
 from app.core.config import settings
 from app.schemas.resume import ResumeStatusRead
-from app.services.resume_service import ResumeService
+from app.services.resume_service import PdfAssetService
 
 router = APIRouter()
 
@@ -25,7 +25,7 @@ def _require_internal_secret(header_value: str | None) -> None:
     summary="Read portfolio PDF status",
 )
 def get_portfolio_status(
-    service: ResumeService = Depends(get_resume_service),
+    service: PdfAssetService = Depends(get_portfolio_pdf_service),
 ) -> ResumeStatusRead:
     return ResumeStatusRead.model_validate(service.get_status())
 
@@ -35,7 +35,7 @@ def get_portfolio_status(
     summary="Download public portfolio PDF",
 )
 def get_portfolio_pdf(
-    service: ResumeService = Depends(get_resume_service),
+    service: PdfAssetService = Depends(get_portfolio_pdf_service),
 ) -> Response:
     payload = service.download_pdf()
     if payload is None:
@@ -58,7 +58,7 @@ def get_portfolio_pdf(
 async def upload_portfolio_pdf(
     file: UploadFile = File(...),
     x_internal_api_secret: str | None = Header(default=None),
-    service: ResumeService = Depends(get_resume_service),
+    service: PdfAssetService = Depends(get_portfolio_pdf_service),
 ) -> ResumeStatusRead:
     _require_internal_secret(x_internal_api_secret)
     payload = service.upload_pdf(
@@ -67,3 +67,16 @@ async def upload_portfolio_pdf(
         content_type=file.content_type,
     )
     return ResumeStatusRead.model_validate(payload)
+
+
+@router.delete(
+    "",
+    response_model=ResumeStatusRead,
+    summary="Delete portfolio PDF",
+)
+def delete_portfolio_pdf(
+    x_internal_api_secret: str | None = Header(default=None),
+    service: PdfAssetService = Depends(get_portfolio_pdf_service),
+) -> ResumeStatusRead:
+    _require_internal_secret(x_internal_api_secret)
+    return ResumeStatusRead.model_validate(service.delete_pdf())

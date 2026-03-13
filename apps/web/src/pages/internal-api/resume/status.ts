@@ -11,7 +11,7 @@ export const prerender = false;
 export const GET: APIRoute = async () => {
   let response: Response;
   try {
-    response = await requestBackend("/portfolio/status", {
+    response = await requestBackend("/resume/status", {
       method: "GET",
     });
   } catch {

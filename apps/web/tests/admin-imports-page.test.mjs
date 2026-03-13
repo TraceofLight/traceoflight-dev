@@ -22,6 +22,9 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(pageSource, /client:load/);
   assert.match(pageSource, /ADMIN_IMPORTS_COPY/);
   assert.match(pageSource, /max-w-6xl/);
+  assert.match(pageSource, /requestBackend\(["']\/portfolio\/status["']/);
+  assert.match(pageSource, /requestBackend\(["']\/resume\/status["']/);
+  assert.match(pageSource, /initialResumeAvailable/);
   assert.doesNotMatch(pageSource, /text-center/);
   assert.doesNotMatch(pageSource, /<header class=/);
   assert.doesNotMatch(pageSource, /현재 게시글과 미디어 상태를 ZIP으로 보관하고/);
@@ -33,8 +36,10 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /admin-imports-backup-load/);
   assert.match(panelSource, /admin-imports-portfolio-file/);
   assert.match(panelSource, /admin-imports-portfolio-upload/);
+  assert.match(panelSource, /admin-imports-portfolio-delete/);
   assert.match(panelSource, /admin-imports-resume-file/);
   assert.match(panelSource, /admin-imports-resume-upload/);
+  assert.match(panelSource, /admin-imports-resume-delete/);
   assert.match(panelSource, /admin-imports-resume-panel/);
   assert.match(panelSource, /AdminCommentsPanel/);
   assert.match(panelSource, /admin-comments-panel/);
@@ -80,13 +85,17 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(clientLibSource, /export async function downloadPostsBackupZip/);
   assert.match(clientLibSource, /export async function getPortfolioPdfStatus/);
   assert.match(clientLibSource, /export async function uploadPortfolioPdf/);
+  assert.match(clientLibSource, /export async function deletePortfolioPdf/);
   assert.match(clientLibSource, /export async function getResumePdfStatus/);
   assert.match(clientLibSource, /export async function uploadResumePdf/);
+  assert.match(clientLibSource, /export async function deleteResumePdf/);
   assert.match(clientLibSource, /export async function restorePostsBackupZip/);
   assert.match(clientLibSource, /\/internal-api\/portfolio\/status/);
   assert.match(clientLibSource, /\/internal-api\/portfolio\/upload/);
+  assert.match(clientLibSource, /\/internal-api\/portfolio\/delete/);
   assert.match(clientLibSource, /\/internal-api\/resume\/status/);
   assert.match(clientLibSource, /\/internal-api\/resume\/upload/);
+  assert.match(clientLibSource, /\/internal-api\/resume\/delete/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/posts\.zip/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/load/);
   assert.match(pageLibSource, /export const ADMIN_IMPORTS_PATH = ["']\/admin["']/);

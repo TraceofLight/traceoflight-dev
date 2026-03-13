@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_resume_service
+from app.api.deps import get_portfolio_pdf_service, get_resume_service
 from app.api.v1.endpoints import portfolio as portfolio_endpoint
 from app.main import app
 from app.services.resume_service import ResumeDownload
@@ -14,9 +14,11 @@ from app.services.resume_service import ResumeDownload
 class _StubResumeService:
     available: bool = False
     pdf_bytes: bytes = b"%PDF-1.7\nstub"
+    download_filename: str = "portfolio.pdf"
     upload_filename: str | None = None
     upload_size: int | None = None
     upload_content_type: str | None = None
+    delete_calls: int = 0
 
     def get_status(self):  # type: ignore[no-untyped-def]
         return {"available": self.available}
@@ -25,7 +27,7 @@ class _StubResumeService:
         if not self.available:
           return None
         return ResumeDownload(
-            filename="portfolio.pdf",
+            filename=self.download_filename,
             content_type="application/pdf",
             body=self.pdf_bytes,
         )
@@ -38,15 +40,28 @@ class _StubResumeService:
         self.pdf_bytes = data
         return {"available": True}
 
+    def delete_pdf(self):  # type: ignore[no-untyped-def]
+        self.available = False
+        self.delete_calls += 1
+        return {"available": False}
 
-def _client_with_service(service: _StubResumeService) -> TestClient:
-    app.dependency_overrides[get_resume_service] = lambda: service
+
+def _client_with_service(
+    portfolio_service: _StubResumeService | None = None,
+    resume_service: _StubResumeService | None = None,
+) -> TestClient:
+    app.dependency_overrides[get_portfolio_pdf_service] = (
+        lambda: portfolio_service or _StubResumeService()
+    )
+    app.dependency_overrides[get_resume_service] = (
+        lambda: resume_service or _StubResumeService()
+    )
     return TestClient(app)
 
 
 def test_portfolio_status_and_download_return_not_found_when_missing() -> None:
     service = _StubResumeService(available=False)
-    client = _client_with_service(service)
+    client = _client_with_service(portfolio_service=service)
 
     status_response = client.get("/api/v1/portfolio/status")
     file_response = client.get("/api/v1/portfolio")
@@ -59,7 +74,7 @@ def test_portfolio_status_and_download_return_not_found_when_missing() -> None:
 
 def test_portfolio_download_streams_pdf_when_available() -> None:
     service = _StubResumeService(available=True, pdf_bytes=b"%PDF-1.7\nresume-data")
-    client = _client_with_service(service)
+    client = _client_with_service(portfolio_service=service)
 
     response = client.get("/api/v1/portfolio")
 
@@ -73,7 +88,7 @@ def test_portfolio_download_streams_pdf_when_available() -> None:
 def test_portfolio_upload_requires_internal_secret(monkeypatch) -> None:
     monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=False)
-    client = _client_with_service(service)
+    client = _client_with_service(portfolio_service=service)
 
     response = client.post(
         "/api/v1/portfolio",
@@ -88,7 +103,7 @@ def test_portfolio_upload_requires_internal_secret(monkeypatch) -> None:
 def test_portfolio_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
     monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=False)
-    client = _client_with_service(service)
+    client = _client_with_service(portfolio_service=service)
 
     response = client.post(
         "/api/v1/portfolio",
@@ -104,18 +119,47 @@ def test_portfolio_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
     assert service.upload_content_type == "application/pdf"
 
 
-def test_resume_routes_return_not_found() -> None:
+def test_portfolio_delete_clears_registered_pdf(monkeypatch) -> None:
+    monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=True)
-    client = _client_with_service(service)
+    client = _client_with_service(portfolio_service=service)
 
-    status_response = client.get("/api/v1/resume/status")
-    file_response = client.get("/api/v1/resume")
-    upload_response = client.post(
-        "/api/v1/resume",
-        files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
+    response = client.delete(
+        "/api/v1/portfolio",
+        headers={"x-internal-api-secret": "test-shared-secret"},
     )
 
     app.dependency_overrides.clear()
-    assert status_response.status_code == 404
-    assert file_response.status_code == 404
-    assert upload_response.status_code == 404
+    assert response.status_code == 200
+    assert response.json() == {"available": False}
+    assert service.delete_calls == 1
+
+
+def test_resume_status_upload_and_delete_are_active(monkeypatch) -> None:
+    from app.api.v1.endpoints import resume as resume_endpoint
+
+    service = _StubResumeService(available=True, download_filename="resume.pdf")
+    client = _client_with_service(resume_service=service)
+
+    status_response = client.get("/api/v1/resume/status")
+    file_response = client.get("/api/v1/resume")
+    monkeypatch.setattr(resume_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    upload_response = client.post(
+        "/api/v1/resume",
+        headers={"x-internal-api-secret": "test-shared-secret"},
+        files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
+    )
+    delete_response = client.delete(
+        "/api/v1/resume",
+        headers={"x-internal-api-secret": "test-shared-secret"},
+    )
+
+    app.dependency_overrides.clear()
+    assert status_response.status_code == 200
+    assert status_response.json() == {"available": True}
+    assert file_response.status_code == 200
+    assert file_response.headers["content-disposition"] == 'inline; filename="resume.pdf"'
+    assert upload_response.status_code == 200
+    assert upload_response.json() == {"available": True}
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"available": False}

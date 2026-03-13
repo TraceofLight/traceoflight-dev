@@ -1,6 +1,13 @@
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
-import { DownloadIcon, FileTextIcon, LogInIcon, ShieldIcon, UploadIcon } from "lucide-react";
+import {
+  DownloadIcon,
+  FileTextIcon,
+  LogInIcon,
+  ShieldIcon,
+  Trash2Icon,
+  UploadIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   downloadPostsBackupZip,
+  deletePortfolioPdf,
+  deleteResumePdf,
   resolveImportsErrorMessage,
   restorePostsBackupZip,
   updateOperationalAdminCredentials,
@@ -52,10 +61,12 @@ const ACTION_STATUS_RESET_MS = 2500;
 
 type AdminImportsPanelProps = {
   initialPortfolioAvailable?: boolean;
+  initialResumeAvailable?: boolean;
 };
 
 export function AdminImportsPanel({
   initialPortfolioAvailable = false,
+  initialResumeAvailable = false,
 }: AdminImportsPanelProps) {
   const [busy, setBusy] = useState(false);
   const [credentialBusy, setCredentialBusy] = useState(false);
@@ -76,16 +87,18 @@ export function AdminImportsPanel({
   const restoreResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [saveStatus, setSaveStatus] = useState<StatusMessage | null>(null);
   const [restoreStatus, setRestoreStatus] = useState<StatusMessage | null>(null);
+  const [portfolioAvailable, setPortfolioAvailable] = useState(initialPortfolioAvailable);
+  const [resumeAvailable, setResumeAvailable] = useState(initialResumeAvailable);
   const [portfolioStatus, setPortfolioStatus] = useState<StatusMessage>({
     message: initialPortfolioAvailable
-      ? "등록된 포트폴리오 PDF가 있습니다."
-      : "등록된 포트폴리오 PDF가 없습니다.",
+      ? "현재 제공 중인 포트폴리오 PDF가 있습니다."
+      : "현재 제공 중인 포트폴리오 PDF가 없습니다.",
     state: "info",
   });
   const [resumeStatus, setResumeStatus] = useState<StatusMessage>({
-    message: initialPortfolioAvailable
-      ? "등록된 이력서 PDF가 있습니다."
-      : "등록된 이력서 PDF가 없습니다.",
+    message: initialResumeAvailable
+      ? "현재 제공 중인 이력서 PDF가 있습니다."
+      : "현재 제공 중인 이력서 PDF가 없습니다.",
     state: "info",
   });
   const [credentialLoginStatus, setCredentialLoginStatus] = useState<StatusMessage>({
@@ -300,8 +313,9 @@ export function AdminImportsPanel({
       if (portfolioFileInputRef.current) {
         portfolioFileInputRef.current.value = "";
       }
+      setPortfolioAvailable(true);
       setPortfolioStatus({
-        message: "포트폴리오 PDF 업로드가 완료되었습니다.",
+        message: "포트폴리오 PDF 업로드가 완료되었습니다. 현재 제공 중인 파일이 있습니다.",
         state: "ok",
       });
     } catch {
@@ -343,13 +357,86 @@ export function AdminImportsPanel({
       if (resumeFileInputRef.current) {
         resumeFileInputRef.current.value = "";
       }
+      setResumeAvailable(true);
       setResumeStatus({
-        message: "이력서 PDF 업로드가 완료되었습니다.",
+        message: "이력서 PDF 업로드가 완료되었습니다. 현재 제공 중인 파일이 있습니다.",
         state: "ok",
       });
     } catch {
       setResumeStatus({
         message: "이력서 PDF 업로드 중 네트워크 오류가 발생했습니다.",
+        state: "error",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handlePortfolioDelete() {
+    setBusy(true);
+    setPortfolioStatus({
+      message: "포트폴리오 PDF를 삭제하는 중입니다...",
+      state: "pending",
+    });
+
+    try {
+      const { response, payload } = await deletePortfolioPdf();
+      if (!response.ok) {
+        setPortfolioStatus({
+          message: resolveImportsErrorMessage(payload, "포트폴리오 PDF 삭제에 실패했습니다."),
+          state: "error",
+        });
+        return;
+      }
+
+      setPortfolioAvailable(false);
+      setSelectedPortfolioFile(null);
+      if (portfolioFileInputRef.current) {
+        portfolioFileInputRef.current.value = "";
+      }
+      setPortfolioStatus({
+        message: "포트폴리오 PDF를 삭제했습니다. 현재 제공 중인 파일이 없습니다.",
+        state: "ok",
+      });
+    } catch {
+      setPortfolioStatus({
+        message: "포트폴리오 PDF 삭제 중 네트워크 오류가 발생했습니다.",
+        state: "error",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleResumeDelete() {
+    setBusy(true);
+    setResumeStatus({
+      message: "이력서 PDF를 삭제하는 중입니다...",
+      state: "pending",
+    });
+
+    try {
+      const { response, payload } = await deleteResumePdf();
+      if (!response.ok) {
+        setResumeStatus({
+          message: resolveImportsErrorMessage(payload, "이력서 PDF 삭제에 실패했습니다."),
+          state: "error",
+        });
+        return;
+      }
+
+      setResumeAvailable(false);
+      setSelectedResumeFile(null);
+      if (resumeFileInputRef.current) {
+        resumeFileInputRef.current.value = "";
+      }
+      setResumeStatus({
+        message: "이력서 PDF를 삭제했습니다. 현재 제공 중인 파일이 없습니다.",
+        state: "ok",
+      });
+    } catch {
+      setResumeStatus({
+        message: "이력서 PDF 삭제 중 네트워크 오류가 발생했습니다.",
         state: "error",
       });
     } finally {
@@ -624,13 +711,29 @@ export function AdminImportsPanel({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]">
           <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
-                Portfolio PDF
-              </p>
-              <h3 className="text-xl font-semibold tracking-tight text-foreground">
-                포트폴리오 파일 교체
-              </h3>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                  Portfolio PDF
+                </p>
+                <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                  포트폴리오 파일 교체
+                </h3>
+              </div>
+              {portfolioAvailable ? (
+                <Button
+                  className="border-red-200/80 bg-white/88 px-4 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  disabled={busy}
+                  id="admin-imports-portfolio-delete"
+                  onClick={handlePortfolioDelete}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <Trash2Icon className="h-4 w-4" />
+                  포트폴리오 PDF 삭제
+                </Button>
+              ) : null}
             </div>
             <div className="grid gap-2">
               <input
@@ -682,13 +785,29 @@ export function AdminImportsPanel({
             className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}
             id="admin-imports-resume-panel"
           >
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
-                Resume PDF
-              </p>
-              <h3 className="text-xl font-semibold tracking-tight text-foreground">
-                이력서 파일 교체
-              </h3>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                  Resume PDF
+                </p>
+                <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                  이력서 파일 교체
+                </h3>
+              </div>
+              {resumeAvailable ? (
+                <Button
+                  className="border-red-200/80 bg-white/88 px-4 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  disabled={busy}
+                  id="admin-imports-resume-delete"
+                  onClick={handleResumeDelete}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <Trash2Icon className="h-4 w-4" />
+                  이력서 PDF 삭제
+                </Button>
+              ) : null}
             </div>
             <div className="grid gap-2">
               <input

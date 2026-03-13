@@ -55,6 +55,14 @@ export async function uploadPortfolioPdf(file: File) {
   return { response, payload };
 }
 
+export async function deletePortfolioPdf() {
+  const response = await fetch("/internal-api/portfolio/delete", {
+    method: "DELETE",
+  });
+  const payload = await readJsonSafe(response);
+  return { response, payload };
+}
+
 export async function getResumePdfStatus() {
   const response = await fetch("/internal-api/resume/status");
   const payload = await readJsonSafe(response);
@@ -67,6 +75,14 @@ export async function uploadResumePdf(file: File) {
   const response = await fetch("/internal-api/resume/upload", {
     method: "POST",
     body,
+  });
+  const payload = await readJsonSafe(response);
+  return { response, payload };
+}
+
+export async function deleteResumePdf() {
+  const response = await fetch("/internal-api/resume/delete", {
+    method: "DELETE",
   });
   const payload = await readJsonSafe(response);
   return { response, payload };

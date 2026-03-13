@@ -58,8 +58,8 @@ describe("AdminImportsPanel", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByLabelText("포트폴리오 PDF 파일")).toBeInTheDocument();
     expect(screen.getByLabelText("이력서 PDF 파일")).toBeInTheDocument();
-    expect(screen.getByText("등록된 포트폴리오 PDF가 없습니다.")).toBeInTheDocument();
-    expect(screen.getByText("등록된 이력서 PDF가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("현재 제공 중인 포트폴리오 PDF가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("현재 제공 중인 이력서 PDF가 없습니다.")).toBeInTheDocument();
     expect(choosePortfolioButton).toBeInTheDocument();
     expect(chooseResumeButton).toBeInTheDocument();
     expect(uploadResumeButton).toBeInTheDocument();
@@ -80,6 +80,21 @@ describe("AdminImportsPanel", () => {
     expect(uploadPortfolioButton).toHaveClass("border-white/80");
     expect(chooseResumeButton).toHaveClass("border-white/80");
     expect(uploadResumeButton).toHaveClass("border-white/80");
+    expect(screen.queryByRole("button", { name: "포트폴리오 PDF 삭제" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이력서 PDF 삭제" })).not.toBeInTheDocument();
+  });
+
+  it("shows separate PDF availability state and delete controls", async () => {
+    render(<AdminImportsPanel initialPortfolioAvailable initialResumeAvailable={false} />);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("현재 제공 중인 포트폴리오 PDF가 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("현재 제공 중인 이력서 PDF가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "포트폴리오 PDF 삭제" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이력서 PDF 삭제" })).not.toBeInTheDocument();
   });
 
   it("shows restore progress in the action button and resets after success", async () => {

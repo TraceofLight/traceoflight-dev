@@ -5,16 +5,27 @@ import { requestBackend } from "../../lib/backend-api";
 import { ADMIN_IMPORTS_COPY } from "../../lib/admin/imports-page";
 
 let initialPortfolioAvailable = false;
+let initialResumeAvailable = false;
 try {
-  const response = await requestBackend("/portfolio/status", { method: "GET" });
-  if (response.ok) {
-    const payload = (await response.json().catch(() => null)) as
+  const [portfolioResponse, resumeResponse] = await Promise.all([
+    requestBackend("/portfolio/status", { method: "GET" }),
+    requestBackend("/resume/status", { method: "GET" }),
+  ]);
+  if (portfolioResponse.ok) {
+    const payload = (await portfolioResponse.json().catch(() => null)) as
       | { available?: boolean }
       | null;
     initialPortfolioAvailable = payload?.available === true;
   }
+  if (resumeResponse.ok) {
+    const payload = (await resumeResponse.json().catch(() => null)) as
+      | { available?: boolean }
+      | null;
+    initialResumeAvailable = payload?.available === true;
+  }
 } catch {
   initialPortfolioAvailable = false;
+  initialResumeAvailable = false;
 }
 ---
 
@@ -23,6 +34,10 @@ try {
   description={ADMIN_IMPORTS_COPY.description}
 >
   <section class="mx-auto flex max-w-6xl flex-col">
-    <AdminImportsPanel client:load initialPortfolioAvailable={initialPortfolioAvailable} />
+    <AdminImportsPanel
+      client:load
+      initialPortfolioAvailable={initialPortfolioAvailable}
+      initialResumeAvailable={initialResumeAvailable}
+    />
   </section>
 </BaseLayout>

@@ -19,7 +19,11 @@ from app.services.media_service import MediaService
 from app.services.post_comment_service import PostCommentService
 from app.services.post_service import PostService
 from app.services.project_service import ProjectService
-from app.services.resume_service import ResumeService
+from app.services.resume_service import (
+    PORTFOLIO_PDF_CONFIG,
+    RESUME_PDF_CONFIG,
+    PdfAssetService,
+)
 from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
 from app.storage.minio_client import MinioStorageClient
@@ -59,9 +63,14 @@ def get_import_service(db: Session = Depends(get_db)) -> ImportService:
     return ImportService(storage=storage, db=db)
 
 
-def get_resume_service() -> ResumeService:
+def get_portfolio_pdf_service() -> PdfAssetService:
     storage = MinioStorageClient()
-    return ResumeService(storage=storage)
+    return PdfAssetService(storage=storage, config=PORTFOLIO_PDF_CONFIG)
+
+
+def get_resume_service() -> PdfAssetService:
+    storage = MinioStorageClient()
+    return PdfAssetService(storage=storage, config=RESUME_PDF_CONFIG)
 
 
 @lru_cache
