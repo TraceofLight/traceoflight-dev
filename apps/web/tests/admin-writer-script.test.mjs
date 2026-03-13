@@ -416,6 +416,28 @@ test("writer script includes target-aware drag handling and upload proxy fallbac
   assert.match(uploadSource, /x-upload-content-type/);
 });
 
+test("writer media controller blocks background drops while modal layers are active", async () => {
+  const [writerSource, mediaControllerSource] = await Promise.all([
+    readFile(scriptPath, "utf8"),
+    readFile(mediaControllerPath, "utf8"),
+  ]);
+
+  assert.match(writerSource, /const isModalInteractionActive = \(\) =>/);
+  assert.match(
+    writerSource,
+    /isDraftLayerOpen\(\)\s*\|\|\s*isPublishLayerOpen\(\)\s*\|\|\s*isReauthLayerOpen\(\)/,
+  );
+  assert.match(
+    writerSource,
+    /bindWriterMediaInteractions\(\{[\s\S]*isModalInteractionActive,/,
+  );
+  assert.match(mediaControllerSource, /isModalInteractionActive: \(\) => boolean;/);
+  assert.match(
+    mediaControllerSource,
+    /if \(isModalInteractionActive\(\) && dropTarget !== "cover"\) \{/,
+  );
+});
+
 test("writer script normalizes cover and markdown links", async () => {
   const [writerSource, normalizeSource, markdownSource] = await Promise.all([
     readFile(scriptPath, "utf8"),

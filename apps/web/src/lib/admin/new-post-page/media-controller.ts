@@ -28,6 +28,7 @@ interface WriterMediaBindings {
   ) => void;
   insertSnippet: (snippet: string) => Promise<void>;
   queuePreviewRefresh: () => void;
+  isModalInteractionActive: () => boolean;
   normalizeCoverInputValue: (withMessage: boolean) => string;
   syncTopMediaUi: () => void;
 }
@@ -44,6 +45,7 @@ export function bindWriterMediaInteractions(
     showFeedback,
     insertSnippet,
     queuePreviewRefresh,
+    isModalInteractionActive,
     normalizeCoverInputValue,
     syncTopMediaUi,
   } = bindings;
@@ -261,17 +263,28 @@ export function bindWriterMediaInteractions(
   const onWindowDragEnter = (event: DragEvent) => {
     if (!isMediaFileDrag(event)) return;
     event.preventDefault();
+    const dropTarget = resolveDropTarget(event);
+    if (isModalInteractionActive() && dropTarget !== "cover") {
+      dragDepth = 0;
+      clearDropTargetState();
+      return;
+    }
     dragDepth += 1;
-    setDropTargetState(resolveDropTarget(event));
+    setDropTargetState(dropTarget);
   };
 
   const onWindowDragOver = (event: DragEvent) => {
     if (!isMediaFileDrag(event)) return;
     event.preventDefault();
+    const dropTarget = resolveDropTarget(event);
+    if (isModalInteractionActive() && dropTarget !== "cover") {
+      clearDropTargetState();
+      return;
+    }
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = "copy";
     }
-    setDropTargetState(resolveDropTarget(event));
+    setDropTargetState(dropTarget);
   };
 
   const onWindowDragLeave = (event: DragEvent) => {
@@ -290,6 +303,10 @@ export function bindWriterMediaInteractions(
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     dragDepth = 0;
+    if (isModalInteractionActive() && dropTarget !== "cover") {
+      clearDropTargetState();
+      return;
+    }
     clearDropTargetState();
     if (!file || alreadyHandled) return;
     if (dropTarget === "cover") {

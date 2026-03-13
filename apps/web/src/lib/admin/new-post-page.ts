@@ -398,6 +398,9 @@ export async function initNewPostAdminPage(
   const isReauthLayerOpen = () =>
     reauthLayer.getAttribute("data-open") === "true";
 
+  const isModalInteractionActive = () =>
+    isDraftLayerOpen() || isPublishLayerOpen() || isReauthLayerOpen();
+
   const normalizeCoverInputValue = (withMessage: boolean) => {
     const normalized = normalizeCoverUrl(
       coverInput.value,
@@ -741,6 +744,7 @@ export async function initNewPostAdminPage(
     showFeedback,
     insertSnippet,
     queuePreviewRefresh,
+    isModalInteractionActive,
     normalizeCoverInputValue,
     syncTopMediaUi,
   });

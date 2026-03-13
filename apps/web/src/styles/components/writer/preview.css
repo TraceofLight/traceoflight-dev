@@ -292,7 +292,7 @@
   position: fixed;
   right: 1.2rem;
   top: 1.2rem;
-  z-index: 40;
+  z-index: 70;
   max-width: min(90vw, 360px);
   padding: 0.6rem 0.8rem;
   border-radius: 0.7rem;

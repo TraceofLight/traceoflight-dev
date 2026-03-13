@@ -28,6 +28,8 @@ test("admin writer page renders post form shell", async () => {
   assert.match(source, /id="admin-post-form"/);
   assert.match(source, /id="milkdown-editor"/);
   assert.match(source, /id="writer-open-drafts"/);
+  assert.match(source, /id="writer-open-drafts"[\s\S]*>저장목록<\/button/);
+  assert.doesNotMatch(source, /id="writer-open-drafts"[\s\S]*>임시저장<\/button/);
   assert.match(source, /id="writer-draft-layer"/);
   assert.match(source, /id="writer-draft-list"/);
   assert.match(source, /id="writer-draft-feedback"/);
@@ -68,6 +70,8 @@ test("admin writer page bootstraps writer module", async () => {
 test("admin writer edit page keeps the project publish fields", async () => {
   const source = await readFile(editPagePath, "utf8");
 
+  assert.match(source, /id="writer-open-drafts"[\s\S]*>저장목록<\/button/);
+  assert.doesNotMatch(source, /id="writer-open-drafts"[\s\S]*>임시저장<\/button/);
   assert.match(source, /id="writer-meta-panel"/);
   assert.match(source, /id="writer-slug-prefix"/);
   assert.match(source, /id="post-content-kind"/);
@@ -370,7 +374,9 @@ test("admin writer has editor-side bottom bar and publish layer style", async ()
   );
   assert.match(source, /\.writer-slug-input-wrap[\s\S]*display:\s*flex/);
   assert.match(source, /\.writer-publish-layer\[data-open=["']true["']]/);
+  assert.match(source, /\.writer-publish-layer[\s\S]*z-index:\s*55/);
   assert.match(source, /\.writer-toast[\s\S]*position:\s*fixed/);
+  assert.match(source, /\.writer-toast[\s\S]*z-index:\s*70/);
   assert.match(source, /\.writer-toast[\s\S]*right:\s*1\.2rem/);
   assert.match(source, /\.writer-toast[\s\S]*top:\s*1\.2rem/);
   assert.match(source, /\.writer-draft-layer/);
