@@ -32,8 +32,9 @@ test("blog detail layout renders in-series navigation block", async () => {
   assert.match(source, /\{seriesContext\.totalPosts\}개 글 중 \{seriesContext\.orderIndex\}번째/);
   assert.match(
     source,
-    /xl:grid-cols-\[minmax\(0,3fr\)_minmax\(336px,1\.08fr\)\]/,
+    /xl:grid-cols-\[minmax\(0,3\.7fr\)_minmax\(320px,0\.9fr\)\]/,
   );
+  assert.match(source, /max-w-\[1320px\]/);
   assert.match(source, /grid-cols-\[124px_minmax\(0,1fr\)\]/);
   assert.match(source, /items-center/);
   assert.match(source, /content-center/);

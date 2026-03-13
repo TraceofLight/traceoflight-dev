@@ -196,6 +196,10 @@
   color: var(--writer-primary-strong);
 }
 
+.writer-draft-feedback:empty {
+  display: none;
+}
+
 .writer-draft-list {
   margin: 0;
   padding: 0.15rem 0 0;
@@ -275,9 +279,10 @@
 }
 
 .writer-draft-empty {
-  padding: 0.8rem 0.2rem;
+  padding: 1rem 0.2rem;
   color: var(--writer-text-muted);
   font-size: 0.84rem;
+  text-align: center;
 }
 
 .writer-publish-head {
