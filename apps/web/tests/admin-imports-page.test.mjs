@@ -89,7 +89,7 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(clientLibSource, /\/internal-api\/resume\/upload/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/posts\.zip/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/load/);
-  assert.match(pageLibSource, /export const ADMIN_IMPORTS_PATH = ["']\/admin\/imports["']/);
+  assert.match(pageLibSource, /export const ADMIN_IMPORTS_PATH = ["']\/admin["']/);
   assert.doesNotMatch(pageLibSource, /heading:/);
   assert.doesNotMatch(pageLibSource, /intro:/);
   assert.doesNotMatch(pageLibSource, /detail:/);

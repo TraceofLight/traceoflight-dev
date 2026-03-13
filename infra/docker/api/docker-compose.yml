@@ -55,7 +55,7 @@ services:
     image: minio/minio:latest
     container_name: traceoflight-minio
     restart: unless-stopped
-    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    command: server /data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
     env_file:
       - ./.env
     environment:

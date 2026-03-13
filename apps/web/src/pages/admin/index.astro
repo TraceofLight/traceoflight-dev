@@ -1,0 +1,28 @@
+---
+import AdminImportsPanel from "../../components/public/AdminImportsPanel";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { requestBackend } from "../../lib/backend-api";
+import { ADMIN_IMPORTS_COPY } from "../../lib/admin/imports-page";
+
+let initialPortfolioAvailable = false;
+try {
+  const response = await requestBackend("/portfolio/status", { method: "GET" });
+  if (response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { available?: boolean }
+      | null;
+    initialPortfolioAvailable = payload?.available === true;
+  }
+} catch {
+  initialPortfolioAvailable = false;
+}
+---
+
+<BaseLayout
+  title={ADMIN_IMPORTS_COPY.title}
+  description={ADMIN_IMPORTS_COPY.description}
+>
+  <section class="mx-auto flex max-w-6xl flex-col">
+    <AdminImportsPanel client:load initialPortfolioAvailable={initialPortfolioAvailable} />
+  </section>
+</BaseLayout>
