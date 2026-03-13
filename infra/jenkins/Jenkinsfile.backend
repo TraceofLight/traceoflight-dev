@@ -30,7 +30,7 @@ pipeline {
               exit 1
             fi
 
-            for key in API_PORT POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY INTERNAL_API_SECRET ADMIN_LOGIN_ID; do
+            for key in API_PORT POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT REDIS_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY INTERNAL_API_SECRET ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS; do
               if ! grep -Eq "^${key}=.+" infra/docker/api/.env; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
@@ -55,6 +55,10 @@ pipeline {
           }
           docker ps --filter "name=traceoflight-minio" --filter "status=running" --format "{{.Names}}" | grep -q "^traceoflight-minio$" || {
             echo "ERROR: traceoflight-minio is not running. Run infra pipeline first."
+            exit 1
+          }
+          docker ps --filter "name=traceoflight-redis" --filter "status=running" --format "{{.Names}}" | grep -q "^traceoflight-redis$" || {
+            echo "ERROR: traceoflight-redis is not running. Run infra pipeline first."
             exit 1
           }
         '''

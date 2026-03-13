@@ -16,6 +16,7 @@ dependencies = [
   "pydantic-settings==2.7.1",
   "python-multipart==0.0.20",
   "minio==7.2.15",
+  "redis==5.2.1",
 ]
 
 [project.optional-dependencies]

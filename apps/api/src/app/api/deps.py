@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from fastapi import Depends
+from redis.asyncio import Redis
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
+from app.core.config import settings
 from app.repositories.admin_credential_repository import AdminCredentialRepository
 from app.repositories.media_repository import MediaRepository
 from app.repositories.post_repository import PostRepository
@@ -60,5 +64,10 @@ def get_resume_service() -> ResumeService:
     return ResumeService(storage=storage)
 
 
+@lru_cache
+def get_redis_client() -> Redis:
+    return Redis.from_url(settings.redis_url, decode_responses=False)
+
+
 def get_admin_auth_service(db: Session = Depends(get_db)) -> AdminAuthService:
-    return AdminAuthService(repo=AdminCredentialRepository(db))
+    return AdminAuthService(repo=AdminCredentialRepository(db), redis=get_redis_client())

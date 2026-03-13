@@ -19,11 +19,12 @@ test("admin auth integrates backend operational credentials and revision-aware s
 
   assert.match(adminAuthSource, /credentialRevision/);
   assert.match(adminAuthSource, /verifyOperationalAdminCredentials/);
-  assert.match(adminAuthSource, /issueLoginTokenPair\(/);
+  assert.match(adminAuthSource, /requestBackendPublic\('\/admin\/auth\/login'/);
+  assert.match(adminAuthSource, /requestBackendPublic\('\/admin\/auth\/refresh'/);
   assert.match(adminAuthSource, /getActiveAdminCredentialRevision/);
-  assert.match(loginRouteSource, /\/api\/v1\/admin\/auth\/login/);
-  assert.match(loginRouteSource, /credential_source/);
-  assert.match(refreshRouteSource, /credential revision/i);
+  assert.match(loginRouteSource, /setAdminAuthCookies/);
+  assert.match(refreshRouteSource, /rotateRefreshToken\(refreshToken\)/);
+  assert.match(refreshRouteSource, /RTR_INVALID/);
 });
 
 test("admin imports panel exposes operational id password update flow", async () => {

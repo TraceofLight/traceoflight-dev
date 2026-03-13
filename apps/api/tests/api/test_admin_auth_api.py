@@ -23,13 +23,54 @@ class _UpdateResult:
 
 class _StubAdminAuthService:
     def __init__(self) -> None:
-        self.verify_calls: list[tuple[str, str]] = []
+        self.login_calls: list[tuple[str, str]] = []
         self.update_calls: list[tuple[str, str]] = []
         self.login_result = _LoginResult(ok=True, credential_source="operational", revision=3)
 
-    async def verify_credentials(self, login_id: str, password: str):  # type: ignore[no-untyped-def]
-        self.verify_calls.append((login_id, password))
-        return self.login_result
+    async def login(self, login_id: str, password: str):  # type: ignore[no-untyped-def]
+        self.login_calls.append((login_id, password))
+        return type(
+            "_LoginPayload",
+            (),
+            {
+                "ok": self.login_result.ok,
+                "credential_source": self.login_result.credential_source,
+                "revision": self.login_result.revision,
+                "token_pair": type(
+                    "_TokenPair",
+                    (),
+                    {
+                        "access_token": "access-token",
+                        "refresh_token": "refresh-token",
+                        "access_max_age_seconds": 900,
+                        "refresh_max_age_seconds": 1209600,
+                    },
+                )(),
+            },
+        )()
+
+    async def rotate_refresh_token(self, refresh_token: str):  # type: ignore[no-untyped-def]
+        return type(
+            "_RefreshPayload",
+            (),
+            {
+                "kind": "rotated",
+                "revision": self.login_result.revision,
+                "token_pair": type(
+                    "_TokenPair",
+                    (),
+                    {
+                        "access_token": "rotated-access",
+                        "refresh_token": "rotated-refresh",
+                        "access_max_age_seconds": 900,
+                        "refresh_max_age_seconds": 1209600,
+                    },
+                )(),
+            },
+        )()
+
+    async def revoke_refresh_token_family(self, refresh_token: str):  # type: ignore[no-untyped-def]
+        return None
 
     async def update_operational_credentials(self, login_id: str, password: str):  # type: ignore[no-untyped-def]
         self.update_calls.append((login_id, password))
@@ -55,10 +96,12 @@ def test_admin_auth_login_endpoint_uses_backend_service_and_reports_source() -> 
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
-    assert service.verify_calls == [("ops-admin", "secret-password")]
+    assert service.login_calls == [("ops-admin", "secret-password")]
     assert response.json()["ok"] is True
     assert response.json()["credential_source"] == "operational"
     assert response.json()["credential_revision"] == 3
+    assert response.json()["access_token"] == "access-token"
+    assert response.json()["refresh_token"] == "refresh-token"
 
 
 def test_admin_auth_login_rejects_invalid_credentials() -> None:
@@ -73,6 +116,21 @@ def test_admin_auth_login_rejects_invalid_credentials() -> None:
 
     app.dependency_overrides.clear()
     assert response.status_code == 401
+
+
+def test_admin_auth_refresh_returns_rotated_token_pair() -> None:
+    service = _StubAdminAuthService()
+    client = _client_with_service(service)
+
+    response = client.post(
+        "/api/v1/admin/auth/refresh",
+        json={"refresh_token": "existing-refresh"},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json()["access_token"] == "rotated-access"
+    assert response.json()["refresh_token"] == "rotated-refresh"
 
 
 def test_admin_auth_credentials_update_requires_internal_secret() -> None:

@@ -2,11 +2,10 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 import {
   createAdminAuthCore,
-  type RotateResult as CoreRotateResult,
   type RotateKind,
   type TokenPair,
 } from './admin-auth-core';
-import { requestBackend } from './backend-api';
+import { requestBackend, requestBackendPublic } from './backend-api';
 
 export const ADMIN_ACCESS_COOKIE = 'traceoflight_admin_access';
 export const ADMIN_REFRESH_COOKIE = 'traceoflight_admin_refresh';
@@ -41,12 +40,16 @@ interface CookieWriter {
   delete: (name: string, options: { path: string }) => void;
 }
 
-interface RotateResult extends CoreRotateResult {}
+interface RotateResult {
+  kind: RotateKind;
+  pair?: TokenPair;
+}
 
 interface OperationalCredentialVerifyResult {
   ok: boolean;
   credentialSource?: 'operational' | 'master';
   credentialRevision: number;
+  tokenPair?: TokenPair;
 }
 
 interface ActiveCredentialRevisionCache {
@@ -166,6 +169,29 @@ async function readJsonSafe(response: Response) {
   }
 }
 
+function mapBackendTokenPair(
+  payload:
+    | {
+        access_token?: unknown;
+        refresh_token?: unknown;
+        access_max_age_seconds?: unknown;
+        refresh_max_age_seconds?: unknown;
+      }
+    | null,
+): TokenPair | null {
+  if (!payload) return null;
+  if (typeof payload.access_token !== 'string') return null;
+  if (typeof payload.refresh_token !== 'string') return null;
+  if (typeof payload.access_max_age_seconds !== 'number') return null;
+  if (typeof payload.refresh_max_age_seconds !== 'number') return null;
+  return {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    accessMaxAgeSeconds: payload.access_max_age_seconds,
+    refreshMaxAgeSeconds: payload.refresh_max_age_seconds,
+  };
+}
+
 function setActiveAdminCredentialRevisionCache(credentialRevision: number): void {
   activeCredentialRevisionCache = {
     credentialRevision,
@@ -204,8 +230,9 @@ export async function verifyOperationalAdminCredentials(
   password: string,
 ): Promise<OperationalCredentialVerifyResult> {
   try {
-    const response = await requestBackend('/admin/auth/login', {
+    const response = await requestBackendPublic('/admin/auth/login', {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         login_id: loginId.trim(),
@@ -220,26 +247,26 @@ export async function verifyOperationalAdminCredentials(
       | {
           credential_source?: 'operational' | 'master';
           credential_revision?: number;
+          access_token?: string;
+          refresh_token?: string;
+          access_max_age_seconds?: number;
+          refresh_max_age_seconds?: number;
         }
       | null;
     const credentialRevision = typeof payload?.credential_revision === 'number' ? payload.credential_revision : 0;
+    const tokenPair = mapBackendTokenPair(payload);
     if (credentialRevision >= 0) {
       setActiveAdminCredentialRevisionCache(credentialRevision);
     }
     return {
-      ok: true,
+      ok: tokenPair !== null,
       credentialSource: payload?.credential_source,
       credentialRevision,
+      tokenPair: tokenPair ?? undefined,
     };
   } catch {
     return { ok: false, credentialRevision: 0 };
   }
-}
-
-export function issueLoginTokenPair(credentialRevision: number): TokenPair | null {
-  const config = getSessionConfig();
-  if (!config) return null;
-  return getCore(config).issueLoginPair(credentialRevision);
 }
 
 export async function verifyAccessToken(token: string): Promise<boolean> {
@@ -251,17 +278,63 @@ export async function verifyAccessToken(token: string): Promise<boolean> {
 }
 
 export async function rotateRefreshToken(refreshToken: string): Promise<RotateResult> {
-  const config = getSessionConfig();
-  if (!config) return { kind: 'invalid' };
-  const activeCredentialRevision = await getActiveAdminCredentialRevision();
-  if (activeCredentialRevision === null) return { kind: 'invalid' };
-  return getCore(config).rotateRefresh(refreshToken, activeCredentialRevision);
+  try {
+    const response = await requestBackendPublic('/admin/auth/refresh', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+      }),
+    });
+    const payload = (await readJsonSafe(response)) as
+      | {
+          credential_revision?: unknown;
+          detail?: unknown;
+          access_token?: unknown;
+          refresh_token?: unknown;
+          access_max_age_seconds?: unknown;
+          refresh_max_age_seconds?: unknown;
+        }
+      | null;
+    if (response.ok) {
+      const tokenPair = mapBackendTokenPair(payload);
+      const credentialRevision =
+        typeof payload?.credential_revision === 'number' ? payload.credential_revision : 0;
+      setActiveAdminCredentialRevisionCache(credentialRevision);
+      if (tokenPair) {
+        return { kind: 'rotated', pair: tokenPair };
+      }
+    }
+    const detail = typeof payload?.detail === 'string' ? payload.detail.toLowerCase() : '';
+    if (response.status === 409 || detail.includes('stale')) {
+      return { kind: 'stale' };
+    }
+    if (detail.includes('expired')) {
+      return { kind: 'expired' };
+    }
+    if (detail.includes('reuse_detected') || detail.includes('reuse')) {
+      return { kind: 'reuse_detected' };
+    }
+    return { kind: 'invalid' };
+  } catch {
+    return { kind: 'invalid' };
+  }
 }
 
-export function revokeRefreshTokenFamily(refreshToken: string): void {
-  const config = getSessionConfig();
-  if (!config) return;
-  getCore(config).revokeRefreshFamily(refreshToken);
+export async function revokeRefreshTokenFamily(refreshToken: string): Promise<void> {
+  try {
+    await requestBackendPublic('/admin/auth/logout', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+      }),
+    });
+  } catch {
+    // Logout should still clear browser cookies even if backend revocation fails.
+  }
 }
 
 export function setAdminAuthCookies(cookies: CookieWriter, pair: TokenPair, secure: boolean): void {

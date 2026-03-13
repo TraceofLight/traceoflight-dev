@@ -7,5 +7,5 @@ import {
 
 export const prerender = false;
 
-export const POST: APIRoute = (context) => createAdminLogoutResponse(context);
+export const POST: APIRoute = async (context) => createAdminLogoutResponse(context);
 export const GET: APIRoute = (context) => createAdminLogoutRedirect(context);

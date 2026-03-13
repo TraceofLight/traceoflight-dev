@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     admin_login_id: str = Field(default='', alias='ADMIN_LOGIN_ID')
     admin_login_password: str = Field(default='', alias='ADMIN_LOGIN_PASSWORD')
     admin_login_password_hash: str = Field(default='', alias='ADMIN_LOGIN_PASSWORD_HASH')
+    admin_session_secret: str = Field(default='', alias='ADMIN_SESSION_SECRET')
+    admin_access_token_max_age_seconds: int = Field(default=900, alias='ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS')
+    admin_refresh_token_max_age_seconds: int = Field(
+        default=1209600,
+        alias='ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS',
+    )
+    redis_url: str = Field(default='redis://localhost:6379/0', alias='REDIS_URL')
     draft_retention_days: int = Field(default=7, alias='DRAFT_RETENTION_DAYS')
     media_orphan_retention_days: int = Field(default=7, alias='MEDIA_ORPHAN_RETENTION_DAYS')
     draft_cleanup_start_hour: int = Field(default=0, alias='DRAFT_CLEANUP_START_HOUR')

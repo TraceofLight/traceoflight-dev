@@ -14,10 +14,13 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       MINIO_ENDPOINT: minio:${MINIO_API_PORT}
       API_PORT: ${API_PORT}
+      REDIS_URL: redis://redis:${REDIS_PORT}/0
     depends_on:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_started
+      redis:
         condition: service_started
     expose:
       - "${API_PORT}"
@@ -97,9 +100,25 @@ services:
     networks:
       - api_internal
 
+  redis:
+    image: redis:7-alpine
+    container_name: traceoflight-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--port", "${REDIS_PORT}"]
+    expose:
+      - "${REDIS_PORT}"
+    volumes:
+      - traceoflight-redis-data:/data
+    networks:
+      api_internal:
+      edge:
+        aliases:
+          - traceoflight-redis
+
 volumes:
   traceoflight-postgres-data:
   traceoflight-minio-data:
+  traceoflight-redis-data:
 
 networks:
   edge:

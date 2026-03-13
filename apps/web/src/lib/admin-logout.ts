@@ -11,12 +11,12 @@ function buildNextPath(context: Pick<APIContext, "url">): string {
   return sanitizeNextPath(context.url.searchParams.get("next"));
 }
 
-export function createAdminLogoutResponse(
+export async function createAdminLogoutResponse(
   context: Pick<APIContext, "cookies" | "request" | "redirect" | "url">,
-): ReturnType<APIRoute> {
+): Promise<Response> {
   const refreshToken = context.cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? "";
   if (refreshToken) {
-    revokeRefreshTokenFamily(refreshToken);
+    await revokeRefreshTokenFamily(refreshToken);
   }
   clearAdminAuthCookies(context.cookies);
 

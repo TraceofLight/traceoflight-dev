@@ -12,8 +12,11 @@ from app.schemas.admin_auth import (
     AdminAuthLoginRequest,
     AdminAuthLoginResponse,
     AdminCredentialRevisionResponse,
+    AdminLogoutRequest,
     AdminCredentialUpdateRequest,
     AdminCredentialUpdateResponse,
+    AdminRefreshRequest,
+    AdminRefreshResponse,
 )
 from app.services.admin_auth_service import AdminAuthService
 
@@ -30,14 +33,57 @@ async def login_admin(
     payload: AdminAuthLoginRequest,
     service: AdminAuthService = Depends(get_admin_auth_service),
 ) -> AdminAuthLoginResponse:
-    result = await service.verify_credentials(payload.login_id, payload.password)
-    if not result.ok or result.credential_source is None:
+    result = await service.login(payload.login_id, payload.password)
+    if not result.ok or result.credential_source is None or result.token_pair is None:
         raise HTTPException(status_code=401, detail="invalid admin credentials")
 
     return AdminAuthLoginResponse(
         credential_source=result.credential_source,  # type: ignore[arg-type]
         credential_revision=result.revision,
+        access_token=result.token_pair.access_token,
+        refresh_token=result.token_pair.refresh_token,
+        access_max_age_seconds=result.token_pair.access_max_age_seconds,
+        refresh_max_age_seconds=result.token_pair.refresh_max_age_seconds,
     )
+
+
+@router.post(
+    "/refresh",
+    response_model=AdminRefreshResponse,
+    status_code=200,
+    responses={
+        401: {"description": "Invalid or expired refresh token"},
+        409: {"description": "Stale refresh token from a completed rotation"},
+    },
+)
+async def refresh_admin(
+    payload: AdminRefreshRequest,
+    service: AdminAuthService = Depends(get_admin_auth_service),
+) -> AdminRefreshResponse:
+    result = await service.rotate_refresh_token(payload.refresh_token)
+    if result.kind == "stale":
+        raise HTTPException(status_code=409, detail="refresh token is stale")
+    if result.kind in {"invalid", "expired", "reuse_detected"} or result.token_pair is None:
+        raise HTTPException(status_code=401, detail=f"refresh token {result.kind}")
+    return AdminRefreshResponse(
+        credential_revision=result.revision,
+        access_token=result.token_pair.access_token,
+        refresh_token=result.token_pair.refresh_token,
+        access_max_age_seconds=result.token_pair.access_max_age_seconds,
+        refresh_max_age_seconds=result.token_pair.refresh_max_age_seconds,
+    )
+
+
+@router.post(
+    "/logout",
+    status_code=200,
+)
+async def logout_admin(
+    payload: AdminLogoutRequest,
+    service: AdminAuthService = Depends(get_admin_auth_service),
+) -> dict[str, bool]:
+    await service.revoke_refresh_token_family(payload.refresh_token)
+    return {"ok": True}
 
 
 @router.get(

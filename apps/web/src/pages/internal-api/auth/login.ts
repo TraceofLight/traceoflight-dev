@@ -3,7 +3,6 @@ import type { APIRoute } from 'astro';
 import {
   clearAdminAuthCookies,
   isAdminAuthConfigured,
-  issueLoginTokenPair,
   setAdminAuthCookies,
   verifyOperationalAdminCredentials,
 } from '../../../lib/admin-auth';
@@ -37,7 +36,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const password = payload.password ?? '';
   // Backend operational credential verification flows through POST /api/v1/admin/auth/login.
   const verification = await verifyOperationalAdminCredentials(username, password);
-  if (!verification.ok) {
+  if (!verification.ok || !verification.tokenPair) {
     return new Response(JSON.stringify({ detail: 'Invalid username or password' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
@@ -46,17 +45,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const credential_source = verification.credentialSource;
   void credential_source;
 
-  const tokenPair = issueLoginTokenPair(verification.credentialRevision);
-  if (!tokenPair) {
-    return new Response(JSON.stringify({ detail: 'Admin auth is not configured' }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
-    });
-  }
-
   const secure = process.env.NODE_ENV === 'production' || request.url.startsWith('https://');
   clearAdminAuthCookies(cookies);
-  setAdminAuthCookies(cookies, tokenPair, secure);
+  setAdminAuthCookies(cookies, verification.tokenPair, secure);
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
