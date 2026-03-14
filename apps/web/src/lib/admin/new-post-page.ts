@@ -6,6 +6,7 @@ import { queryWriterDomElements } from "./new-post-page/dom";
 import { bindDraftLayerEvents } from "./new-post-page/draft-layer-events";
 import { createWriterLoaders } from "./new-post-page/loaders";
 import { bindWriterMediaInteractions } from "./new-post-page/media-controller";
+import { createPreviewContentRenderer } from "./new-post-page/preview-renderer";
 import { setFeedback } from "./new-post-page/feedback";
 import { requestDraftDelete } from "./new-post-page/posts-api";
 import {
@@ -14,7 +15,6 @@ import {
   normalizeCompactView,
   renderCoverPreview,
   renderCoverPreviewEmpty,
-  buildPreviewTopMediaMarkup,
   renderPreviewMeta,
   setCompactToggleLabel,
 } from "./new-post-page/preview";
@@ -215,6 +215,7 @@ export async function initNewPostAdminPage(
   let editingPostSlug: string | null = mode === "edit" ? initialEditSlug : null;
   let activeDropTarget: "body" | "cover" | null = null;
   let selectedTags: string[] = [];
+  const previewContentRenderer = createPreviewContentRenderer(previewContent);
 
   const syncProjectFieldVisibility = () => {
     const isProject = contentKindInput.value === "project";
@@ -445,7 +446,7 @@ export async function initNewPostAdminPage(
       "data-has-content",
       hasBodyContent ? "true" : "false",
     );
-    const topMediaMarkup = buildPreviewTopMediaMarkup({
+    const topMedia = {
       kind:
         topMediaKindInput.value === "youtube"
           ? "youtube"
@@ -455,15 +456,15 @@ export async function initNewPostAdminPage(
       imageUrl: topMediaImageUrlInput.value || coverInput.value,
       youtubeUrl: topMediaYoutubeUrlInput.value,
       videoUrl: topMediaVideoUrlInput.value,
-    });
+    } as const;
 
+    let bodyHtml = `<p class="writer-preview-empty">본문을 입력하면 여기에 미리보기가 표시됩니다.</p>`;
     if (hasBodyContent) {
       markdownPreviewPromise ??= loadMarkdownRenderer();
       const markdownPreview = await markdownPreviewPromise;
-      previewContent.innerHTML = `${topMediaMarkup}${markdownPreview.render(normalizedMarkdown)}`;
-    } else {
-      previewContent.innerHTML = `${topMediaMarkup}<p class="writer-preview-empty">본문을 입력하면 여기에 미리보기가 표시됩니다.</p>`;
+      bodyHtml = markdownPreview.render(normalizedMarkdown);
     }
+    previewContentRenderer.render({ topMedia, bodyHtml });
 
     const nextTitle = titleInput.value.trim();
     previewTitle.textContent = nextTitle;
