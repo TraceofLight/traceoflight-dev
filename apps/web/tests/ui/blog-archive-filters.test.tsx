@@ -117,6 +117,10 @@ describe("BlogArchiveFilters", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Journal")).not.toBeInTheDocument();
     expect(screen.getByText("총 3개의 포스트")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "전체 (3)" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     const astroTagButton = screen.getByRole("button", { name: "astro (2)" });
 
@@ -131,6 +135,10 @@ describe("BlogArchiveFilters", () => {
     await waitFor(() => {
       expect(screen.getByText("총 2개의 포스트")).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "전체 (3)" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     expect(window.location.search).toBe("?tag=astro");
     expect(astroTagButton).toHaveAttribute("aria-pressed", "true");
     expect(astroTagButton.className).toContain("blog-filter-chip");
@@ -160,6 +168,10 @@ describe("BlogArchiveFilters", () => {
     await waitFor(() => {
       expect(screen.getByText("총 1개의 포스트")).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "전체 (3)" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     expect(screen.getByRole("link", { name: /Astro Layouts 읽기/ })).toBeInTheDocument();
   });
 
@@ -221,6 +233,15 @@ describe("BlogArchiveFilters", () => {
     await waitFor(() => {
       expect(screen.getByText("총 1개의 포스트")).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "전체 (9)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "공개 (8)" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "비공개 (1)" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByText("Private")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /^전체 \(/ }));

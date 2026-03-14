@@ -66,9 +66,10 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /const filterChipClass =/);
   assert.match(source, /const filterChipInactiveClass =/);
   assert.match(source, /const filterChipActiveClass =/);
+  assert.match(source, /const isAllChipActive =/);
   assert.match(
     source,
-    /className=\{cn\([\s\S]*filterChipClass,[\s\S]*visibility === "all"[\s\S]*filterChipActiveClass[\s\S]*filterChipInactiveClass[\s\S]*\)\}/,
+    /className=\{cn\([\s\S]*filterChipClass,[\s\S]*isAllChipActive \? filterChipActiveClass : filterChipInactiveClass[\s\S]*\)\}/,
   );
   assert.match(source, /blog-filter-chip/);
   assert.match(

@@ -216,7 +216,6 @@ export function BlogArchiveFilters({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [nextOffset, setNextOffset] = useState(initialOffset);
   const [totalCount, setTotalCount] = useState(initialTotalCount);
-  const [visibilityCounts, setVisibilityCounts] = useState(initialVisibilityCounts);
   const [availableTagFilters, setAvailableTagFilters] = useState(tagFilters);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -224,6 +223,10 @@ export function BlogArchiveFilters({
   const hasMountedFiltersRef = useRef(false);
   const requestSequenceRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const allPostsCount = initialVisibilityCounts.all;
+  const normalizedQuery = query.trim();
+  const isAllChipActive =
+    visibility === "all" && selectedTag.length === 0 && normalizedQuery.length === 0;
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -285,7 +288,6 @@ export function BlogArchiveFilters({
       setHasMore(payload.hasMore);
       setNextOffset(payload.nextOffset ?? payload.items.length);
       setTotalCount(payload.totalCount);
-      setVisibilityCounts(payload.visibilityCounts);
       setAvailableTagFilters(payload.tagFilters);
     })()
       .catch(() => {
@@ -351,7 +353,6 @@ export function BlogArchiveFilters({
           setHasMore(payload.hasMore);
           setNextOffset(payload.nextOffset ?? nextOffset + payload.items.length);
           setTotalCount(payload.totalCount);
-          setVisibilityCounts(payload.visibilityCounts);
         })()
           .catch(() => {
             setErrorMessage("추가 포스트를 불러오지 못했습니다.");
@@ -380,8 +381,8 @@ export function BlogArchiveFilters({
   ]);
 
   const filteredPosts = posts;
-  const publicCount = visibilityCounts.public;
-  const privateCount = visibilityCounts.private;
+  const publicCount = initialVisibilityCounts.public;
+  const privateCount = initialVisibilityCounts.private;
 
   return (
     <section className="space-y-8">
@@ -445,18 +446,16 @@ export function BlogArchiveFilters({
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
-              aria-pressed={visibility === "all"}
+              aria-pressed={isAllChipActive}
               className={cn(
                 filterChipClass,
-                visibility === "all"
-                  ? filterChipActiveClass
-                  : filterChipInactiveClass,
+                isAllChipActive ? filterChipActiveClass : filterChipInactiveClass,
               )}
-              data-active={visibility === "all"}
+              data-active={isAllChipActive}
               onClick={() => setVisibility("all")}
               type="button"
             >
-              전체 ({visibilityCounts.all})
+              전체 ({allPostsCount})
             </button>
             {isAdminViewer ? (
               <>
