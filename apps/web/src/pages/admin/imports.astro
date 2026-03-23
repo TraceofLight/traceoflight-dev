@@ -3,13 +3,20 @@ import AdminImportsPanel from "../../components/public/AdminImportsPanel";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { requestBackend } from "../../lib/backend-api";
 import { ADMIN_IMPORTS_COPY } from "../../lib/admin/imports-page";
+import {
+  DEFAULT_SITE_PROFILE,
+  resolveSiteProfile,
+  type SiteProfile,
+} from "../../lib/site-profile";
 
 let initialPortfolioAvailable = false;
 let initialResumeAvailable = false;
+let initialSiteProfile: SiteProfile = DEFAULT_SITE_PROFILE;
 try {
-  const [portfolioResponse, resumeResponse] = await Promise.all([
+  const [portfolioResponse, resumeResponse, siteProfileResponse] = await Promise.all([
     requestBackend("/portfolio/status", { method: "GET" }),
     requestBackend("/resume/status", { method: "GET" }),
+    requestBackend("/site-profile", { method: "GET" }),
   ]);
   if (portfolioResponse.ok) {
     const payload = (await portfolioResponse.json().catch(() => null)) as
@@ -23,9 +30,13 @@ try {
       | null;
     initialResumeAvailable = payload?.available === true;
   }
+  if (siteProfileResponse.ok) {
+    initialSiteProfile = resolveSiteProfile(await siteProfileResponse.json().catch(() => null));
+  }
 } catch {
   initialPortfolioAvailable = false;
   initialResumeAvailable = false;
+  initialSiteProfile = DEFAULT_SITE_PROFILE;
 }
 ---
 
@@ -38,6 +49,7 @@ try {
       client:load
       initialPortfolioAvailable={initialPortfolioAvailable}
       initialResumeAvailable={initialResumeAvailable}
+      initialSiteProfile={initialSiteProfile}
     />
   </section>
 </BaseLayout>

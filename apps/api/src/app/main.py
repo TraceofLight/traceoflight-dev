@@ -17,6 +17,7 @@ OPENAPI_TAGS = [
     {'name': 'health', 'description': 'Liveness and readiness probe endpoints.'},
     {'name': 'admin-auth', 'description': 'Operational admin credential verification and rotation endpoints.'},
     {'name': 'comments', 'description': 'Post comment threads, guest editing, and admin moderation endpoints.'},
+    {'name': 'site-profile', 'description': 'Footer profile endpoints for the public contact email and GitHub URL.'},
     {'name': 'posts', 'description': 'Post query endpoints and internal write operations.'},
     {'name': 'projects', 'description': 'Project query endpoints backed by project posts.'},
     {'name': 'series', 'description': 'Series discovery endpoints and internal series management operations.'},

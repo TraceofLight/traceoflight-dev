@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.repositories.admin_credential_repository import AdminCredentialRepository
 from app.repositories.media_repository import MediaRepository
 from app.repositories.post_repository import PostRepository
+from app.repositories.site_profile_repository import SiteProfileRepository
 from app.repositories.series_repository import SeriesRepository
 from app.repositories.tag_repository import TagRepository
 from app.services.admin_auth_service import AdminAuthService
@@ -24,6 +25,7 @@ from app.services.resume_service import (
     RESUME_PDF_CONFIG,
     PdfAssetService,
 )
+from app.services.site_profile_service import SiteProfileService
 from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
 from app.storage.minio_client import MinioStorageClient
@@ -71,6 +73,10 @@ def get_portfolio_pdf_service() -> PdfAssetService:
 def get_resume_service() -> PdfAssetService:
     storage = MinioStorageClient()
     return PdfAssetService(storage=storage, config=RESUME_PDF_CONFIG)
+
+
+def get_site_profile_service(db: Session = Depends(get_db)) -> SiteProfileService:
+    return SiteProfileService(repo=SiteProfileRepository(db))
 
 
 @lru_cache

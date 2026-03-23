@@ -12,12 +12,14 @@ from app.api.v1.endpoints.posts import router as posts_router
 from app.api.v1.endpoints.projects import router as projects_router
 from app.api.v1.endpoints.resume import router as resume_router
 from app.api.v1.endpoints.series import router as series_router
+from app.api.v1.endpoints.site_profile import router as site_profile_router
 from app.api.v1.endpoints.tags import router as tags_router
 
 router = APIRouter()
 router.include_router(health_router, tags=['health'])
 router.include_router(admin_auth_router, tags=['admin-auth'])
 router.include_router(comments_router, tags=['comments'])
+router.include_router(site_profile_router, tags=['site-profile'])
 router.include_router(imports_router, prefix='/imports', tags=['imports'])
 router.include_router(posts_router, prefix='/posts', tags=['posts'])
 router.include_router(projects_router, prefix='/projects', tags=['projects'])

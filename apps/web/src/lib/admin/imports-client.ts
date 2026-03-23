@@ -100,3 +100,16 @@ export async function updateOperationalAdminCredentials(loginId: string, passwor
   const payload = await readJsonSafe(response);
   return { response, payload };
 }
+
+export async function updateSiteProfile(email: string, githubUrl: string) {
+  const response = await fetch("/internal-api/site-profile", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email,
+      githubUrl,
+    }),
+  });
+  const payload = await readJsonSafe(response);
+  return { response, payload };
+}

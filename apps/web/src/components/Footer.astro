@@ -2,10 +2,12 @@
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { ADMIN_IMPORTS_PATH } from "../lib/admin/imports-page";
 import { sanitizeNextPath } from "../lib/admin-redirect";
+import { requestBackend } from "../lib/backend-api";
+import { buildMailtoHref, DEFAULT_SITE_PROFILE, resolveSiteProfile } from "../lib/site-profile";
 import type { VisitorSummary } from "../lib/server/ga4-summary";
 import FooterIconLink from "./FooterIconLink.astro";
 import FooterAdminModal from "./public/FooterAdminModal";
-import { GITHUB_URL, SITE_TITLE } from "../consts";
+import { SITE_TITLE } from "../consts";
 
 interface Props {
   visitorSummary?: VisitorSummary | null;
@@ -17,6 +19,16 @@ const shouldOpenAdminLogin = Astro.url.searchParams.get("admin_login") === "1";
 const adminNextPath = sanitizeNextPath(Astro.url.searchParams.get("next"));
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+let siteProfile = DEFAULT_SITE_PROFILE;
+
+try {
+  const response = await requestBackend("/site-profile", { method: "GET" });
+  if (response.ok) {
+    siteProfile = resolveSiteProfile(await response.json().catch(() => null));
+  }
+} catch {
+  siteProfile = DEFAULT_SITE_PROFILE;
+}
 ---
 
 <footer class="site-footer-surface border-t border-white/60 bg-white/72 backdrop-blur-xl">
@@ -37,11 +49,11 @@ const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false
     <div class="site-footer-dock flex items-center gap-3 rounded-full border border-white/70 bg-white/72 px-3 py-2 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
       <FooterIconLink href="/portfolio" label="Portfolio PDF" icon="resume" external />
       <FooterIconLink
-        href="mailto:rickyjun96@gmail.com"
+        href={buildMailtoHref(siteProfile.email)}
         label="Email"
         icon="mail"
       />
-      <FooterIconLink href={GITHUB_URL} label="GitHub" icon="github" external />
+      <FooterIconLink href={siteProfile.githubUrl} label="GitHub" icon="github" external />
       {
         isAdminViewer ? (
           <FooterIconLink

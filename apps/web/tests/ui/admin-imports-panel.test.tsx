@@ -30,7 +30,16 @@ describe("AdminImportsPanel", () => {
     const uploadPortfolioButton = screen.getByRole("button", { name: "Portfolio PDF 업로드" });
     const chooseResumeButton = screen.getByRole("button", { name: "이력서 PDF 선택" });
     const uploadResumeButton = screen.getByRole("button", { name: "Resume PDF 업로드" });
+    const saveSiteProfileButton = screen.getByRole("button", { name: "사용자 정보 저장" });
 
+    expect(screen.getByText("User Info")).toBeInTheDocument();
+    expect(screen.getByText("사용자 정보")).toBeInTheDocument();
+    expect(screen.getByText("footer 메일/GitHub 버튼에 연결되는 주소를 바로 수정할 수 있습니다.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Footer 메일 주소")).toHaveValue("rickyjun96@gmail.com");
+    expect(screen.getByLabelText("Footer GitHub 주소")).toHaveValue("https://github.com/TraceofLight");
+    expect(screen.getByRole("link", { name: "메일 열기" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "GitHub 열기" })).toBeInTheDocument();
+    expect(screen.getByText("footer 메일 버튼은 mailto:, GitHub 버튼은 입력한 URL로 연결됩니다.")).toBeInTheDocument();
     expect(screen.getByText("Backup Utility")).toBeInTheDocument();
     expect(screen.getByText("서비스 중인 내용 Save & Load")).toBeInTheDocument();
     expect(screen.getByText("PDF Utility")).toBeInTheDocument();
@@ -66,6 +75,7 @@ describe("AdminImportsPanel", () => {
     expect(uploadPortfolioButton).toBeInTheDocument();
     expect(downloadButton).toBeInTheDocument();
     expect(restoreButton).toBeInTheDocument();
+    expect(saveSiteProfileButton).toBeInTheDocument();
     expect(
       screen.queryByText("현재 DB의 게시글/미디어를 ZIP으로 저장하거나 ZIP 파일로 복원하세요."),
     ).not.toBeInTheDocument();
@@ -82,6 +92,63 @@ describe("AdminImportsPanel", () => {
     expect(uploadResumeButton).toHaveClass("border-white/80");
     expect(screen.queryByRole("button", { name: "포트폴리오 PDF 삭제" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "이력서 PDF 삭제" })).not.toBeInTheDocument();
+  });
+
+  it("saves footer site profile inputs through the internal route", async () => {
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = String(input);
+      if (requestUrl.includes("/internal-api/admin/comments")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            total_count: 0,
+            items: [],
+          }),
+        });
+      }
+
+      if (requestUrl.includes("/internal-api/site-profile")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            email: "hello@traceoflight.dev",
+            github_url: "https://github.com/TraceofLight/dev",
+          }),
+        });
+      }
+
+      throw new Error(`unexpected request: ${requestUrl} ${JSON.stringify(init ?? {})}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AdminImportsPanel />);
+
+    fireEvent.change(screen.getByLabelText("Footer 메일 주소"), {
+      target: { value: "hello@traceoflight.dev" },
+    });
+    fireEvent.change(screen.getByLabelText("Footer GitHub 주소"), {
+      target: { value: "https://github.com/TraceofLight/dev" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "사용자 정보 저장" }));
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/internal-api/site-profile",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          email: "hello@traceoflight.dev",
+          githubUrl: "https://github.com/TraceofLight/dev",
+        }),
+      }),
+    );
+    expect(screen.getByText("footer 사용자 정보를 저장했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("hello@traceoflight.dev")).toBeInTheDocument();
+    expect(screen.getAllByText("https://github.com/TraceofLight/dev").length).toBeGreaterThan(0);
   });
 
   it("shows separate PDF availability state and delete controls", async () => {

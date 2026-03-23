@@ -24,7 +24,9 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(pageSource, /max-w-6xl/);
   assert.match(pageSource, /requestBackend\(["']\/portfolio\/status["']/);
   assert.match(pageSource, /requestBackend\(["']\/resume\/status["']/);
+  assert.match(pageSource, /requestBackend\(["']\/site-profile["']/);
   assert.match(pageSource, /initialResumeAvailable/);
+  assert.match(pageSource, /initialSiteProfile/);
   assert.doesNotMatch(pageSource, /text-center/);
   assert.doesNotMatch(pageSource, /<header class=/);
   assert.doesNotMatch(pageSource, /현재 게시글과 미디어 상태를 ZIP으로 보관하고/);
@@ -41,9 +43,20 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /admin-imports-resume-upload/);
   assert.match(panelSource, /admin-imports-resume-delete/);
   assert.match(panelSource, /admin-imports-resume-panel/);
+  assert.match(panelSource, /admin-site-profile-panel/);
+  assert.match(panelSource, /admin-site-profile-email/);
+  assert.match(panelSource, /admin-site-profile-github/);
+  assert.match(panelSource, /admin-site-profile-save/);
   assert.match(panelSource, /AdminCommentsPanel/);
   assert.match(panelSource, /admin-comments-panel/);
   assert.doesNotMatch(panelSource, /admin-imports-feedback/);
+  assert.match(panelSource, /User Info/);
+  assert.match(panelSource, /사용자 정보/);
+  assert.match(panelSource, /footer 메일\/GitHub 버튼에 연결되는 주소를 바로 수정할 수 있습니다/);
+  assert.match(panelSource, /메일 주소/);
+  assert.match(panelSource, /GitHub 주소/);
+  assert.match(panelSource, /buildMailtoHref/);
+  assert.match(panelSource, /사용자 정보 저장/);
   assert.match(panelSource, /현재 상태 저장/);
   assert.match(panelSource, /백업 ZIP으로 복원/);
   assert.match(panelSource, /PDF Utility/);
@@ -64,9 +77,11 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(panelSource, /선택된 파일이 없습니다/);
   assert.doesNotMatch(panelSource, /복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다/);
   assert.match(panelSource, /from ["']@\/lib\/admin\/imports-client["']/);
+  assert.match(panelSource, /from ["']@\/lib\/site-profile["']/);
   assert.match(panelSource, /from ["']@\/lib\/ui-effects["']/);
   assert.match(panelSource, /downloadPostsBackupZip/);
   assert.match(panelSource, /restorePostsBackupZip/);
+  assert.match(panelSource, /updateSiteProfile/);
   assert.match(panelSource, /self-start/);
   assert.match(panelSource, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
   assert.match(panelSource, /PUBLIC_PANEL_SURFACE_CLASS/);
@@ -89,6 +104,7 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(clientLibSource, /export async function getResumePdfStatus/);
   assert.match(clientLibSource, /export async function uploadResumePdf/);
   assert.match(clientLibSource, /export async function deleteResumePdf/);
+  assert.match(clientLibSource, /export async function updateSiteProfile/);
   assert.match(clientLibSource, /export async function restorePostsBackupZip/);
   assert.match(clientLibSource, /\/internal-api\/portfolio\/status/);
   assert.match(clientLibSource, /\/internal-api\/portfolio\/upload/);
@@ -96,6 +112,7 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.match(clientLibSource, /\/internal-api\/resume\/status/);
   assert.match(clientLibSource, /\/internal-api\/resume\/upload/);
   assert.match(clientLibSource, /\/internal-api\/resume\/delete/);
+  assert.match(clientLibSource, /\/internal-api\/site-profile/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/posts\.zip/);
   assert.match(clientLibSource, /\/internal-api\/imports\/backups\/load/);
   assert.match(pageLibSource, /export const ADMIN_IMPORTS_PATH = ["']\/admin["']/);

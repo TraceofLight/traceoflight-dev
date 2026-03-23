@@ -1,9 +1,12 @@
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
+  GithubIcon,
   DownloadIcon,
   FileTextIcon,
   LogInIcon,
+  MailIcon,
+  SaveIcon,
   ShieldIcon,
   Trash2Icon,
   UploadIcon,
@@ -25,9 +28,16 @@ import {
   resolveImportsErrorMessage,
   restorePostsBackupZip,
   updateOperationalAdminCredentials,
+  updateSiteProfile,
   uploadPortfolioPdf,
   uploadResumePdf,
 } from "@/lib/admin/imports-client";
+import {
+  buildMailtoHref,
+  DEFAULT_SITE_PROFILE,
+  resolveSiteProfile,
+  type SiteProfile,
+} from "@/lib/site-profile";
 import {
   PUBLIC_FIELD_DISPLAY_CLASS,
   PUBLIC_PANEL_SURFACE_CLASS,
@@ -62,16 +72,22 @@ const ACTION_STATUS_RESET_MS = 2500;
 type AdminImportsPanelProps = {
   initialPortfolioAvailable?: boolean;
   initialResumeAvailable?: boolean;
+  initialSiteProfile?: SiteProfile;
 };
 
 export function AdminImportsPanel({
   initialPortfolioAvailable = false,
   initialResumeAvailable = false,
+  initialSiteProfile = DEFAULT_SITE_PROFILE,
 }: AdminImportsPanelProps) {
   const [busy, setBusy] = useState(false);
+  const [siteProfileBusy, setSiteProfileBusy] = useState(false);
   const [credentialBusy, setCredentialBusy] = useState(false);
   const [credentialLoginOpen, setCredentialLoginOpen] = useState(false);
   const [credentialUpdateOpen, setCredentialUpdateOpen] = useState(false);
+  const [siteProfile, setSiteProfile] = useState<SiteProfile>(initialSiteProfile);
+  const [emailInput, setEmailInput] = useState(initialSiteProfile.email);
+  const [githubUrlInput, setGithubUrlInput] = useState(initialSiteProfile.githubUrl);
   const [credentialLoginId, setCredentialLoginId] = useState("");
   const [credentialPassword, setCredentialPassword] = useState("");
   const [nextCredentialLoginId, setNextCredentialLoginId] = useState("");
@@ -99,6 +115,10 @@ export function AdminImportsPanel({
     message: initialResumeAvailable
       ? "현재 제공 중인 이력서 PDF가 있습니다."
       : "현재 제공 중인 이력서 PDF가 없습니다.",
+    state: "info",
+  });
+  const [siteProfileStatus, setSiteProfileStatus] = useState<StatusMessage>({
+    message: "footer 메일 버튼은 mailto:, GitHub 버튼은 입력한 URL로 연결됩니다.",
     state: "info",
   });
   const [credentialLoginStatus, setCredentialLoginStatus] = useState<StatusMessage>({
@@ -444,6 +464,56 @@ export function AdminImportsPanel({
     }
   }
 
+  async function handleSiteProfileSubmit(event: FormSubmitEvent) {
+    event.preventDefault();
+
+    const normalizedEmail = emailInput.trim();
+    const normalizedGithubUrl = githubUrlInput.trim();
+    if (!normalizedEmail || !normalizedGithubUrl) {
+      setSiteProfileStatus({
+        message: "메일 주소와 GitHub 주소를 모두 입력해 주세요.",
+        state: "error",
+      });
+      return;
+    }
+
+    setSiteProfileBusy(true);
+    setSiteProfileStatus({
+      message: "footer 사용자 정보를 저장하는 중입니다...",
+      state: "pending",
+    });
+
+    try {
+      const { response, payload } = await updateSiteProfile(normalizedEmail, normalizedGithubUrl);
+      if (!response.ok) {
+        setSiteProfileStatus({
+          message: resolveImportsErrorMessage(payload, "footer 사용자 정보 저장에 실패했습니다."),
+          state: "error",
+        });
+        return;
+      }
+
+      const nextSiteProfile = resolveSiteProfile(payload ?? {
+        email: normalizedEmail,
+        githubUrl: normalizedGithubUrl,
+      });
+      setSiteProfile(nextSiteProfile);
+      setEmailInput(nextSiteProfile.email);
+      setGithubUrlInput(nextSiteProfile.githubUrl);
+      setSiteProfileStatus({
+        message: "footer 사용자 정보를 저장했습니다.",
+        state: "ok",
+      });
+    } catch {
+      setSiteProfileStatus({
+        message: "footer 사용자 정보 저장 중 네트워크 오류가 발생했습니다.",
+        state: "error",
+      });
+    } finally {
+      setSiteProfileBusy(false);
+    }
+  }
+
   async function handleCredentialLoginSubmit(event: FormSubmitEvent) {
     event.preventDefault();
     setCredentialBusy(true);
@@ -553,6 +623,9 @@ export function AdminImportsPanel({
     }
   }
 
+  const previewEmail = emailInput.trim() || siteProfile.email;
+  const previewGithubUrl = githubUrlInput.trim() || siteProfile.githubUrl;
+
   return (
     <div id="admin-imports-panel" className="grid gap-6">
       <section className={`grid gap-4 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}>
@@ -582,6 +655,133 @@ export function AdminImportsPanel({
             ID/PW 수정
           </Button>
         </div>
+      </section>
+
+      <section
+        aria-label="User Info 사용자 정보"
+        className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}
+        id="admin-site-profile-panel"
+      >
+        <div className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200/80 bg-sky-100/90 text-sky-800 shadow-[0_12px_30px_rgba(56,189,248,0.16)]">
+            <MailIcon className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+              User Info
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              사용자 정보
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              footer 메일/GitHub 버튼에 연결되는 주소를 바로 수정할 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <form className="grid gap-4" onSubmit={handleSiteProfileSubmit}>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                    Email
+                  </p>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                    메일 주소
+                  </h3>
+                </div>
+                <Button asChild className={adminActionButtonClass} variant="outline">
+                  <a href={buildMailtoHref(previewEmail)}>
+                    <MailIcon className="h-4 w-4" />
+                    메일 열기
+                  </a>
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="admin-site-profile-email">Footer 메일 주소</Label>
+                <Input
+                  autoComplete="email"
+                  disabled={siteProfileBusy}
+                  id="admin-site-profile-email"
+                  onChange={(event) => setEmailInput(event.target.value)}
+                  required
+                  type="email"
+                  value={emailInput}
+                />
+              </div>
+              <div className={`grid gap-2 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                  Current
+                </span>
+                <span className="block truncate">{siteProfile.email}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {buildMailtoHref(previewEmail)}
+                </span>
+              </div>
+            </section>
+
+            <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                    GitHub
+                  </p>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                    GitHub 주소
+                  </h3>
+                </div>
+                <Button asChild className={adminActionButtonClass} variant="outline">
+                  <a
+                    href={previewGithubUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <GithubIcon className="h-4 w-4" />
+                    GitHub 열기
+                  </a>
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="admin-site-profile-github">Footer GitHub 주소</Label>
+                <Input
+                  autoComplete="url"
+                  disabled={siteProfileBusy}
+                  id="admin-site-profile-github"
+                  onChange={(event) => setGithubUrlInput(event.target.value)}
+                  required
+                  type="url"
+                  value={githubUrlInput}
+                />
+              </div>
+              <div className={`grid gap-2 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                  Current
+                </span>
+                <span className="block truncate">{siteProfile.githubUrl}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {previewGithubUrl}
+                </span>
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+            <div className={getStatusClass(siteProfileStatus.state)}>
+              {siteProfileStatus.message}
+            </div>
+            <Button
+              className={`${adminActionButtonClass} px-6`}
+              disabled={siteProfileBusy}
+              id="admin-site-profile-save"
+              type="submit"
+              variant="outline"
+            >
+              <SaveIcon className="h-4 w-4" />
+              {siteProfileBusy ? "사용자 정보 저장 중..." : "사용자 정보 저장"}
+            </Button>
+          </div>
+        </form>
       </section>
 
       <section className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}>

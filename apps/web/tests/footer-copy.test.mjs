@@ -11,6 +11,11 @@ test("footer uses compact two-line rights copy with visitor summary metadata", a
 
   assert.match(source, /const currentYear = new Date\(\)\.getFullYear\(\);/);
   assert.match(source, /interface Props \{\s*visitorSummary\?:/);
+  assert.match(source, /requestBackend\(["']\/site-profile["']/);
+  assert.match(source, /DEFAULT_SITE_PROFILE/);
+  assert.match(source, /resolveSiteProfile/);
+  assert.match(source, /buildMailtoHref\(siteProfile\.email\)/);
+  assert.match(source, /href=\{siteProfile\.githubUrl\}/);
   assert.match(
     source,
     /ⓒ \{currentYear\}\. \{SITE_TITLE\} All rights reserved\./,
