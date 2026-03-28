@@ -8,6 +8,7 @@ import {
   setAdminAuthCookies,
   verifyAccessToken,
 } from "./lib/admin-auth";
+import { buildPublicCanonicalUrl } from "./lib/public-url";
 
 const SECURITY_HEADERS = {
   "X-Frame-Options": "DENY",
@@ -119,6 +120,11 @@ function isAllowedInternalApiOrigin(origin: string | null): boolean {
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname, search } = context.url;
+  const redirectUrl = buildPublicCanonicalUrl(context.url);
+
+  if (redirectUrl) {
+    return context.redirect(redirectUrl.toString(), 301);
+  }
 
   if (
     pathname.startsWith("/internal-api") &&

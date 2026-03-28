@@ -85,8 +85,10 @@ test("blog post layout reuses shared cover media helpers for top media rendering
     /import \{[\s\S]*getCoverMediaMetadata[\s\S]*normalizeCoverMedia[\s\S]*\} from ["']\.\.\/lib\/cover-media["'];/,
   );
   assert.match(source, /const coverMedia = normalizeCoverMedia\(coverImage\);/);
-  assert.match(source, /image=\{getCoverMediaMetadata\(coverMedia\)\}/);
   assert.match(source, /const topMediaImage = normalizeCoverMedia\(topMediaImageUrl \?\? coverImage\);/);
+  assert.match(source, /const seoImageMetadata =/);
+  assert.match(source, /image=\{seoImageMetadata\}/);
+  assert.match(source, /imageUrl=\{seoImageUrl\}/);
   assert.match(source, /<CoverMediaImage[\s\S]*media=\{topMediaImage\}[\s\S]*alt=\{title\}/);
   assert.match(source, /const detailCoverWidth = 1400;/);
   assert.match(source, /const detailCoverHeight = 1000;/);

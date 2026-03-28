@@ -106,7 +106,12 @@ test("writer script updates title in preview and syncs cover preview", async () 
   assert.match(domSource, /#writer-preview-meta-project/);
   assert.match(domSource, /#writer-preview-meta-highlights/);
   assert.match(domSource, /#writer-preview-meta-links/);
-  assert.match(source, /buildPreviewTopMediaMarkup/);
+  assert.match(source, /syncTopMediaUi/);
+  assert.match(source, /topMediaPreviewImage/);
+  assert.match(source, /topMediaPreviewFrame/);
+  assert.match(source, /topMediaPreviewVideo/);
+  assert.match(source, /topMediaPreviewEmpty/);
+  assert.match(source, /topMediaPreview\.setAttribute\("data-empty", "true"\)/);
   assert.doesNotMatch(domSource, /#writer-preview-top-media/);
   assert.doesNotMatch(source, /previewExcerpt/);
   assert.match(domSource, /#writer-cover-preview/);

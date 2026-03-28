@@ -30,7 +30,15 @@ test("admin auth middleware and routes are present", async () => {
   assert.match(middleware, /pathname\.startsWith\(["']\/internal-api["']\)/);
   assert.match(
     middleware,
-    /pathname\.startsWith\(["']\/internal-api\/auth\/["']\)/,
+    /pathname === ["']\/internal-api\/auth\/login["']/,
+  );
+  assert.match(
+    middleware,
+    /pathname === ["']\/internal-api\/auth\/logout["']/,
+  );
+  assert.match(
+    middleware,
+    /pathname === ["']\/internal-api\/auth\/refresh["']/,
   );
   assert.match(
     middleware,

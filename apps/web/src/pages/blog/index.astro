@@ -2,7 +2,7 @@
 import BlogArchiveFilters, {
   type BlogArchivePost,
 } from "../../components/public/BlogArchiveFilters";
-import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
+import { SITE_TITLE } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { listPublishedDbPostSummaryPage } from "../../lib/blog-db";
@@ -132,7 +132,10 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
 }));
 ---
 
-<BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
+<BaseLayout
+  title={`Blog | ${SITE_TITLE}`}
+  description="C++, 셸, 그래픽스, 개발 경험을 모아둔 TraceofLight 블로그 아카이브"
+>
   <BlogArchiveFilters
     client:load
     initialSelectedTags={selectedTagsFromQuery}

@@ -95,6 +95,8 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
   assert.doesNotMatch(editorBridgeSource, /return await markdown;/);
   assert.doesNotMatch(linkNormalizationSource, /\(full, prefix, rawUrl, suffix\)/);
   assert.doesNotMatch(adminImportsPanelSource, /MutableRefObject/);
+  assert.doesNotMatch(adminImportsPanelSource, /GithubIcon/);
+  assert.match(adminImportsPanelSource, /assets\/icons\/footer\/github\.svg\?raw/);
   assert.match(importsProxySource, /export async function proxyTextResponse/);
   assert.match(importsProxySource, /export async function proxyBinaryResponse/);
   assert.doesNotMatch(projectDetailSource, /const relatedSeries =/);

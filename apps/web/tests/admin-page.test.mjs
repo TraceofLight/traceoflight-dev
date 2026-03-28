@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const adminIndexPath = new URL(
@@ -16,12 +16,15 @@ const editWriterPath = new URL(
 );
 
 test("admin dashboard route is removed and writer back links fall back to public sections", async () => {
-  await assert.rejects(access(adminIndexPath));
-  const [newWriterSource, editWriterSource] = await Promise.all([
+  const [adminIndexSource, newWriterSource, editWriterSource] = await Promise.all([
+    readFile(adminIndexPath, "utf8"),
     readFile(newWriterPath, "utf8"),
     readFile(editWriterPath, "utf8"),
   ]);
 
+  assert.match(adminIndexSource, /import AdminImportsPanel from "\.\.\/\.\.\/components\/public\/AdminImportsPanel";/);
+  assert.match(adminIndexSource, /<AdminImportsPanel/);
+  assert.doesNotMatch(adminIndexSource, /href="\/admin"/);
   assert.match(
     newWriterSource,
     /const fallbackBackHref = initialContentKind === "project" \? "\/projects\/" : "\/blog\/";/,

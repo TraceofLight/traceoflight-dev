@@ -4,6 +4,7 @@ import type { CollectionEntry } from "astro:content";
 import CoverMediaImage from "../components/CoverMediaImage.astro";
 import PostAdminActions from "../components/public/PostAdminActions";
 import PostComments from "../components/public/PostComments";
+import { SITE_AUTHOR, SITE_URL } from "../consts";
 import BaseLayout from "./BaseLayout.astro";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import {
@@ -27,6 +28,7 @@ interface DbPostData {
   title: string;
   description: string;
   pubDate: Date;
+  updatedDate?: Date;
   coverImage?: CoverMediaSource;
   topMediaKind?: "image" | "youtube" | "video";
   topMediaImageUrl?: string;
@@ -69,6 +71,7 @@ const {
   title,
   description,
   pubDate,
+  updatedDate,
   coverImage,
   topMediaKind = "image",
   topMediaImageUrl,
@@ -104,13 +107,63 @@ const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSer
 const topMediaEmbedUrl =
   topMediaKind === "youtube" ? toYoutubeEmbedUrl(topMediaYoutubeUrl) : null;
 const topMediaImage = normalizeCoverMedia(topMediaImageUrl ?? coverImage);
+const seoImageMetadata =
+  topMediaImage?.kind === "optimized"
+    ? topMediaImage.src
+    : getCoverMediaMetadata(coverMedia);
+const seoImageUrl =
+  topMediaImage?.kind === "native"
+    ? topMediaImage.src
+    : coverMedia?.kind === "native"
+      ? coverMedia.src
+      : undefined;
+const canonicalPostUrl = postSlug
+  ? new URL(`/blog/${postSlug}/`, SITE_URL).toString()
+  : undefined;
+const articleStructuredData = postSlug
+  ? {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: title,
+      description,
+      url: canonicalPostUrl,
+      mainEntityOfPage: canonicalPostUrl,
+      datePublished: pubDate.toISOString(),
+      ...(updatedDate ? { dateModified: updatedDate.toISOString() } : {}),
+      author: [
+        {
+          "@type": "Person",
+          name: SITE_AUTHOR,
+          url: SITE_URL,
+        },
+      ],
+      publisher: {
+        "@type": "Person",
+        name: SITE_AUTHOR,
+        url: SITE_URL,
+      },
+      ...((seoImageUrl || seoImageMetadata?.src)
+        ? {
+            image: [
+              new URL(seoImageUrl ?? seoImageMetadata!.src, SITE_URL).toString(),
+            ],
+          }
+        : {}),
+    }
+  : undefined;
 ---
 
 <BaseLayout
   title={title}
   description={description}
-  image={getCoverMediaMetadata(coverMedia)}
+  image={seoImageMetadata}
+  imageUrl={seoImageUrl}
   bodyClass="page-blog-post"
+  pageType="article"
+  author={SITE_AUTHOR}
+  publishedTime={pubDate}
+  modifiedTime={updatedDate}
+  structuredData={articleStructuredData}
 >
   <div
     class:list={[

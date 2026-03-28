@@ -1,7 +1,6 @@
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
-  GithubIcon,
   DownloadIcon,
   FileTextIcon,
   LogInIcon,
@@ -12,6 +11,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 
+import githubIconSvg from "@/assets/icons/footer/github.svg?raw";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -737,7 +737,11 @@ export function AdminImportsPanel({
                     rel="noreferrer"
                     target="_blank"
                   >
-                    <GithubIcon className="h-4 w-4" />
+                    <span
+                      aria-hidden="true"
+                      className="h-4 w-4 [&>svg]:h-4 [&>svg]:w-4"
+                      dangerouslySetInnerHTML={{ __html: githubIconSvg }}
+                    />
                     GitHub 열기
                   </a>
                 </Button>

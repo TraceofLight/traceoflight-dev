@@ -11,7 +11,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /max-w-6xl/);
   assert.match(
     source,
-    /<BaseLayout title=\{SITE_TITLE\} description=\{SITE_DESCRIPTION\} bodyClass="page-home">/,
+    /<BaseLayout[\s\S]*title=\{`\$\{SITE_TITLE\} \| 게임 개발 · 그래픽스 프로그래밍 아카이브`\}[\s\S]*description=\{SITE_DESCRIPTION\}[\s\S]*bodyClass="page-home"/,
   );
   assert.match(source, /<div class="flex w-full flex-col gap-8 py-4 sm:py-6">/);
   assert.doesNotMatch(source, /class="home-resume"/);

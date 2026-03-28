@@ -12,18 +12,48 @@ interface Props {
   title: string;
   description: string;
   image?: ImageMetadata;
+  imageUrl?: string;
   bodyClass?: string;
+  pageType?: 'website' | 'article';
+  author?: string;
+  publishedTime?: Date | string;
+  modifiedTime?: Date | string;
+  structuredData?: Record<string, unknown>;
+  robots?: string;
 }
 
-const { title, description, image, bodyClass = '' } = Astro.props;
+const {
+  title,
+  description,
+  image,
+  imageUrl,
+  bodyClass = '',
+  pageType,
+  author,
+  publishedTime,
+  modifiedTime,
+  structuredData,
+  robots,
+} = Astro.props;
 const htmlClassName = bodyClass.trim() || undefined;
 const visitorSummary = await getGa4VisitorSummary();
 ---
 
 <!doctype html>
-<html lang="en" class={htmlClassName}>
+<html lang="ko" class={htmlClassName}>
   <head>
-    <BaseHead title={title} description={description} image={image} />
+    <BaseHead
+      title={title}
+      description={description}
+      image={image}
+      imageUrl={imageUrl}
+      pageType={pageType}
+      author={author}
+      publishedTime={publishedTime}
+      modifiedTime={modifiedTime}
+      structuredData={structuredData}
+      robots={robots}
+    />
     <PageTransitions />
   </head>
   <body class="site-shell">
