@@ -67,16 +67,16 @@ test("public url helpers prefer the www production origin over localhost env val
   assert.equal(result.redirectUrl, "https://www.traceoflight.dev/blog");
 });
 
-test("public url helpers add a trailing slash to blog detail urls", async () => {
+test("public url helpers strip the trailing slash from blog detail urls", async () => {
   const result = await invokePublicUrlModule({
     configuredSiteUrl: "https://www.traceoflight.dev",
-    requestUrl: "https://www.traceoflight.dev/blog/42seoul-la-piscine",
+    requestUrl: "https://www.traceoflight.dev/blog/42seoul-la-piscine/",
   });
 
-  assert.equal(result.canonicalPathname, "/blog/42seoul-la-piscine/");
+  assert.equal(result.canonicalPathname, "/blog/42seoul-la-piscine");
   assert.equal(
     result.redirectUrl,
-    "https://www.traceoflight.dev/blog/42seoul-la-piscine/",
+    "https://www.traceoflight.dev/blog/42seoul-la-piscine",
   );
 });
 
@@ -92,7 +92,7 @@ test("path redirects use the public origin even when the app sees a localhost ho
 test("canonical public urls do not redirect", async () => {
   const result = await invokePublicUrlModule({
     configuredSiteUrl: "https://www.traceoflight.dev",
-    requestUrl: "https://www.traceoflight.dev/blog/42seoul-la-piscine/",
+    requestUrl: "https://www.traceoflight.dev/blog/42seoul-la-piscine",
   });
 
   assert.equal(result.redirectUrl, null);

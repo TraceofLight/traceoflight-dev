@@ -196,10 +196,10 @@ export function bindSubmitEvent(bindings: SubmitBindings): void {
       createdStatus === "published"
         ? contentKind === "project"
           ? `/projects/${created.slug}`
-          : `/blog/${created.slug}/`
+          : `/blog/${created.slug}`
         : contentKind === "project"
-          ? "/projects/"
-          : "/blog/";
+          ? "/projects"
+          : "/blog";
     if (createdStatus === "published") {
       setPublishLayerOpen(false);
       updateDraftQueryParam(null);

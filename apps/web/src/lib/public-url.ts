@@ -28,20 +28,10 @@ export function resolvePublicSiteOrigin(configuredSiteUrl?: string | URL | null)
 }
 
 export function canonicalizePublicPath(pathname: string): string {
-  if (pathname === "/blog/" || pathname === "/projects/" || pathname === "/series/") {
-    return pathname.slice(0, -1);
-  }
-
   if (
-    pathname.startsWith("/blog/") &&
-    pathname !== "/blog/" &&
-    !pathname.endsWith("/")
-  ) {
-    return `${pathname}/`;
-  }
-
-  if (
-    (pathname.startsWith("/projects/") || pathname.startsWith("/series/")) &&
+    (pathname.startsWith("/blog/") ||
+      pathname.startsWith("/projects/") ||
+      pathname.startsWith("/series/")) &&
     pathname.length > 1 &&
     pathname.endsWith("/")
   ) {

@@ -13,7 +13,7 @@ export async function GET(context) {
 				title: post.title,
 				description: post.description,
 				pubDate: post.publishedAt,
-				link: `/blog/${post.slug}/`,
+				link: `/blog/${post.slug}`,
 			}));
 		} catch {
 			items = [];
@@ -22,7 +22,7 @@ export async function GET(context) {
 		const posts = await getBlogSource().listPosts();
 		items = posts.map((post) => ({
 			...post.data,
-			link: `/blog/${post.id}/`,
+			link: `/blog/${post.id}`,
 		}));
 	}
 

@@ -539,7 +539,7 @@ export function BlogArchiveFilters({
                 <a
                   aria-label={`${post.title} 읽기`}
                   className={anchorClass}
-                  href={`/blog/${post.slug}/`}
+                  href={`/blog/${post.slug}`}
                 >
                   <div className={mediaFrameClass}>
                     <img

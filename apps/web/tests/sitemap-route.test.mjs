@@ -140,7 +140,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
     assert.equal(response.contentType, "application/xml; charset=utf-8");
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/blog<\/loc>/);
-    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/blog\/seo-check\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/blog\/seo-check<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/projects\/render-pipeline<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/series\/graphics-notes<\/loc>/);
     assert.match(response.body, /<lastmod>2026-03-27T05:10:00.000Z<\/lastmod>/);

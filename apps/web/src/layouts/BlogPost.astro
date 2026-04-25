@@ -118,7 +118,7 @@ const seoImageUrl =
       ? coverMedia.src
       : undefined;
 const canonicalPostUrl = postSlug
-  ? new URL(`/blog/${postSlug}/`, SITE_URL).toString()
+  ? new URL(`/blog/${postSlug}`, SITE_URL).toString()
   : undefined;
 const articleStructuredData = postSlug
   ? {

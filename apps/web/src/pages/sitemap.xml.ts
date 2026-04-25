@@ -41,7 +41,7 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
 
   return [
     ...posts.map((post) => ({
-      path: `/blog/${post.slug}/`,
+      path: `/blog/${post.slug}`,
       lastmod: (post.updatedAt ?? post.publishedAt).toISOString(),
     })),
     ...projects.map((project) => ({
