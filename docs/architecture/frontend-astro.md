@@ -75,7 +75,7 @@ Provide a production-ready frontend baseline for a personal site covering landin
   - service name: `frontend`
   - internal port: `6543`
   - attached to external edge network: `traceoflight-edge`
-- CI entrypoint currently builds and deploys web via root `Jenkinsfile`.
+- CI entrypoint: `infra/jenkins/Jenkinsfile.frontend` (see `infra/jenkins/README.md`).
 
 ## Environment Baseline
 

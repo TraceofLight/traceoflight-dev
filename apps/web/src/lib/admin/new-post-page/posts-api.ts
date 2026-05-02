@@ -22,6 +22,8 @@ export type PostLoadResult =
       reason: PostLoadFailureKind;
     };
 
+type SimpleFailure = "http_error" | "network_error";
+
 export type DraftListResult =
   | {
       ok: true;
@@ -29,7 +31,7 @@ export type DraftListResult =
     }
   | {
       ok: false;
-      reason: "http_error" | "network_error";
+      reason: SimpleFailure;
     };
 
 export type TagListResult =
@@ -39,14 +41,14 @@ export type TagListResult =
     }
   | {
       ok: false;
-      reason: "http_error" | "network_error";
+      reason: SimpleFailure;
     };
 
 export type DraftDeleteResult =
   | { ok: true }
   | {
       ok: false;
-      reason: "http_error" | "network_error";
+      reason: SimpleFailure;
     };
 
 export interface SeriesListItem {
@@ -56,7 +58,7 @@ export interface SeriesListItem {
 
 type SeriesListResult =
   | { ok: true; series: SeriesListItem[] }
-  | { ok: false; reason: "http_error" | "network_error" };
+  | { ok: false; reason: SimpleFailure };
 
 export interface SubmitCreatedPost {
   slug: string;
@@ -71,74 +73,73 @@ export type AdminLoginResult =
   | { ok: true }
   | { ok: false; status: number; errorPayload: unknown };
 
-export async function requestPostBySlug(slug: string): Promise<PostLoadResult> {
+type AuthFetchResult =
+  | { ok: true; raw: unknown }
+  | { ok: false; reason: PostLoadFailureKind };
+
+type SimpleFetchResult =
+  | { ok: true; raw: unknown }
+  | { ok: false; reason: SimpleFailure };
+
+async function fetchAuthJson(
+  url: string,
+  init?: RequestInit,
+): Promise<AuthFetchResult> {
   try {
-    const response = await fetch(`/internal-api/posts/${encodeURIComponent(slug)}`);
-    if (response.status === 404) {
-      return { ok: false, reason: "not_found" };
-    }
-    if (response.status === 401) {
-      return { ok: false, reason: "unauthorized" };
-    }
-    if (!response.ok) {
-      return { ok: false, reason: "http_error" };
-    }
-    const rawPayload = (await response.json()) as unknown;
-    const payload = normalizeAdminPostPayload(rawPayload);
-    return { ok: true, payload };
+    const response = await fetch(url, init);
+    if (response.status === 404) return { ok: false, reason: "not_found" };
+    if (response.status === 401) return { ok: false, reason: "unauthorized" };
+    if (!response.ok) return { ok: false, reason: "http_error" };
+    const raw = (await response.json()) as unknown;
+    return { ok: true, raw };
   } catch {
     return { ok: false, reason: "network_error" };
   }
 }
 
-export async function requestDraftBySlug(slug: string): Promise<PostLoadResult> {
+async function fetchSimpleJson(
+  url: string,
+  init?: RequestInit,
+): Promise<SimpleFetchResult> {
   try {
-    const response = await fetch(
-      `/internal-api/posts/${encodeURIComponent(slug)}?status=draft`,
-    );
-    if (response.status === 404) {
-      return { ok: false, reason: "not_found" };
-    }
-    if (response.status === 401) {
-      return { ok: false, reason: "unauthorized" };
-    }
-    if (!response.ok) {
-      return { ok: false, reason: "http_error" };
-    }
-    const rawPayload = (await response.json()) as unknown;
-    const payload = normalizeAdminPostPayload(rawPayload);
-    return { ok: true, payload };
+    const response = await fetch(url, init);
+    if (!response.ok) return { ok: false, reason: "http_error" };
+    if (response.status === 204) return { ok: true, raw: null };
+    const raw = (await response.json()) as unknown;
+    return { ok: true, raw };
   } catch {
     return { ok: false, reason: "network_error" };
   }
+}
+
+export async function requestPostBySlug(
+  slug: string,
+  options: { status?: "draft" | "published" } = {},
+): Promise<PostLoadResult> {
+  const url =
+    options.status === "draft"
+      ? `/internal-api/posts/${encodeURIComponent(slug)}?status=draft`
+      : `/internal-api/posts/${encodeURIComponent(slug)}`;
+  const result = await fetchAuthJson(url);
+  if (!result.ok) return result;
+  return { ok: true, payload: normalizeAdminPostPayload(result.raw) };
 }
 
 export async function requestDraftList(): Promise<DraftListResult> {
-  try {
-    const response = await fetch("/internal-api/posts?status=draft&limit=100&offset=0");
-    if (!response.ok) {
-      return { ok: false, reason: "http_error" };
-    }
-    const posts = (await response.json()) as unknown;
-    return { ok: true, posts };
-  } catch {
-    return { ok: false, reason: "network_error" };
-  }
+  const result = await fetchSimpleJson(
+    "/internal-api/posts?status=draft&limit=100&offset=0",
+  );
+  if (!result.ok) return result;
+  return { ok: true, posts: result.raw };
 }
 
 export async function requestDraftDelete(slug: string): Promise<DraftDeleteResult> {
-  try {
-    const response = await fetch(
-      `/internal-api/posts/${encodeURIComponent(slug)}?status=draft`,
-      { method: "DELETE" },
-    );
-    if (!response.ok) {
-      return { ok: false, reason: "http_error" };
-    }
-    return { ok: true };
-  } catch {
-    return { ok: false, reason: "network_error" };
-  }
+  const result = await fetchSimpleJson(
+    `/internal-api/posts/${encodeURIComponent(slug)}?status=draft`,
+    { method: "DELETE" },
+  );
+  if (!result.ok) return result;
+  return { ok: true };
 }
 
 export async function requestTagList(query = ""): Promise<TagListResult> {
@@ -151,16 +152,9 @@ export async function requestTagList(query = ""): Promise<TagListResult> {
     params.set("query", trimmedQuery);
   }
 
-  try {
-    const response = await fetch(`/internal-api/tags?${params.toString()}`);
-    if (!response.ok) {
-      return { ok: false, reason: "http_error" };
-    }
-    const raw = (await response.json()) as unknown;
-    return { ok: true, tags: normalizeTagOptions(raw) };
-  } catch {
-    return { ok: false, reason: "network_error" };
-  }
+  const result = await fetchSimpleJson(`/internal-api/tags?${params.toString()}`);
+  if (!result.ok) return result;
+  return { ok: true, tags: normalizeTagOptions(result.raw) };
 }
 
 export async function requestSeriesList(): Promise<SeriesListResult> {
@@ -170,16 +164,9 @@ export async function requestSeriesList(): Promise<SeriesListResult> {
     offset: "0",
   });
 
-  try {
-    const response = await fetch(`/internal-api/series?${params.toString()}`);
-    if (!response.ok) {
-      return { ok: false, reason: "http_error" };
-    }
-    const raw = (await response.json()) as unknown;
-    return { ok: true, series: normalizeSeriesList(raw) };
-  } catch {
-    return { ok: false, reason: "network_error" };
-  }
+  const result = await fetchSimpleJson(`/internal-api/series?${params.toString()}`);
+  if (!result.ok) return result;
+  return { ok: true, series: normalizeSeriesList(result.raw) };
 }
 
 export async function requestPostSubmit(

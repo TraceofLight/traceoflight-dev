@@ -368,7 +368,7 @@ test("writer script delegates post network requests to posts-api module", async 
   ]);
 
   assert.match(source, /from ["']\.\/new-post-page\/posts-api["']/);
-  assert.match(loadersSource, /requestDraftBySlug/);
+  assert.match(loadersSource, /requestPostBySlug\([^)]*status:\s*"draft"/);
   assert.match(loadersSource, /requestDraftList/);
   assert.match(source, /requestDraftDelete/);
   assert.match(loadersSource, /requestPostBySlug/);

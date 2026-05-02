@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.api.deps import get_post_service
+from app.api.error_handlers import integrity_conflict_detail
 from app.api.security import optional_internal_secret, require_internal_secret
 from app.models.post import PostContentKind, PostStatus, PostVisibility
 from app.schemas.post import PostCreate, PostRead, PostSummaryListRead
@@ -14,12 +15,17 @@ from app.services.post_service import PostService
 router = APIRouter()
 
 
-def _integrity_conflict_detail(exc: IntegrityError) -> str:
-    source = getattr(exc, "orig", exc)
-    message = str(source).lower()
-    if "ix_posts_slug" in message or "posts.slug" in message or "posts_slug_key" in message:
-        return "post slug already exists"
-    return "post integrity conflict"
+_POST_INTEGRITY_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("ix_posts_slug", "posts.slug", "posts_slug_key"), "post slug already exists"),
+)
+
+
+def _post_conflict_detail(exc: IntegrityError) -> str:
+    return integrity_conflict_detail(
+        exc,
+        rules=_POST_INTEGRITY_RULES,
+        fallback="post integrity conflict",
+    )
 
 
 @router.get(
@@ -183,7 +189,7 @@ def create_post(
     try:
         return service.create_post(payload)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
+        raise HTTPException(status_code=409, detail=_post_conflict_detail(exc)) from exc
 
 
 @router.put(
@@ -207,7 +213,7 @@ def update_post_by_slug(
     try:
         updated = service.update_post_by_slug(slug=slug, payload=payload)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
+        raise HTTPException(status_code=409, detail=_post_conflict_detail(exc)) from exc
     if updated is None:
         raise HTTPException(status_code=404, detail='post not found')
     return updated

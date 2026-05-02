@@ -8,7 +8,6 @@ import {
 } from "./drafts";
 import { buildTagSuggestionOptions } from "./tags";
 import {
-  requestDraftBySlug,
   requestDraftList,
   requestPostBySlug,
   requestSeriesList,
@@ -255,7 +254,7 @@ export function createWriterLoaders(
     const normalizedSlug = draftSlug.trim();
     if (!normalizedSlug) return false;
 
-    const draftResponse = await requestDraftBySlug(normalizedSlug);
+    const draftResponse = await requestPostBySlug(normalizedSlug, { status: "draft" });
     if (!draftResponse.ok) {
       if (draftResponse.reason === "not_found") {
         showFeedback("요청한 임시저장 글을 찾지 못했습니다.", "error");

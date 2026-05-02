@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_series_service
+from app.api.error_handlers import integrity_conflict_detail
 from app.api.security import optional_internal_secret, require_internal_secret
 from app.repositories.series_repository import SeriesConflictError, SeriesValidationError
 from app.schemas.series import (
@@ -18,16 +19,19 @@ from app.services.series_service import SeriesService
 router = APIRouter()
 
 
-def _integrity_conflict_detail(exc: IntegrityError) -> str:
-    source = getattr(exc, "orig", exc)
-    message = str(source).lower()
-    if "ix_series_slug" in message or "series.slug" in message:
-        return "series slug already exists"
-    if "uq_series_posts_post_id" in message:
-        return "post already belongs to another series"
-    if "uq_series_posts_series_order" in message:
-        return "series order index conflict"
-    return "series integrity conflict"
+_SERIES_INTEGRITY_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("ix_series_slug", "series.slug"), "series slug already exists"),
+    (("uq_series_posts_post_id",), "post already belongs to another series"),
+    (("uq_series_posts_series_order",), "series order index conflict"),
+)
+
+
+def _series_conflict_detail(exc: IntegrityError) -> str:
+    return integrity_conflict_detail(
+        exc,
+        rules=_SERIES_INTEGRITY_RULES,
+        fallback="series integrity conflict",
+    )
 
 
 def _resolve_include_private(include_private: bool | None, trusted_internal: bool) -> bool:
@@ -128,7 +132,7 @@ def create_series(
     try:
         return service.create_series(payload)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
+        raise HTTPException(status_code=409, detail=_series_conflict_detail(exc)) from exc
 
 
 @router.put(
@@ -151,7 +155,7 @@ def update_series(
     try:
         updated = service.update_series_by_slug(slug=slug, payload=payload)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
+        raise HTTPException(status_code=409, detail=_series_conflict_detail(exc)) from exc
     if updated is None:
         raise HTTPException(status_code=404, detail="series not found")
     return updated
@@ -206,7 +210,7 @@ def replace_series_posts(
     except SeriesConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail=_integrity_conflict_detail(exc)) from exc
+        raise HTTPException(status_code=409, detail=_series_conflict_detail(exc)) from exc
 
     if replaced is None:
         raise HTTPException(status_code=404, detail="series not found")

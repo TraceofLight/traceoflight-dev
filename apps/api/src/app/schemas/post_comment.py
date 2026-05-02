@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.constants import CommentConstraints
 from app.models.post_comment import (
     PostCommentAuthorType,
     PostCommentStatus,
@@ -13,21 +14,43 @@ from app.models.post_comment import (
 
 
 class PostCommentCreate(BaseModel):
-    author_name: str | None = Field(default=None, max_length=24)
-    password: str | None = Field(default=None, min_length=4, max_length=64)
+    author_name: str | None = Field(
+        default=None,
+        max_length=CommentConstraints.AUTHOR_NAME_MAX_LENGTH,
+    )
+    password: str | None = Field(
+        default=None,
+        min_length=CommentConstraints.PASSWORD_MIN_LENGTH,
+        max_length=CommentConstraints.PASSWORD_MAX_LENGTH,
+    )
     visibility: PostCommentVisibility = Field(default=PostCommentVisibility.PUBLIC)
-    body: str = Field(min_length=2, max_length=2000)
+    body: str = Field(
+        min_length=CommentConstraints.BODY_MIN_LENGTH,
+        max_length=CommentConstraints.BODY_MAX_LENGTH,
+    )
     reply_to_comment_id: uuid.UUID | None = None
 
 
 class PostCommentUpdate(BaseModel):
-    password: str | None = Field(default=None, min_length=4, max_length=64)
+    password: str | None = Field(
+        default=None,
+        min_length=CommentConstraints.PASSWORD_MIN_LENGTH,
+        max_length=CommentConstraints.PASSWORD_MAX_LENGTH,
+    )
     visibility: PostCommentVisibility | None = None
-    body: str | None = Field(default=None, min_length=2, max_length=2000)
+    body: str | None = Field(
+        default=None,
+        min_length=CommentConstraints.BODY_MIN_LENGTH,
+        max_length=CommentConstraints.BODY_MAX_LENGTH,
+    )
 
 
 class PostCommentDelete(BaseModel):
-    password: str | None = Field(default=None, min_length=4, max_length=64)
+    password: str | None = Field(
+        default=None,
+        min_length=CommentConstraints.PASSWORD_MIN_LENGTH,
+        max_length=CommentConstraints.PASSWORD_MAX_LENGTH,
+    )
 
 
 class PostCommentRead(BaseModel):
