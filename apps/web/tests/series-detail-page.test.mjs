@@ -37,7 +37,7 @@ test("series detail page mounts a React admin panel while keeping the public ser
     source,
     /isAdminViewer && \([\s\S]*<SeriesAdminPanel[\s\S]*client:load/,
   );
-  assert.match(source, /\/images\/empty-series-image\.png/);
+  assert.match(source, /\/images\/empty-series-image\.png|DEFAULT_SERIES_IMAGE/);
   assert.doesNotMatch(source, /function initializeSeriesAdminControls\(\)/);
   assert.doesNotMatch(source, /createUploadBundle/);
   assert.doesNotMatch(source, /class="series-detail-h\u0065ro-card"/);

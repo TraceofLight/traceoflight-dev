@@ -25,9 +25,11 @@ test("series index page renders archive list and links to detail route", async (
 
   assert.match(source, /id="series-archive"/);
   assert.match(source, /import SeriesCard from ["']\.\.\/\.\.\/components\/SeriesCard(?:\.astro)?["']/);
+  // The series index page can rely on SeriesCard's default postCard
+  // dimensions and only pass series + fallbackCoverImageSrc.
   assert.match(
     source,
-    /<SeriesCard[\s\S]*series=\{series\}[\s\S]*imageWidth=\{960\}[\s\S]*imageHeight=\{640\}[\s\S]*fallbackCoverImageSrc=\{defaultSeriesCoverImageSrc\}[\s\S]*\/>/,
+    /<SeriesCard[\s\S]*series=\{series\}[\s\S]*fallbackCoverImageSrc=\{defaultSeriesCoverImageSrc\}[\s\S]*\/>/,
   );
   assert.match(source, /<h1[\s\S]*?>\s*Series\s*<\/h1>/);
   assert.doesNotMatch(source, /max-w-6xl/);
@@ -42,15 +44,15 @@ test("series index page renders archive list and links to detail route", async (
   );
   assert.match(cardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(cardSource, /class=\{`flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`\}/);
-  assert.match(cardSource, /imageWidth = 960/);
-  assert.match(cardSource, /imageHeight = 640/);
+  assert.match(cardSource, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
+  assert.match(cardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(cardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{[\s\S]*fit:\s*"inside"/);
   assert.match(cardSource, /<img[\s\S]*class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center/);
   assert.match(cardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(cardSource, /object-cover object-center/);
   assert.match(cardSource, /FormattedDate/);
   assert.match(cardSource, /href=\{`\/series\/\$\{series\.slug\}`\}/);
-  assert.match(source, /\/images\/empty-series-image\.png/);
+  assert.match(source, /(\/images\/empty-series-image\.png|DEFAULT_SERIES_IMAGE)/);
   assert.match(source, /TraceofLight의 다양한 이야기를 주제별로 엮은 서고/);
   assert.match(source, /<header class="space-y-4 text-center">/);
   assert.match(source, /SeriesOrderPanel/);

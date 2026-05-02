@@ -1,5 +1,6 @@
 ---
 import CoverMediaImage from "./CoverMediaImage.astro";
+import { DEFAULT_ARTICLE_IMAGE, IMAGE_SIZES } from "../consts";
 import type { PostCard as PostCardData } from "../lib/content-source";
 import {
   buildImageFallbackOnError,
@@ -23,8 +24,8 @@ interface Props {
 const {
   post,
   variant = "default",
-  imageWidth = 960,
-  imageHeight = 640,
+  imageWidth = IMAGE_SIZES.postCard.width,
+  imageHeight = IMAGE_SIZES.postCard.height,
   showVisibility = false,
 } = Astro.props;
 const normalizedVisibility = post.visibility === "private" ? "private" : "public";
@@ -34,7 +35,7 @@ const postTags = (post.tags ?? [])
   .map((tag) => tag.trim().toLowerCase())
   .filter(Boolean);
 const hasTags = postTags.length > 0;
-const fallbackCoverImage = "/images/empty-article-image.png";
+const fallbackCoverImage = DEFAULT_ARTICLE_IMAGE;
 const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   width: imageWidth,
   height: imageHeight,

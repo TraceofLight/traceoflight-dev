@@ -1,5 +1,6 @@
 ---
 import FormattedDate from "./FormattedDate.astro";
+import { DEFAULT_SERIES_IMAGE, IMAGE_SIZES } from "../consts";
 import {
   buildBrowserImageSrcSet,
   buildImageFallbackOnError,
@@ -28,11 +29,11 @@ interface Props {
 
 const {
   series,
-  imageWidth = 960,
-  imageHeight = 640,
+  imageWidth = IMAGE_SIZES.postCard.width,
+  imageHeight = IMAGE_SIZES.postCard.height,
   fallbackCoverImageSrc,
 } = Astro.props;
-const fallbackCoverImage = "/images/empty-series-image.png";
+const fallbackCoverImage = DEFAULT_SERIES_IMAGE;
 const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl(fallbackCoverImage, {
   width: imageWidth,
   height: imageHeight,

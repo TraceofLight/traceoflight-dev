@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const pagePath = new URL("../src/pages/admin/posts/new.astro", import.meta.url);
 const domPath = new URL(
   "../src/lib/admin/new-post-page/dom.ts",
   import.meta.url,
@@ -25,19 +24,34 @@ const postsApiPath = new URL(
 );
 
 test("admin writer page keeps tag input and chip list inside publish settings", async () => {
-  const source = await readFile(pagePath, "utf8");
-  const metaPanelStart = source.indexOf('id="writer-meta-panel"');
-  const publishLayerStart = source.indexOf('id="writer-publish-layer"');
-  const tagInputIndex = source.indexOf('id="post-tags"');
-  const tagChipIndex = source.indexOf('id="writer-tag-chip-list"');
-  const metaChipRailIndex = source.indexOf('id="writer-meta-chip-rail"');
+  const dialogLayersPath = new URL(
+    "../src/components/admin/post-form/DialogLayers.astro",
+    import.meta.url,
+  );
+  const metaPanelPath = new URL(
+    "../src/components/admin/post-form/MetaPanel.astro",
+    import.meta.url,
+  );
+  const [dialogLayersSource, metaPanelSource] = await Promise.all([
+    readFile(dialogLayersPath, "utf8"),
+    readFile(metaPanelPath, "utf8"),
+  ]);
 
-  assert.notEqual(metaPanelStart, -1);
+  // The meta panel only has the content kind / visibility / series fields.
+  assert.notEqual(metaPanelSource.indexOf('id="writer-meta-panel"'), -1);
+  assert.equal(metaPanelSource.indexOf('id="post-tags"'), -1);
+  assert.equal(metaPanelSource.indexOf('id="writer-tag-chip-list"'), -1);
+
+  // Tags belong to the publish dialog inside DialogLayers.
+  const publishLayerStart = dialogLayersSource.indexOf('id="writer-publish-layer"');
+  const tagInputIndex = dialogLayersSource.indexOf('id="post-tags"');
+  const tagChipIndex = dialogLayersSource.indexOf('id="writer-tag-chip-list"');
+  const metaChipRailIndex = dialogLayersSource.indexOf('id="writer-meta-chip-rail"');
+
   assert.notEqual(publishLayerStart, -1);
   assert.ok(tagInputIndex > publishLayerStart);
   assert.ok(tagChipIndex > publishLayerStart);
   assert.ok(metaChipRailIndex > publishLayerStart);
-  assert.ok(tagInputIndex > metaPanelStart);
 });
 
 test("admin writer dom/query definitions include tag elements", async () => {

@@ -90,9 +90,18 @@ test("blog post layout reuses shared cover media helpers for top media rendering
   assert.match(source, /image=\{seoImageMetadata\}/);
   assert.match(source, /imageUrl=\{seoImageUrl\}/);
   assert.match(source, /<CoverMediaImage[\s\S]*media=\{topMediaImage\}[\s\S]*alt=\{title\}/);
-  assert.match(source, /const detailCoverWidth = 1400;/);
-  assert.match(source, /const detailCoverHeight = 1000;/);
-  assert.match(source, /toBrowserImageUrl\("\/images\/empty-article-image\.png",\s*\{[\s\S]*width:\s*detailCoverWidth,[\s\S]*height:\s*detailCoverHeight,[\s\S]*fit:\s*"inside"/);
+  assert.match(
+    source,
+    /const detailCoverWidth = (?:1400|IMAGE_SIZES\.blogPostCover\.width);/,
+  );
+  assert.match(
+    source,
+    /const detailCoverHeight = (?:1000|IMAGE_SIZES\.blogPostCover\.height);/,
+  );
+  assert.match(
+    source,
+    /toBrowserImageUrl\((?:"\/images\/empty-article-image\.png"|DEFAULT_ARTICLE_IMAGE),\s*\{[\s\S]*width:\s*detailCoverWidth,[\s\S]*height:\s*detailCoverHeight,[\s\S]*fit:\s*"inside"/,
+  );
   assert.match(source, /className="mt-8 h-auto w-full rounded-3xl shadow-\[0_30px_80px_rgba\(15,23,42,0\.12\)\]"/);
   assert.match(source, /fit="inside"/);
   assert.doesNotMatch(source, /className="mt-8 aspect-\[16\/9\] w-full rounded-3xl border/);

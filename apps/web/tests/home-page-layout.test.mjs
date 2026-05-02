@@ -53,7 +53,12 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /resume\.pdf/);
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
-  assert.match(source, /<SeriesCard series=\{card\} imageWidth=\{960\} imageHeight=\{640\} \/>/);
+  // SeriesCard accepts default postCard dimensions, so the home page may pass
+  // them explicitly or rely on the component default.
+  assert.match(
+    source,
+    /<SeriesCard\s+series=\{card\}(?:\s+imageWidth=\{(?:960|IMAGE_SIZES\.postCard\.width)\}\s+imageHeight=\{(?:640|IMAGE_SIZES\.postCard\.height)\})?\s*\/>/,
+  );
   assert.match(source, /import \{ listPublishedDbPostSummaries \} from "\.\.\/lib\/blog-db";/);
   assert.doesNotMatch(source, /import \{ listPublishedDbPosts \} from "\.\.\/lib\/blog-db";/);
   assert.match(source, /import \{ listFeaturedSeries \} from "\.\.\/lib\/series-db";/);
@@ -100,7 +105,11 @@ test("home page uses tailwind sections while keeping the curated resume content"
   );
   assert.doesNotMatch(source, /featuredSeriesCards:[\s\S]*\.slice\(0,\s*3\)/);
   assert.match(source, /iconClass:\s*"theme-invert-on-light"/);
-  assert.match(source, /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width="18"/);
+  // width is bound to item.iconWidth with a default of 18.
+  assert.match(
+    source,
+    /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width=(?:"18"|\{(?:18|item\.iconWidth\s*\?\?\s*18)\})/,
+  );
   assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
   assert.doesNotMatch(source, /PUBLIC_HERO_/);
   assert.doesNotMatch(source, /"Cloud-Native Database"/);

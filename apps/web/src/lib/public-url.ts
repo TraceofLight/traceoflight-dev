@@ -1,4 +1,5 @@
 import { SITE_URL } from "../consts";
+import { getSiteUrl } from "./env";
 
 export function isLocalHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
@@ -23,7 +24,7 @@ function toPublicOrigin(candidate?: string | URL | null): URL | null {
 
 export function resolvePublicSiteOrigin(configuredSiteUrl?: string | URL | null): URL {
   return toPublicOrigin(configuredSiteUrl)
-    ?? toPublicOrigin(process.env.SITE_URL)
+    ?? toPublicOrigin(getSiteUrl())
     ?? new URL(SITE_URL);
 }
 

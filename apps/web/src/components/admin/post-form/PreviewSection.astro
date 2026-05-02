@@ -1,0 +1,35 @@
+---
+interface Props {
+  initialContentKind: "blog" | "project";
+}
+
+const { initialContentKind } = Astro.props;
+---
+
+<section class="writer-pane writer-pane-preview">
+  <div class="writer-preview-head">
+    <p class="writer-preview-kicker">Live Preview</p>
+    <h1 id="writer-preview-title"></h1>
+  </div>
+  <section id="writer-preview-meta" class="writer-preview-meta">
+    <div id="writer-preview-meta-kinds" class="writer-preview-meta-grid"></div>
+    <div id="writer-preview-meta-series" class="writer-preview-meta-block"></div>
+    <div
+      id="writer-preview-meta-project"
+      class="writer-preview-meta-block"
+      hidden={initialContentKind !== "project"}
+    ></div>
+    <div
+      id="writer-preview-meta-highlights"
+      class="writer-preview-meta-block"
+      hidden={initialContentKind !== "project"}
+    ></div>
+    <div
+      id="writer-preview-meta-links"
+      class="writer-preview-meta-block"
+      hidden={initialContentKind !== "project"}
+    ></div>
+  </section>
+  <article id="writer-preview-content" class="writer-preview-content">
+  </article>
+</section>

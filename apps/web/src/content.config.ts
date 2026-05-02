@@ -2,9 +2,11 @@ import { existsSync, readdirSync } from "node:fs";
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
+import { MD_EXT_RE } from "./lib/patterns";
+
 const blogContentRoot = new URL("./content/blog/", import.meta.url);
 const hasBlogEntries = existsSync(blogContentRoot) && readdirSync(blogContentRoot, { recursive: true }).some((entry) =>
-	typeof entry === "string" && /\.(md|mdx)$/i.test(entry),
+	typeof entry === "string" && MD_EXT_RE.test(entry),
 );
 
 const blog = defineCollection({

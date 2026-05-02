@@ -2,7 +2,14 @@
 import BlogArchiveFilters, {
   type BlogArchivePost,
 } from "../../components/public/BlogArchiveFilters";
-import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
+import {
+  DEFAULT_ARTICLE_IMAGE,
+  IMAGE_SIZES,
+  PAGINATION,
+  SITE_AUTHOR,
+  SITE_TITLE,
+  SITE_URL,
+} from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { listPublishedDbPostSummaryPage } from "../../lib/blog-db";
@@ -18,7 +25,8 @@ import { formatReadingTimeLabel } from "../../lib/reading-time";
 const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
-const ARCHIVE_PAGE_SIZE = 24;
+const ARCHIVE_PAGE_SIZE = PAGINATION.ARCHIVE_PAGE_SIZE;
+const POST_CARD_IMAGE_SIZE = IMAGE_SIZES.postCard;
 const selectedTagsFromQuery = Astro.url.searchParams
   .getAll("tag")
   .map((value) => value.trim().toLowerCase())
@@ -104,7 +112,7 @@ function resolveCoverImageSrc(
   height: number,
 ) {
   if (!post.coverMedia) {
-    return toBrowserImageUrl("/images/empty-article-image.png", {
+    return toBrowserImageUrl(DEFAULT_ARTICLE_IMAGE, {
       width,
       height,
       fit: "inside",
@@ -128,7 +136,11 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
   publishedAtValue: post.pubDate.valueOf(),
   commentCount: post.commentCount ?? 0,
   readingLabel: post.readingLabel ?? formatReadingTimeLabel(post.body ?? ""),
-  coverImageSrc: resolveCoverImageSrc(post, 960, 640),
+  coverImageSrc: resolveCoverImageSrc(
+    post,
+    POST_CARD_IMAGE_SIZE.width,
+    POST_CARD_IMAGE_SIZE.height,
+  ),
 }));
 ---
 

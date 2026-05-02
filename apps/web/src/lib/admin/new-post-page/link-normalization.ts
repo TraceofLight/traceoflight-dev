@@ -1,3 +1,5 @@
+import { ABSOLUTE_URL_RE } from "../../patterns";
+
 function tryDecodeUrlParam(value: string): string {
   try {
     return decodeURIComponent(value);
@@ -90,7 +92,7 @@ function normalizeMarkdownLinkTarget(
   }
 
   if (LINK_SCHEME_PATTERN.test(compactUrl)) {
-    if (!/^https?:\/\//i.test(compactUrl)) return compactUrl;
+    if (!ABSOLUTE_URL_RE.test(compactUrl)) return compactUrl;
     return normalizeCoverUrl(compactUrl, pageProtocol).value;
   }
 

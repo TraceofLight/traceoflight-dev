@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DEFAULT_SERIES_IMAGE } from "@/consts";
 import { PUBLIC_SURFACE_ACTION_CLASS } from "@/lib/ui-effects";
 import type { SeriesSummary } from "@/lib/series-db";
 import CollectionOrderList, { type OrderableCollectionItem } from "./CollectionOrderList";
@@ -126,7 +127,7 @@ export function SeriesOrderPanel({ series }: SeriesOrderPanelProps) {
           </DialogDescription>
         </DialogHeader>
         <CollectionOrderList
-          defaultCoverImage="/images/empty-series-image.png"
+          defaultCoverImage={DEFAULT_SERIES_IMAGE}
           emptyMessage="정렬할 시리즈가 없습니다."
           itemLabel="시리즈"
           items={items}

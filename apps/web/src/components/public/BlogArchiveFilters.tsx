@@ -3,6 +3,7 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DEFAULT_ARTICLE_IMAGE, IMAGE_SIZES } from "@/consts";
 import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
 import {
@@ -173,9 +174,9 @@ function mergeUniquePosts(
   return merged;
 }
 
-const fallbackCoverImageSrc = toBrowserImageUrl("/images/empty-article-image.png", {
-  width: 960,
-  height: 640,
+const fallbackCoverImageSrc = toBrowserImageUrl(DEFAULT_ARTICLE_IMAGE, {
+  width: IMAGE_SIZES.postCard.width,
+  height: IMAGE_SIZES.postCard.height,
   fit: "inside",
 });
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;

@@ -1,3 +1,5 @@
+import { ABSOLUTE_URL_RE } from "./patterns";
+
 const DEFAULT_BACKEND_API_URL = 'http://traceoflight-api:6654/api/v1';
 
 type BackendRequestInit = RequestInit & {
@@ -25,7 +27,7 @@ export function resolveBackendAssetUrl(path: string | undefined): string | undef
     return undefined;
   }
 
-  if (/^https?:\/\//i.test(normalizedPath)) {
+  if (ABSOLUTE_URL_RE.test(normalizedPath)) {
     const parsed = new URL(normalizedPath);
     const backendBaseUrl = new URL(getBackendApiBaseUrl());
     if (parsed.pathname.startsWith("/media/") && parsed.host === backendBaseUrl.host) {

@@ -41,7 +41,10 @@ test("blog archive page mounts a React filter island and passes server data", as
   assert.match(islandSource, /return `\/internal-api\/posts\/summary\?\$\{params\.toString\(\)\}`;/);
   assert.match(pageSource, /toBrowserImageUrl\(/);
   assert.match(pageSource, /commentCount: post\.commentCount \?\? 0,/);
-  assert.match(pageSource, /coverImageSrc: resolveCoverImageSrc\(post,\s*960,\s*640\)/);
+  assert.match(
+    pageSource,
+    /coverImageSrc: resolveCoverImageSrc\([\s\S]*post,[\s\S]*POST_CARD_IMAGE_SIZE\.width,[\s\S]*POST_CARD_IMAGE_SIZE\.height,?[\s\S]*\)/,
+  );
 });
 
 test("blog archive filter island provides search, sort, and admin visibility controls", async () => {
@@ -116,7 +119,7 @@ test("post card uses a wide image-led public card structure", async () => {
     source,
     /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
   );
-  assert.match(source, /imageWidth = 960/);
+  assert.match(source, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
   assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);

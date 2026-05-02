@@ -1,0 +1,116 @@
+---
+type ContentKind = "blog" | "project";
+type Visibility = "public" | "private";
+
+interface Props {
+  initialContentKind: ContentKind;
+  initialVisibility?: Visibility;
+  initialSeriesTitle?: string;
+  initialProjectPeriod?: string;
+  initialProjectRole?: string;
+  initialProjectIntro?: string;
+  initialProjectHighlights?: string;
+  initialProjectLinks?: string;
+  /** When true, render the `selected` markup on options to match the
+   * pre-existing edit page output. */
+  preselectOptions?: boolean;
+}
+
+const {
+  initialContentKind,
+  initialVisibility = "public",
+  initialSeriesTitle = "",
+  initialProjectPeriod = "",
+  initialProjectRole = "",
+  initialProjectIntro = "",
+  initialProjectHighlights = "",
+  initialProjectLinks = "",
+  preselectOptions = false,
+} = Astro.props;
+
+const seriesValueAttr = initialSeriesTitle.length > 0 ? initialSeriesTitle : undefined;
+const periodValueAttr = initialProjectPeriod.length > 0 ? initialProjectPeriod : undefined;
+const roleValueAttr = initialProjectRole.length > 0 ? initialProjectRole : undefined;
+---
+
+<div class="writer-meta-panel-wrap">
+  <aside
+    id="writer-meta-panel"
+    class="writer-pane writer-pane-meta"
+    data-content-kind={initialContentKind}
+  >
+    <div class="writer-meta-head">
+      <h2>작성 설정</h2>
+    </div>
+    <div class="writer-meta-body">
+    <label class="writer-field">
+      <span>콘텐츠 타입</span>
+      {preselectOptions ? (
+        <select id="post-content-kind" name="content_kind">
+          <option value="blog" selected={initialContentKind === "blog"}>Blog</option>
+          <option value="project" selected={initialContentKind === "project"}>Project</option>
+        </select>
+      ) : (
+        <select id="post-content-kind" name="content_kind">
+          <option value="blog">Blog</option>
+          <option value="project">Project</option>
+        </select>
+      )}
+    </label>
+    <label class="writer-field">
+      <span>공개 범위</span>
+      {preselectOptions ? (
+        <select id="post-visibility" name="visibility">
+          <option value="public" selected={initialVisibility === "public"}>Public</option>
+          <option value="private" selected={initialVisibility === "private"}>Private</option>
+        </select>
+      ) : (
+        <select id="post-visibility" name="visibility">
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+      )}
+    </label>
+    <label class="writer-field">
+      <span>시리즈</span>
+      <input
+        id="post-series"
+        name="series"
+        type="text"
+        list="writer-series-suggestions"
+        placeholder="시리즈 이름 입력 (선택)"
+        value={seriesValueAttr}
+      />
+      <datalist id="writer-series-suggestions"></datalist>
+    </label>
+
+    <section
+      id="writer-project-fields"
+      class="writer-project-grid"
+      hidden={initialContentKind !== "project"}
+      data-content-kind={initialContentKind}
+    >
+      <label class="writer-field">
+        <span>프로젝트 작업 기간</span>
+        <input id="project-period" type="text" placeholder="2026.03 - ongoing" value={periodValueAttr} />
+      </label>
+      <label class="writer-field">
+        <span>프로젝트 역할 요약</span>
+        <input id="project-role-summary" type="text" placeholder="Lead developer" value={roleValueAttr} />
+      </label>
+      <label class="writer-field writer-field-span-2">
+        <span>프로젝트 소개</span>
+        <textarea id="project-intro" rows="2" placeholder="프로젝트 소개 문구를 입력하세요">{initialProjectIntro}</textarea>
+      </label>
+      <label class="writer-field writer-field-span-2">
+        <span>주요 항목</span>
+        <textarea id="project-highlights" rows="5" placeholder="한 줄에 하나씩 입력">{initialProjectHighlights}</textarea>
+      </label>
+      <label class="writer-field writer-field-span-2">
+        <span>관련 링크</span>
+        <textarea id="project-resource-links" rows="4" placeholder="GitHub | https://github.com/...">{initialProjectLinks}</textarea>
+      </label>
+    </section>
+    </div>
+  </aside>
+</div>

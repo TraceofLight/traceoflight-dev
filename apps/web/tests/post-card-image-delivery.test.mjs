@@ -326,7 +326,7 @@ test("post card uses a toss-team-like wide media block and fully filled imagery"
 
   assert.match(source, /PUBLIC_HOVER_CARD_CLASS/);
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
-  assert.match(source, /imageHeight = 640/);
+  assert.match(source, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(source, /sizes="\(max-width: 768px\) 100vw, \(max-width: 1280px\) 50vw, 33vw"/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);

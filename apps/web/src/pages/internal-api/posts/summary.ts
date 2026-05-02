@@ -1,14 +1,15 @@
 import type { APIRoute } from "astro";
 
+import { DEFAULT_ARTICLE_IMAGE, IMAGE_SIZES } from "../../../consts";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { listPublishedDbPostSummaryPage } from "../../../lib/blog-db";
 import { toBrowserImageUrl } from "../../../lib/cover-media";
 
 export const prerender = false;
 
-const FALLBACK_COVER_IMAGE_SRC = toBrowserImageUrl("/images/empty-article-image.png", {
-  width: 960,
-  height: 640,
+const FALLBACK_COVER_IMAGE_SRC = toBrowserImageUrl(DEFAULT_ARTICLE_IMAGE, {
+  width: IMAGE_SIZES.postCard.width,
+  height: IMAGE_SIZES.postCard.height,
   fit: "inside",
 });
 

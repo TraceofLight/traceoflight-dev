@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DEFAULT_SERIES_IMAGE } from "@/consts";
 import { PUBLIC_SURFACE_ACTION_CLASS } from "@/lib/ui-effects";
 import type { ProjectItem } from "@/lib/projects";
 import CollectionOrderList, { type OrderableCollectionItem } from "./CollectionOrderList";
@@ -130,7 +131,7 @@ export function ProjectOrderPanel({ projects }: ProjectOrderPanelProps) {
           </DialogDescription>
         </DialogHeader>
         <CollectionOrderList
-          defaultCoverImage="/images/empty-series-image.png"
+          defaultCoverImage={DEFAULT_SERIES_IMAGE}
           emptyMessage="정렬할 프로젝트가 없습니다."
           itemLabel="프로젝트"
           items={items}

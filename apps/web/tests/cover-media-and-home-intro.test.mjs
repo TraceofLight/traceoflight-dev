@@ -58,7 +58,10 @@ test("placeholder images also route through browser-sized cover image URLs", asy
 
   assert.match(postCardSource, /toBrowserImageUrl\(fallbackCoverImage,\s*\{/);
   assert.match(postCardSource, /fit:\s*"inside"/);
-  assert.match(blogIndexSource, /toBrowserImageUrl\(["']\/images\/empty-article-image\.png["']/);
+  assert.match(
+    blogIndexSource,
+    /toBrowserImageUrl\((?:["']\/images\/empty-article-image\.png["']|DEFAULT_ARTICLE_IMAGE)/,
+  );
   assert.match(blogIndexSource, /fit:\s*"inside"/);
   assert.match(seriesIndexSource, /toBrowserImageUrl\(defaultSeriesCoverImage,\s*\{/);
   assert.match(seriesIndexSource, /fit:\s*"cover"/);
@@ -122,7 +125,7 @@ test("series cards and sidebars route db cover images through browser-sized urls
   assert.match(seriesCardSource, /const resolvedCoverImageSrc = series\.coverImageUrl[\s\S]*\?/);
   assert.match(seriesCardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{/);
   assert.match(seriesCardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
-  assert.match(seriesCardSource, /imageHeight = 640/);
+  assert.match(seriesCardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(seriesCardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(seriesCardSource, /src=\{resolvedCoverImageSrc\}/);
   assert.match(seriesDetailSource, /const resolvedSeriesCoverImageSrc = series\?\.coverImageUrl[\s\S]*\?/);

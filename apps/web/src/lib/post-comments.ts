@@ -54,3 +54,45 @@ export interface AdminCommentFeed {
   total_count: number;
   items: AdminCommentFeedItem[];
 }
+
+const EMPTY_COMMENT_THREAD_LIST: PostCommentThreadList = {
+  comment_count: 0,
+  items: [],
+};
+
+/**
+ * Returns a stable empty thread list. Used as the initial-state fallback
+ * when comments cannot be fetched on the server.
+ */
+export function emptyPostCommentThreadList(): PostCommentThreadList {
+  return EMPTY_COMMENT_THREAD_LIST;
+}
+
+/**
+ * Server-side fetch of the initial comments for a post detail page.
+ * Routes through the authenticated `requestBackend` when the viewer is
+ * an admin (so private comments are visible) and the public proxy
+ * otherwise. Any failure resolves to an empty thread list.
+ */
+export async function fetchInitialPostComments(
+  postSlug: string,
+  options: { includePrivate: boolean },
+): Promise<PostCommentThreadList> {
+  // Imports are scoped here to avoid pulling backend client modules into
+  // bundles that only need the comment types.
+  const { buildBackendApiUrl, requestBackend } = await import("./backend-api");
+
+  const path = `/posts/${encodeURIComponent(postSlug)}/comments`;
+  try {
+    const response = options.includePrivate
+      ? await requestBackend(path)
+      : await fetch(buildBackendApiUrl(path), { cache: "no-store" });
+
+    if (response.status === 404 || !response.ok) {
+      return EMPTY_COMMENT_THREAD_LIST;
+    }
+    return (await response.json()) as PostCommentThreadList;
+  } catch {
+    return EMPTY_COMMENT_THREAD_LIST;
+  }
+}

@@ -8,6 +8,7 @@ import sharp from "sharp";
 
 import { SITE_URL } from "../../../consts";
 import { getBackendApiBaseUrl } from "../../../lib/backend-api";
+import { getSiteUrl } from "../../../lib/env";
 
 export const prerender = false;
 
@@ -133,7 +134,7 @@ function buildAllowedRemoteHosts(requestOrigin: string): Set<string> {
   for (const hostname of ALLOWED_REMOTE_IMAGE_HOSTS) {
     addHostWithVariants(allowedHosts, hostname);
   }
-  const originCandidates = [requestOrigin, process.env.SITE_URL?.trim() || SITE_URL];
+  const originCandidates = [requestOrigin, getSiteUrl() || SITE_URL];
 
   const backendAssetOrigin = (() => {
     try {
@@ -163,7 +164,7 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
   }
 
   const requestOrigin = new URL(request.url).origin;
-  const configuredSiteOrigin = process.env.SITE_URL?.trim() || SITE_URL;
+  const configuredSiteOrigin = getSiteUrl() || SITE_URL;
   const backendAssetOrigin = (() => {
     try {
       return new URL(getBackendApiBaseUrl()).origin;

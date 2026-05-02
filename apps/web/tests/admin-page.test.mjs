@@ -16,11 +16,17 @@ const editWriterPath = new URL(
 );
 
 test("admin dashboard route is removed and writer back links fall back to public sections", async () => {
-  const [adminIndexSource, newWriterSource, editWriterSource] = await Promise.all([
-    readFile(adminIndexPath, "utf8"),
-    readFile(newWriterPath, "utf8"),
-    readFile(editWriterPath, "utf8"),
-  ]);
+  const editorSectionPath = new URL(
+    "../src/components/admin/post-form/EditorSection.astro",
+    import.meta.url,
+  );
+  const [adminIndexSource, newWriterSource, editWriterSource, editorSectionSource] =
+    await Promise.all([
+      readFile(adminIndexPath, "utf8"),
+      readFile(newWriterPath, "utf8"),
+      readFile(editWriterPath, "utf8"),
+      readFile(editorSectionPath, "utf8"),
+    ]);
 
   assert.match(adminIndexSource, /import AdminImportsPanel from "\.\.\/\.\.\/components\/public\/AdminImportsPanel";/);
   assert.match(adminIndexSource, /<AdminImportsPanel/);
@@ -33,8 +39,11 @@ test("admin dashboard route is removed and writer back links fall back to public
     editWriterSource,
     /const fallbackBackHref = initialContentKind === "project" \? "\/projects\/" : "\/blog\/";/,
   );
-  assert.match(newWriterSource, /href=\{backHref\}/);
-  assert.match(editWriterSource, /href=\{backHref\}/);
-  assert.doesNotMatch(newWriterSource, /href="\/admin"/);
-  assert.doesNotMatch(editWriterSource, /href="\/admin"/);
+  // The back link now lives inside the shared EditorSection component which
+  // both the new and edit pages render.
+  assert.match(newWriterSource, /backHref=\{backHref\}|href=\{backHref\}/);
+  assert.match(editWriterSource, /backHref=\{backHref\}|href=\{backHref\}/);
+  assert.match(editorSectionSource, /href=\{backHref\}/);
+  assert.doesNotMatch(adminIndexSource, /href="\/admin"/);
+  assert.doesNotMatch(editorSectionSource, /href="\/admin"/);
 });

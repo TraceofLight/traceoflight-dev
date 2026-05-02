@@ -1,5 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 
+import { INTERNAL_API_ORIGIN_HOSTS } from "./consts";
 import {
   ADMIN_ACCESS_COOKIE,
   ADMIN_REFRESH_COOKIE,
@@ -8,6 +9,7 @@ import {
   setAdminAuthCookies,
   verifyAccessToken,
 } from "./lib/admin-auth";
+import { getSiteUrl } from "./lib/env";
 import { buildPublicCanonicalUrl } from "./lib/public-url";
 
 const SECURITY_HEADERS = {
@@ -76,11 +78,8 @@ const FORM_LIKE_CONTENT_TYPES = [
 ];
 
 function buildAllowedInternalApiOrigins(): Set<string> {
-  const origins = new Set<string>([
-    "https://traceoflight.dev",
-    "https://www.traceoflight.dev",
-  ]);
-  const configuredSiteUrl = process.env.SITE_URL?.trim() ?? "";
+  const origins = new Set<string>(INTERNAL_API_ORIGIN_HOSTS);
+  const configuredSiteUrl = getSiteUrl();
   if (!configuredSiteUrl) {
     return origins;
   }

@@ -53,7 +53,13 @@ test("public shell avoids known console-noise regressions", async () => {
   assert.doesNotMatch(baseHeadSource, /PretendardVariable\.woff2/);
   assert.doesNotMatch(baseHeadSource, /meta name="generator"/);
   assert.doesNotMatch(tokensCssSource, /woff2-variations/);
-  assert.match(tokensCssSource, /src:\s*url\('\/fonts\/PretendardVariable\.woff2'\)\s*format\('woff2'\)/);
+  // Pretendard @font-face was moved out of tokens.css into the dynamic-subset
+  // stylesheet linked from BaseHead.astro for unicode-range chunked loading.
+  assert.match(
+    baseHeadSource,
+    /href="\/fonts\/pretendard\/pretendardvariable-dynamic-subset\.css"/,
+  );
+  assert.match(tokensCssSource, /pretendardvariable-dynamic-subset\.css/);
   assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
   assert.match(baseLayoutSource, /<FloatingUtilityButtons client:idle \/>/);
   assert.doesNotMatch(baseLayoutSource, /transition:persist/);

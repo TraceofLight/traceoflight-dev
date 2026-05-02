@@ -12,3 +12,37 @@ export const NAV_LINKS = [
 ] as const;
 
 export const GITHUB_URL = 'https://github.com/TraceofLight';
+
+/**
+ * Public asset paths used as fallbacks when no cover image is provided.
+ */
+export const DEFAULT_SERIES_IMAGE = '/images/empty-series-image.png';
+export const DEFAULT_ARTICLE_IMAGE = '/images/empty-article-image.png';
+
+/**
+ * Standard image dimensions (width × height) used for SSR-rendered cover
+ * images on detail and listing pages.
+ */
+export const IMAGE_SIZES = {
+  postCard: { width: 960, height: 640 },
+  blogPostCover: { width: 1400, height: 1000 },
+  seriesCover: { width: 960, height: 720 },
+  seriesSidebarThumb: { width: 224, height: 126 },
+} as const;
+
+/**
+ * Pagination defaults shared across archive pages.
+ */
+export const PAGINATION = {
+  ARCHIVE_PAGE_SIZE: 24,
+} as const;
+
+/**
+ * Hostnames that are accepted as the origin for unsafe internal-api calls
+ * coming from the browser. Used by the request middleware to validate
+ * cross-site form submissions.
+ */
+export const INTERNAL_API_ORIGIN_HOSTS = [
+  'https://traceoflight.dev',
+  'https://www.traceoflight.dev',
+] as const;

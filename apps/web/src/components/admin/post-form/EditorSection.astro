@@ -1,0 +1,62 @@
+---
+interface Props {
+  backHref: string;
+}
+
+const { backHref } = Astro.props;
+---
+
+<section class="writer-pane writer-pane-editor">
+  <div
+    id="writer-editor-drop-zone"
+    class="writer-editor-shell"
+    data-drop-state="idle"
+    data-has-content="false"
+  >
+    <div class="writer-editor-drop-indicator" aria-hidden="true">
+      <p class="writer-editor-drop-title">
+        Drop media to insert into body
+      </p>
+      <p class="writer-editor-drop-caption">
+        Images and videos are uploaded and inserted at the end.
+      </p>
+    </div>
+    <div id="milkdown-editor" class="milkdown-editor"></div>
+  </div>
+</section>
+
+<div id="writer-bottom-bar" class="writer-bottom-bar">
+  <div class="writer-bottom-left">
+    <a class="writer-bottom-back" href={backHref}>뒤로가기</a>
+    <button
+      id="writer-open-drafts"
+      class="writer-bottom-back writer-bottom-drafts"
+      type="button">저장목록</button
+    >
+  </div>
+  <div class="writer-bottom-actions">
+    <button
+      id="writer-toggle-compact-view"
+      class="writer-action writer-action-muted writer-compact-toggle"
+      type="button"
+      aria-pressed="false"
+    >
+      미리보기
+    </button>
+    <button
+      id="writer-save-draft"
+      class="writer-action writer-action-muted"
+      type="submit"
+      data-submit-status="draft"
+    >
+      저장
+    </button>
+    <button
+      id="writer-open-publish"
+      class="writer-action writer-action-primary"
+      type="button"
+    >
+      출간
+    </button>
+  </div>
+</div>

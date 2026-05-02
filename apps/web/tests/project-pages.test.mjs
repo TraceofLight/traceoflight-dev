@@ -36,9 +36,18 @@ test("project card and list page use the new public card shell", async () => {
   );
   assert.match(cardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(cardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
-  assert.match(cardSource, /imageWidth = 960/);
-  assert.match(cardSource, /imageHeight = 640/);
-  assert.match(cardSource, /toBrowserImageUrl\(project\.coverImageUrl \?\? fallbackCoverImage,\s*\{/);
+  assert.match(cardSource, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
+  assert.match(cardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
+  // The card may pass project.coverImageUrl directly or via a coverImageSource
+  // intermediate variable for srcset reuse.
+  assert.match(
+    cardSource,
+    /toBrowserImageUrl\((?:project\.coverImageUrl \?\? fallbackCoverImage|coverImageSource),\s*\{/,
+  );
+  assert.match(
+    cardSource,
+    /(?:project\.coverImageUrl \?\? fallbackCoverImage|const coverImageSource = project\.coverImageUrl \?\? fallbackCoverImage)/,
+  );
   assert.match(cardSource, /fit:\s*"inside"/);
   assert.match(cardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(cardSource, /!h-full !w-full !max-w-none object-cover object-center/);

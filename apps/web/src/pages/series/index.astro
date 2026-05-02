@@ -1,7 +1,13 @@
 ---
 import SeriesCard from "../../components/SeriesCard.astro";
 import SeriesOrderPanel from "../../components/public/SeriesOrderPanel";
-import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
+import {
+  DEFAULT_SERIES_IMAGE,
+  IMAGE_SIZES,
+  SITE_AUTHOR,
+  SITE_TITLE,
+  SITE_URL,
+} from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { toBrowserImageUrl } from "../../lib/cover-media";
@@ -9,10 +15,10 @@ import { listSeries } from "../../lib/series-db";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
-const defaultSeriesCoverImage = "/images/empty-series-image.png";
+const defaultSeriesCoverImage = DEFAULT_SERIES_IMAGE;
 const defaultSeriesCoverImageSrc = toBrowserImageUrl(defaultSeriesCoverImage, {
-  width: 960,
-  height: 640,
+  width: IMAGE_SIZES.postCard.width,
+  height: IMAGE_SIZES.postCard.height,
   fit: "cover",
 });
 

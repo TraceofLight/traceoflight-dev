@@ -1,0 +1,19 @@
+---
+interface Props {
+  initialTitle?: string;
+}
+
+const { initialTitle = "" } = Astro.props;
+const titleValueAttr = initialTitle.length > 0 ? initialTitle : undefined;
+---
+
+<div class="writer-title-area">
+  <input
+    id="post-title"
+    name="title"
+    class="writer-title-input"
+    type="text"
+    placeholder="제목을 입력하세요"
+    value={titleValueAttr}
+  />
+</div>

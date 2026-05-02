@@ -1,5 +1,9 @@
 ---
-import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
+import {
+  DEFAULT_SERIES_IMAGE,
+  SITE_AUTHOR,
+  SITE_TITLE,
+} from "../../consts";
 import PostAdminActions from "../../components/public/PostAdminActions";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostCard from "../../components/PostCard.astro";
@@ -14,6 +18,7 @@ import {
   PUBLIC_SURFACE_ACTION_CLASS,
 } from "../../lib/ui-effects";
 import { toYoutubeEmbedUrl } from "../../lib/youtube";
+import { buildProjectCreativeWorkSchema } from "../../lib/seo/structured-data";
 
 const slug = Astro.params.slug ?? "";
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
@@ -37,55 +42,14 @@ if (!project) {
   Astro.response.status = 404;
 }
 
-const canonicalProjectUrl = project
-  ? new URL(`/projects/${project.slug}`, SITE_URL).toString()
-  : undefined;
-const projectCoverImageAbsoluteUrl = project?.coverImageUrl
-  ? new URL(project.coverImageUrl, SITE_URL).toString()
-  : project?.topMediaImageUrl
-    ? new URL(project.topMediaImageUrl, SITE_URL).toString()
-    : undefined;
 const projectStructuredData = project
-  ? {
-      "@context": "https://schema.org",
-      "@type": "CreativeWork",
-      name: project.title,
-      headline: project.title,
-      description: project.summary,
-      url: canonicalProjectUrl,
-      mainEntityOfPage: canonicalProjectUrl,
-      inLanguage: "ko-KR",
-      ...(project.stack.length > 0 ? { keywords: project.stack.join(", ") } : {}),
-      author: {
-        "@type": "Person",
-        name: SITE_AUTHOR,
-        url: SITE_URL,
-      },
-      ...(projectCoverImageAbsoluteUrl ? { image: [projectCoverImageAbsoluteUrl] } : {}),
-      breadcrumb: {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          {
-            "@type": "ListItem",
-            position: 1,
-            name: "Home",
-            item: new URL("/", SITE_URL).toString(),
-          },
-          {
-            "@type": "ListItem",
-            position: 2,
-            name: "Projects",
-            item: new URL("/projects", SITE_URL).toString(),
-          },
-          {
-            "@type": "ListItem",
-            position: 3,
-            name: project.title,
-            item: canonicalProjectUrl,
-          },
-        ],
-      },
-    }
+  ? buildProjectCreativeWorkSchema({
+      slug: project.slug,
+      title: project.title,
+      summary: project.summary,
+      stack: project.stack,
+      coverImageUrl: project.coverImageUrl ?? project.topMediaImageUrl ?? undefined,
+    })
   : undefined;
 ---
 
@@ -179,7 +143,7 @@ const projectStructuredData = project
                 class="aspect-[16/9] h-full w-full object-cover"
                 height={780}
                 loading="lazy"
-                src={project.topMediaImageUrl ?? project.coverImageUrl ?? "/images/empty-series-image.png"}
+                src={project.topMediaImageUrl ?? project.coverImageUrl ?? DEFAULT_SERIES_IMAGE}
                 width={1400}
               />
             )

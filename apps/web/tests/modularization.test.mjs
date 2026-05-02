@@ -61,7 +61,10 @@ test("component stylesheet is split by domain modules", async () => {
   await exists("src/styles/components/writer.css");
 
   const componentsCss = await read("src/styles/components.css");
-  assert.match(componentsCss, /@import ["']\.\/components\/writer\.css["'];/);
+  // writer.css is admin-only and is loaded explicitly by AdminWriterLayout
+  // rather than being imported into the global component stylesheet.
+  assert.doesNotMatch(componentsCss, /@import ["']\.\/components\/writer\.css["'];/);
+  assert.match(componentsCss, /writer\.css is admin-only/);
   assert.doesNotMatch(
     componentsCss,
     /@import ["']\.\/components\/common\.css["'];/,

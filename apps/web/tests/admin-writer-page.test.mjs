@@ -20,10 +20,44 @@ const stylePath = new URL(
   "../src/styles/components/writer.css",
   import.meta.url,
 );
+const titleInputPath = new URL(
+  "../src/components/admin/post-form/TitleInput.astro",
+  import.meta.url,
+);
+const metaPanelPath = new URL(
+  "../src/components/admin/post-form/MetaPanel.astro",
+  import.meta.url,
+);
+const editorSectionPath = new URL(
+  "../src/components/admin/post-form/EditorSection.astro",
+  import.meta.url,
+);
+const previewSectionPath = new URL(
+  "../src/components/admin/post-form/PreviewSection.astro",
+  import.meta.url,
+);
+const dialogLayersPath = new URL(
+  "../src/components/admin/post-form/DialogLayers.astro",
+  import.meta.url,
+);
 const readWriterStyles = () => readCssModule(stylePath);
 
+// Reads the writer page along with every shared post-form component so
+// guard assertions can match markup that was extracted into sub-files.
+async function readWriterMarkup(rootPath) {
+  const sources = await Promise.all([
+    readFile(rootPath, "utf8"),
+    readFile(titleInputPath, "utf8"),
+    readFile(metaPanelPath, "utf8"),
+    readFile(editorSectionPath, "utf8"),
+    readFile(previewSectionPath, "utf8"),
+    readFile(dialogLayersPath, "utf8"),
+  ]);
+  return sources.join("\n\n/* --- component boundary --- */\n\n");
+}
+
 test("admin writer page renders post form shell", async () => {
-  const source = await readFile(pagePath, "utf8");
+  const source = await readWriterMarkup(pagePath);
 
   assert.match(source, /id="admin-post-form"/);
   assert.match(source, /id="milkdown-editor"/);
@@ -68,7 +102,7 @@ test("admin writer page bootstraps writer module", async () => {
 });
 
 test("admin writer edit page keeps the project publish fields", async () => {
-  const source = await readFile(editPagePath, "utf8");
+  const source = await readWriterMarkup(editPagePath);
 
   assert.match(source, /id="writer-open-drafts"[\s\S]*>저장목록<\/button/);
   assert.doesNotMatch(source, /id="writer-open-drafts"[\s\S]*>임시저장<\/button/);
@@ -107,7 +141,7 @@ test("admin writer layout preloads milkdown theme css statically", async () => {
 });
 
 test("admin writer page has split editor and preview layout", async () => {
-  const source = await readFile(pagePath, "utf8");
+  const source = await readWriterMarkup(pagePath);
   const metaPanelMatch = source.match(
     /<aside[\s\S]*?id="writer-meta-panel"[\s\S]*?<\/aside>/,
   );
