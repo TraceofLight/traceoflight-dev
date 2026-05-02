@@ -76,7 +76,7 @@ def test_posts_summary_endpoint_returns_list_metadata_without_body_markdown() ->
     app.dependency_overrides[get_post_service] = lambda: service
     client = TestClient(app)
 
-    response = client.get("/api/v1/posts/summary?limit=12&offset=24&query=astro&tag=astro")
+    response = client.get("/api/v1/web-service/posts/summary?limit=12&offset=24&query=astro&tag=astro")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -102,7 +102,7 @@ def test_posts_summary_endpoint_accepts_content_kind_query() -> None:
     app.dependency_overrides[get_post_service] = lambda: service
     client = TestClient(app)
 
-    response = client.get("/api/v1/posts/summary?content_kind=blog")
+    response = client.get("/api/v1/web-service/posts/summary?content_kind=blog")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200

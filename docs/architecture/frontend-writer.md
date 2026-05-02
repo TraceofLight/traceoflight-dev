@@ -167,7 +167,7 @@ Writer page: `/admin/posts/new`
 Internal API routes delegate to backend through `requestBackend()`:
 
 - base URL from `API_BASE_URL`
-- fallback: `http://traceoflight-api:6654/api/v1`
+- fallback: `http://traceoflight-api:6654/api/v1/web-service`
 - `cache: no-store` default
 
 This keeps browser clients from directly coupling to backend host/port.
@@ -187,7 +187,7 @@ This keeps browser clients from directly coupling to backend host/port.
 `apps/web/docker-compose.yml` additionally sets:
 
 - `CONTENT_PROVIDER=db`
-- `API_BASE_URL=http://traceoflight-api:6654/api/v1`
+- `API_BASE_URL=http://traceoflight-api:6654/api/v1/web-service`
 
 ## Tests and Verification
 

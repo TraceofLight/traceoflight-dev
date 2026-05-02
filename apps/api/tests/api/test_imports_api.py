@@ -39,12 +39,12 @@ def test_snapshot_endpoints_are_not_available(monkeypatch) -> None:
     headers = {"x-internal-api-secret": "test-shared-secret"}
 
     velog_response = client.post(
-        "/api/v1/imports/snapshots/velog",
+        "/api/v1/web-service/imports/snapshots/velog",
         json={"username": "traceoflight"},
         headers=headers,
     )
     job_response = client.post(
-        "/api/v1/imports/snapshots/snapshot-1/jobs",
+        "/api/v1/web-service/imports/snapshots/snapshot-1/jobs",
         json={"mode": "apply"},
         headers=headers,
     )
@@ -59,9 +59,9 @@ def test_backup_endpoints_require_internal_secret(monkeypatch) -> None:
     service = _StubImportService()
     client = _client_with_service(service)
 
-    download_response = client.get("/api/v1/imports/backups/posts.zip")
+    download_response = client.get("/api/v1/web-service/imports/backups/posts.zip")
     load_response = client.post(
-        "/api/v1/imports/backups/load",
+        "/api/v1/web-service/imports/backups/load",
         files={"file": ("backup.zip", b"zip-data", "application/zip")},
     )
 
@@ -77,9 +77,9 @@ def test_download_and_load_backup_with_internal_secret(monkeypatch) -> None:
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
 
-    download_response = client.get("/api/v1/imports/backups/posts.zip", headers=headers)
+    download_response = client.get("/api/v1/web-service/imports/backups/posts.zip", headers=headers)
     load_response = client.post(
-        "/api/v1/imports/backups/load",
+        "/api/v1/web-service/imports/backups/load",
         headers=headers,
         files={"file": ("backup.zip", b"zip-data", "application/zip")},
     )

@@ -58,7 +58,7 @@ Rules:
 - Every media manifest entry must have a matching binary at `media/<object-key>`.
 - Restore treats the ZIP as a full replacement, not a merge.
 
-## Backend Endpoints (`/api/v1/imports`)
+## Backend Endpoints (`/api/v1/web-service/imports`)
 
 ### `GET /backups/posts.zip`
 

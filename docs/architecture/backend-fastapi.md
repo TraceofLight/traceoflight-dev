@@ -31,11 +31,11 @@ Provide a backend baseline for admin-driven post management and media upload in 
 
 ## API Baseline
 
-- `GET /api/v1/health`
-- `GET /api/v1/posts`
-- `POST /api/v1/posts`
-- `POST /api/v1/media/upload-url`
-- `POST /api/v1/media`
+- `GET /api/v1/web-service/health`
+- `GET /api/v1/web-service/posts`
+- `POST /api/v1/web-service/posts`
+- `POST /api/v1/web-service/media/upload-url`
+- `POST /api/v1/web-service/media`
 
 ## Media Upload Flow
 

@@ -56,26 +56,26 @@ Out of scope (v1):
 
 ### Existing Posts Endpoints
 
-- `GET /api/v1/posts`
+- `GET /api/v1/web-service/posts`
   - add query support:
     - `tag` (repeatable query param, example `?tag=fastapi&tag=astro`)
     - `tag_match=any|all` (default `any`)
   - existing `status`, `visibility`, and internal-secret guard remain unchanged.
-- `GET /api/v1/posts/{slug}`
+- `GET /api/v1/web-service/posts/{slug}`
   - include `tags` in response payload.
-- `POST /api/v1/posts` and `PUT /api/v1/posts/{slug}`
+- `POST /api/v1/web-service/posts` and `PUT /api/v1/web-service/posts/{slug}`
   - accept `tags` in payload.
   - trusted internal callers can create missing tags on submit (upsert-by-slug) to reduce admin friction.
 
 ### New Tag Endpoints (Internal/Admin)
 
-- `GET /api/v1/tags?query=&limit=&offset=`
+- `GET /api/v1/web-service/tags?query=&limit=&offset=`
   - search/list tags for autosuggest and admin management.
-- `POST /api/v1/tags`
+- `POST /api/v1/web-service/tags`
   - create explicit tag (`slug`, `label`).
-- `PATCH /api/v1/tags/{slug}`
+- `PATCH /api/v1/web-service/tags/{slug}`
   - rename label and optionally slug with conflict checks.
-- `DELETE /api/v1/tags/{slug}`
+- `DELETE /api/v1/web-service/tags/{slug}`
   - default: reject when linked to posts.
   - optional `force=true`: detach links then delete (admin-only).
 

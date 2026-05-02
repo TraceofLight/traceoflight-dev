@@ -63,8 +63,8 @@ def test_portfolio_status_and_download_return_not_found_when_missing() -> None:
     service = _StubResumeService(available=False)
     client = _client_with_service(portfolio_service=service)
 
-    status_response = client.get("/api/v1/portfolio/status")
-    file_response = client.get("/api/v1/portfolio")
+    status_response = client.get("/api/v1/web-service/portfolio/status")
+    file_response = client.get("/api/v1/web-service/portfolio")
 
     app.dependency_overrides.clear()
     assert status_response.status_code == 200
@@ -76,7 +76,7 @@ def test_portfolio_download_streams_pdf_when_available() -> None:
     service = _StubResumeService(available=True, pdf_bytes=b"%PDF-1.7\nresume-data")
     client = _client_with_service(portfolio_service=service)
 
-    response = client.get("/api/v1/portfolio")
+    response = client.get("/api/v1/web-service/portfolio")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -91,7 +91,7 @@ def test_portfolio_upload_requires_internal_secret(monkeypatch) -> None:
     client = _client_with_service(portfolio_service=service)
 
     response = client.post(
-        "/api/v1/portfolio",
+        "/api/v1/web-service/portfolio",
         files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
     )
 
@@ -106,7 +106,7 @@ def test_portfolio_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
     client = _client_with_service(portfolio_service=service)
 
     response = client.post(
-        "/api/v1/portfolio",
+        "/api/v1/web-service/portfolio",
         headers={"x-internal-api-secret": "test-shared-secret"},
         files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
     )
@@ -125,7 +125,7 @@ def test_portfolio_delete_clears_registered_pdf(monkeypatch) -> None:
     client = _client_with_service(portfolio_service=service)
 
     response = client.delete(
-        "/api/v1/portfolio",
+        "/api/v1/web-service/portfolio",
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
 
@@ -139,16 +139,16 @@ def test_resume_status_upload_and_delete_are_active(monkeypatch) -> None:
     service = _StubResumeService(available=True, download_filename="resume.pdf")
     client = _client_with_service(resume_service=service)
 
-    status_response = client.get("/api/v1/resume/status")
-    file_response = client.get("/api/v1/resume")
+    status_response = client.get("/api/v1/web-service/resume/status")
+    file_response = client.get("/api/v1/web-service/resume")
     monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     upload_response = client.post(
-        "/api/v1/resume",
+        "/api/v1/web-service/resume",
         headers={"x-internal-api-secret": "test-shared-secret"},
         files={"file": ("resume.pdf", b"%PDF-1.7\nresume-data", "application/pdf")},
     )
     delete_response = client.delete(
-        "/api/v1/resume",
+        "/api/v1/web-service/resume",
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
 

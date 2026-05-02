@@ -51,7 +51,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
   const server = createServer((request, response) => {
     const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
 
-    if (requestUrl.pathname === "/api/v1/posts") {
+    if (requestUrl.pathname === "/api/v1/web-service/posts") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify([
         {
@@ -72,7 +72,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
       return;
     }
 
-    if (requestUrl.pathname === "/api/v1/projects") {
+    if (requestUrl.pathname === "/api/v1/web-service/projects") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify([
         {
@@ -103,7 +103,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
       return;
     }
 
-    if (requestUrl.pathname === "/api/v1/series") {
+    if (requestUrl.pathname === "/api/v1/web-service/series") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify([
         {
@@ -132,7 +132,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
     assert.equal(typeof address, "object");
 
     const response = await invokeSitemapRoute({
-      apiBaseUrl: `http://127.0.0.1:${address.port}/api/v1`,
+      apiBaseUrl: `http://127.0.0.1:${address.port}/api/v1/web-service`,
       siteUrl: "https://www.traceoflight.dev",
     });
 

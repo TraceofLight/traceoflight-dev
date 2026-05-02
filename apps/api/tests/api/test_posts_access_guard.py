@@ -97,7 +97,7 @@ def test_posts_list_forces_public_filters_without_internal_secret(monkeypatch) -
     service = _StubPostService()
     client = _client_with_service(service)
 
-    response = client.get('/api/v1/posts?status=draft&visibility=private')
+    response = client.get('/api/v1/web-service/posts?status=draft&visibility=private')
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -112,7 +112,7 @@ def test_posts_list_respects_filters_with_valid_internal_secret(monkeypatch) -> 
     client = _client_with_service(service)
 
     response = client.get(
-        '/api/v1/posts?status=draft&visibility=private',
+        '/api/v1/web-service/posts?status=draft&visibility=private',
         headers={'x-internal-api-secret': 'test-shared-secret'},
     )
 
@@ -128,7 +128,7 @@ def test_posts_get_forces_public_filters_without_internal_secret(monkeypatch) ->
     service = _StubPostService()
     client = _client_with_service(service)
 
-    response = client.get('/api/v1/posts/hidden-post?status=draft&visibility=private')
+    response = client.get('/api/v1/web-service/posts/hidden-post?status=draft&visibility=private')
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -142,7 +142,7 @@ def test_posts_get_accepts_content_kind_query(monkeypatch) -> None:
     service = _StubPostService()
     client = _client_with_service(service)
 
-    response = client.get('/api/v1/posts/hidden-post?content_kind=blog')
+    response = client.get('/api/v1/web-service/posts/hidden-post?content_kind=blog')
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -166,9 +166,9 @@ def test_posts_write_requires_internal_secret(monkeypatch) -> None:
         'published_at': None,
     }
 
-    create_response = client.post('/api/v1/posts', json=payload)
-    update_response = client.put('/api/v1/posts/private-post', json=payload)
-    delete_response = client.delete('/api/v1/posts/private-post')
+    create_response = client.post('/api/v1/web-service/posts', json=payload)
+    update_response = client.put('/api/v1/web-service/posts/private-post', json=payload)
+    delete_response = client.delete('/api/v1/web-service/posts/private-post')
 
     app.dependency_overrides.clear()
     assert create_response.status_code == 401
@@ -196,7 +196,7 @@ def test_posts_write_allows_valid_internal_secret(monkeypatch) -> None:
     }
 
     response = client.post(
-        '/api/v1/posts',
+        '/api/v1/web-service/posts',
         json=payload,
         headers={'x-internal-api-secret': 'test-shared-secret'},
     )
@@ -264,7 +264,7 @@ def test_posts_write_accepts_project_payload(monkeypatch) -> None:
     }
 
     response = client.post(
-        '/api/v1/posts',
+        '/api/v1/web-service/posts',
         json=payload,
         headers={'x-internal-api-secret': 'test-shared-secret'},
     )

@@ -55,7 +55,7 @@ def test_post_read_includes_series_context_projection() -> None:
     service = _StubPostService()
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/posts/with-series")
+    response = client.get("/api/v1/web-service/posts/with-series")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200

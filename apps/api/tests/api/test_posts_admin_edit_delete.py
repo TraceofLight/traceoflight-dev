@@ -96,8 +96,8 @@ def test_admin_update_delete_require_internal_secret(monkeypatch) -> None:
     client = _client_with_service(service)
 
     payload = _build_update_request_payload("updated-slug")
-    update_response = client.put("/api/v1/posts/original-slug", json=payload)
-    delete_response = client.delete("/api/v1/posts/original-slug")
+    update_response = client.put("/api/v1/web-service/posts/original-slug", json=payload)
+    delete_response = client.delete("/api/v1/web-service/posts/original-slug")
 
     app.dependency_overrides.clear()
     assert update_response.status_code == 401
@@ -113,7 +113,7 @@ def test_admin_update_allows_internal_secret_and_uses_path_slug(monkeypatch) -> 
 
     payload = _build_update_request_payload("renamed-slug")
     response = client.put(
-        "/api/v1/posts/original-slug",
+        "/api/v1/web-service/posts/original-slug",
         json=payload,
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
@@ -133,7 +133,7 @@ def test_admin_update_accepts_project_video_payload(monkeypatch) -> None:
 
     payload = _build_update_request_payload("renamed-slug")
     response = client.put(
-        "/api/v1/posts/original-slug",
+        "/api/v1/web-service/posts/original-slug",
         json=payload,
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
@@ -155,7 +155,7 @@ def test_admin_update_returns_409_on_slug_conflict(monkeypatch) -> None:
 
     payload = _build_update_request_payload("duplicated-slug")
     response = client.put(
-        "/api/v1/posts/original-slug",
+        "/api/v1/web-service/posts/original-slug",
         json=payload,
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
@@ -172,7 +172,7 @@ def test_admin_delete_allows_internal_secret_and_returns_404_when_missing(monkey
     client = _client_with_service(service)
 
     response = client.delete(
-        "/api/v1/posts/missing-slug",
+        "/api/v1/web-service/posts/missing-slug",
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
 

@@ -1,6 +1,6 @@
 import { ABSOLUTE_URL_RE } from "./patterns";
 
-const DEFAULT_BACKEND_API_URL = 'http://traceoflight-api:6654/api/v1';
+const DEFAULT_BACKEND_API_URL = 'http://traceoflight-api:6654/api/v1/web-service';
 
 type BackendRequestInit = RequestInit & {
   includeInternalSecret?: boolean;

@@ -265,7 +265,7 @@ test("browser image route falls back to the backend asset origin for /media asse
           REQUEST_URL: `http://127.0.0.1:${siteAddress.port}/internal-api/media/browser-image?url=%2Fmedia%2Ftest.png&w=64&h=64`,
           ROUTE_MODULE_URL: routeModuleUrl,
           SITE_URL: `http://127.0.0.1:${siteAddress.port}`,
-          API_BASE_URL: `http://127.0.0.1:${backendAddress.port}/api/v1`,
+          API_BASE_URL: `http://127.0.0.1:${backendAddress.port}/api/v1/web-service`,
         },
       },
     );

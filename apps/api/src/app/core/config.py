@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default='traceoflight-api', alias='APP_NAME')
     app_env: str = Field(default='development', alias='APP_ENV')
     log_level: str = Field(default='INFO', alias='LOG_LEVEL')
-    api_prefix: str = Field(default='/api/v1', alias='API_PREFIX')
+    api_prefix: str = Field(default='/api/v1/web-service', alias='API_PREFIX')
     cors_allow_origins: str = Field(
         default='https://traceoflight.dev,https://www.traceoflight.dev,http://localhost:6543',
         alias='CORS_ALLOW_ORIGINS',

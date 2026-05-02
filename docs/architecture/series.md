@@ -44,8 +44,8 @@
 
 ## API Behavior
 
-- `/api/v1/series`, `/api/v1/series/{slug}`: 캐시 테이블 기반 조회
-- `/api/v1/posts*`: `series_context`를 캐시 매핑으로 계산
+- `/api/v1/web-service/series`, `/api/v1/web-service/series/{slug}`: 캐시 테이블 기반 조회
+- `/api/v1/web-service/posts*`: `series_context`를 캐시 매핑으로 계산
 - writer는 게시글 저장 payload에 `series_title`만 전달
 
 ## Operational Notes

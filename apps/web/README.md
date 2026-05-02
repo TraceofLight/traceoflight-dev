@@ -15,7 +15,7 @@ Copy `.env.example` to `.env` when needed.
 - `GA4_VISITOR_TOTAL_START_DATE`: optional total counter start date (default: `2025-01-01`)
 - `GA4_VISITOR_CACHE_TTL_SECONDS`: optional visitor summary cache TTL in seconds (default: `600`)
 - `CONTENT_PROVIDER`: `file` or `db`
-- `API_BASE_URL`: backend API base URL (runtime fallback is `http://traceoflight-api:6654/api/v1`)
+- `API_BASE_URL`: backend API base URL (runtime fallback is `http://traceoflight-api:6654/api/v1/web-service`)
 
 ## Admin Auth
 

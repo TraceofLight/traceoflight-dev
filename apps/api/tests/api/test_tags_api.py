@@ -63,7 +63,7 @@ def test_list_tags_supports_query_filter(monkeypatch) -> None:
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
 
-    response = client.get("/api/v1/tags?query=fast", headers=headers)
+    response = client.get("/api/v1/web-service/tags?query=fast", headers=headers)
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -75,9 +75,9 @@ def test_tag_mutation_requires_internal_secret(monkeypatch) -> None:
     service = _StubTagService()
     client = _client_with_service(service)
 
-    create_response = client.post("/api/v1/tags", json={"slug": "python", "label": "Python"})
-    update_response = client.patch("/api/v1/tags/fastapi", json={"slug": "fastapi", "label": "FastAPI 2"})
-    delete_response = client.delete("/api/v1/tags/fastapi")
+    create_response = client.post("/api/v1/web-service/tags", json={"slug": "python", "label": "Python"})
+    update_response = client.patch("/api/v1/web-service/tags/fastapi", json={"slug": "fastapi", "label": "FastAPI 2"})
+    delete_response = client.delete("/api/v1/web-service/tags/fastapi")
 
     app.dependency_overrides.clear()
     assert create_response.status_code == 401
@@ -92,16 +92,16 @@ def test_tag_mutation_allows_internal_secret(monkeypatch) -> None:
     headers = {"x-internal-api-secret": "test-shared-secret"}
 
     create_response = client.post(
-        "/api/v1/tags",
+        "/api/v1/web-service/tags",
         json={"slug": "python", "label": "Python"},
         headers=headers,
     )
     patch_response = client.patch(
-        "/api/v1/tags/python",
+        "/api/v1/web-service/tags/python",
         json={"slug": "py", "label": "Python Language"},
         headers=headers,
     )
-    delete_response = client.delete("/api/v1/tags/py", headers=headers)
+    delete_response = client.delete("/api/v1/web-service/tags/py", headers=headers)
 
     app.dependency_overrides.clear()
     assert create_response.status_code == 200

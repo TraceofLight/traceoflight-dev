@@ -2,13 +2,13 @@
 
 ## Base
 
-- Backend base: `/api/v1`
+- Backend base: `/api/v1/web-service`
 - Frontend proxy base: `/internal-api`
 - Auth header for privileged actions: `x-internal-api-secret`
 
 ## Series Source Input (Post Payload)
 
-`POST /api/v1/posts` and `PUT /api/v1/posts/{slug}` accept:
+`POST /api/v1/web-service/posts` and `PUT /api/v1/web-service/posts/{slug}` accept:
 
 ```json
 {
@@ -24,7 +24,7 @@ Semantics:
 
 ## Series Read
 
-### `GET /api/v1/series`
+### `GET /api/v1/web-service/series`
 
 Response `200`:
 
@@ -43,7 +43,7 @@ Response `200`:
 ]
 ```
 
-### `GET /api/v1/series/{slug}`
+### `GET /api/v1/web-service/series/{slug}`
 
 Response `200`:
 
@@ -75,8 +75,8 @@ Public readers only receive published/public scoped posts.
 
 ## Series Write
 
-### `POST /api/v1/series`
-### `PUT /api/v1/series/{slug}`
+### `POST /api/v1/web-service/series`
+### `PUT /api/v1/web-service/series/{slug}`
 
 Request body:
 
@@ -89,7 +89,7 @@ Request body:
 }
 ```
 
-### `PUT /api/v1/series/{slug}/posts`
+### `PUT /api/v1/web-service/series/{slug}/posts`
 
 Request body:
 
@@ -105,13 +105,13 @@ Semantics:
 - Duplicates are normalized out.
 - `order_index` is 1-based.
 
-### `DELETE /api/v1/series/{slug}`
+### `DELETE /api/v1/web-service/series/{slug}`
 
 Response: `204` no body.
 
 ## Post `series_context` Projection
 
-`GET /api/v1/posts/{slug}` and list payload may include:
+`GET /api/v1/web-service/posts/{slug}` and list payload may include:
 
 ```json
 {

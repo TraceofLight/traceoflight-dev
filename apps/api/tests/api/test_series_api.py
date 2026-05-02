@@ -110,8 +110,8 @@ def test_series_list_and_detail_apply_public_fallback_without_internal_secret(mo
     service = _StubSeriesService()
     client = _client_with_service(service)
 
-    list_response = client.get("/api/v1/series")
-    detail_response = client.get("/api/v1/series/my-series")
+    list_response = client.get("/api/v1/web-service/series")
+    detail_response = client.get("/api/v1/web-service/series/my-series")
 
     app.dependency_overrides.clear()
     assert list_response.status_code == 200
@@ -126,8 +126,8 @@ def test_series_list_and_detail_allow_internal_secret(monkeypatch) -> None:
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
 
-    list_response = client.get("/api/v1/series", headers=headers)
-    detail_response = client.get("/api/v1/series/my-series", headers=headers)
+    list_response = client.get("/api/v1/web-service/series", headers=headers)
+    detail_response = client.get("/api/v1/web-service/series/my-series", headers=headers)
 
     app.dependency_overrides.clear()
     assert list_response.status_code == 200
@@ -147,10 +147,10 @@ def test_series_write_requires_internal_secret(monkeypatch) -> None:
         "description": "Series description",
         "cover_image_url": None,
     }
-    create_response = client.post("/api/v1/series", json=payload)
-    update_response = client.put("/api/v1/series/my-series", json=payload)
-    delete_response = client.delete("/api/v1/series/my-series")
-    reorder_response = client.put("/api/v1/series/my-series/posts", json={"post_slugs": ["first-post"]})
+    create_response = client.post("/api/v1/web-service/series", json=payload)
+    update_response = client.put("/api/v1/web-service/series/my-series", json=payload)
+    delete_response = client.delete("/api/v1/web-service/series/my-series")
+    reorder_response = client.put("/api/v1/web-service/series/my-series/posts", json={"post_slugs": ["first-post"]})
 
     app.dependency_overrides.clear()
     assert create_response.status_code == 401
@@ -165,7 +165,7 @@ def test_series_order_write_requires_internal_secret(monkeypatch) -> None:
     service = _StubSeriesService()
     client = _client_with_service(service)
 
-    response = client.put("/api/v1/series/order", json={"series_slugs": ["my-series"]})
+    response = client.put("/api/v1/web-service/series/order", json={"series_slugs": ["my-series"]})
 
     app.dependency_overrides.clear()
     assert response.status_code == 401
@@ -178,7 +178,7 @@ def test_series_order_replaces_sequence_for_internal_requests(monkeypatch) -> No
     client = _client_with_service(service)
 
     response = client.put(
-        "/api/v1/series/order",
+        "/api/v1/web-service/series/order",
         headers={"x-internal-api-secret": "test-shared-secret"},
         json={"series_slugs": ["my-series", "next-series"]},
     )

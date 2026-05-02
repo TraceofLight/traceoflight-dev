@@ -90,7 +90,7 @@ def test_projects_list_returns_project_only_payload() -> None:
     service = _StubProjectService()
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/projects")
+    response = client.get("/api/v1/web-service/projects")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -109,7 +109,7 @@ def test_project_detail_includes_profile_and_related_series_posts() -> None:
     service = _StubProjectService()
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/projects/trace-renderer")
+    response = client.get("/api/v1/web-service/projects/trace-renderer")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -139,7 +139,7 @@ def test_project_detail_allows_uploaded_video_media_payload() -> None:
     service.get_project_by_slug = lambda slug, include_private=False: _video_payload(slug)  # type: ignore[assignment]
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/projects/trace-renderer")
+    response = client.get("/api/v1/web-service/projects/trace-renderer")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -156,7 +156,7 @@ def test_projects_order_write_requires_internal_secret(monkeypatch) -> None:
     client = _client_with_service(service)
 
     response = client.put(
-        "/api/v1/projects/order",
+        "/api/v1/web-service/projects/order",
         json={"project_slugs": ["trace-renderer", "second-project"]},
     )
 
@@ -173,7 +173,7 @@ def test_projects_order_replaces_sequence_for_internal_requests(monkeypatch) -> 
     client = _client_with_service(service)
 
     response = client.put(
-        "/api/v1/projects/order",
+        "/api/v1/web-service/projects/order",
         headers={"x-internal-api-secret": "test-shared-secret"},
         json={"project_slugs": ["trace-renderer", "second-project"]},
     )

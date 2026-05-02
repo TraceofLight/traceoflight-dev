@@ -4,10 +4,10 @@ FastAPI backend for posts and media metadata.
 
 ## API notes
 
-- `GET /api/v1/posts?status=published` for public blog feed
-- `GET /api/v1/posts/{slug}?status=published` for public post detail
-- `POST /api/v1/posts` for admin post creation
-- `POST /api/v1/media/upload-url` + `POST /api/v1/media` for media uploads
+- `GET /api/v1/web-service/posts?status=published` for public blog feed
+- `GET /api/v1/web-service/posts/{slug}?status=published` for public post detail
+- `POST /api/v1/web-service/posts` for admin post creation
+- `POST /api/v1/web-service/media/upload-url` + `POST /api/v1/web-service/media` for media uploads
 
 ## Local run
 

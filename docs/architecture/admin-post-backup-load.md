@@ -40,7 +40,7 @@ Included data:
    - series cover overrides
 3. Read binary payloads from object storage.
 4. Build ZIP via `app.services.imports.backup_archive`.
-5. Return ZIP through `GET /api/v1/imports/backups/posts.zip`.
+5. Return ZIP through `GET /api/v1/web-service/imports/backups/posts.zip`.
 
 ## Load Flow
 

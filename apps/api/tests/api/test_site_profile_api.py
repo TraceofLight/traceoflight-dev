@@ -40,7 +40,7 @@ def test_site_profile_get_returns_footer_contact_data() -> None:
     service = _StubSiteProfileService()
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/site-profile")
+    response = client.get("/api/v1/web-service/site-profile")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -54,7 +54,7 @@ def test_site_profile_update_requires_internal_secret() -> None:
     client = TestClient(app)
 
     response = client.put(
-        "/api/v1/site-profile",
+        "/api/v1/web-service/site-profile",
         json={
             "email": "contact@traceoflight.dev",
             "github_url": "https://github.com/TraceofLight",
@@ -72,7 +72,7 @@ def test_site_profile_update_uses_service_with_internal_secret(monkeypatch) -> N
     client = _client_with_service(service)
 
     response = client.put(
-        "/api/v1/site-profile",
+        "/api/v1/web-service/site-profile",
         json={
             "email": "contact@traceoflight.dev",
             "github_url": "https://github.com/TraceofLight",
@@ -98,7 +98,7 @@ def test_site_profile_update_returns_bad_request_for_validation_errors(monkeypat
     client = _client_with_service(service)
 
     response = client.put(
-        "/api/v1/site-profile",
+        "/api/v1/web-service/site-profile",
         json={
             "email": "invalid",
             "github_url": "https://github.com/TraceofLight",

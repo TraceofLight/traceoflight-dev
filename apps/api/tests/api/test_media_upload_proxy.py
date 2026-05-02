@@ -24,7 +24,7 @@ def test_media_upload_proxy_rejects_missing_upload_url_header() -> None:
     client = TestClient(app)
 
     response = client.post(
-        '/api/v1/media/upload-proxy',
+        '/api/v1/web-service/media/upload-proxy',
         content=b'binary',
         headers={'content-type': 'image/jpeg'},
     )
@@ -51,7 +51,7 @@ def test_media_upload_proxy_forwards_binary_upload(monkeypatch) -> None:
 
     client = TestClient(app)
     response = client.post(
-        '/api/v1/media/upload-proxy',
+        '/api/v1/web-service/media/upload-proxy',
         content=b'test-binary',
         headers={
             'x-upload-url': 'http://minio:9000/traceoflight-media/image/object.jpg',
@@ -78,7 +78,7 @@ def test_media_upload_proxy_returns_502_on_network_error(monkeypatch) -> None:
 
     client = TestClient(app)
     response = client.post(
-        '/api/v1/media/upload-proxy',
+        '/api/v1/web-service/media/upload-proxy',
         content=b'test-binary',
         headers={
             'x-upload-url': 'http://minio:9000/traceoflight-media/image/object.jpg',

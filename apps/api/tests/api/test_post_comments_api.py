@@ -129,7 +129,7 @@ def test_comment_list_defaults_to_public_view_without_internal_secret(monkeypatc
     service = _StubPostCommentService()
     client = _client_with_service(service)
 
-    response = client.get("/api/v1/posts/sample-post/comments")
+    response = client.get("/api/v1/web-service/posts/sample-post/comments")
 
     app.dependency_overrides.clear()
     assert response.status_code == 200
@@ -145,7 +145,7 @@ def test_comment_list_includes_private_for_valid_internal_secret(monkeypatch) ->
     client = _client_with_service(service)
 
     response = client.get(
-        "/api/v1/posts/sample-post/comments",
+        "/api/v1/web-service/posts/sample-post/comments",
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
 
@@ -163,7 +163,7 @@ def test_guest_comment_create_does_not_require_internal_secret(monkeypatch) -> N
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/posts/sample-post/comments",
+        "/api/v1/web-service/posts/sample-post/comments",
         json={
             "author_name": "Guest",
             "password": "secret123",
@@ -184,7 +184,7 @@ def test_admin_comment_create_uses_internal_secret(monkeypatch) -> None:
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/posts/sample-post/comments",
+        "/api/v1/web-service/posts/sample-post/comments",
         headers={"x-internal-api-secret": "test-shared-secret"},
         json={
             "visibility": "public",
@@ -205,7 +205,7 @@ def test_guest_comment_create_rejects_blank_author_name_with_detail(monkeypatch)
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/posts/sample-post/comments",
+        "/api/v1/web-service/posts/sample-post/comments",
         json={
             "author_name": "",
             "password": "secret123",
@@ -226,12 +226,12 @@ def test_guest_comment_patch_and_delete_forward_password_without_internal_secret
     comment_id = str(uuid.uuid4())
 
     patch_response = client.patch(
-        f"/api/v1/comments/{comment_id}",
+        f"/api/v1/web-service/comments/{comment_id}",
         json={"password": "secret123", "body": "edited"},
     )
     delete_response = client.request(
         "DELETE",
-        f"/api/v1/comments/{comment_id}",
+        f"/api/v1/web-service/comments/{comment_id}",
         json={"password": "secret123"},
     )
 
@@ -249,9 +249,9 @@ def test_admin_comment_feed_requires_internal_secret(monkeypatch) -> None:
     service = _StubPostCommentService()
     client = _client_with_service(service)
 
-    unauthorized = client.get("/api/v1/admin/comments")
+    unauthorized = client.get("/api/v1/web-service/admin/comments")
     authorized = client.get(
-        "/api/v1/admin/comments",
+        "/api/v1/web-service/admin/comments",
         headers={"x-internal-api-secret": "test-shared-secret"},
     )
 

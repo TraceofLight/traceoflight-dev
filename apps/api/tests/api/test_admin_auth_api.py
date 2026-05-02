@@ -90,7 +90,7 @@ def test_admin_auth_login_endpoint_uses_backend_service_and_reports_source() -> 
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/admin/auth/login",
+        "/api/v1/web-service/admin/auth/login",
         json={"login_id": "ops-admin", "password": "secret-password"},
     )
 
@@ -110,7 +110,7 @@ def test_admin_auth_login_rejects_invalid_credentials() -> None:
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/admin/auth/login",
+        "/api/v1/web-service/admin/auth/login",
         json={"login_id": "wrong", "password": "wrong"},
     )
 
@@ -123,7 +123,7 @@ def test_admin_auth_refresh_returns_rotated_token_pair() -> None:
     client = _client_with_service(service)
 
     response = client.post(
-        "/api/v1/admin/auth/refresh",
+        "/api/v1/web-service/admin/auth/refresh",
         json={"refresh_token": "existing-refresh"},
     )
 
@@ -137,7 +137,7 @@ def test_admin_auth_credentials_update_requires_internal_secret() -> None:
     client = TestClient(app)
 
     response = client.put(
-        "/api/v1/admin/auth/credentials",
+        "/api/v1/web-service/admin/auth/credentials",
         json={"login_id": "next-admin", "password": "next-password"},
     )
 
@@ -152,7 +152,7 @@ def test_admin_auth_credentials_update_uses_backend_service_with_internal_secret
     client = _client_with_service(service)
 
     response = client.put(
-        "/api/v1/admin/auth/credentials",
+        "/api/v1/web-service/admin/auth/credentials",
         json={"login_id": "next-admin", "password": "next-password"},
         headers={"x-internal-api-secret": "test-shared-secret"},
     )

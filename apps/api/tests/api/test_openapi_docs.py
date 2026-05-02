@@ -14,19 +14,19 @@ def _openapi() -> dict:
 
 def test_health_operation_has_summary_and_description() -> None:
     schema = _openapi()
-    operation = schema['paths']['/api/v1/health']['get']
+    operation = schema['paths']['/api/v1/web-service/health']['get']
 
     assert operation['summary'] == 'Health check'
     assert 'liveness' in operation['description'].lower()
-    assert operation['operationId'] == 'health_check_api_v1_health_get'
+    assert operation['operationId'] == 'health_check_api_v1_web_service_health_get'
 
 
 def test_posts_operations_expose_reference_metadata() -> None:
     schema = _openapi()
-    list_op = schema['paths']['/api/v1/posts']['get']
-    summary_op = schema['paths']['/api/v1/posts/summary']['get']
-    create_op = schema['paths']['/api/v1/posts']['post']
-    delete_op = schema['paths']['/api/v1/posts/{slug}']['delete']
+    list_op = schema['paths']['/api/v1/web-service/posts']['get']
+    summary_op = schema['paths']['/api/v1/web-service/posts/summary']['get']
+    create_op = schema['paths']['/api/v1/web-service/posts']['post']
+    delete_op = schema['paths']['/api/v1/web-service/posts/{slug}']['delete']
 
     assert list_op['summary'] == 'List posts'
     assert 'public' in list_op['description'].lower()
@@ -46,9 +46,9 @@ def test_posts_operations_expose_reference_metadata() -> None:
 
 def test_media_operations_document_upload_flow_and_proxy_headers() -> None:
     schema = _openapi()
-    upload_url_op = schema['paths']['/api/v1/media/upload-url']['post']
-    register_op = schema['paths']['/api/v1/media']['post']
-    proxy_op = schema['paths']['/api/v1/media/upload-proxy']['post']
+    upload_url_op = schema['paths']['/api/v1/web-service/media/upload-url']['post']
+    register_op = schema['paths']['/api/v1/web-service/media']['post']
+    proxy_op = schema['paths']['/api/v1/web-service/media/upload-proxy']['post']
 
     assert upload_url_op['summary'] == 'Create upload URL'
     assert register_op['summary'] == 'Register uploaded media'
@@ -90,10 +90,10 @@ def test_openapi_has_tag_descriptions_for_health_posts_media_and_tags() -> None:
 
 def test_openapi_includes_tags_endpoints_metadata() -> None:
     schema = _openapi()
-    list_op = schema['paths']['/api/v1/tags']['get']
-    create_op = schema['paths']['/api/v1/tags']['post']
-    patch_op = schema['paths']['/api/v1/tags/{slug}']['patch']
-    delete_op = schema['paths']['/api/v1/tags/{slug}']['delete']
+    list_op = schema['paths']['/api/v1/web-service/tags']['get']
+    create_op = schema['paths']['/api/v1/web-service/tags']['post']
+    patch_op = schema['paths']['/api/v1/web-service/tags/{slug}']['patch']
+    delete_op = schema['paths']['/api/v1/web-service/tags/{slug}']['delete']
 
     assert list_op['summary'] == 'List tags'
     assert create_op['summary'] == 'Create tag'
@@ -105,11 +105,11 @@ def test_openapi_includes_tags_endpoints_metadata() -> None:
 
 def test_openapi_includes_comment_endpoints_metadata() -> None:
     schema = _openapi()
-    list_op = schema['paths']['/api/v1/posts/{slug}/comments']['get']
-    create_op = schema['paths']['/api/v1/posts/{slug}/comments']['post']
-    patch_op = schema['paths']['/api/v1/comments/{comment_id}']['patch']
-    delete_op = schema['paths']['/api/v1/comments/{comment_id}']['delete']
-    admin_op = schema['paths']['/api/v1/admin/comments']['get']
+    list_op = schema['paths']['/api/v1/web-service/posts/{slug}/comments']['get']
+    create_op = schema['paths']['/api/v1/web-service/posts/{slug}/comments']['post']
+    patch_op = schema['paths']['/api/v1/web-service/comments/{comment_id}']['patch']
+    delete_op = schema['paths']['/api/v1/web-service/comments/{comment_id}']['delete']
+    admin_op = schema['paths']['/api/v1/web-service/admin/comments']['get']
 
     assert list_op['summary'] == 'List post comments'
     assert create_op['summary'] == 'Create post comment'

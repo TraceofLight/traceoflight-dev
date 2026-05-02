@@ -23,8 +23,8 @@ Out of scope (v1):
 ## Current Baseline
 
 - Backend already exposes:
-  - `PUT /api/v1/posts/{slug}`
-  - `DELETE /api/v1/posts/{slug}`
+  - `PUT /api/v1/web-service/posts/{slug}`
+  - `DELETE /api/v1/web-service/posts/{slug}`
   - internal header auth (`x-internal-api-secret`) for write/delete.
 - Frontend already has:
   - writer create page: `/admin/posts/new`
