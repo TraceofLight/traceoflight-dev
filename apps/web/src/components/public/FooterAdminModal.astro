@@ -92,7 +92,11 @@ const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none foc
 
 <style>
   .footer-admin-dialog {
+    /* Restore native centering that Tailwind preflight strips. */
+    inset: 0;
+    margin: auto;
     width: min(28rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
     padding: 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.7);
     border-radius: 1rem;
