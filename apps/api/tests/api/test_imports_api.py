@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from fastapi.testclient import TestClient
 
+from app.api import security as security_module
 from app.api.deps import get_import_service
-from app.api.v1.endpoints import imports as imports_endpoint
 from app.main import app
 
 
@@ -33,7 +33,7 @@ def _client_with_service(service: _StubImportService) -> TestClient:
 
 
 def test_snapshot_endpoints_are_not_available(monkeypatch) -> None:
-    monkeypatch.setattr(imports_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubImportService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
@@ -55,7 +55,7 @@ def test_snapshot_endpoints_are_not_available(monkeypatch) -> None:
 
 
 def test_backup_endpoints_require_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(imports_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubImportService()
     client = _client_with_service(service)
 
@@ -72,7 +72,7 @@ def test_backup_endpoints_require_internal_secret(monkeypatch) -> None:
 
 
 def test_download_and_load_backup_with_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(imports_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubImportService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}

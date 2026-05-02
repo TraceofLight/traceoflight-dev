@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from app.api.deps import get_post_comment_service
-from app.api.v1.endpoints.posts import (
+from app.api.security import (
     INTERNAL_SECRET_HEADER_DESCRIPTION,
     ensure_trusted_internal_request,
     is_trusted_internal_request,

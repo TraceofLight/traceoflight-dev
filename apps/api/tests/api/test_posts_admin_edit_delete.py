@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 
+from app.api import security as security_module
 from app.api.deps import get_post_service
-from app.api.v1.endpoints import posts as posts_endpoint
 from app.main import app
 from app.models.post import PostStatus, PostVisibility
 
@@ -91,7 +91,7 @@ def _client_with_service(service: _StubPostService) -> TestClient:
 
 
 def test_admin_update_delete_require_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -107,7 +107,7 @@ def test_admin_update_delete_require_internal_secret(monkeypatch) -> None:
 
 
 def test_admin_update_allows_internal_secret_and_uses_path_slug(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -127,7 +127,7 @@ def test_admin_update_allows_internal_secret_and_uses_path_slug(monkeypatch) -> 
 
 
 def test_admin_update_accepts_project_video_payload(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -148,7 +148,7 @@ def test_admin_update_accepts_project_video_payload(monkeypatch) -> None:
 
 
 def test_admin_update_returns_409_on_slug_conflict(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostService()
     service.update_conflict = True
     client = _client_with_service(service)
@@ -166,7 +166,7 @@ def test_admin_update_returns_409_on_slug_conflict(monkeypatch) -> None:
 
 
 def test_admin_delete_allows_internal_secret_and_returns_404_when_missing(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostService()
     service.delete_result = False
     client = _client_with_service(service)

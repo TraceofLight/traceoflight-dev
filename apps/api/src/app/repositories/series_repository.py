@@ -134,7 +134,8 @@ class SeriesRepository:
     def create(self, payload: SeriesUpsert) -> dict[str, object]:
         series = Series(**payload.model_dump())
         self.db.add(series)
-        self.db.commit()
+        # Transaction commit is owned by the calling service layer.
+        self.db.flush()
         created = self.get_by_slug(series.slug, include_private=True)
         if created is None:
             raise SeriesValidationError("series creation failed")
@@ -147,7 +148,8 @@ class SeriesRepository:
 
         for field, value in payload.model_dump().items():
             setattr(row, field, value)
-        self.db.commit()
+        # Transaction commit is owned by the calling service layer.
+        self.db.flush()
 
         updated = self.get_by_slug(row.slug, include_private=True)
         if updated is None:
@@ -160,7 +162,8 @@ class SeriesRepository:
             return False
 
         self.db.delete(row)
-        self.db.commit()
+        # Transaction commit is owned by the calling service layer.
+        self.db.flush()
         return True
 
     def replace_posts_by_slug(self, slug: str, raw_post_slugs: list[str]) -> dict[str, object] | None:
@@ -176,7 +179,7 @@ class SeriesRepository:
         post_slugs = _normalize_post_slugs(raw_post_slugs)
         if not post_slugs:
             row.series_posts.clear()
-            self.db.commit()
+            self.db.flush()
             return self.get_by_slug(slug, include_private=True)
 
         posts = list(self.db.scalars(select(Post).where(Post.slug.in_(post_slugs))))
@@ -204,7 +207,8 @@ class SeriesRepository:
                 )
             )
 
-        self.db.commit()
+        # Transaction commit is owned by the calling service layer.
+        self.db.flush()
         replaced = self.get_by_slug(slug, include_private=True)
         if replaced is None:
             raise SeriesValidationError("series post replacement failed")
@@ -224,5 +228,6 @@ class SeriesRepository:
         for index, slug in enumerate(series_slugs, start=1):
             by_slug[slug].list_order_index = index
 
-        self.db.commit()
+        # Transaction commit is owned by the calling service layer.
+        self.db.flush()
         return self.list(include_private=True, limit=max(len(series_slugs), 1), offset=0)

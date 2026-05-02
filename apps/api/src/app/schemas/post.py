@@ -120,14 +120,20 @@ class PostCreate(BaseModel):
     )
 
 
-class PostRead(BaseModel):
+class _PostBase(BaseModel):
+    """Common fields shared by PostRead and PostSummaryRead.
+
+    Lives as a private base so the two response schemas can stay
+    distinct types (and thus distinct OpenAPI components / response
+    models) while sharing one field definition.
+    """
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     slug: str
     title: str
     excerpt: str | None
-    body_markdown: str
     cover_image_url: str | None
     top_media_kind: PostTopMediaKind = Field(default=PostTopMediaKind.IMAGE)
     top_media_image_url: str | None = None
@@ -146,6 +152,12 @@ class PostRead(BaseModel):
         default=0,
         description='Total comments linked to this post.',
     )
+    created_at: datetime
+    updated_at: datetime
+
+
+class PostRead(_PostBase):
+    body_markdown: str
     series_context: PostSeriesContext | None = Field(
         default=None,
         description='Optional in-series projection used by post detail navigation.',
@@ -154,40 +166,12 @@ class PostRead(BaseModel):
         default=None,
         description='Optional project metadata used by /projects surfaces.',
     )
-    created_at: datetime
-    updated_at: datetime
 
 
-class PostSummaryRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    slug: str
-    title: str
-    excerpt: str | None
-    cover_image_url: str | None
-    top_media_kind: PostTopMediaKind = Field(default=PostTopMediaKind.IMAGE)
-    top_media_image_url: str | None = None
-    top_media_youtube_url: str | None = None
-    top_media_video_url: str | None = None
-    series_title: str | None = None
-    content_kind: PostContentKind = Field(default=PostContentKind.BLOG)
-    status: PostStatus
-    visibility: PostVisibility
-    published_at: datetime | None
+class PostSummaryRead(_PostBase):
     reading_label: str = Field(
         description='Estimated reading-time label derived from markdown content.',
     )
-    tags: list[TagRead] = Field(
-        default_factory=list,
-        description='Normalized tag objects assigned to this post.',
-    )
-    comment_count: int = Field(
-        default=0,
-        description='Total comments linked to this post.',
-    )
-    created_at: datetime
-    updated_at: datetime
 
 
 class PostVisibilityCountsRead(BaseModel):

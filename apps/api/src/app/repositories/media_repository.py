@@ -13,6 +13,6 @@ class MediaRepository:
     def create(self, payload: MediaCreate, bucket: str) -> MediaAsset:
         media = MediaAsset(bucket=bucket, **payload.model_dump())
         self.db.add(media)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(media)
         return media

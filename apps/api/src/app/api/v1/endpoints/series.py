@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import secrets
-
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_series_service
-from app.core.config import settings
+from app.api.security import (
+    INTERNAL_SECRET_HEADER_DESCRIPTION,
+    ensure_trusted_internal_request,
+    is_trusted_internal_request,
+)
 from app.repositories.series_repository import SeriesConflictError, SeriesValidationError
 from app.schemas.series import (
     SeriesDetailRead,
@@ -18,29 +20,6 @@ from app.schemas.series import (
 from app.services.series_service import SeriesService
 
 router = APIRouter()
-
-
-INTERNAL_SECRET_HEADER_DESCRIPTION = (
-    "Internal shared secret for privileged filtering and write operations."
-)
-
-
-def is_trusted_internal_request(request: Request, request_secret: str | None = None) -> bool:
-    configured_secret = settings.internal_api_secret.strip()
-    if not configured_secret:
-        return False
-    if request_secret is None:
-        request_secret = request.headers.get("x-internal-api-secret", "")
-    request_secret = request_secret.strip()
-    if not request_secret:
-        return False
-    return secrets.compare_digest(request_secret, configured_secret)
-
-
-def ensure_trusted_internal_request(request: Request, request_secret: str | None = None) -> None:
-    if is_trusted_internal_request(request, request_secret):
-        return
-    raise HTTPException(status_code=401, detail="unauthorized")
 
 
 def _integrity_conflict_detail(exc: IntegrityError) -> str:

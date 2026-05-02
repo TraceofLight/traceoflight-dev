@@ -13,6 +13,14 @@ class _PostStub:
     published_at: datetime | None
 
 
+class _DbStub:
+    def __init__(self) -> None:
+        self.commit_calls = 0
+
+    def commit(self) -> None:
+        self.commit_calls += 1
+
+
 class _RepoStub:
     def __init__(self) -> None:
         now = datetime.now(timezone.utc)
@@ -20,6 +28,7 @@ class _RepoStub:
         self.created = _PostStub(slug="post-a", series_title="Series A", published_at=now)
         self.updated = _PostStub(slug="post-a", series_title="Series B", published_at=now)
         self.deleted = True
+        self.db = _DbStub()
 
     def list(self, **kwargs):  # type: ignore[no-untyped-def]
         del kwargs

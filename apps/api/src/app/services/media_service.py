@@ -27,4 +27,6 @@ class MediaService:
         )
 
     def register_media(self, payload: MediaCreate):
-        return self.repo.create(payload=payload, bucket=settings.minio_bucket)
+        media = self.repo.create(payload=payload, bucket=settings.minio_bucket)
+        self.repo.db.commit()
+        return media

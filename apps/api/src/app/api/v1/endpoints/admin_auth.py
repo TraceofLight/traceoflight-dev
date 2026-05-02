@@ -3,11 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from app.api.deps import get_admin_auth_service
-from app.api.v1.endpoints.imports import (
+from app.api.security import (
     INTERNAL_SECRET_HEADER_DESCRIPTION,
     ensure_trusted_internal_request,
 )
-from app.core.config import settings
 from app.schemas.admin_auth import (
     AdminAuthLoginRequest,
     AdminAuthLoginResponse,

@@ -108,13 +108,22 @@ async def run_draft_cleanup_loop(stop_event: asyncio.Event) -> None:
             break
 
         try:
-            summary = purge_maintenance()
+            # purge_maintenance opens a synchronous SessionLocal() and
+            # touches blocking IO (Postgres + MinIO). Hand it to a worker
+            # thread so the lifespan event loop is never blocked.
+            summary = await asyncio.to_thread(purge_maintenance)
             logger.info(
                 'draft/media cleanup completed: deleted_drafts=%s deleted_media=%s',
                 summary["deleted_drafts"],
                 summary["deleted_media"],
             )
+        except asyncio.CancelledError:
+            # Cancellation must propagate so the scheduler can shut down.
+            raise
         except Exception:  # pragma: no cover - log and continue
+            # Background loop intentionally keeps running on per-run failures
+            # (DB outage, MinIO blip, etc.). The traceback is preserved via
+            # logger.exception so operators can investigate.
             logger.exception('draft cleanup failed')
         finally:
             last_run_local_date = datetime.now().astimezone().date()

@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
 
 from app.api.deps import get_resume_service
-from app.core.config import settings
+from app.api.security import require_internal_secret
 from app.schemas.resume import ResumeStatusRead
 from app.services.resume_service import PdfAssetService
 
 router = APIRouter()
-
-def _require_internal_secret(header_value: str | None) -> None:
-    configured_secret = settings.internal_api_secret.strip()
-    if not configured_secret:
-        raise HTTPException(status_code=503, detail="internal api secret is not configured")
-    if (header_value or "").strip() != configured_secret:
-        raise HTTPException(status_code=401, detail="unauthorized")
 
 
 @router.get(
@@ -53,13 +46,12 @@ def get_resume_pdf(
     "",
     response_model=ResumeStatusRead,
     summary="Upload or replace resume PDF",
+    dependencies=[Depends(require_internal_secret)],
 )
 async def upload_resume_pdf(
     file: UploadFile = File(...),
-    x_internal_api_secret: str | None = Header(default=None),
     service: PdfAssetService = Depends(get_resume_service),
 ) -> ResumeStatusRead:
-    _require_internal_secret(x_internal_api_secret)
     payload = service.upload_pdf(
         filename=file.filename or "",
         data=await file.read(),
@@ -72,10 +64,9 @@ async def upload_resume_pdf(
     "",
     response_model=ResumeStatusRead,
     summary="Delete resume PDF",
+    dependencies=[Depends(require_internal_secret)],
 )
 def delete_resume_pdf(
-    x_internal_api_secret: str | None = Header(default=None),
     service: PdfAssetService = Depends(get_resume_service),
 ) -> ResumeStatusRead:
-    _require_internal_secret(x_internal_api_secret)
     return ResumeStatusRead.model_validate(service.delete_pdf())

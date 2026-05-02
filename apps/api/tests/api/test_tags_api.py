@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.api import security as security_module
 from app.api.deps import get_tag_service
-from app.api.v1.endpoints import posts as posts_endpoint
 from app.main import app
 
 
@@ -58,7 +58,7 @@ def _client_with_service(service: _StubTagService) -> TestClient:
 
 
 def test_list_tags_supports_query_filter(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubTagService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
@@ -71,7 +71,7 @@ def test_list_tags_supports_query_filter(monkeypatch) -> None:
 
 
 def test_tag_mutation_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubTagService()
     client = _client_with_service(service)
 
@@ -86,7 +86,7 @@ def test_tag_mutation_requires_internal_secret(monkeypatch) -> None:
 
 
 def test_tag_mutation_allows_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubTagService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}

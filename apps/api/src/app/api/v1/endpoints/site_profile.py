@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from app.api.deps import get_site_profile_service
-from app.api.v1.endpoints.imports import (
+from app.api.security import (
     INTERNAL_SECRET_HEADER_DESCRIPTION,
     ensure_trusted_internal_request,
 )

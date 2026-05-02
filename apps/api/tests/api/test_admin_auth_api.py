@@ -145,9 +145,9 @@ def test_admin_auth_credentials_update_requires_internal_secret() -> None:
 
 
 def test_admin_auth_credentials_update_uses_backend_service_with_internal_secret(monkeypatch) -> None:
-    from app.api.v1.endpoints import admin_auth as admin_auth_endpoint
+    from app.api import security as security_module
 
-    monkeypatch.setattr(admin_auth_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubAdminAuthService()
     client = _client_with_service(service)
 

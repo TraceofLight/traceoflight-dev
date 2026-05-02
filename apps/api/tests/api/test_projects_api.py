@@ -149,9 +149,9 @@ def test_project_detail_allows_uploaded_video_media_payload() -> None:
 
 
 def test_projects_order_write_requires_internal_secret(monkeypatch) -> None:
-    from app.api.v1.endpoints import projects as projects_endpoint
+    from app.api import security as security_module
 
-    monkeypatch.setattr(projects_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubProjectService()
     client = _client_with_service(service)
 
@@ -166,9 +166,9 @@ def test_projects_order_write_requires_internal_secret(monkeypatch) -> None:
 
 
 def test_projects_order_replaces_sequence_for_internal_requests(monkeypatch) -> None:
-    from app.api.v1.endpoints import projects as projects_endpoint
+    from app.api import security as security_module
 
-    monkeypatch.setattr(projects_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubProjectService()
     client = _client_with_service(service)
 

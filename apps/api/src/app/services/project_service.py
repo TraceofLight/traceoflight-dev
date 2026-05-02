@@ -72,4 +72,6 @@ class ProjectService:
         return project
 
     def replace_project_order(self, project_slugs: list[str]):
-        return self.post_repo.replace_project_order(project_slugs)
+        result = self.post_repo.replace_project_order(project_slugs)
+        self.post_repo.db.commit()
+        return result

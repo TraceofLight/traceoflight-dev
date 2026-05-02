@@ -256,7 +256,11 @@ async def run_series_projection_loop(stop_event: asyncio.Event) -> None:
                     summary["retained_series_count"],
                     summary["deleted_series_count"],
                 )
+            except asyncio.CancelledError:
+                # Cancellation must propagate so the scheduler can shut down.
+                raise
             except Exception:  # pragma: no cover - keep background loop alive
+                # Loop intentionally swallows per-run errors (DB outage, etc.).
                 logger.exception("series projection rebuild failed")
     finally:
         _unregister_runtime(loop)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from app.services.resume_service import RESUME_OBJECT_KEY, ResumeService
+from app.services.resume_service import RESUME_PDF_CONFIG, PdfAssetService
 
 
 class _StorageStub:
@@ -25,8 +25,12 @@ class _StorageStub:
         return object_key in self.object_bytes
 
 
+def _build_service(storage: _StorageStub) -> PdfAssetService:
+    return PdfAssetService(storage=storage, config=RESUME_PDF_CONFIG)
+
+
 def test_resume_service_rejects_non_pdf_payloads() -> None:
-    service = ResumeService(storage=_StorageStub())
+    service = _build_service(_StorageStub())
 
     with pytest.raises(HTTPException, match="resume file must be a PDF"):
         service.upload_pdf(
@@ -38,7 +42,7 @@ def test_resume_service_rejects_non_pdf_payloads() -> None:
 
 def test_resume_service_uploads_valid_pdf_to_fixed_object_key() -> None:
     storage = _StorageStub()
-    service = ResumeService(storage=storage)
+    service = _build_service(storage)
 
     result = service.upload_pdf(
         filename="resume.pdf",
@@ -47,16 +51,16 @@ def test_resume_service_uploads_valid_pdf_to_fixed_object_key() -> None:
     )
 
     assert result == {"available": True}
-    assert storage.object_bytes[RESUME_OBJECT_KEY] == b"%PDF-1.7\nresume-data"
-    assert storage.put_calls == [(RESUME_OBJECT_KEY, "application/pdf")]
+    assert storage.object_bytes[RESUME_PDF_CONFIG.object_key] == b"%PDF-1.7\nresume-data"
+    assert storage.put_calls == [(RESUME_PDF_CONFIG.object_key, "application/pdf")]
 
 
-def test_resume_service_download_uses_portfolio_filename() -> None:
+def test_resume_service_download_uses_resume_filename() -> None:
     storage = _StorageStub()
-    storage.object_bytes[RESUME_OBJECT_KEY] = b"%PDF-1.7\nresume-data"
-    service = ResumeService(storage=storage)
+    storage.object_bytes[RESUME_PDF_CONFIG.object_key] = b"%PDF-1.7\nresume-data"
+    service = _build_service(storage)
 
     result = service.download_pdf()
 
     assert result is not None
-    assert result.filename == "portfolio.pdf"
+    assert result.filename == "resume.pdf"

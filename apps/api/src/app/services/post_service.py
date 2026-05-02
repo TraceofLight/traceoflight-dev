@@ -81,6 +81,7 @@ class PostService:
 
     def create_post(self, payload: PostCreate):
         created = self.repo.create(payload)
+        self.repo.db.commit()
         if _normalized_series_title(getattr(created, "series_title", None)) is not None:
             request_series_projection_refresh("post-created-series-assigned")
         return created
@@ -96,6 +97,7 @@ class PostService:
         updated = self.repo.update_by_slug(current_slug=slug, payload=payload)
         if updated is None:
             return None
+        self.repo.db.commit()
 
         after_series = _normalized_series_title(getattr(updated, "series_title", None))
         after_published_at = getattr(updated, "published_at", None)
@@ -122,11 +124,14 @@ class PostService:
             else None
         )
         deleted = self.repo.delete_by_slug(slug=slug, status=status, visibility=visibility)
+        if deleted:
+            self.repo.db.commit()
         if deleted and had_series is not None:
             request_series_projection_refresh("post-deleted-series-assigned")
         return deleted
 
     def clear_all_posts(self) -> int:
         deleted = self.repo.clear_all()
+        self.repo.db.commit()
         request_series_projection_refresh("posts-cleared")
         return deleted

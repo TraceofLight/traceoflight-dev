@@ -49,6 +49,10 @@ class Settings(BaseSettings):
         default=1.0,
         alias='SERIES_PROJECTION_REBUILD_DEBOUNCE_SECONDS',
     )
+    reading_words_per_minute: int = Field(
+        default=200,
+        alias='READING_WORDS_PER_MINUTE',
+    )
 
     @property
     def database_url(self) -> str:

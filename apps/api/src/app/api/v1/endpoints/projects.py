@@ -1,37 +1,17 @@
 from __future__ import annotations
 
-import secrets
-
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from app.api.deps import get_project_service
-from app.core.config import settings
+from app.api.security import (
+    INTERNAL_SECRET_HEADER_DESCRIPTION,
+    ensure_trusted_internal_request,
+    is_trusted_internal_request,
+)
 from app.schemas.project import ProjectRead, ProjectsOrderReplace
 from app.services.project_service import ProjectService
 
 router = APIRouter()
-
-INTERNAL_SECRET_HEADER_DESCRIPTION = (
-    "Internal shared secret for privileged filtering and write operations."
-)
-
-
-def is_trusted_internal_request(request: Request, request_secret: str | None = None) -> bool:
-    configured_secret = settings.internal_api_secret.strip()
-    if not configured_secret:
-        return False
-    if request_secret is None:
-        request_secret = request.headers.get("x-internal-api-secret", "")
-    request_secret = request_secret.strip()
-    if not request_secret:
-        return False
-    return secrets.compare_digest(request_secret, configured_secret)
-
-
-def ensure_trusted_internal_request(request: Request, request_secret: str | None = None) -> None:
-    if is_trusted_internal_request(request, request_secret):
-        return
-    raise HTTPException(status_code=401, detail="unauthorized")
 
 
 @router.get("", response_model=list[ProjectRead], summary="List published projects")

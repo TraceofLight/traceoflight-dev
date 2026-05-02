@@ -15,16 +15,31 @@ class SeriesService:
         return self.repo.get_by_slug(slug=slug, include_private=include_private)
 
     def create_series(self, payload: SeriesUpsert):
-        return self.repo.create(payload)
+        result = self.repo.create(payload)
+        self.repo.db.commit()
+        return result
 
     def update_series_by_slug(self, slug: str, payload: SeriesUpsert):
-        return self.repo.update_by_slug(current_slug=slug, payload=payload)
+        result = self.repo.update_by_slug(current_slug=slug, payload=payload)
+        if result is None:
+            return None
+        self.repo.db.commit()
+        return result
 
     def delete_series_by_slug(self, slug: str) -> bool:
-        return self.repo.delete_by_slug(slug)
+        deleted = self.repo.delete_by_slug(slug)
+        if deleted:
+            self.repo.db.commit()
+        return deleted
 
     def replace_series_posts_by_slug(self, slug: str, post_slugs: list[str]):
-        return self.repo.replace_posts_by_slug(slug=slug, raw_post_slugs=post_slugs)
+        result = self.repo.replace_posts_by_slug(slug=slug, raw_post_slugs=post_slugs)
+        if result is None:
+            return None
+        self.repo.db.commit()
+        return result
 
     def replace_series_order(self, series_slugs: list[str]):
-        return self.repo.replace_series_order(series_slugs)
+        result = self.repo.replace_series_order(series_slugs)
+        self.repo.db.commit()
+        return result

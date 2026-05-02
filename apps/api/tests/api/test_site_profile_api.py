@@ -65,9 +65,9 @@ def test_site_profile_update_requires_internal_secret() -> None:
 
 
 def test_site_profile_update_uses_service_with_internal_secret(monkeypatch) -> None:
-    from app.api.v1.endpoints import imports as imports_endpoint
+    from app.api import security as security_module
 
-    monkeypatch.setattr(imports_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSiteProfileService()
     client = _client_with_service(service)
 
@@ -90,9 +90,9 @@ def test_site_profile_update_uses_service_with_internal_secret(monkeypatch) -> N
 
 
 def test_site_profile_update_returns_bad_request_for_validation_errors(monkeypatch) -> None:
-    from app.api.v1.endpoints import imports as imports_endpoint
+    from app.api import security as security_module
 
-    monkeypatch.setattr(imports_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSiteProfileService()
     service.raise_message = "email must be a valid address"
     client = _client_with_service(service)

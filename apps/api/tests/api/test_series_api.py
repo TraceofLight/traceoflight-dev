@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
+from app.api import security as security_module
 from app.api.deps import get_series_service
-from app.api.v1.endpoints import series as series_endpoint
 from app.main import app
 
 
@@ -106,7 +106,7 @@ def _client_with_service(service: _StubSeriesService) -> TestClient:
 
 
 def test_series_list_and_detail_apply_public_fallback_without_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSeriesService()
     client = _client_with_service(service)
 
@@ -121,7 +121,7 @@ def test_series_list_and_detail_apply_public_fallback_without_internal_secret(mo
 
 
 def test_series_list_and_detail_allow_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSeriesService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
@@ -137,7 +137,7 @@ def test_series_list_and_detail_allow_internal_secret(monkeypatch) -> None:
 
 
 def test_series_write_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSeriesService()
     client = _client_with_service(service)
 
@@ -161,7 +161,7 @@ def test_series_write_requires_internal_secret(monkeypatch) -> None:
 
 
 def test_series_order_write_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSeriesService()
     client = _client_with_service(service)
 
@@ -173,7 +173,7 @@ def test_series_order_write_requires_internal_secret(monkeypatch) -> None:
 
 
 def test_series_order_replaces_sequence_for_internal_requests(monkeypatch) -> None:
-    monkeypatch.setattr(series_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubSeriesService()
     client = _client_with_service(service)
 

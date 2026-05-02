@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import io
 import json
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 
 from .errors import ImportValidationError
 from .models import SnapshotBundle, normalize_slug, normalize_tags, to_iso_utc
@@ -88,7 +88,7 @@ def build_posts_backup_zip(
 def parse_posts_backup_zip(backup_data: bytes) -> ParsedPostsBackup:
     try:
         archive = ZipFile(io.BytesIO(backup_data))
-    except Exception as exc:
+    except (BadZipFile, OSError) as exc:
         raise ImportValidationError("backup zip is invalid") from exc
 
     with archive:

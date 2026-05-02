@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
+from app.api import security as security_module
 from app.api.deps import get_post_comment_service
-from app.api.v1.endpoints import posts as posts_endpoint
 from app.main import app
 from app.schemas.post_comment import (
     AdminCommentFeed,
@@ -125,7 +125,7 @@ def _client_with_service(service: _StubPostCommentService) -> TestClient:
 
 
 def test_comment_list_defaults_to_public_view_without_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostCommentService()
     client = _client_with_service(service)
 
@@ -140,7 +140,7 @@ def test_comment_list_defaults_to_public_view_without_internal_secret(monkeypatc
 
 
 def test_comment_list_includes_private_for_valid_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostCommentService()
     client = _client_with_service(service)
 
@@ -158,7 +158,7 @@ def test_comment_list_includes_private_for_valid_internal_secret(monkeypatch) ->
 
 
 def test_guest_comment_create_does_not_require_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostCommentService()
     client = _client_with_service(service)
 
@@ -179,7 +179,7 @@ def test_guest_comment_create_does_not_require_internal_secret(monkeypatch) -> N
 
 
 def test_admin_comment_create_uses_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostCommentService()
     client = _client_with_service(service)
 
@@ -200,7 +200,7 @@ def test_admin_comment_create_uses_internal_secret(monkeypatch) -> None:
 
 
 def test_guest_comment_create_rejects_blank_author_name_with_detail(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _RejectingPostCommentService()
     client = _client_with_service(service)
 
@@ -220,7 +220,7 @@ def test_guest_comment_create_rejects_blank_author_name_with_detail(monkeypatch)
 
 
 def test_guest_comment_patch_and_delete_forward_password_without_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostCommentService()
     client = _client_with_service(service)
     comment_id = str(uuid.uuid4())
@@ -245,7 +245,7 @@ def test_guest_comment_patch_and_delete_forward_password_without_internal_secret
 
 
 def test_admin_comment_feed_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubPostCommentService()
     client = _client_with_service(service)
 

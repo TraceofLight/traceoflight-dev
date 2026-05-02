@@ -9,7 +9,7 @@ from fastapi import Request
 from fastapi import Response
 
 from app.api.deps import get_tag_service
-from app.api.v1.endpoints.posts import (
+from app.api.security import (
     INTERNAL_SECRET_HEADER_DESCRIPTION,
     ensure_trusted_internal_request,
 )

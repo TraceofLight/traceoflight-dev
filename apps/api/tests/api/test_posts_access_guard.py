@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
+from app.api import security as security_module
 from app.api.deps import get_post_service
-from app.api.v1.endpoints import posts as posts_endpoint
 from app.main import app
 from app.models.post import PostContentKind, PostStatus, PostVisibility
 
@@ -93,7 +93,7 @@ def _client_with_service(service: _StubPostService) -> TestClient:
 
 
 def test_posts_list_forces_public_filters_without_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -107,7 +107,7 @@ def test_posts_list_forces_public_filters_without_internal_secret(monkeypatch) -
 
 
 def test_posts_list_respects_filters_with_valid_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -124,7 +124,7 @@ def test_posts_list_respects_filters_with_valid_internal_secret(monkeypatch) -> 
 
 
 def test_posts_get_forces_public_filters_without_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -138,7 +138,7 @@ def test_posts_get_forces_public_filters_without_internal_secret(monkeypatch) ->
 
 
 def test_posts_get_accepts_content_kind_query(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -151,7 +151,7 @@ def test_posts_get_accepts_content_kind_query(monkeypatch) -> None:
 
 
 def test_posts_write_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -180,7 +180,7 @@ def test_posts_write_requires_internal_secret(monkeypatch) -> None:
 
 
 def test_posts_write_allows_valid_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 
@@ -208,7 +208,7 @@ def test_posts_write_allows_valid_internal_secret(monkeypatch) -> None:
 
 
 def test_posts_write_accepts_project_payload(monkeypatch) -> None:
-    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    monkeypatch.setattr(security_module.settings, 'internal_api_secret', 'test-shared-secret')
     service = _StubPostService()
     client = _client_with_service(service)
 

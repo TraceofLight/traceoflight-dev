@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from fastapi.testclient import TestClient
 
+from app.api import security as security_module
 from app.api.deps import get_portfolio_pdf_service, get_resume_service
-from app.api.v1.endpoints import portfolio as portfolio_endpoint
 from app.main import app
 from app.services.resume_service import ResumeDownload
 
@@ -86,7 +86,7 @@ def test_portfolio_download_streams_pdf_when_available() -> None:
 
 
 def test_portfolio_upload_requires_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=False)
     client = _client_with_service(portfolio_service=service)
 
@@ -101,7 +101,7 @@ def test_portfolio_upload_requires_internal_secret(monkeypatch) -> None:
 
 
 def test_portfolio_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=False)
     client = _client_with_service(portfolio_service=service)
 
@@ -120,7 +120,7 @@ def test_portfolio_upload_accepts_pdf_with_internal_secret(monkeypatch) -> None:
 
 
 def test_portfolio_delete_clears_registered_pdf(monkeypatch) -> None:
-    monkeypatch.setattr(portfolio_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     service = _StubResumeService(available=True)
     client = _client_with_service(portfolio_service=service)
 
@@ -136,14 +136,12 @@ def test_portfolio_delete_clears_registered_pdf(monkeypatch) -> None:
 
 
 def test_resume_status_upload_and_delete_are_active(monkeypatch) -> None:
-    from app.api.v1.endpoints import resume as resume_endpoint
-
     service = _StubResumeService(available=True, download_filename="resume.pdf")
     client = _client_with_service(resume_service=service)
 
     status_response = client.get("/api/v1/resume/status")
     file_response = client.get("/api/v1/resume")
-    monkeypatch.setattr(resume_endpoint.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
     upload_response = client.post(
         "/api/v1/resume",
         headers={"x-internal-api-secret": "test-shared-secret"},
