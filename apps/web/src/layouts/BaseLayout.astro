@@ -5,7 +5,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import PageTransitions from '../components/PageTransitions.astro';
-import FloatingUtilityButtons from '../components/public/FloatingUtilityButtons';
+import FloatingUtilityButtons from '../components/public/FloatingUtilityButtons.astro';
 import { getGa4VisitorSummary } from '../lib/server/ga4-summary';
 
 interface Props {
@@ -63,6 +63,6 @@ const visitorSummary = await getGa4VisitorSummary();
       <slot />
     </main>
     <Footer visitorSummary={visitorSummary} />
-    <FloatingUtilityButtons client:idle />
+    <FloatingUtilityButtons />
   </body>
 </html>

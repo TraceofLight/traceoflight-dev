@@ -10,6 +10,7 @@ test("base layout loads ga4 visitor summary server-side and forwards it into foo
   assert.match(source, /getGa4VisitorSummary/);
   assert.match(source, /await getGa4VisitorSummary\(\)/);
   assert.match(source, /<Footer visitorSummary=\{visitorSummary\} \/>/);
-  assert.match(source, /FloatingUtilityButtons client:idle/);
-  assert.doesNotMatch(source, /<FloatingUtilityButtons client:idle visitorSummary=\{visitorSummary\} \/>/);
+  // FloatingUtilityButtons is now a static Astro component (no client directive needed).
+  assert.match(source, /<FloatingUtilityButtons \/>/);
+  assert.doesNotMatch(source, /<FloatingUtilityButtons[\s\S]*visitorSummary=\{visitorSummary\}[\s\S]*\/>/);
 });

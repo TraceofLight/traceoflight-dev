@@ -1,0 +1,205 @@
+---
+import arrowUpIcon from "../../assets/icons/utility/arrow-up.svg?raw";
+import moonStarIcon from "../../assets/icons/utility/moon-star.svg?raw";
+import sunIcon from "../../assets/icons/utility/sun.svg?raw";
+---
+
+<div
+  data-floating-utility
+  class="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6"
+>
+  <button
+    aria-label="맨 위로 이동"
+    type="button"
+    data-scroll-top
+    class="floating-scroll-top pointer-events-none inline-flex h-11 w-11 select-none translate-y-2 items-center justify-center rounded-full border opacity-0 transition-all duration-300 hover:-translate-y-0.5"
+  >
+    <span class="h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={arrowUpIcon}></span>
+  </button>
+  <div class="pointer-events-auto">
+    <button
+      aria-label="다크 모드 전환"
+      role="switch"
+      type="button"
+      data-theme-toggle
+      class="floating-theme-toggle group relative inline-flex h-11 w-[5.25rem] cursor-pointer select-none items-center rounded-full border p-1 transition-all duration-300 hover:-translate-y-0.5"
+    >
+      <span class="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2.5">
+        <span class="floating-theme-rail-icon h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={sunIcon}></span>
+        <span class="floating-theme-rail-icon h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={moonStarIcon}></span>
+      </span>
+      <span
+        data-theme-thumb
+        class="floating-theme-thumb relative z-10 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300"
+      >
+        <span class="floating-theme-thumb-light h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={sunIcon}></span>
+        <span class="floating-theme-thumb-dark h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={moonStarIcon}></span>
+      </span>
+      <span class="sr-only" data-theme-label>라이트 모드</span>
+    </button>
+  </div>
+</div>
+
+<style>
+  /* Scroll-top button visual states */
+  .floating-scroll-top {
+    border-color: rgba(226, 232, 240, 0.8);
+    background-color: rgba(255, 255, 255, 0.86);
+    color: rgb(100, 116, 139);
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+  }
+
+  .floating-scroll-top:hover {
+    border-color: rgba(125, 211, 252, 0.7);
+    background-color: rgb(255, 255, 255);
+    color: rgb(3, 105, 161);
+  }
+
+  :root[data-theme="dark"] .floating-scroll-top {
+    border-color: rgba(51, 65, 85, 0.8);
+    background-color: rgba(15, 23, 42, 0.92);
+    color: rgb(125, 211, 252);
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.16);
+  }
+
+  :root[data-theme="dark"] .floating-scroll-top:hover {
+    border-color: rgba(125, 211, 252, 0.6);
+    color: rgb(255, 255, 255);
+  }
+
+  .floating-scroll-top[data-visible="true"] {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Theme toggle visual states */
+  .floating-theme-toggle {
+    border-color: rgba(226, 232, 240, 0.8);
+    background-color: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+  }
+
+  .floating-theme-toggle:hover {
+    border-color: rgba(125, 211, 252, 0.7);
+    background-color: rgb(255, 255, 255);
+  }
+
+  .floating-theme-rail-icon {
+    color: rgba(148, 163, 184, 0.85);
+  }
+
+  .floating-theme-thumb {
+    background-color: rgba(8, 47, 73, 0.92);
+    color: rgb(255, 255, 255);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+    transform: translateX(0);
+  }
+
+  .floating-theme-thumb-dark {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .floating-theme-toggle {
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(2, 6, 23, 0.92);
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.32);
+  }
+
+  :root[data-theme="dark"] .floating-theme-toggle:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  :root[data-theme="dark"] .floating-theme-rail-icon {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  :root[data-theme="dark"] .floating-theme-thumb {
+    background-color: rgb(255, 255, 255);
+    color: rgb(2, 6, 23);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.34);
+    transform: translateX(2.5rem);
+    --tw-ring-color: rgba(0, 0, 0, 0.1);
+  }
+
+  :root[data-theme="dark"] .floating-theme-thumb-light {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .floating-theme-thumb-dark {
+    display: inline-flex;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    if (window.__traceoflightFloatingUtilityBound) {
+      return;
+    }
+    window.__traceoflightFloatingUtilityBound = true;
+
+    const STORAGE_KEY = "traceoflight-theme";
+    const SCROLL_TOP_THRESHOLD = 240;
+
+    const initScrollTop = () => {
+      const button = document.querySelector("[data-scroll-top]");
+      if (!(button instanceof HTMLElement)) return;
+
+      const sync = () => {
+        const visible = window.scrollY > SCROLL_TOP_THRESHOLD;
+        button.dataset.visible = visible ? "true" : "false";
+      };
+
+      sync();
+      window.addEventListener("scroll", sync, { passive: true });
+      button.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    };
+
+    const initThemeToggle = () => {
+      const button = document.querySelector("[data-theme-toggle]");
+      if (!(button instanceof HTMLElement)) return;
+
+      const label = button.querySelector("[data-theme-label]");
+
+      const syncAria = () => {
+        const isDark = document.documentElement.dataset.theme === "dark";
+        button.setAttribute("aria-checked", isDark ? "true" : "false");
+        if (label) {
+          label.textContent = isDark ? "다크 모드" : "라이트 모드";
+        }
+      };
+
+      syncAria();
+      button.addEventListener("click", () => {
+        const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        document.documentElement.style.colorScheme = next;
+        try {
+          localStorage.setItem(STORAGE_KEY, next);
+        } catch {
+          /* ignore quota / private mode */
+        }
+        syncAria();
+      });
+
+      // BaseHead's bootstrap script re-applies theme on Astro page transitions.
+      // Re-sync the toggle's aria state in case the data-theme attribute was
+      // updated before our click handler runs.
+      document.addEventListener("astro:after-swap", syncAria);
+      document.addEventListener("astro:page-load", syncAria);
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        initScrollTop();
+        initThemeToggle();
+      });
+    } else {
+      initScrollTop();
+      initThemeToggle();
+    }
+  })();
+</script>

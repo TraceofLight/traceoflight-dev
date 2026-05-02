@@ -6,7 +6,7 @@ import { requestBackend } from "../lib/backend-api";
 import { buildMailtoHref, DEFAULT_SITE_PROFILE, resolveSiteProfile } from "../lib/site-profile";
 import type { VisitorSummary } from "../lib/server/ga4-summary";
 import FooterIconLink from "./FooterIconLink.astro";
-import FooterAdminModal from "./public/FooterAdminModal";
+import FooterAdminModal from "./public/FooterAdminModal.astro";
 import { SITE_TITLE } from "../consts";
 
 interface Props {
@@ -63,7 +63,6 @@ try {
           />
         ) : (
           <FooterAdminModal
-            client:idle
             adminNextPath={adminNextPath}
             shouldOpenOnLoad={shouldOpenAdminLogin}
           />

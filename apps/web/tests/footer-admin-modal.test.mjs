@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 const footerPath = new URL("../src/components/Footer.astro", import.meta.url);
 const footerModalPath = new URL(
-  "../src/components/public/FooterAdminModal.tsx",
+  "../src/components/public/FooterAdminModal.astro",
   import.meta.url,
 );
 
@@ -15,7 +15,8 @@ test("footer keeps login modal and routes admin viewers to imports console", asy
   ]);
 
   assert.match(footerSource, /FooterAdminModal/);
-  assert.match(footerSource, /client:idle/);
+  // FooterAdminModal is now a static Astro component (no React hydration).
+  assert.doesNotMatch(footerSource, /<FooterAdminModal[\s\S]*client:idle/);
   assert.match(footerSource, /ADMIN_ACCESS_COOKIE/);
   assert.match(footerSource, /verifyAccessToken/);
   assert.match(footerSource, /shouldOpenOnLoad=\{shouldOpenAdminLogin\}/);

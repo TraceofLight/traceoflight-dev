@@ -22,7 +22,7 @@ const uiEffectsPath = new URL("../src/lib/ui-effects.ts", import.meta.url);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
 const baseHeadPath = new URL("../src/components/BaseHead.astro", import.meta.url);
 const baseLayoutPath = new URL("../src/layouts/BaseLayout.astro", import.meta.url);
-const floatingUtilityPath = new URL("../src/components/public/FloatingUtilityButtons.tsx", import.meta.url);
+const floatingUtilityPath = new URL("../src/components/public/FloatingUtilityButtons.astro", import.meta.url);
 
 test("public theme tokens move the site to a bright toss-like blue-gray palette", async () => {
   const [tokensSource, baseSource] = await Promise.all([
@@ -120,29 +120,33 @@ test("base head and base layout provide a persistent global theme toggle in a fl
   assert.match(baseHeadSource, /window\.matchMedia\("\(prefers-color-scheme: dark\)"\)/);
   assert.match(headerSource, /site-header-surface/);
   assert.doesNotMatch(headerSource, /ThemeToggle/);
-  assert.match(baseLayoutSource, /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons['"];/);
+  // FloatingUtilityButtons migrated from React to a static Astro component
+  // (no React hydration); the theme toggle is now inlined into the same file.
+  assert.match(
+    baseLayoutSource,
+    /import FloatingUtilityButtons from ['"]\.\.\/components\/public\/FloatingUtilityButtons\.astro['"];/,
+  );
   assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
-  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:idle \/>/);
+  assert.match(baseLayoutSource, /<FloatingUtilityButtons \/>/);
   assert.match(floatingUtilitySource, /window\.scrollTo\(\{ top: 0, behavior: "smooth" \}\)/);
-  assert.match(floatingUtilitySource, /<ThemeToggle \/>/);
-  assert.match(floatingUtilitySource, /bg-white\/86/);
-  assert.match(floatingUtilitySource, /border-slate-200\/80/);
-  assert.match(floatingUtilitySource, /bg-slate-900\/92/);
+  assert.match(floatingUtilitySource, /data-theme-toggle/);
+  assert.match(floatingUtilitySource, /traceoflight-theme/);
   assert.doesNotMatch(floatingUtilitySource, /Powered by TraceofLight/);
 });
 
 test("theme toggle keeps visible secondary icons, symmetric thumb travel, and softer light-mode chrome", async () => {
-  const source = await readFile(new URL("../src/components/public/ThemeToggle.tsx", import.meta.url), "utf8");
+  // The toggle is now inlined into FloatingUtilityButtons.astro. The visual
+  // styling lives in that component's <style> block, keyed off the
+  // :root[data-theme='dark'] selector.
+  const source = await readFile(floatingUtilityPath, "utf8");
 
   assert.match(source, /w-\[5\.25rem\]/);
-  assert.match(source, /bg-white\/86/);
-  assert.match(source, /border-slate-200\/80/);
-  assert.match(source, /bg-slate-950\/92/);
   assert.match(source, /justify-between px-2\.5/);
-  assert.match(source, /text-white\/55/);
-  assert.match(source, /text-slate-400\/85/);
-  assert.match(source, /translate-x-10/);
-  assert.match(source, /bg-sky-950\/92 text-white/);
-  assert.match(source, /bg-white text-slate-950/);
-  assert.doesNotMatch(source, /translate-x-\[2rem\]/);
+  // Light-mode chrome
+  assert.match(source, /rgba\(226,\s*232,\s*240,\s*0\.8\)/);
+  assert.match(source, /rgba\(255,\s*255,\s*255,\s*0\.86\)/);
+  // Dark-mode thumb travel uses 2.5rem (matches translate-x-10 in tailwind).
+  assert.match(source, /translateX\(2\.5rem\)/);
+  // Both rail icons remain visible (left = sun, right = moon-star).
+  assert.match(source, /floating-theme-rail-icon/);
 });

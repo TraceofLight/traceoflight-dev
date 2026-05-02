@@ -13,7 +13,7 @@ const footerIconLinkPath = new URL(
   import.meta.url,
 );
 const footerAdminModalPath = new URL(
-  "../src/components/public/FooterAdminModal.tsx",
+  "../src/components/public/FooterAdminModal.astro",
   import.meta.url,
 );
 const mobileNavSheetPath = new URL(
@@ -82,11 +82,13 @@ test("footer icons use the same filled pill treatment as the admin entry button"
   );
   assert.match(footerIconSource, /import \{ PUBLIC_ICON_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
   assert.match(footerIconSource, /class=\{PUBLIC_ICON_ACTION_CLASS\}/);
+  // FooterAdminModal is now an Astro component using `class=` (not `className`)
+  // and imports from a relative path.
   assert.match(
     footerAdminModalSource,
-    /import \{[\s\S]*PUBLIC_ICON_ACTION_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
+    /import \{[\s\S]*PUBLIC_ICON_ACTION_CLASS[\s\S]*\} from "\.\.\/\.\.\/lib\/ui-effects";/,
   );
-  assert.match(footerAdminModalSource, /className=\{`\$\{PUBLIC_ICON_ACTION_CLASS\} focus-visible:outline-none/);
+  assert.match(footerAdminModalSource, /\$\{PUBLIC_ICON_ACTION_CLASS\} focus-visible:outline-none/);
   assert.match(footerAdminModalSource, /type="button"/);
   assert.match(footerSource, /class="site-footer-surface border-t border-white\/60 bg-white\/72 backdrop-blur-xl"/);
 });

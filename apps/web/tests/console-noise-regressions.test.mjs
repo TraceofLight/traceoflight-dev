@@ -61,10 +61,13 @@ test("public shell avoids known console-noise regressions", async () => {
   );
   assert.match(tokensCssSource, /pretendardvariable-dynamic-subset\.css/);
   assert.match(baseLayoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
-  assert.match(baseLayoutSource, /<FloatingUtilityButtons client:idle \/>/);
+  // FloatingUtilityButtons is a static Astro component (no client directive).
+  assert.match(baseLayoutSource, /<FloatingUtilityButtons \/>/);
   assert.doesNotMatch(baseLayoutSource, /transition:persist/);
   assert.match(headerSource, /<MobileNavSheet client:media="\(\s*max-width:\s*767px\s*\)"/);
-  assert.match(footerSource, /<FooterAdminModal\s+client:idle/);
+  // FooterAdminModal is a static Astro component (no client directive).
+  assert.match(footerSource, /<FooterAdminModal\b/);
+  assert.doesNotMatch(footerSource, /<FooterAdminModal[\s\S]*client:idle/);
 
   for (const source of [
     blogPostSource,

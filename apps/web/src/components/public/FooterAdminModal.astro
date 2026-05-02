@@ -1,0 +1,270 @@
+---
+import logInIcon from "../../assets/icons/utility/log-in.svg?raw";
+import shieldIcon from "../../assets/icons/utility/shield.svg?raw";
+import {
+  PUBLIC_ICON_ACTION_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "../../lib/ui-effects";
+
+interface Props {
+  adminNextPath: string;
+  shouldOpenOnLoad: boolean;
+}
+
+const { adminNextPath, shouldOpenOnLoad } = Astro.props;
+
+const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`;
+---
+
+<button
+  aria-label="Admin Login"
+  type="button"
+  class={triggerClass}
+  data-footer-admin-trigger
+>
+  <span class="h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={shieldIcon}></span>
+</button>
+
+<dialog
+  class="footer-admin-dialog"
+  data-footer-admin-dialog
+  data-admin-next-path={adminNextPath}
+  data-should-open-on-load={shouldOpenOnLoad ? "true" : "false"}
+  aria-labelledby="footer-admin-dialog-title"
+>
+  <form method="dialog" class="footer-admin-dialog-shell">
+    <div class="footer-admin-dialog-header">
+      <h2 id="footer-admin-dialog-title" class="text-lg font-semibold leading-none tracking-tight">
+        ADMIN LOGIN
+      </h2>
+      <button
+        aria-label="닫기"
+        type="submit"
+        value="cancel"
+        class="footer-admin-dialog-close rounded-full border border-white/80 bg-white/90 px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        ×
+      </button>
+    </div>
+  </form>
+  <form
+    id="footer-admin-login-form"
+    class="footer-admin-dialog-body grid gap-4"
+    novalidate
+  >
+    <div class="grid gap-2">
+      <label for="footer-admin-username" class="text-sm font-medium leading-none">아이디</label>
+      <input
+        autocomplete="username"
+        id="footer-admin-username"
+        name="username"
+        required
+        class="footer-admin-input flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      />
+    </div>
+    <div class="grid gap-2">
+      <label for="footer-admin-password" class="text-sm font-medium leading-none">비밀번호</label>
+      <input
+        autocomplete="current-password"
+        id="footer-admin-password"
+        name="password"
+        required
+        type="password"
+        class="footer-admin-input flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      />
+    </div>
+    <button
+      class={`w-full ${PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}`}
+      type="submit"
+    >
+      <span class="mr-1 h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={logInIcon}></span>
+      로그인
+    </button>
+    <p
+      class="text-sm text-muted-foreground"
+      data-state="info"
+      id="footer-admin-feedback"
+    >
+      로그인 정보를 입력해 주세요.
+    </p>
+  </form>
+</dialog>
+
+<style>
+  .footer-admin-dialog {
+    width: min(28rem, calc(100vw - 2rem));
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 1rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: hsl(var(--foreground));
+    box-shadow: 0 32px 80px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(16px);
+  }
+
+  .footer-admin-dialog::backdrop {
+    background-color: rgba(2, 6, 23, 0.16);
+    backdrop-filter: blur(4px);
+  }
+
+  :root[data-theme="dark"] .footer-admin-dialog {
+    border-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(15, 23, 42, 0.96);
+  }
+
+  .footer-admin-dialog-shell {
+    margin: 0 0 1rem 0;
+  }
+
+  .footer-admin-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    if (window.__traceoflightFooterAdminBound) {
+      return;
+    }
+    window.__traceoflightFooterAdminBound = true;
+
+    const setupModal = () => {
+      const dialog = document.querySelector("[data-footer-admin-dialog]");
+      const trigger = document.querySelector("[data-footer-admin-trigger]");
+      if (!(dialog instanceof HTMLDialogElement) || !(trigger instanceof HTMLElement)) {
+        return;
+      }
+
+      const form = dialog.querySelector("#footer-admin-login-form");
+      const usernameInput = dialog.querySelector("#footer-admin-username");
+      const passwordInput = dialog.querySelector("#footer-admin-password");
+      const feedback = dialog.querySelector("#footer-admin-feedback");
+      if (
+        !(form instanceof HTMLFormElement) ||
+        !(usernameInput instanceof HTMLInputElement) ||
+        !(passwordInput instanceof HTMLInputElement) ||
+        !(feedback instanceof HTMLElement)
+      ) {
+        return;
+      }
+
+      const adminNextPath = dialog.dataset.adminNextPath ?? "";
+      const shouldOpenOnLoad = dialog.dataset.shouldOpenOnLoad === "true";
+
+      const setFeedback = (message, state) => {
+        feedback.textContent = message;
+        feedback.dataset.state = state;
+      };
+
+      const resetFeedback = () => {
+        setFeedback("로그인 정보를 입력해 주세요.", "info");
+      };
+
+      const openDialog = () => {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+      };
+
+      const closeDialog = () => {
+        if (dialog.open) {
+          dialog.close();
+        }
+      };
+
+      trigger.addEventListener("click", openDialog);
+
+      // Close when clicking on the backdrop (outside the dialog content rect).
+      dialog.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const clickedInside =
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom;
+        if (!clickedInside) {
+          closeDialog();
+        }
+      });
+
+      dialog.addEventListener("close", () => {
+        resetFeedback();
+        usernameInput.value = "";
+        passwordInput.value = "";
+      });
+
+      const readJsonSafe = async (response) => {
+        try {
+          return await response.json();
+        } catch {
+          return null;
+        }
+      };
+
+      const resolveErrorMessage = (payload, fallback) => {
+        if (payload && typeof payload === "object") {
+          const detail = payload.detail;
+          if (typeof detail === "string" && detail.trim()) {
+            return detail.trim();
+          }
+          const message = payload.message;
+          if (typeof message === "string" && message.trim()) {
+            return message.trim();
+          }
+        }
+        return fallback;
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setFeedback("로그인 처리 중...", "pending");
+
+        try {
+          const response = await fetch("/internal-api/auth/login", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              username: usernameInput.value.trim(),
+              password: passwordInput.value,
+            }),
+          });
+
+          if (!response.ok) {
+            const payload = await readJsonSafe(response);
+            setFeedback(
+              resolveErrorMessage(payload, "로그인에 실패했습니다."),
+              "error",
+            );
+            return;
+          }
+
+          window.location.assign(adminNextPath || "/");
+        } catch {
+          setFeedback("네트워크 오류가 발생했습니다.", "error");
+        }
+      });
+
+      if (shouldOpenOnLoad) {
+        openDialog();
+        const current = new URL(window.location.href);
+        current.searchParams.delete("admin_login");
+        current.searchParams.delete("next");
+        window.history.replaceState(
+          {},
+          "",
+          `${current.pathname}${current.search}${current.hash}`,
+        );
+      }
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setupModal);
+    } else {
+      setupModal();
+    }
+  })();
+</script>

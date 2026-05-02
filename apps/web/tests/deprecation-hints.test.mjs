@@ -8,7 +8,7 @@ const pageTransitionsPath = new URL(
 );
 const baseHeadPath = new URL("../src/components/BaseHead.astro", import.meta.url);
 const footerAdminModalPath = new URL(
-  "../src/components/public/FooterAdminModal.tsx",
+  "../src/components/public/FooterAdminModal.astro",
   import.meta.url,
 );
 const dialogPath = new URL("../src/components/ui/dialog.tsx", import.meta.url);
