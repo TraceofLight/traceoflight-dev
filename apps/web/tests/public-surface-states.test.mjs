@@ -17,7 +17,7 @@ const footerAdminModalPath = new URL(
   import.meta.url,
 );
 const mobileNavSheetPath = new URL(
-  "../src/components/public/MobileNavSheet.tsx",
+  "../src/components/public/MobileNavSheet.astro",
   import.meta.url,
 );
 const homePagePath = new URL("../src/pages/index.astro", import.meta.url);
@@ -96,13 +96,16 @@ test("footer icons use the same filled pill treatment as the admin entry button"
 test("mobile navigation sheet stays compact and drops redundant title copy", async () => {
   const source = await readFile(mobileNavSheetPath, "utf8");
 
-  assert.match(source, /<SheetContent side="right" className="w-\[min\(22rem,calc\(100vw-1\.5rem\)\)\] p-5">/);
+  // Now a native <dialog> right-side panel sized at min(22rem, calc(100vw - 1.5rem)).
+  assert.match(source, /<dialog[\s\S]*data-mobile-nav-sheet/);
+  assert.match(source, /min\(22rem,\s*calc\(100vw\s*-\s*1\.5rem\)\)/);
   assert.doesNotMatch(source, /<SheetHeader>/);
   assert.doesNotMatch(source, /<SheetTitle>/);
   assert.doesNotMatch(source, /<SheetDescription>/);
   assert.doesNotMatch(source, /Navigate/);
   assert.doesNotMatch(source, /Move across the public site\./);
-  assert.match(source, /className="mt-2 flex flex-col gap-1\.5"/);
+  // Astro uses class= rather than className=.
+  assert.match(source, /class="mt-2 flex flex-col gap-1\.5"/);
   assert.match(source, /rounded-2xl px-4 py-3 text-base/);
   assert.match(source, /ADMIN_IMPORTS_PATH/);
   assert.match(source, /href=\{ADMIN_IMPORTS_PATH\}/);

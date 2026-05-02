@@ -4,7 +4,7 @@ import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { ADMIN_IMPORTS_PATH } from "../lib/admin/imports-page";
 import { DANGER_PILL_ACTION_CLASS } from "../lib/ui-effects";
 import HeaderLink from "./HeaderLink.astro";
-import MobileNavSheet from "./public/MobileNavSheet";
+import MobileNavSheet from "./public/MobileNavSheet.astro";
 
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
@@ -50,7 +50,7 @@ const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false
         }
       </nav>
       <div class="md:hidden">
-        <MobileNavSheet client:media="(max-width: 767px)" items={NAV_LINKS} isAdminViewer={isAdminViewer} />
+        <MobileNavSheet items={NAV_LINKS} isAdminViewer={isAdminViewer} />
       </div>
     </div>
   </div>

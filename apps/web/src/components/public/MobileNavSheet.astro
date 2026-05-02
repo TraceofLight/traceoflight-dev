@@ -1,0 +1,142 @@
+---
+import menuIcon from "../../assets/icons/utility/menu.svg?raw";
+
+type NavItem = {
+  href: string;
+  label: string;
+};
+
+interface Props {
+  items: readonly NavItem[];
+  isAdminViewer: boolean;
+}
+
+const { items, isAdminViewer } = Astro.props;
+const ADMIN_IMPORTS_PATH = "/admin";
+---
+
+<button
+  aria-label="Open navigation"
+  type="button"
+  data-mobile-nav-trigger
+  class="mobile-nav-trigger inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+>
+  <span class="h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={menuIcon}></span>
+</button>
+
+<dialog
+  class="mobile-nav-sheet"
+  data-mobile-nav-sheet
+  aria-label="Mobile navigation"
+>
+  <nav class="mt-2 flex flex-col gap-1.5" aria-label="Mobile navigation">
+    {items.map((item) => (
+      <a
+        class="rounded-2xl px-4 py-3 text-base font-medium text-foreground transition-all duration-200 hover:bg-white/84 hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
+        href={item.href}
+      >
+        {item.label}
+      </a>
+    ))}
+    {isAdminViewer && (
+      <>
+        <a
+          class="rounded-2xl px-4 py-3 text-base font-medium text-red-700 transition-all duration-200 hover:bg-red-50 hover:shadow-[0_8px_24px_rgba(239,68,68,0.12)]"
+          href={ADMIN_IMPORTS_PATH}
+        >
+          Admin
+        </a>
+        <form action="/logout?next=/" class="pt-3" method="POST">
+          <button
+            class="inline-flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            type="submit"
+          >
+            Logout
+          </button>
+        </form>
+      </>
+    )}
+  </nav>
+</dialog>
+
+<style>
+  .mobile-nav-sheet {
+    /* Right-side slide-out panel. inset overrides Tailwind preflight margin reset. */
+    inset: 0 0 0 auto;
+    margin: 0;
+    width: min(22rem, calc(100vw - 1.5rem));
+    max-width: none;
+    height: 100vh;
+    max-height: 100vh;
+    padding: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: hsl(var(--foreground));
+    box-shadow: -32px 0 80px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-nav-sheet::backdrop {
+    background-color: rgba(2, 6, 23, 0.16);
+    backdrop-filter: blur(4px);
+  }
+
+  :root[data-theme="dark"] .mobile-nav-sheet {
+    border-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(15, 23, 42, 0.96);
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    if (window.__traceoflightMobileNavBound) {
+      return;
+    }
+    window.__traceoflightMobileNavBound = true;
+
+    const setup = () => {
+      const dialog = document.querySelector("[data-mobile-nav-sheet]");
+      const trigger = document.querySelector("[data-mobile-nav-trigger]");
+      if (!(dialog instanceof HTMLDialogElement) || !(trigger instanceof HTMLElement)) {
+        return;
+      }
+
+      trigger.addEventListener("click", () => {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+      });
+
+      // Close when clicking on the backdrop (outside the dialog content rect).
+      dialog.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const clickedInside =
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom;
+        if (!clickedInside) {
+          dialog.close();
+        }
+      });
+
+      // Auto-close when navigating via an in-sheet link (browser doesn't fire
+      // a navigation event before unload on same-document jumps, but anchor
+      // clicks should dismiss the panel for visual cleanliness).
+      dialog.addEventListener("click", (event) => {
+        const target = event.target;
+        if (target instanceof HTMLAnchorElement && dialog.contains(target)) {
+          dialog.close();
+        }
+      });
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setup);
+    } else {
+      setup();
+    }
+  })();
+</script>

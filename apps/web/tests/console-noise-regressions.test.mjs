@@ -64,7 +64,9 @@ test("public shell avoids known console-noise regressions", async () => {
   // FloatingUtilityButtons is a static Astro component (no client directive).
   assert.match(baseLayoutSource, /<FloatingUtilityButtons \/>/);
   assert.doesNotMatch(baseLayoutSource, /transition:persist/);
-  assert.match(headerSource, /<MobileNavSheet client:media="\(\s*max-width:\s*767px\s*\)"/);
+  // MobileNavSheet is a static Astro component now (no React hydration directive).
+  assert.match(headerSource, /<MobileNavSheet\b/);
+  assert.doesNotMatch(headerSource, /<MobileNavSheet[\s\S]*client:media/);
   // FooterAdminModal is a static Astro component (no client directive).
   assert.match(footerSource, /<FooterAdminModal\b/);
   assert.doesNotMatch(footerSource, /<FooterAdminModal[\s\S]*client:idle/);
