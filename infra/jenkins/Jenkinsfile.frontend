@@ -18,12 +18,12 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: 'traceoflight-web-env', variable: 'WEB_ENV_FILE')]) {
           sh '''
-            cp "$WEB_ENV_FILE" apps/web/.env
+            cp "$WEB_ENV_FILE" apps/web/.env.web
             # Normalize Windows CRLF credentials to LF for safe shell parsing.
-            sed -i 's/\r$//' apps/web/.env
+            sed -i 's/\r$//' apps/web/.env.web
 
             for key in SITE_URL PORT CONTENT_PROVIDER API_BASE_URL ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
-              if ! grep -Eq "^${key}=.+" apps/web/.env; then
+              if ! grep -Eq "^${key}=.+" apps/web/.env.web; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
@@ -35,8 +35,8 @@ pipeline {
 
     stage('Deploy Frontend') {
       steps {
-        dir('apps/web') {
-          sh 'docker compose --env-file .env up -d --build --remove-orphans'
+        dir('infra/docker/web') {
+          sh 'docker compose --env-file ../../../apps/web/.env.web up -d --build --remove-orphans'
         }
       }
     }
@@ -44,7 +44,7 @@ pipeline {
 
   post {
     always {
-      sh 'rm -f apps/web/.env || true'
+      sh 'rm -f apps/web/.env.web || true'
       sh 'docker container prune -f || true'
       sh 'docker image prune -f || true'
     }

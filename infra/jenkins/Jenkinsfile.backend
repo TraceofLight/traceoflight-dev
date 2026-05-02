@@ -21,23 +21,23 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: 'traceoflight-api-env', variable: 'API_ENV_FILE')]) {
           sh '''
-            cp "$API_ENV_FILE" infra/docker/api/.env
+            cp "$API_ENV_FILE" apps/api/.env.api
             # Normalize Windows CRLF credentials to LF for safe shell parsing.
-            sed -i 's/\r$//' infra/docker/api/.env
-            if grep -nE '^[A-Z0-9_]+=.*\\$' infra/docker/api/.env >/dev/null; then
+            sed -i 's/\r$//' apps/api/.env.api
+            if grep -nE '^[A-Z0-9_]+=.*\\$' apps/api/.env.api >/dev/null; then
               echo "ERROR: .env values include '$'. Docker Compose interpolation can break secrets."
               echo "Use secrets without '$' for Jenkins env file (or escape safely before use)."
               exit 1
             fi
 
             for key in API_PORT POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT REDIS_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY INTERNAL_API_SECRET ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS; do
-              if ! grep -Eq "^${key}=.+" infra/docker/api/.env; then
+              if ! grep -Eq "^${key}=.+" apps/api/.env.api; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
             done
 
-            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' infra/docker/api/.env && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' infra/docker/api/.env; then
+            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' apps/api/.env.api && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' apps/api/.env.api; then
               echo "ERROR: at least one of ADMIN_LOGIN_PASSWORD_HASH or ADMIN_LOGIN_PASSWORD is required"
               exit 1
             fi
@@ -68,7 +68,7 @@ pipeline {
     stage('Deploy Backend') {
       steps {
         dir('infra/docker/api') {
-          sh 'docker compose --env-file .env up -d --build --no-deps api'
+          sh 'docker compose --env-file ../../../apps/api/.env.api up -d --build --no-deps api'
         }
       }
     }
@@ -76,9 +76,9 @@ pipeline {
     stage('Healthcheck') {
       steps {
         sh '''
-          API_PORT="$(grep -E '^API_PORT=' infra/docker/api/.env | head -n1 | cut -d'=' -f2- | tr -d '\r')"
+          API_PORT="$(grep -E '^API_PORT=' apps/api/.env.api | head -n1 | cut -d'=' -f2- | tr -d '\r')"
           if [ -z "$API_PORT" ]; then
-            echo "ERROR: API_PORT is missing in infra/docker/api/.env"
+            echo "ERROR: API_PORT is missing in apps/api/.env.api"
             exit 1
           fi
 
@@ -107,7 +107,7 @@ pipeline {
 
   post {
     always {
-      sh 'rm -f infra/docker/api/.env || true'
+      sh 'rm -f apps/api/.env.api || true'
       sh 'docker container prune -f || true'
       sh 'docker image prune -f || true'
     }

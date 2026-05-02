@@ -15,10 +15,15 @@ FastAPI backend for posts and media metadata.
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
-# create .env from ../../infra/docker/api/.env.example and adjust values
+# All env files for this app live under apps/api/ with .env.api[.suffix] naming.
+# Bootstrap from the local template:
+cp .env.api.example .env.api
+# (optional) keep a .env.api.jenkins next to it as your local copy of the Jenkins credential payload.
 export API_PORT=<your_api_port>
 uvicorn app.main:app --reload --host 0.0.0.0 --port "$API_PORT"
 ```
+
+The deployment compose stack at `infra/docker/api/docker-compose.yml` reads `apps/api/.env.api` via a relative `env_file:` path — there are no env files inside `infra/`.
 
 ## Test
 

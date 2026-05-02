@@ -17,7 +17,7 @@ class JenkinsCleanupPipelineTests(unittest.TestCase):
     def test_frontend_pipeline_prunes_safe_docker_garbage_in_post(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.frontend")
 
-        self.assertIn("rm -f apps/web/.env || true", source)
+        self.assertIn("rm -f apps/web/.env.web || true", source)
         self.assertIn("docker container prune -f", source)
         self.assertIn("docker image prune -f", source)
         self.assertNotIn("docker builder prune -f", source)
@@ -25,7 +25,7 @@ class JenkinsCleanupPipelineTests(unittest.TestCase):
     def test_backend_pipeline_prunes_safe_docker_garbage_in_post(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.backend")
 
-        self.assertIn("rm -f infra/docker/api/.env || true", source)
+        self.assertIn("rm -f apps/api/.env.api || true", source)
         self.assertIn("docker container prune -f", source)
         self.assertIn("docker image prune -f", source)
         self.assertNotIn("docker builder prune -f", source)
@@ -52,7 +52,7 @@ class JenkinsCleanupPipelineTests(unittest.TestCase):
     def test_infra_pipeline_removes_one_shot_minio_init_container(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.infra")
 
-        self.assertIn("docker compose --env-file .env rm -f minio-init", source)
+        self.assertIn("docker compose --env-file ../../../apps/api/.env.api rm -f minio-init", source)
 
 
 if __name__ == "__main__":

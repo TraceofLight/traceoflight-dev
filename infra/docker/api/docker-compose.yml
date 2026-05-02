@@ -8,7 +8,7 @@ services:
     container_name: traceoflight-api
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ../../../apps/api/.env.api
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: ${POSTGRES_PORT}
@@ -33,7 +33,7 @@ services:
     container_name: traceoflight-postgres
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ../../../apps/api/.env.api
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-traceoflight}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
     command: server /data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
     env_file:
-      - ./.env
+      - ../../../apps/api/.env.api
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-traceoflight}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-this-minio-password}
@@ -81,7 +81,7 @@ services:
       minio:
         condition: service_started
     env_file:
-      - ./.env
+      - ../../../apps/api/.env.api
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-traceoflight}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-this-minio-password}

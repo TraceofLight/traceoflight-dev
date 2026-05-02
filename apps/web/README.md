@@ -4,7 +4,14 @@ Astro frontend for landing, blog, and projects.
 
 ## Runtime env
 
-Copy `.env.example` to `.env` when needed.
+All env files for this app live under `apps/web/` with `.env.web[.suffix]` naming. Copy the committed template:
+
+```bash
+cp .env.web.example .env.web
+# (optional) keep a .env.web.jenkins next to it as your local copy of the Jenkins credential payload.
+```
+
+The deployment compose stack at `infra/docker/web/docker-compose.yml` reads `apps/web/.env.web` via a relative `env_file:` path. No env files live inside `infra/`.
 
 - `SITE_URL`: public site url
 - `GA4_MEASUREMENT_ID`: optional Google Analytics 4 measurement id (example: `G-XXXXXXXXXX`). Used by both the server-side event forwarder (`/internal-api/analytics/event`) and the dashboard summary helper.

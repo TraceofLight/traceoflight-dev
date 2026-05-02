@@ -10,7 +10,7 @@ const visitorSummaryPath = new URL(
   "../src/lib/server/ga4-summary.ts",
   import.meta.url,
 );
-const envExamplePath = new URL("../.env.example", import.meta.url);
+const envExamplePath = new URL("../.env.web.example", import.meta.url);
 const readmePath = new URL("../README.md", import.meta.url);
 
 test("base head provides optional GA4 snippet with astro page-load tracking", async () => {

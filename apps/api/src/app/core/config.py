@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(case_sensitive=False, env_file='.env', extra='ignore')
+    model_config = SettingsConfigDict(case_sensitive=False, env_file='.env.api', extra='ignore')
 
     app_name: str = Field(default='traceoflight-api', alias='APP_NAME')
     app_env: str = Field(default='development', alias='APP_ENV')

@@ -15,9 +15,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# environment variables
+# environment variables (see root .gitignore for the .env.<service>[.<modifier>] convention)
 .env
-.env.production
+.env.*
+!.env.example
+!.env.*.example
 
 # macOS-specific files
 .DS_Store

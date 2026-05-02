@@ -1,12 +1,14 @@
+name: traceoflight-web-stack
+
 services:
   frontend:
     build:
-      context: .
+      context: ../../../apps/web
       dockerfile: Dockerfile
     container_name: traceoflight-frontend
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ../../../apps/web/.env.web
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0

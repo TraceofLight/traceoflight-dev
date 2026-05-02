@@ -174,20 +174,21 @@ This keeps browser clients from directly coupling to backend host/port.
 
 ## Environment Baseline
 
-`apps/web/.env.example`:
+`apps/web/.env.web.example` (template; copy to `apps/web/.env.web` for both local dev and the compose deployment stack):
 
 - `SITE_URL`
+- `PORT`
+- `CONTENT_PROVIDER`
+- `API_BASE_URL` (default `http://traceoflight-api:6654/api/v1/web-service`)
 - `ADMIN_LOGIN_ID`
 - `ADMIN_LOGIN_PASSWORD_HASH`
 - `ADMIN_LOGIN_PASSWORD` (fallback only)
 - `ADMIN_SESSION_SECRET`
 - `ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS`
 - `ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS`
+- `INTERNAL_API_SECRET`
 
-`apps/web/docker-compose.yml` additionally sets:
-
-- `CONTENT_PROVIDER=db`
-- `API_BASE_URL=http://traceoflight-api:6654/api/v1/web-service`
+`infra/docker/web/docker-compose.yml` reads `apps/web/.env.web` via a relative `env_file: ../../../apps/web/.env.web` plus an explicit `environment:` block for keys consumed by the Astro container at runtime. No env files live inside `infra/`.
 
 ## Tests and Verification
 
