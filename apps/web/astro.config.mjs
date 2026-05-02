@@ -36,6 +36,12 @@ export default defineConfig({
 	security: {
 		checkOrigin: false,
 	},
+	build: {
+		// Inline page stylesheets to remove the LCP-blocking external <link rel="stylesheet">.
+		// All shared CSS is bundled into one chunk (~70KB minified), and the SSR HTML payload
+		// is served gzip/br compressed by the node adapter.
+		inlineStylesheets: 'always',
+	},
 	integrations: [react(), mdx()],
 	vite: {
 		plugins: [tailwindcss()],
