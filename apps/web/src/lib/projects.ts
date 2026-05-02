@@ -127,8 +127,17 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
   };
 }
 
-export async function listPublishedDbProjects(limit = 50): Promise<ProjectItem[]> {
-  const response = await requestBackend(`/projects?limit=${limit}&offset=0`);
+interface ListProjectsOptions {
+  limit?: number;
+  offset?: number;
+}
+
+export async function listPublishedDbProjects(
+  options: ListProjectsOptions = {},
+): Promise<ProjectItem[]> {
+  const limit = options.limit ?? 50;
+  const offset = options.offset ?? 0;
+  const response = await requestBackend(`/projects?limit=${limit}&offset=${offset}`);
   if (!response.ok) {
     throw new Error(`failed to fetch projects: ${response.status}`);
   }

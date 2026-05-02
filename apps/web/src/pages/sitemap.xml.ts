@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 
 import { listAllPublishedDbPosts } from "../lib/blog-db";
+import { fetchAllPaged } from "../lib/paginate";
 import { resolvePublicSiteOrigin } from "../lib/public-url";
 import { listPublishedDbProjects } from "../lib/projects";
 import { listSeries } from "../lib/series-db";
@@ -33,10 +34,21 @@ function serializeEntry(entry: SitemapEntry, site: URL): string {
 }
 
 async function getDynamicEntries(): Promise<SitemapEntry[]> {
+  // Posts already paginate internally; projects/series go through the shared
+  // pagination helper because their backend endpoints cap `limit` (le=100/200).
   const [posts, projects, series] = await Promise.all([
-    listAllPublishedDbPosts().catch(() => []),
-    listPublishedDbProjects(500).catch(() => []),
-    listSeries({ limit: 500 }).catch(() => []),
+    listAllPublishedDbPosts().catch((error: unknown) => {
+      console.error("[sitemap] failed to fetch posts:", error);
+      return [];
+    }),
+    fetchAllPaged(
+      (limit, offset) => listPublishedDbProjects({ limit, offset }),
+      { pageSize: 100, resource: "projects" },
+    ),
+    fetchAllPaged(
+      (limit, offset) => listSeries({ limit, offset }),
+      { pageSize: 200, resource: "series" },
+    ),
   ]);
 
   return [

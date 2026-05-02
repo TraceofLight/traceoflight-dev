@@ -36,3 +36,6 @@ Thumbs.db
 .idea/
 .vscode/
 .worktrees/
+
+# AI Workloads
+.claude/

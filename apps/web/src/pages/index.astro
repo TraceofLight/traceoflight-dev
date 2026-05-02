@@ -58,7 +58,7 @@ if (provider === "db") {
 }
 let projects: Awaited<ReturnType<typeof listPublishedDbProjects>> = [];
 try {
-  projects = await listPublishedDbProjects(3);
+  projects = await listPublishedDbProjects({ limit: 3 });
 } catch {
   projects = [];
 }
