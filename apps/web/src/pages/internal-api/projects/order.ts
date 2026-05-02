@@ -2,36 +2,30 @@ import type { APIRoute } from "astro";
 
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { requestBackend } from "../../../lib/backend-api";
+import {
+  backendUnavailableResponse,
+  proxyTextResponse,
+  unauthorizedResponse,
+} from "../../../lib/server/proxy-helpers";
 
 export const prerender = false;
 
 export const PUT: APIRoute = async ({ request, cookies }) => {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
   if (!accessToken || !(await verifyAccessToken(accessToken))) {
-    return new Response(JSON.stringify({ message: "unauthorized" }), {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    });
+    return unauthorizedResponse();
   }
 
   const body = await request.text();
-
+  let response: Response;
   try {
-    const response = await requestBackend("/projects/order", {
+    response = await requestBackend("/projects/order", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body,
     });
-    const responseBody = await response.text();
-    const contentType = response.headers.get("content-type");
-    return new Response(responseBody, {
-      status: response.status,
-      headers: contentType ? { "content-type": contentType } : undefined,
-    });
   } catch {
-    return new Response(JSON.stringify({ message: "backend unavailable" }), {
-      status: 503,
-      headers: { "content-type": "application/json" },
-    });
+    return backendUnavailableResponse();
   }
+  return proxyTextResponse(response);
 };

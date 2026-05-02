@@ -1,15 +1,12 @@
 import type { APIRoute } from "astro";
 
 import { requestBackend } from "../../lib/backend-api";
+import {
+  backendUnavailableResponse,
+  proxyTextResponse,
+} from "../../lib/server/proxy-helpers";
 
 export const prerender = false;
-
-function backendUnavailableResponse(): Response {
-  return new Response(JSON.stringify({ message: "backend unavailable" }), {
-    status: 503,
-    headers: { "content-type": "application/json" },
-  });
-}
 
 export const GET: APIRoute = async ({ url }) => {
   const query = url.search ? url.search : "";
@@ -19,14 +16,7 @@ export const GET: APIRoute = async ({ url }) => {
   } catch {
     return backendUnavailableResponse();
   }
-
-  return new Response(await response.text(), {
-    status: response.status,
-    headers: {
-      "content-type":
-        response.headers.get("content-type") ?? "application/json",
-    },
-  });
+  return proxyTextResponse(response);
 };
 
 export const POST: APIRoute = async ({ request }) => {
@@ -41,12 +31,5 @@ export const POST: APIRoute = async ({ request }) => {
   } catch {
     return backendUnavailableResponse();
   }
-
-  return new Response(await response.text(), {
-    status: response.status,
-    headers: {
-      "content-type":
-        response.headers.get("content-type") ?? "application/json",
-    },
-  });
+  return proxyTextResponse(response);
 };

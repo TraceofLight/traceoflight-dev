@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
 from app.api.deps import get_import_service
-from app.api.security import (
-    INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ensure_trusted_internal_request,
-    is_trusted_internal_request,
-)
+from app.api.security import require_internal_secret
 from app.schemas.imports import BackupLoadRead
 from app.services.import_service import ImportService, ImportValidationError
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_internal_secret)])
 
 
 @router.get(
@@ -26,15 +22,8 @@ router = APIRouter()
     },
 )
 def download_posts_backup(
-    request: Request,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: ImportService = Depends(get_import_service),
 ) -> Response:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         file_name, payload = service.download_posts_backup()
     except ImportValidationError as exc:
@@ -60,16 +49,9 @@ def download_posts_backup(
     },
 )
 async def load_posts_backup(
-    request: Request,
     file: UploadFile = File(...),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: ImportService = Depends(get_import_service),
 ) -> BackupLoadRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         payload = await file.read()
         return service.load_posts_backup(file.filename or "", payload)

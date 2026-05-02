@@ -1,11 +1,17 @@
-export function backendUnavailableImportsResponse(): Response {
-  return new Response(JSON.stringify({ message: "backend unavailable" }), {
+const NO_BODY_STATUSES: ReadonlySet<number> = new Set([204, 205, 304]);
+
+function isNoBodyStatus(status: number): boolean {
+  return NO_BODY_STATUSES.has(status);
+}
+
+export function backendUnavailableResponse(): Response {
+  return new Response(JSON.stringify({ detail: "backend unavailable" }), {
     status: 503,
     headers: { "content-type": "application/json" },
   });
 }
 
-export function unauthorizedImportsResponse(): Response {
+export function unauthorizedResponse(): Response {
   return new Response(JSON.stringify({ detail: "Unauthorized" }), {
     status: 401,
     headers: { "content-type": "application/json" },
@@ -16,13 +22,13 @@ export async function proxyTextResponse(
   response: Response,
   fallbackContentType = "application/json",
 ): Promise<Response> {
-  const responseBody = await response.text();
-  return new Response(responseBody, {
-    status: response.status,
-    headers: {
-      "content-type": response.headers.get("content-type") ?? fallbackContentType,
-    },
-  });
+  const contentType = response.headers.get("content-type") ?? fallbackContentType;
+  const headers = { "content-type": contentType };
+  if (isNoBodyStatus(response.status)) {
+    return new Response(null, { status: response.status, headers });
+  }
+  const body = await response.text();
+  return new Response(body, { status: response.status, headers });
 }
 
 export async function proxyBinaryResponse(

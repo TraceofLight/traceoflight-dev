@@ -2,9 +2,9 @@ import type { APIRoute } from "astro";
 
 import { requestBackend } from "../../../lib/backend-api";
 import {
-  backendUnavailableImportsResponse,
+  backendUnavailableResponse,
   proxyTextResponse,
-} from "../../../lib/server/imports-proxy";
+} from "../../../lib/server/proxy-helpers";
 
 export const prerender = false;
 
@@ -15,7 +15,7 @@ export const GET: APIRoute = async () => {
       method: "GET",
     });
   } catch {
-    return backendUnavailableImportsResponse();
+    return backendUnavailableResponse();
   }
 
   return proxyTextResponse(response);

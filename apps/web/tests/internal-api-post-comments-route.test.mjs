@@ -40,7 +40,7 @@ test("internal-api admin comments route requires admin session before proxying",
   const source = await readFile(adminCommentsRoutePath, "utf8");
 
   assert.match(source, /export const GET/);
-  assert.match(source, /unauthorizedImportsResponse/);
+  assert.match(source, /unauthorizedResponse/);
   assert.match(source, /ADMIN_ACCESS_COOKIE/);
   assert.match(source, /verifyAccessToken/);
   assert.match(source, /requestBackend\(`\/admin\/comments\$\{query\}`/);

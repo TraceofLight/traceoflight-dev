@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import get_site_profile_service
-from app.api.security import (
-    INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ensure_trusted_internal_request,
-)
+from app.api.security import require_internal_secret
 from app.schemas.site_profile import SiteProfileRead, SiteProfileUpdateRequest
 from app.services.site_profile_service import SiteProfileService
 
@@ -39,18 +36,12 @@ def get_site_profile(
         400: {"description": "Invalid site profile payload"},
         401: {"description": "Missing or invalid internal API secret"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def update_site_profile(
-    request: Request,
     payload: SiteProfileUpdateRequest,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: SiteProfileService = Depends(get_site_profile_service),
 ) -> SiteProfileRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         profile = service.update_profile(payload.email, payload.github_url)
     except ValueError as exc:

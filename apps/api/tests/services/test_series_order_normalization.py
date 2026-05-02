@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from app.repositories import series_repository
+from app.core.text import normalize_slug_list
 
 
-def test_normalize_series_slugs_preserves_original_case() -> None:
-    normalized = series_repository._normalize_series_slugs(  # noqa: SLF001
-        ["ProblemSolving", " ComputerScience ", "ProblemSolving", ""]
+def test_normalize_slug_list_preserves_case_when_disabled() -> None:
+    normalized = normalize_slug_list(
+        ["ProblemSolving", " ComputerScience ", "ProblemSolving", ""],
+        lowercase=False,
     )
 
     assert normalized == ["ProblemSolving", "ComputerScience"]

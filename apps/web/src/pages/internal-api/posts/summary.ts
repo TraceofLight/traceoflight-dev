@@ -85,6 +85,6 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       visibilityCounts: summaryPage.visibilityCounts,
     });
   } catch {
-    return jsonResponse({ message: "backend unavailable" }, 503);
+    return jsonResponse({ detail: "backend unavailable" }, 503);
   }
 };

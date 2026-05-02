@@ -35,8 +35,12 @@ const adminImportsPanelPath = new URL(
   "../src/components/public/AdminImportsPanel.tsx",
   import.meta.url,
 );
-const importsProxyPath = new URL(
-  "../src/lib/server/imports-proxy.ts",
+const adminSiteProfileSectionPath = new URL(
+  "../src/components/public/AdminSiteProfileSection.tsx",
+  import.meta.url,
+);
+const proxyHelpersPath = new URL(
+  "../src/lib/server/proxy-helpers.ts",
   import.meta.url,
 );
 const projectDetailPath = new URL("../src/pages/projects/[slug].astro", import.meta.url);
@@ -55,7 +59,8 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
     editorBridgeSource,
     linkNormalizationSource,
     adminImportsPanelSource,
-    importsProxySource,
+    adminSiteProfileSectionSource,
+    proxyHelpersSource,
     projectDetailSource,
   ] = await Promise.all([
     readFile(pageTransitionsPath, "utf8"),
@@ -70,7 +75,8 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
     readFile(editorBridgePath, "utf8"),
     readFile(linkNormalizationPath, "utf8"),
     readFile(adminImportsPanelPath, "utf8"),
-    readFile(importsProxyPath, "utf8"),
+    readFile(adminSiteProfileSectionPath, "utf8"),
+    readFile(proxyHelpersPath, "utf8"),
     readFile(projectDetailPath, "utf8"),
   ]);
 
@@ -98,9 +104,9 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
   assert.doesNotMatch(editorBridgeSource, /return await markdown;/);
   assert.doesNotMatch(linkNormalizationSource, /\(full, prefix, rawUrl, suffix\)/);
   assert.doesNotMatch(adminImportsPanelSource, /MutableRefObject/);
-  assert.doesNotMatch(adminImportsPanelSource, /GithubIcon/);
-  assert.match(adminImportsPanelSource, /assets\/icons\/footer\/github\.svg\?raw/);
-  assert.match(importsProxySource, /export async function proxyTextResponse/);
-  assert.match(importsProxySource, /export async function proxyBinaryResponse/);
+  assert.doesNotMatch(adminSiteProfileSectionSource, /GithubIcon/);
+  assert.match(adminSiteProfileSectionSource, /assets\/icons\/footer\/github\.svg\?raw/);
+  assert.match(proxyHelpersSource, /export async function proxyTextResponse/);
+  assert.match(proxyHelpersSource, /export async function proxyBinaryResponse/);
   assert.doesNotMatch(projectDetailSource, /const relatedSeries =/);
 });

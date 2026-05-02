@@ -1,22 +1,14 @@
 from __future__ import annotations
 
 from sqlalchemy.exc import IntegrityError
-from fastapi import APIRouter, Depends
-from fastapi import Header
-from fastapi import HTTPException
-from fastapi import Query
-from fastapi import Request
-from fastapi import Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.api.deps import get_tag_service
-from app.api.security import (
-    INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ensure_trusted_internal_request,
-)
+from app.api.security import require_internal_secret
 from app.schemas.tag import TagCreate, TagRead, TagUpdate
 from app.services.tag_service import TagInUseError, TagService, TagValidationError
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_internal_secret)])
 
 
 @router.get(
@@ -33,18 +25,11 @@ router = APIRouter()
     },
 )
 def list_tags(
-    request: Request,
     query: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: TagService = Depends(get_tag_service),
 ) -> list[TagRead]:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     return service.list_tags(query=query, limit=limit, offset=offset)
 
 
@@ -61,16 +46,9 @@ def list_tags(
     },
 )
 def create_tag(
-    request: Request,
     payload: TagCreate,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: TagService = Depends(get_tag_service),
 ) -> TagRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         return service.create_tag(payload)
     except TagValidationError as exc:
@@ -93,17 +71,10 @@ def create_tag(
     },
 )
 def update_tag(
-    request: Request,
     slug: str,
     payload: TagUpdate,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: TagService = Depends(get_tag_service),
 ) -> TagRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     if payload.slug is None and payload.label is None:
         raise HTTPException(status_code=400, detail="at least one field is required")
     try:
@@ -130,17 +101,10 @@ def update_tag(
     },
 )
 def delete_tag(
-    request: Request,
     slug: str,
     force: bool = Query(default=False),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: TagService = Depends(get_tag_service),
 ) -> Response:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         deleted = service.delete_tag(slug, force=force)
     except TagInUseError as exc:

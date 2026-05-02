@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import get_admin_auth_service
-from app.api.security import (
-    INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ensure_trusted_internal_request,
-)
+from app.api.security import require_internal_secret
 from app.schemas.admin_auth import (
     AdminAuthLoginRequest,
     AdminAuthLoginResponse,
@@ -90,17 +87,11 @@ async def logout_admin(
     response_model=AdminCredentialRevisionResponse,
     status_code=200,
     responses={401: {"description": "Missing or invalid internal API secret"}},
+    dependencies=[Depends(require_internal_secret)],
 )
 async def get_admin_credential_revision(
-    request: Request,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: AdminAuthService = Depends(get_admin_auth_service),
 ) -> AdminCredentialRevisionResponse:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     return AdminCredentialRevisionResponse(
         credential_revision=await service.get_active_credential_revision()
     )
@@ -114,18 +105,12 @@ async def get_admin_credential_revision(
         400: {"description": "Invalid credential payload"},
         401: {"description": "Missing or invalid internal API secret"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 async def update_admin_credentials(
-    request: Request,
     payload: AdminCredentialUpdateRequest,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: AdminAuthService = Depends(get_admin_auth_service),
 ) -> AdminCredentialUpdateResponse:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         result = await service.update_operational_credentials(payload.login_id, payload.password)
     except ValueError as exc:

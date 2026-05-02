@@ -1,37 +1,15 @@
 import type { APIRoute } from "astro";
 
 import { requestBackend } from "../../../lib/backend-api";
+import {
+  backendUnavailableResponse,
+  proxyTextResponse,
+} from "../../../lib/server/proxy-helpers";
 
 export const prerender = false;
 
-function backendUnavailableResponse(): Response {
-  return new Response(JSON.stringify({ message: "backend unavailable" }), {
-    status: 503,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-function isNoBodyStatus(status: number): boolean {
-  return status === 204 || status === 205 || status === 304;
-}
-
-function createProxiedResponse(response: Response, body: string): Response {
-  const contentType = response.headers.get("content-type");
-  const headers = contentType ? { "content-type": contentType } : undefined;
-  if (isNoBodyStatus(response.status)) {
-    return new Response(null, {
-      status: response.status,
-      headers,
-    });
-  }
-  return new Response(body, {
-    status: response.status,
-    headers,
-  });
-}
-
 function invalidSlugResponse(): Response {
-  return new Response(JSON.stringify({ message: "slug is required" }), {
+  return new Response(JSON.stringify({ detail: "slug is required" }), {
     status: 400,
     headers: { "content-type": "application/json" },
   });
@@ -48,8 +26,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   } catch {
     return backendUnavailableResponse();
   }
-  const body = await response.text();
-  return createProxiedResponse(response, body);
+  return proxyTextResponse(response);
 };
 
 export const PUT: APIRoute = async ({ params, request, url }) => {
@@ -68,8 +45,7 @@ export const PUT: APIRoute = async ({ params, request, url }) => {
   } catch {
     return backendUnavailableResponse();
   }
-  const responseBody = await response.text();
-  return createProxiedResponse(response, responseBody);
+  return proxyTextResponse(response);
 };
 
 export const DELETE: APIRoute = async ({ params, url }) => {
@@ -85,6 +61,5 @@ export const DELETE: APIRoute = async ({ params, url }) => {
   } catch {
     return backendUnavailableResponse();
   }
-  const responseBody = await response.text();
-  return createProxiedResponse(response, responseBody);
+  return proxyTextResponse(response);
 };

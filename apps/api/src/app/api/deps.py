@@ -47,9 +47,13 @@ def get_project_service(db: Session = Depends(get_db)) -> ProjectService:
     return ProjectService(post_repo=PostRepository(db), series_repo=SeriesRepository(db))
 
 
+@lru_cache
+def get_storage_client() -> MinioStorageClient:
+    return MinioStorageClient()
+
+
 def get_media_service(db: Session = Depends(get_db)) -> MediaService:
-    storage = MinioStorageClient()
-    return MediaService(storage=storage, repo=MediaRepository(db))
+    return MediaService(storage=get_storage_client(), repo=MediaRepository(db))
 
 
 def get_tag_service(db: Session = Depends(get_db)) -> TagService:
@@ -61,18 +65,15 @@ def get_series_service(db: Session = Depends(get_db)) -> SeriesService:
 
 
 def get_import_service(db: Session = Depends(get_db)) -> ImportService:
-    storage = MinioStorageClient()
-    return ImportService(storage=storage, db=db)
+    return ImportService(storage=get_storage_client(), db=db)
 
 
 def get_portfolio_pdf_service() -> PdfAssetService:
-    storage = MinioStorageClient()
-    return PdfAssetService(storage=storage, config=PORTFOLIO_PDF_CONFIG)
+    return PdfAssetService(storage=get_storage_client(), config=PORTFOLIO_PDF_CONFIG)
 
 
 def get_resume_service() -> PdfAssetService:
-    storage = MinioStorageClient()
-    return PdfAssetService(storage=storage, config=RESUME_PDF_CONFIG)
+    return PdfAssetService(storage=get_storage_client(), config=RESUME_PDF_CONFIG)
 
 
 def get_site_profile_service(db: Session = Depends(get_db)) -> SiteProfileService:

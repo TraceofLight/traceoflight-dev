@@ -1,15 +1,9 @@
 from __future__ import annotations
 
+from app.core.text import normalize_optional_text
 from app.models.post import PostContentKind, PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.repositories.series_repository import SeriesRepository
-
-
-def _normalize_series_title(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
 
 
 def _slugify_series_title(title: str) -> str:
@@ -57,7 +51,7 @@ class ProjectService:
             return None
 
         related_series_posts: list[dict[str, object]] = []
-        series_title = _normalize_series_title(getattr(project, "series_title", None))
+        series_title = normalize_optional_text(getattr(project, "series_title", None))
         if series_title is not None:
             series_slug = _slugify_series_title(series_title)
             series = self.series_repo.get_by_slug(series_slug, include_private=include_private)

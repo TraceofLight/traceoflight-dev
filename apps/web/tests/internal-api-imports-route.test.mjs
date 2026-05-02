@@ -29,7 +29,7 @@ test("internal-api import routes keep only backup contracts", async () => {
   await assert.rejects(access(removedSnapshotJobRoutePath));
 
   for (const source of [downloadSource, loadSource]) {
-    assert.match(source, /from ["'].*imports-proxy["']/);
+    assert.match(source, /from ["'].*proxy-helpers["']/);
     assert.doesNotMatch(source, /function backendUnavailableResponse\(/);
     assert.doesNotMatch(source, /function unauthorizedResponse\(/);
   }
@@ -39,8 +39,8 @@ test("internal-api import routes keep only backup contracts", async () => {
   assert.match(downloadSource, /export const GET/);
   assert.match(downloadSource, /requestBackend\(["']\/imports\/backups\/posts\.zip["']/);
   assert.match(downloadSource, /proxyBinaryResponse/);
-  assert.match(downloadSource, /unauthorizedImportsResponse/);
-  assert.match(downloadSource, /backendUnavailableImportsResponse/);
+  assert.match(downloadSource, /unauthorizedResponse/);
+  assert.match(downloadSource, /backendUnavailableResponse/);
 
   assert.match(loadSource, /ADMIN_ACCESS_COOKIE/);
   assert.match(loadSource, /verifyAccessToken/);
@@ -48,6 +48,6 @@ test("internal-api import routes keep only backup contracts", async () => {
   assert.match(loadSource, /requestBackend\(["']\/imports\/backups\/load["']/);
   assert.match(loadSource, /file is required/);
   assert.match(loadSource, /proxyTextResponse/);
-  assert.match(loadSource, /unauthorizedImportsResponse/);
-  assert.match(loadSource, /backendUnavailableImportsResponse/);
+  assert.match(loadSource, /unauthorizedResponse/);
+  assert.match(loadSource, /backendUnavailableResponse/);
 });

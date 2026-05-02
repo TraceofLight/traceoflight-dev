@@ -3,19 +3,10 @@ from __future__ import annotations
 from typing import Literal
 
 from sqlalchemy.exc import IntegrityError
-from fastapi import APIRouter, Depends
-from fastapi import Header
-from fastapi import HTTPException
-from fastapi import Query
-from fastapi import Request
-from fastapi import Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.api.deps import get_post_service
-from app.api.security import (
-    INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ensure_trusted_internal_request,
-    is_trusted_internal_request,
-)
+from app.api.security import optional_internal_secret, require_internal_secret
 from app.models.post import PostContentKind, PostStatus, PostVisibility
 from app.schemas.post import PostCreate, PostRead, PostSummaryListRead
 from app.services.post_service import PostService
@@ -45,7 +36,6 @@ def _integrity_conflict_detail(exc: IntegrityError) -> str:
     },
 )
 def list_post_summaries(
-    request: Request,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     status: PostStatus | None = Query(default=None),
@@ -67,14 +57,9 @@ def list_post_summaries(
         default='latest',
         description='Archive sort mode.',
     ),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias='x-internal-api-secret',
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
+    is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> PostSummaryListRead:
-    is_internal_request = is_trusted_internal_request(request, x_internal_api_secret)
     effective_status = status
     effective_visibility = visibility
     if not is_internal_request:
@@ -108,7 +93,6 @@ def list_post_summaries(
     },
 )
 def list_posts(
-    request: Request,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     status: PostStatus | None = Query(default=None),
@@ -122,17 +106,12 @@ def list_posts(
         default='any',
         description='Tag match strategy. "any" matches at least one tag; "all" requires all requested tags.',
     ),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias='x-internal-api-secret',
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
+    is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> list[PostRead]:
-    """List posts with automatic public fallback for non-internal callers."""
     effective_status = status
     effective_visibility = visibility
-    if not is_trusted_internal_request(request, x_internal_api_secret):
+    if not is_internal_request:
         effective_status = PostStatus.PUBLISHED
         effective_visibility = PostVisibility.PUBLIC
 
@@ -161,22 +140,16 @@ def list_posts(
     },
 )
 def get_post_by_slug(
-    request: Request,
     slug: str,
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
     content_kind: PostContentKind | None = Query(default=None),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias='x-internal-api-secret',
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
+    is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> PostRead:
-    """Fetch one post while applying public fallback to non-internal callers."""
     effective_status = status
     effective_visibility = visibility
-    if not is_trusted_internal_request(request, x_internal_api_secret):
+    if not is_internal_request:
         effective_status = PostStatus.PUBLISHED
         effective_visibility = PostVisibility.PUBLIC
 
@@ -201,19 +174,12 @@ def get_post_by_slug(
         401: {'description': 'Missing or invalid internal API secret'},
         409: {'description': 'Post slug already exists'},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def create_post(
-    request: Request,
     payload: PostCreate,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias='x-internal-api-secret',
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: PostService = Depends(get_post_service),
 ) -> PostRead:
-    """Create a post using privileged internal credentials."""
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         return service.create_post(payload)
     except IntegrityError as exc:
@@ -231,20 +197,13 @@ def create_post(
         404: {'description': 'Post not found'},
         409: {'description': 'Post slug already exists'},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def update_post_by_slug(
-    request: Request,
     slug: str,
     payload: PostCreate,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias='x-internal-api-secret',
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: PostService = Depends(get_post_service),
 ) -> PostRead:
-    """Update post content and publication metadata."""
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         updated = service.update_post_by_slug(slug=slug, payload=payload)
     except IntegrityError as exc:
@@ -264,21 +223,14 @@ def update_post_by_slug(
         401: {'description': 'Missing or invalid internal API secret'},
         404: {'description': 'Post not found'},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def delete_post_by_slug(
-    request: Request,
     slug: str,
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias='x-internal-api-secret',
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: PostService = Depends(get_post_service),
 ) -> Response:
-    """Delete a post when privileged internal authentication is provided."""
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     deleted = service.delete_post_by_slug(slug=slug, status=status, visibility=visibility)
     if not deleted:
         raise HTTPException(status_code=404, detail='post not found')

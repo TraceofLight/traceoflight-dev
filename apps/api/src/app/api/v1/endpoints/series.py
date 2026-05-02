@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_series_service
-from app.api.security import (
-    INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ensure_trusted_internal_request,
-    is_trusted_internal_request,
-)
+from app.api.security import optional_internal_secret, require_internal_secret
 from app.repositories.series_repository import SeriesConflictError, SeriesValidationError
 from app.schemas.series import (
     SeriesDetailRead,
@@ -34,6 +30,12 @@ def _integrity_conflict_detail(exc: IntegrityError) -> str:
     return "series integrity conflict"
 
 
+def _resolve_include_private(include_private: bool | None, trusted_internal: bool) -> bool:
+    if not trusted_internal:
+        return False
+    return include_private if include_private is not None else True
+
+
 @router.get(
     "",
     response_model=list[SeriesRead],
@@ -44,23 +46,20 @@ def _integrity_conflict_detail(exc: IntegrityError) -> str:
     ),
 )
 def list_series(
-    request: Request,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     include_private: bool | None = Query(
         default=None,
         description="When internal secret is valid, controls whether private/draft-linked posts are included.",
     ),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
+    trusted_internal: bool = Depends(optional_internal_secret),
     service: SeriesService = Depends(get_series_service),
 ) -> list[SeriesRead]:
-    trusted_internal = is_trusted_internal_request(request, x_internal_api_secret)
-    effective_include_private = (include_private if include_private is not None else True) if trusted_internal else False
-    return service.list_series(include_private=effective_include_private, limit=limit, offset=offset)
+    return service.list_series(
+        include_private=_resolve_include_private(include_private, trusted_internal),
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.put(
@@ -71,18 +70,12 @@ def list_series(
         400: {"description": "Invalid series slug payload"},
         401: {"description": "Missing or invalid internal API secret"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def replace_series_order(
-    request: Request,
     payload: SeriesOrderReplace,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: SeriesService = Depends(get_series_service),
 ) -> list[SeriesRead]:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         return service.replace_series_order(payload.series_slugs)
     except SeriesValidationError as exc:
@@ -100,22 +93,18 @@ def replace_series_order(
     responses={404: {"description": "Series not found"}},
 )
 def get_series_by_slug(
-    request: Request,
     slug: str,
     include_private: bool | None = Query(
         default=None,
         description="When internal secret is valid, controls whether private/draft-linked posts are included.",
     ),
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
+    trusted_internal: bool = Depends(optional_internal_secret),
     service: SeriesService = Depends(get_series_service),
 ) -> SeriesDetailRead:
-    trusted_internal = is_trusted_internal_request(request, x_internal_api_secret)
-    effective_include_private = (include_private if include_private is not None else True) if trusted_internal else False
-    series = service.get_series_by_slug(slug=slug, include_private=effective_include_private)
+    series = service.get_series_by_slug(
+        slug=slug,
+        include_private=_resolve_include_private(include_private, trusted_internal),
+    )
     if series is None:
         raise HTTPException(status_code=404, detail="series not found")
     return series
@@ -130,18 +119,12 @@ def get_series_by_slug(
         401: {"description": "Missing or invalid internal API secret"},
         409: {"description": "Series slug conflict"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def create_series(
-    request: Request,
     payload: SeriesUpsert,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: SeriesService = Depends(get_series_service),
 ) -> SeriesDetailRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         return service.create_series(payload)
     except IntegrityError as exc:
@@ -158,19 +141,13 @@ def create_series(
         404: {"description": "Series not found"},
         409: {"description": "Series slug conflict"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def update_series(
-    request: Request,
     slug: str,
     payload: SeriesUpsert,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: SeriesService = Depends(get_series_service),
 ) -> SeriesDetailRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         updated = service.update_series_by_slug(slug=slug, payload=payload)
     except IntegrityError as exc:
@@ -189,18 +166,12 @@ def update_series(
         401: {"description": "Missing or invalid internal API secret"},
         404: {"description": "Series not found"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def delete_series(
-    request: Request,
     slug: str,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: SeriesService = Depends(get_series_service),
 ) -> Response:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     deleted = service.delete_series_by_slug(slug=slug)
     if not deleted:
         raise HTTPException(status_code=404, detail="series not found")
@@ -221,19 +192,13 @@ def delete_series(
         404: {"description": "Series not found"},
         409: {"description": "Post assignment conflict"},
     },
+    dependencies=[Depends(require_internal_secret)],
 )
 def replace_series_posts(
-    request: Request,
     slug: str,
     payload: SeriesPostsReplace,
-    x_internal_api_secret: str | None = Header(
-        default=None,
-        alias="x-internal-api-secret",
-        description=INTERNAL_SECRET_HEADER_DESCRIPTION,
-    ),
     service: SeriesService = Depends(get_series_service),
 ) -> SeriesDetailRead:
-    ensure_trusted_internal_request(request, x_internal_api_secret)
     try:
         replaced = service.replace_series_posts_by_slug(slug=slug, post_slugs=payload.post_slugs)
     except SeriesValidationError as exc:
@@ -246,4 +211,3 @@ def replace_series_posts(
     if replaced is None:
         raise HTTPException(status_code=404, detail="series not found")
     return replaced
-

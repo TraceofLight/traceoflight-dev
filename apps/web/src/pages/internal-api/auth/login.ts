@@ -34,7 +34,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const username = payload.username?.trim() ?? '';
   const password = payload.password ?? '';
-  // Backend operational credential verification flows through POST /api/v1/admin/auth/login.
   const verification = await verifyOperationalAdminCredentials(username, password);
   if (!verification.ok || !verification.tokenPair) {
     return new Response(JSON.stringify({ detail: 'Invalid username or password' }), {
@@ -42,8 +41,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       headers: { 'content-type': 'application/json' },
     });
   }
-  const credential_source = verification.credentialSource;
-  void credential_source;
 
   const secure = process.env.NODE_ENV === 'production' || request.url.startsWith('https://');
   clearAdminAuthCookies(cookies);

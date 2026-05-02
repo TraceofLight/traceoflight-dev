@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.text import normalize_slug_list
 from app.models.post import Post, PostStatus, PostVisibility
 from app.models.series import Series, SeriesPost
 from app.schemas.series import SeriesUpsert
@@ -16,30 +15,6 @@ class SeriesConflictError(ValueError):
 
 class SeriesValidationError(ValueError):
     """Raised for invalid series payloads."""
-
-
-def _normalize_post_slugs(raw_values: Iterable[str]) -> list[str]:
-    normalized: list[str] = []
-    seen: set[str] = set()
-    for raw in raw_values:
-        slug = raw.strip().lower()
-        if not slug or slug in seen:
-            continue
-        seen.add(slug)
-        normalized.append(slug)
-    return normalized
-
-
-def _normalize_series_slugs(raw_values: Iterable[str]) -> list[str]:
-    normalized: list[str] = []
-    seen: set[str] = set()
-    for raw in raw_values:
-        slug = raw.strip()
-        if not slug or slug in seen:
-            continue
-        seen.add(slug)
-        normalized.append(slug)
-    return normalized
 
 
 class SeriesRepository:
@@ -176,7 +151,7 @@ class SeriesRepository:
         if row is None:
             return None
 
-        post_slugs = _normalize_post_slugs(raw_post_slugs)
+        post_slugs = normalize_slug_list(raw_post_slugs)
         if not post_slugs:
             row.series_posts.clear()
             self.db.flush()
@@ -215,7 +190,7 @@ class SeriesRepository:
         return replaced
 
     def replace_series_order(self, raw_series_slugs: list[str]) -> list[dict[str, object]]:
-        series_slugs = _normalize_series_slugs(raw_series_slugs)
+        series_slugs = normalize_slug_list(raw_series_slugs, lowercase=False)
         if not series_slugs:
             return []
 

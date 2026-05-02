@@ -167,7 +167,28 @@ export interface PublishedPostSummaryQueryOptions extends PublishedQueryOptions 
 
 const POSTS_PAGE_SIZE = 100;
 
-function toDbBlogPost(post: DbPost): DbBlogPost {
+type SharedDbPostFields = Pick<
+  DbPost,
+  | 'id'
+  | 'slug'
+  | 'title'
+  | 'excerpt'
+  | 'cover_image_url'
+  | 'top_media_kind'
+  | 'top_media_image_url'
+  | 'top_media_youtube_url'
+  | 'top_media_video_url'
+  | 'visibility'
+  | 'tags'
+  | 'comment_count'
+  | 'published_at'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+type SharedBlogPostConverted = Omit<DbBlogPost, 'bodyMarkdown' | 'seriesContext'>;
+
+function toSharedBlogPostFields(post: SharedDbPostFields): SharedBlogPostConverted {
   const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
   const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
   const resolvedTopMediaImageUrl = resolveBackendAssetUrl(
@@ -178,59 +199,65 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     slug: post.slug,
     title: post.title,
     description: post.excerpt?.trim() ?? '',
-    bodyMarkdown: post.body_markdown,
     commentCount: post.comment_count ?? 0,
     coverImageUrl: resolvedCoverImageUrl,
     coverMedia: normalizeCoverMedia(resolvedCoverImageUrl),
-    topMediaKind: post.top_media_kind === 'youtube' ? 'youtube' : post.top_media_kind === 'video' ? 'video' : 'image',
+    topMediaKind:
+      post.top_media_kind === 'youtube'
+        ? 'youtube'
+        : post.top_media_kind === 'video'
+          ? 'video'
+          : 'image',
     topMediaImageUrl: resolvedTopMediaImageUrl,
     topMediaYoutubeUrl: post.top_media_youtube_url ?? undefined,
     topMediaVideoUrl: resolveBackendAssetUrl(normalizeOptionalImageUrl(post.top_media_video_url)),
     visibility: post.visibility === 'private' ? 'private' : 'public',
     tags: Array.isArray(post.tags) ? post.tags : [],
-    seriesContext: post.series_context
-      ? {
-          seriesSlug: post.series_context.series_slug,
-          seriesTitle: post.series_context.series_title,
-          orderIndex: post.series_context.order_index,
-          totalPosts: post.series_context.total_posts,
-          prevPostSlug: post.series_context.prev_post_slug,
-          prevPostTitle: post.series_context.prev_post_title,
-          nextPostSlug: post.series_context.next_post_slug,
-          nextPostTitle: post.series_context.next_post_title,
-        }
-      : undefined,
     createdAt: new Date(post.created_at),
     publishedAt: new Date(post.published_at ?? post.created_at),
     updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
   };
 }
 
-function toDbBlogPostSummary(post: DbPostSummary): DbBlogPostSummary {
-  const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
-  const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
-  const resolvedTopMediaImageUrl = resolveBackendAssetUrl(
-    normalizeOptionalImageUrl(post.top_media_image_url ?? post.cover_image_url),
-  );
+function toDbSeriesContext(raw: DbSeriesContextRaw): DbSeriesContext {
   return {
-    id: post.id,
-    slug: post.slug,
-    title: post.title,
-    description: post.excerpt?.trim() ?? '',
-    commentCount: post.comment_count ?? 0,
-    coverImageUrl: resolvedCoverImageUrl,
-    coverMedia: normalizeCoverMedia(resolvedCoverImageUrl),
-    topMediaKind: post.top_media_kind === 'youtube' ? 'youtube' : post.top_media_kind === 'video' ? 'video' : 'image',
-    topMediaImageUrl: resolvedTopMediaImageUrl,
-    topMediaYoutubeUrl: post.top_media_youtube_url ?? undefined,
-    topMediaVideoUrl: resolveBackendAssetUrl(normalizeOptionalImageUrl(post.top_media_video_url)),
-    visibility: post.visibility === 'private' ? 'private' : 'public',
-    tags: Array.isArray(post.tags) ? post.tags : [],
-    readingLabel: post.reading_label,
-    createdAt: new Date(post.created_at),
-    publishedAt: new Date(post.published_at ?? post.created_at),
-    updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
+    seriesSlug: raw.series_slug,
+    seriesTitle: raw.series_title,
+    orderIndex: raw.order_index,
+    totalPosts: raw.total_posts,
+    prevPostSlug: raw.prev_post_slug,
+    prevPostTitle: raw.prev_post_title,
+    nextPostSlug: raw.next_post_slug,
+    nextPostTitle: raw.next_post_title,
   };
+}
+
+function toDbBlogPost(post: DbPost): DbBlogPost {
+  return {
+    ...toSharedBlogPostFields(post),
+    bodyMarkdown: post.body_markdown,
+    seriesContext: post.series_context ? toDbSeriesContext(post.series_context) : undefined,
+  };
+}
+
+function toDbBlogPostSummary(post: DbPostSummary): DbBlogPostSummary {
+  return {
+    ...toSharedBlogPostFields(post),
+    readingLabel: post.reading_label,
+  };
+}
+
+function appendBlogPostBaseParams(
+  params: URLSearchParams,
+  options: { limit: number; offset: number; includePrivate?: boolean },
+): void {
+  params.set('status', 'published');
+  params.set('content_kind', 'blog');
+  params.set('limit', String(options.limit));
+  params.set('offset', String(options.offset));
+  if (!options.includePrivate) {
+    params.set('visibility', 'public');
+  }
 }
 
 function buildPublishedPostsQuery(
@@ -238,17 +265,8 @@ function buildPublishedPostsQuery(
   options: PublishedQueryOptions = {},
   offset = 0,
 ): string {
-  const params = new URLSearchParams({
-    status: 'published',
-    content_kind: 'blog',
-    limit: String(limit),
-    offset: String(offset),
-  });
-
-  if (!options.includePrivate) {
-    params.set('visibility', 'public');
-  }
-
+  const params = new URLSearchParams();
+  appendBlogPostBaseParams(params, { limit, offset, includePrivate: options.includePrivate });
   return `/posts?${params.toString()}`;
 }
 
@@ -257,27 +275,20 @@ function buildPublishedPostSummaryQuery(
 ): string {
   const limit = options.limit ?? 24;
   const offset = options.offset ?? 0;
-  const params = new URLSearchParams({
-    status: 'published',
-    content_kind: 'blog',
-    limit: String(limit),
-    offset: String(offset),
-    sort: options.sort ?? 'latest',
-  });
+  const params = new URLSearchParams();
+  appendBlogPostBaseParams(params, { limit, offset, includePrivate: options.includePrivate });
+  params.set('sort', options.sort ?? 'latest');
 
   const normalizedQuery = options.query?.trim() ?? '';
   if (normalizedQuery) {
     params.set('query', normalizedQuery);
   }
 
-  const normalizedVisibility =
-    options.visibility === 'public' || (options.visibility === 'private' && options.includePrivate)
-      ? options.visibility
-      : options.includePrivate
-        ? undefined
-        : 'public';
-  if (normalizedVisibility) {
-    params.set('visibility', normalizedVisibility);
+  if (options.includePrivate) {
+    params.delete('visibility');
+    if (options.visibility === 'public' || options.visibility === 'private') {
+      params.set('visibility', options.visibility);
+    }
   }
 
   for (const tag of options.tags ?? []) {

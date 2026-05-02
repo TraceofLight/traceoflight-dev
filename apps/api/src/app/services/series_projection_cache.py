@@ -13,6 +13,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.text import normalize_optional_text
 from app.db.session import SessionLocal
 from app.models.post import Post, PostContentKind
 from app.models.series import Series, SeriesPost
@@ -29,13 +30,6 @@ class SeriesProjectionRow:
     slug: str
     title: str
     post_ids: tuple[UUID, ...]
-
-
-def _normalize_series_title(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
 
 
 def _slugify_series_title(title: str) -> str:
@@ -71,7 +65,7 @@ def _build_projection_rows(
     for post in posts:
         if getattr(post, "content_kind", PostContentKind.BLOG) != PostContentKind.BLOG:
             continue
-        series_title = _normalize_series_title(post.series_title)
+        series_title = normalize_optional_text(post.series_title)
         if series_title is None:
             continue
         series_slug = _slugify_series_title(series_title)

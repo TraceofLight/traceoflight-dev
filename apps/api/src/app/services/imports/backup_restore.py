@@ -6,6 +6,7 @@ import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.core.text import normalize_optional_text
 from app.models.media import MediaAsset
 from app.models.post import Post, PostContentKind, PostStatus, PostTopMediaKind, PostVisibility
 from app.models.project_profile import ProjectProfile
@@ -18,13 +19,6 @@ from app.storage.minio_client import MinioStorageClient
 from .backup_archive import ParsedPostsBackup
 from .media_refs import guess_asset_kind
 from .models import parse_datetime
-
-
-def _normalize_series_title(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
 
 
 class BackupRestoreCoordinator:
@@ -164,7 +158,7 @@ class BackupRestoreCoordinator:
                 top_media_image_url=bundle.top_media_image_url,
                 top_media_youtube_url=bundle.top_media_youtube_url,
                 top_media_video_url=bundle.top_media_video_url,
-                series_title=_normalize_series_title(bundle.series_title),
+                series_title=normalize_optional_text(bundle.series_title),
                 content_kind=PostContentKind.PROJECT
                 if bundle.content_kind == "project"
                 else PostContentKind.BLOG,

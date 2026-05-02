@@ -5,8 +5,8 @@ import { test } from "node:test";
 const adminAuthPath = new URL("../src/lib/admin-auth.ts", import.meta.url);
 const loginRoutePath = new URL("../src/pages/internal-api/auth/login.ts", import.meta.url);
 const refreshRoutePath = new URL("../src/pages/internal-api/auth/refresh.ts", import.meta.url);
-const adminImportsPanelPath = new URL(
-  "../src/components/public/AdminImportsPanel.tsx",
+const credentialDialogsPath = new URL(
+  "../src/components/public/AdminCredentialDialogs.tsx",
   import.meta.url,
 );
 
@@ -28,7 +28,7 @@ test("admin auth integrates backend operational credentials and revision-aware s
 });
 
 test("admin imports panel exposes operational id password update flow", async () => {
-  const source = await readFile(adminImportsPanelPath, "utf8");
+  const source = await readFile(credentialDialogsPath, "utf8");
 
   assert.match(source, /ID\/PW 수정/);
   assert.match(source, /admin-credential-login/);

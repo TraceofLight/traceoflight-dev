@@ -7,6 +7,7 @@ from sqlalchemy import delete, distinct, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, load_only, selectinload
 
+from app.core.text import normalize_optional_text, normalize_slug_list
 from app.models.post import (
     Post,
     PostContentKind,
@@ -25,31 +26,10 @@ from app.repositories.posts.series_context import SeriesContextService
 from app.repositories.tag_repository import normalize_tag_slugs
 from app.schemas.post import PostCreate
 
-# Re-exported for callers that still reference these names from
-# ``app.repositories.post_repository``.
 __all__ = [
     "DEFAULT_WORDS_PER_MINUTE",
     "PostRepository",
 ]
-
-
-def _normalize_series_title(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
-
-
-def _normalize_slug_list(raw_values: Iterable[str]) -> list[str]:
-    normalized: list[str] = []
-    seen: set[str] = set()
-    for raw in raw_values:
-        slug = raw.strip().lower()
-        if not slug or slug in seen:
-            continue
-        seen.add(slug)
-        normalized.append(slug)
-    return normalized
 
 
 class PostRepository:
@@ -264,7 +244,7 @@ class PostRepository:
         }
 
     def replace_project_order(self, raw_project_slugs: list[str]) -> list[Post]:
-        project_slugs = _normalize_slug_list(raw_project_slugs)
+        project_slugs = normalize_slug_list(raw_project_slugs)
         if not project_slugs:
             return []
 
@@ -353,7 +333,7 @@ class PostRepository:
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
         project_profile_data = post_data.pop("project_profile", None)
-        post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
+        post_data["series_title"] = normalize_optional_text(post_data.get("series_title"))
         if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
 
@@ -380,7 +360,7 @@ class PostRepository:
         post_data = payload.model_dump()
         raw_tags = post_data.pop("tags", [])
         project_profile_data = post_data.pop("project_profile", None)
-        post_data["series_title"] = _normalize_series_title(post_data.get("series_title"))
+        post_data["series_title"] = normalize_optional_text(post_data.get("series_title"))
         if existing_status == PostStatus.PUBLISHED and post_data["status"] == PostStatus.PUBLISHED:
             post_data["published_at"] = existing_published_at
         elif post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:

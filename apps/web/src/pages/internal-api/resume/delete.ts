@@ -3,17 +3,17 @@ import type { APIRoute } from "astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { requestBackend } from "../../../lib/backend-api";
 import {
-  backendUnavailableImportsResponse,
+  backendUnavailableResponse,
   proxyTextResponse,
-  unauthorizedImportsResponse,
-} from "../../../lib/server/imports-proxy";
+  unauthorizedResponse,
+} from "../../../lib/server/proxy-helpers";
 
 export const prerender = false;
 
 export const DELETE: APIRoute = async ({ cookies }) => {
   const accessToken = cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
   if (!accessToken || !(await verifyAccessToken(accessToken))) {
-    return unauthorizedImportsResponse();
+    return unauthorizedResponse();
   }
 
   let response: Response;
@@ -22,7 +22,7 @@ export const DELETE: APIRoute = async ({ cookies }) => {
       method: "DELETE",
     });
   } catch {
-    return backendUnavailableImportsResponse();
+    return backendUnavailableResponse();
   }
 
   return proxyTextResponse(response);

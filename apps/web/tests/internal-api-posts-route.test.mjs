@@ -12,6 +12,6 @@ test('internal-api posts by slug route supports get, put, delete proxy and delet
   assert.match(source, /export const DELETE/);
   assert.match(source, /export const POST/);
   assert.match(source, /requestBackend\(`\/posts\/\$\{slug}\$\{query\}`/);
-  assert.match(source, /action !== 'delete'/);
+  assert.match(source, /action !== "delete"/);
   assert.match(source, /proxyDeletePostBySlug/);
 });

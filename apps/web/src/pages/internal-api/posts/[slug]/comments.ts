@@ -3,9 +3,9 @@ import type { APIRoute } from "astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "@/lib/admin-auth";
 import { buildBackendApiUrl, requestBackend } from "@/lib/backend-api";
 import {
-  backendUnavailableImportsResponse,
+  backendUnavailableResponse,
   proxyTextResponse,
-} from "@/lib/server/imports-proxy";
+} from "@/lib/server/proxy-helpers";
 
 export const prerender = false;
 
@@ -26,7 +26,7 @@ async function isAdminSession(
 export const GET: APIRoute = async ({ params, cookies }) => {
   const slug = params.slug;
   if (!slug) {
-    return new Response(JSON.stringify({ message: "slug is required" }), {
+    return new Response(JSON.stringify({ detail: "slug is required" }), {
       status: 400,
       headers: { "content-type": "application/json" },
     });
@@ -38,7 +38,7 @@ export const GET: APIRoute = async ({ params, cookies }) => {
       ? await requestBackend(`/posts/${slug}/comments`)
       : await guestBackendRequest(`/posts/${slug}/comments`);
   } catch {
-    return backendUnavailableImportsResponse();
+    return backendUnavailableResponse();
   }
 
   return proxyTextResponse(response);
@@ -47,7 +47,7 @@ export const GET: APIRoute = async ({ params, cookies }) => {
 export const POST: APIRoute = async ({ params, request, cookies }) => {
   const slug = params.slug;
   if (!slug) {
-    return new Response(JSON.stringify({ message: "slug is required" }), {
+    return new Response(JSON.stringify({ detail: "slug is required" }), {
       status: 400,
       headers: { "content-type": "application/json" },
     });
@@ -68,7 +68,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
           body,
         });
   } catch {
-    return backendUnavailableImportsResponse();
+    return backendUnavailableResponse();
   }
 
   return proxyTextResponse(response);
