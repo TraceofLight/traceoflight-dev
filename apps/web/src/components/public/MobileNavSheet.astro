@@ -1,5 +1,9 @@
 ---
 import menuIcon from "../../assets/icons/utility/menu.svg?raw";
+import {
+  PUBLIC_DANGER_OUTLINE_ACTION_CLASS,
+  PUBLIC_ICON_ACTION_CLASS,
+} from "../../lib/ui-effects";
 
 type NavItem = {
   href: string;
@@ -13,13 +17,14 @@ interface Props {
 
 const { items, isAdminViewer } = Astro.props;
 const ADMIN_IMPORTS_PATH = "/admin";
+const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`;
 ---
 
 <button
   aria-label="Open navigation"
   type="button"
   data-mobile-nav-trigger
-  class="mobile-nav-trigger inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+  class={triggerClass}
 >
   <span class="h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={menuIcon}></span>
 </button>
@@ -29,6 +34,14 @@ const ADMIN_IMPORTS_PATH = "/admin";
   data-mobile-nav-sheet
   aria-label="Mobile navigation"
 >
+  <button
+    aria-label="닫기"
+    type="button"
+    data-mobile-nav-close
+    class="mobile-nav-close absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white/90 text-base text-muted-foreground shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+  >
+    <span aria-hidden="true">×</span>
+  </button>
   <nav class="mt-2 flex flex-col gap-1.5" aria-label="Mobile navigation">
     {items.map((item) => (
       <a
@@ -48,7 +61,7 @@ const ADMIN_IMPORTS_PATH = "/admin";
         </a>
         <form action="/logout?next=/" class="pt-3" method="POST">
           <button
-            class="inline-flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            class={`w-full justify-center ${PUBLIC_DANGER_OUTLINE_ACTION_CLASS}`}
             type="submit"
           >
             Logout
@@ -61,25 +74,60 @@ const ADMIN_IMPORTS_PATH = "/admin";
 
 <style>
   .mobile-nav-sheet {
-    /* Right-side slide-out panel. inset overrides Tailwind preflight margin reset. */
-    inset: 0 0 0 auto;
+    /* Floating right-side slide-out panel; inset overrides Tailwind preflight margin reset. */
+    inset: 0.75rem 0.75rem 0.75rem auto;
     margin: 0;
     width: min(22rem, calc(100vw - 1.5rem));
     max-width: none;
-    height: 100vh;
-    max-height: 100vh;
-    padding: 1.25rem;
+    height: auto;
+    max-height: calc(100vh - 1.5rem);
+    padding: 3rem 1.25rem 1.25rem;
     border: 1px solid rgba(255, 255, 255, 0.7);
-    border-radius: 0;
+    border-radius: 1.75rem;
     background-color: rgba(255, 255, 255, 0.95);
     color: hsl(var(--foreground));
-    box-shadow: -32px 0 80px rgba(15, 23, 42, 0.18);
-    backdrop-filter: blur(16px);
+    box-shadow: -24px 24px 64px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(24px);
+    opacity: 0;
+    transform: translateX(110%);
+    transition:
+      transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 260ms ease,
+      overlay 260ms ease allow-discrete,
+      display 260ms ease allow-discrete;
+  }
+
+  .mobile-nav-sheet[open] {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  @starting-style {
+    .mobile-nav-sheet[open] {
+      opacity: 0;
+      transform: translateX(110%);
+    }
   }
 
   .mobile-nav-sheet::backdrop {
+    background-color: rgba(2, 6, 23, 0);
+    backdrop-filter: blur(0);
+    transition:
+      background-color 260ms ease,
+      backdrop-filter 260ms ease,
+      display 260ms ease allow-discrete;
+  }
+
+  .mobile-nav-sheet[open]::backdrop {
     background-color: rgba(2, 6, 23, 0.16);
     backdrop-filter: blur(4px);
+  }
+
+  @starting-style {
+    .mobile-nav-sheet[open]::backdrop {
+      background-color: rgba(2, 6, 23, 0);
+      backdrop-filter: blur(0);
+    }
   }
 
   :root[data-theme="dark"] .mobile-nav-sheet {
@@ -107,6 +155,13 @@ const ADMIN_IMPORTS_PATH = "/admin";
           dialog.showModal();
         }
       });
+
+      const closeButton = dialog.querySelector("[data-mobile-nav-close]");
+      if (closeButton instanceof HTMLElement) {
+        closeButton.addEventListener("click", () => {
+          dialog.close();
+        });
+      }
 
       // Close when clicking on the backdrop (outside the dialog content rect).
       dialog.addEventListener("click", (event) => {

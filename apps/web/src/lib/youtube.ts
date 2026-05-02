@@ -25,7 +25,7 @@ export function toYoutubeEmbedUrl(rawUrl: string | null | undefined): string | n
 
     videoId = videoId.trim();
     if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId)) return null;
-    return `https://www.youtube-nocookie.com/embed/${videoId}`;
+    return `https://www.youtube.com/embed/${videoId}`;
   } catch {
     return null;
   }

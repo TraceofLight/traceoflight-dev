@@ -3,6 +3,7 @@ WORKDIR /app
 
 ENV HOST=0.0.0.0
 ENV PORT=6543
+ENV ASTRO_TELEMETRY_DISABLED=1
 
 COPY package*.json ./
 RUN npm ci
