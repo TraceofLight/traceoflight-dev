@@ -34,10 +34,14 @@ const {
 
 const canonicalBase = resolvePublicSiteOrigin(Astro.site ?? SITE_URL);
 const canonicalURL = new URL(Astro.url.pathname, canonicalBase);
+const fallbackOgImageWidth = 512;
+const fallbackOgImageHeight = 512;
 const ogImage = image
   ? new URL(image.src, canonicalBase)
   : new URL('/android-chrome-512x512.png', canonicalBase);
 const resolvedOgImage = imageUrl ? new URL(imageUrl, canonicalBase) : ogImage;
+const ogImageWidth = imageUrl ? undefined : (image?.width ?? fallbackOgImageWidth);
+const ogImageHeight = imageUrl ? undefined : (image?.height ?? fallbackOgImageHeight);
 const fullTitle = title.includes(SITE_TITLE) ? title : `${title} | ${SITE_TITLE}`;
 const resolvedAuthor = author?.trim() || SITE_AUTHOR;
 const publishedTimeIso = publishedTime ? new Date(publishedTime).toISOString() : undefined;
@@ -50,6 +54,21 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link
+  rel="preload"
+  as="style"
+  href="/fonts/pretendard/pretendardvariable-dynamic-subset.css"
+/>
+<link
+  rel="stylesheet"
+  href="/fonts/pretendard/pretendardvariable-dynamic-subset.css"
+  media="print"
+  onload="this.media='all'"
+/>
+<noscript>
+  <link rel="stylesheet" href="/fonts/pretendard/pretendardvariable-dynamic-subset.css" />
+</noscript>
 
 <meta name="application-name" content={SITE_TITLE} />
 <meta name="apple-mobile-web-app-title" content={SITE_TITLE} />
@@ -99,12 +118,17 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={resolvedOgImage} />
+<meta property="og:image:alt" content={fullTitle} />
+{ogImageWidth && <meta property="og:image:width" content={String(ogImageWidth)} />}
+{ogImageHeight && <meta property="og:image:height" content={String(ogImageHeight)} />}
+<meta property="og:locale" content="ko_KR" />
 
 <meta property="twitter:card" content="summary_large_image" />
 <meta property="twitter:url" content={canonicalURL} />
 <meta property="twitter:title" content={fullTitle} />
 <meta property="twitter:description" content={description} />
 <meta property="twitter:image" content={resolvedOgImage} />
+<meta property="twitter:image:alt" content={fullTitle} />
 
 {
   pageType === 'article' && publishedTimeIso && (
@@ -121,7 +145,6 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 {
   ga4MeasurementId && (
     <>
-      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`}></script>
       <script is:inline define:vars={{ ga4MeasurementId }}>
         window.dataLayer = window.dataLayer || [];
         function gtag() {
@@ -136,6 +159,25 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
             anonymize_ip: true,
           });
           window.__traceoflightGa4Configured = true;
+        }
+
+        // gtag.js 자체는 LCP 이후 idle 시점에 동적 주입.
+        // dataLayer가 큐 역할이라 그 전 호출(gtag('config'), page_view 등)은 보존됨.
+        if (!window.__traceoflightGa4ScriptScheduled) {
+          window.__traceoflightGa4ScriptScheduled = true;
+          var injectGa4Script = function () {
+            if (window.__traceoflightGa4ScriptInjected) return;
+            window.__traceoflightGa4ScriptInjected = true;
+            var script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga4MeasurementId;
+            document.head.appendChild(script);
+          };
+          if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(injectGa4Script, { timeout: 4000 });
+          } else {
+            window.setTimeout(injectGa4Script, 2500);
+          }
         }
 
         window.__traceoflightTrackPageView =

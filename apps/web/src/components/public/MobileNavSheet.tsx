@@ -1,8 +1,9 @@
 import { MenuIcon } from "lucide-react";
 
-import { ADMIN_IMPORTS_PATH } from "@/lib/admin/imports-page";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+const ADMIN_IMPORTS_PATH = "/admin";
 
 type NavItem = {
   href: string;

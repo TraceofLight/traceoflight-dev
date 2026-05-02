@@ -84,7 +84,13 @@ export default defineConfig({
 						if (
 							id.includes('@radix-ui') ||
 							id.includes('@floating-ui') ||
-							id.includes('lucide-react')
+							id.includes('lucide-react') ||
+							id.includes('/node_modules/clsx/') ||
+							id.includes('\\node_modules\\clsx\\') ||
+							id.includes('/node_modules/tailwind-merge/') ||
+							id.includes('\\node_modules\\tailwind-merge\\') ||
+							id.includes('/node_modules/class-variance-authority/') ||
+							id.includes('\\node_modules\\class-variance-authority\\')
 						) {
 							return 'ui-vendor';
 						}

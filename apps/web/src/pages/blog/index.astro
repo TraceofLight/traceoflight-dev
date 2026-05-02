@@ -2,7 +2,7 @@
 import BlogArchiveFilters, {
   type BlogArchivePost,
 } from "../../components/public/BlogArchiveFilters";
-import { SITE_TITLE } from "../../consts";
+import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { listPublishedDbPostSummaryPage } from "../../lib/blog-db";
@@ -135,6 +135,18 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
 <BaseLayout
   title={`Blog | ${SITE_TITLE}`}
   description="C++, 셸, 그래픽스, 개발 경험을 모아둔 TraceofLight 블로그 아카이브"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: `${SITE_TITLE} Blog`,
+    url: new URL("/blog", SITE_URL).toString(),
+    inLanguage: "ko-KR",
+    author: {
+      "@type": "Person",
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+  }}
 >
   <BlogArchiveFilters
     client:load

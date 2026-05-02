@@ -1,6 +1,7 @@
 ---
 import FormattedDate from "./FormattedDate.astro";
 import {
+  buildBrowserImageSrcSet,
   buildImageFallbackOnError,
   toBrowserImageUrl,
 } from "../lib/cover-media";
@@ -38,6 +39,7 @@ const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl
   fit: "inside",
 });
 const coverImageFallbackOnError = buildImageFallbackOnError(resolvedFallbackCoverImageSrc);
+const coverImageSource = series.coverImageUrl ?? fallbackCoverImage;
 const resolvedCoverImageSrc = series.coverImageUrl
   ? toBrowserImageUrl(series.coverImageUrl, {
       width: imageWidth,
@@ -45,7 +47,13 @@ const resolvedCoverImageSrc = series.coverImageUrl
       fit: "inside",
     })
   : resolvedFallbackCoverImageSrc;
+const resolvedCoverImageSrcSet = buildBrowserImageSrcSet(coverImageSource, {
+  width: imageWidth,
+  height: imageHeight,
+  fit: "inside",
+});
 const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
+const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
 ---
 
 <article class="group h-full">
@@ -58,9 +66,13 @@ const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
         alt={series.title}
         class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
         decoding="async"
+        height={imageHeight}
         loading="lazy"
         onerror={coverImageFallbackOnError}
+        sizes={cardImageSizes}
         src={resolvedCoverImageSrc}
+        srcset={resolvedCoverImageSrcSet}
+        width={imageWidth}
       />
     </div>
     <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">

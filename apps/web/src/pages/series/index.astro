@@ -1,7 +1,7 @@
 ---
 import SeriesCard from "../../components/SeriesCard.astro";
 import SeriesOrderPanel from "../../components/public/SeriesOrderPanel";
-import { SITE_TITLE } from "../../consts";
+import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { toBrowserImageUrl } from "../../lib/cover-media";
@@ -27,6 +27,18 @@ try {
 <BaseLayout
   title={`Series | ${SITE_TITLE}`}
   description="주제별로 정리한 TraceofLight 시리즈 모음"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `Series | ${SITE_TITLE}`,
+    url: new URL("/series", SITE_URL).toString(),
+    inLanguage: "ko-KR",
+    author: {
+      "@type": "Person",
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+  }}
 >
   <section
     id="series-archive"
@@ -54,8 +66,6 @@ try {
           {series.map((series) => (
             <SeriesCard
               series={series}
-              imageWidth={960}
-              imageHeight={640}
               fallbackCoverImageSrc={defaultSeriesCoverImageSrc}
             />
           ))}

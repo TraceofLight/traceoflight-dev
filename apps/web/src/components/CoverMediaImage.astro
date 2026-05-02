@@ -2,6 +2,7 @@
 import { Image } from "astro:assets";
 
 import {
+  buildBrowserImageSrcSet,
   buildImageFallbackOnError,
   toBrowserImageUrl,
   type CoverMedia,
@@ -21,9 +22,12 @@ interface Props {
 
 const { media, alt, className, width, height, loading = "lazy", sizes, fallbackSrc, fit = "cover" } = Astro.props;
 const normalizedClassName = className?.trim() || undefined;
+const nativeFallbackOnError = buildImageFallbackOnError(fallbackSrc);
+
 const browserSizedSrc =
   media.kind === "native" ? toBrowserImageUrl(media.src, { width, height, fit }) : undefined;
-const nativeFallbackOnError = buildImageFallbackOnError(fallbackSrc);
+const nativeSrcSet =
+  media.kind === "native" ? buildBrowserImageSrcSet(media.src, { width, height, fit }) : undefined;
 ---
 
 {
@@ -41,6 +45,7 @@ const nativeFallbackOnError = buildImageFallbackOnError(fallbackSrc);
     <img
       class={normalizedClassName}
       src={browserSizedSrc ?? media.src}
+      srcset={nativeSrcSet}
       alt={alt}
       width={width}
       height={height}

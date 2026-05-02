@@ -61,7 +61,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
   {
     variant === "archive" ? (
       <>
-        <a class={anchorClass} href={`/blog/${post.slug}`} aria-label={`${post.title} 읽기`}>
+        <a class={anchorClass} href={`/blog/${post.slug}`} aria-label={post.title}>
           <div class={mediaFrameClass}>
             {
               post.coverMedia ? (
@@ -123,7 +123,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
       </>
     ) : (
       <>
-        <a class={anchorClass} href={`/blog/${post.slug}`} aria-label={`${post.title} 읽기`}>
+        <a class={anchorClass} href={`/blog/${post.slug}`} aria-label={post.title}>
           <div class={mediaFrameClass}>
             {
               post.coverMedia ? (

@@ -13,9 +13,16 @@ portfolio, personal blog, misc
 
 ## Font License
 
-This repository bundles `PretendardVariable.woff2` at:
+This repository self-hosts the Pretendard Variable dynamic-subset web font.
+The `pretendard` npm package is the upstream source, and
+`apps/web/scripts/copy-pretendard-fonts.mjs` copies the dynamic-subset CSS
+and woff2 chunks into `apps/web/public/fonts/pretendard/` on `predev` /
+`prebuild`.
 
-- `apps/web/public/fonts/PretendardVariable.woff2`
+Served files:
+
+- `apps/web/public/fonts/pretendard/pretendardvariable-dynamic-subset.css`
+- `apps/web/public/fonts/pretendard/woff2-dynamic-subset/*.woff2`
 
 License:
 

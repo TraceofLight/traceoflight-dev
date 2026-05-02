@@ -70,10 +70,7 @@
   --writer-primary-soft: rgba(96, 165, 250, 0.16);
 }
 
-@font-face {
-  font-family: 'Pretendard Variable';
-  src: url('/fonts/PretendardVariable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
+/* Pretendard Variable @font-face declarations live in
+ * /fonts/pretendard/pretendardvariable-dynamic-subset.css (linked from
+ * BaseHead.astro). The dynamic subset uses unicode-range so the browser only
+ * downloads the glyph chunks present on the rendered page. */

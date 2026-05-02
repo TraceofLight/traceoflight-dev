@@ -1,6 +1,6 @@
 ---
 import SeriesAdminPanel from "../../components/public/SeriesAdminPanel";
-import { SITE_TITLE } from "../../consts";
+import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
 import FormattedDate from "../../components/FormattedDate.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
@@ -68,6 +68,60 @@ const adminSeries = series
       })),
     }
   : null;
+
+const canonicalSeriesUrl = series
+  ? new URL(`/series/${series.slug}`, SITE_URL).toString()
+  : undefined;
+const seriesCoverImageAbsoluteUrl = series?.coverImageUrl
+  ? new URL(series.coverImageUrl, SITE_URL).toString()
+  : undefined;
+const seriesStructuredData = series
+  ? {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: series.title,
+      headline: series.title,
+      description: series.description,
+      url: canonicalSeriesUrl,
+      mainEntityOfPage: canonicalSeriesUrl,
+      inLanguage: "ko-KR",
+      dateModified: series.updatedAt.toISOString(),
+      author: {
+        "@type": "Person",
+        name: SITE_AUTHOR,
+        url: SITE_URL,
+      },
+      ...(seriesCoverImageAbsoluteUrl ? { image: [seriesCoverImageAbsoluteUrl] } : {}),
+      hasPart: series.posts.map((post) => ({
+        "@type": "Article",
+        headline: post.title,
+        url: new URL(`/blog/${post.slug}`, SITE_URL).toString(),
+      })),
+      breadcrumb: {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: new URL("/", SITE_URL).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Series",
+            item: new URL("/series", SITE_URL).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: series.title,
+            item: canonicalSeriesUrl,
+          },
+        ],
+      },
+    }
+  : undefined;
 ---
 
 <BaseLayout
@@ -75,6 +129,13 @@ const adminSeries = series
     ? `${series.title} | Series | ${SITE_TITLE}`
     : `Series | ${SITE_TITLE}`}
   description={series?.description ?? "Series not found"}
+  pageType={series ? "article" : "website"}
+  author={SITE_AUTHOR}
+  modifiedTime={series?.updatedAt}
+  publishedTime={series?.createdAt}
+  imageUrl={series?.coverImageUrl}
+  structuredData={seriesStructuredData}
+  robots={series ? undefined : "noindex"}
 >
   {
     series ? (

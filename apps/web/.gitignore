@@ -3,6 +3,9 @@ dist/
 # generated types
 .astro/
 
+# Synced from node_modules/pretendard via scripts/copy-pretendard-fonts.mjs
+public/fonts/pretendard/
+
 # dependencies
 node_modules/
 

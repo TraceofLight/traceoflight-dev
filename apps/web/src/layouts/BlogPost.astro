@@ -123,11 +123,12 @@ const canonicalPostUrl = postSlug
 const articleStructuredData = postSlug
   ? {
       "@context": "https://schema.org",
-      "@type": "Article",
+      "@type": "BlogPosting",
       headline: title,
       description,
       url: canonicalPostUrl,
       mainEntityOfPage: canonicalPostUrl,
+      inLanguage: "ko-KR",
       datePublished: pubDate.toISOString(),
       ...(updatedDate ? { dateModified: updatedDate.toISOString() } : {}),
       author: [
@@ -149,6 +150,29 @@ const articleStructuredData = postSlug
             ],
           }
         : {}),
+      breadcrumb: {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: new URL("/", SITE_URL).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Blog",
+            item: new URL("/blog", SITE_URL).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: title,
+            item: canonicalPostUrl,
+          },
+        ],
+      },
     }
   : undefined;
 ---

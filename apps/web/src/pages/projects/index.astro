@@ -1,7 +1,7 @@
 ---
 import ProjectCard from "../../components/ProjectCard.astro";
 import ProjectOrderPanel from "../../components/public/ProjectOrderPanel";
-import { SITE_TITLE } from "../../consts";
+import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
 import { listPublishedDbProjects } from "../../lib/projects";
@@ -18,6 +18,18 @@ const projectWriteHref = "/admin/posts/new?content_kind=project";
 <BaseLayout
   title={`Projects | ${SITE_TITLE}`}
   description="게임 개발과 그래픽스, 웹 작업을 포함한 TraceofLight의 프로젝트 모음"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `Projects | ${SITE_TITLE}`,
+    url: new URL("/projects", SITE_URL).toString(),
+    inLanguage: "ko-KR",
+    author: {
+      "@type": "Person",
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+  }}
 >
   <section class="flex w-full flex-col gap-8">
     <header class="space-y-4 text-center">
