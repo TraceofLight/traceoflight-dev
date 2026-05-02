@@ -69,9 +69,17 @@ interface BrowserImageOptions {
   fit?: "cover" | "contain" | "inside";
 }
 
+/** Default WebP quality for browser-rendered card/thumbnail images. */
+const DEFAULT_BROWSER_IMAGE_QUALITY = 80;
+
 export function toBrowserImageUrl(
   source: string,
-  { width, height, quality, fit = "cover" }: BrowserImageOptions = {},
+  {
+    width,
+    height,
+    quality = DEFAULT_BROWSER_IMAGE_QUALITY,
+    fit = "cover",
+  }: BrowserImageOptions = {},
 ): string {
   const normalizedSource = source.trim();
   const params = new URLSearchParams();
@@ -98,7 +106,7 @@ export function toBrowserImageUrl(
   return `${route.pathname}?${route.search}`;
 }
 
-const RESPONSIVE_SCALES = [0.5, 0.75, 1, 1.5, 2] as const;
+const RESPONSIVE_SCALES = [0.375, 0.5, 0.625, 0.75, 1, 1.5, 2] as const;
 
 export function buildBrowserImageSrcSet(
   source: string,

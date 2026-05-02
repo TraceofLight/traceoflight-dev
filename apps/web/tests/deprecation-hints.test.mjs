@@ -76,13 +76,10 @@ test("deprecated Astro and React type patterns are removed from the UI layer", a
 
   assert.match(pageTransitionsSource, /ClientRouter/);
   assert.doesNotMatch(pageTransitionsSource, /ViewTransitions/);
-  // GA4 gtag.js is now injected dynamically from an inline bootstrap script
-  // (idle callback for LCP-friendly load) instead of a static
-  // <script is:inline async src=...> tag.
-  assert.match(
-    baseHeadSource,
-    /script\.src\s*=\s*['"]https:\/\/www\.googletagmanager\.com\/gtag\/js/,
-  );
+  // GA4 events are now forwarded server-side via /internal-api/analytics/event,
+  // so the browser never loads gtag.js / googletagmanager.com.
+  assert.match(baseHeadSource, /\/internal-api\/analytics\/event/);
+  assert.doesNotMatch(baseHeadSource, /googletagmanager\.com/);
   assert.doesNotMatch(footerAdminModalSource, /type FormEvent/);
   assert.doesNotMatch(footerAdminModalSource, /FormEventHandler/);
 

@@ -16,11 +16,14 @@ const readmePath = new URL("../README.md", import.meta.url);
 test("base head provides optional GA4 snippet with astro page-load tracking", async () => {
   const source = await readFile(baseHeadPath, "utf8");
 
+  // GA4 events are now forwarded server-side via /internal-api/analytics/event,
+  // so the browser no longer loads gtag.js directly. The page-view bootstrap
+  // still hooks into Astro's page-load lifecycle.
   assert.match(source, /GA4_MEASUREMENT_ID/);
-  assert.match(source, /googletagmanager\.com\/gtag\/js\?id=/);
-  assert.match(source, /send_page_view:\s*false/);
+  assert.match(source, /\/internal-api\/analytics\/event/);
   assert.match(source, /astro:page-load/);
   assert.match(source, /page_location/);
+  assert.doesNotMatch(source, /googletagmanager\.com\/gtag\/js/);
 });
 
 test("env example and readme document GA4 configuration variables", async () => {

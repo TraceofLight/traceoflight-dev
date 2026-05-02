@@ -145,60 +145,36 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 
 {
   ga4MeasurementId && (
-    <>
-      <script is:inline define:vars={{ ga4MeasurementId }}>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-          window.dataLayer.push(arguments);
-        }
-        window.gtag = window.gtag || gtag;
-
-        if (!window.__traceoflightGa4Configured) {
-          window.gtag('js', new Date());
-          window.gtag('config', ga4MeasurementId, {
-            send_page_view: false,
-            anonymize_ip: true,
-          });
-          window.__traceoflightGa4Configured = true;
-        }
-
-        // gtag.js 자체는 LCP 이후 idle 시점에 동적 주입.
-        // dataLayer가 큐 역할이라 그 전 호출(gtag('config'), page_view 등)은 보존됨.
-        if (!window.__traceoflightGa4ScriptScheduled) {
-          window.__traceoflightGa4ScriptScheduled = true;
-          var injectGa4Script = function () {
-            if (window.__traceoflightGa4ScriptInjected) return;
-            window.__traceoflightGa4ScriptInjected = true;
-            var script = document.createElement('script');
-            script.async = true;
-            script.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga4MeasurementId;
-            document.head.appendChild(script);
+    <script is:inline>
+      {`
+        (function () {
+          var endpoint = "/internal-api/analytics/event";
+          window.__traceoflightTrackPageView = window.__traceoflightTrackPageView || function () {
+            try {
+              var payload = JSON.stringify({
+                name: "page_view",
+                params: {
+                  page_location: window.location.href,
+                  page_path: window.location.pathname + window.location.search,
+                  page_title: document.title,
+                },
+              });
+              if (navigator.sendBeacon) {
+                var blob = new Blob([payload], { type: "application/json" });
+                navigator.sendBeacon(endpoint, blob);
+              } else {
+                fetch(endpoint, { method: "POST", body: payload, keepalive: true, headers: { "content-type": "application/json" } });
+              }
+            } catch (err) { /* analytics is best-effort */ }
           };
-          if (typeof window.requestIdleCallback === 'function') {
-            window.requestIdleCallback(injectGa4Script, { timeout: 4000 });
-          } else {
-            window.setTimeout(injectGa4Script, 2500);
+
+          if (!window.__traceoflightGa4ListenerBound) {
+            document.addEventListener("astro:page-load", window.__traceoflightTrackPageView);
+            window.__traceoflightGa4ListenerBound = true;
           }
-        }
-
-        window.__traceoflightTrackPageView =
-          window.__traceoflightTrackPageView ||
-          function () {
-            if (typeof window.gtag !== 'function') return;
-            window.gtag('event', 'page_view', {
-              page_location: window.location.href,
-              page_path: `${window.location.pathname}${window.location.search}`,
-              page_title: document.title,
-            });
-          };
-
-        if (!window.__traceoflightGa4ListenerBound) {
-          document.addEventListener('astro:page-load', window.__traceoflightTrackPageView);
-          window.__traceoflightGa4ListenerBound = true;
-        }
-
-        window.__traceoflightTrackPageView();
-      </script>
-    </>
+          window.__traceoflightTrackPageView();
+        })();
+      `}
+    </script>
   )
 }
