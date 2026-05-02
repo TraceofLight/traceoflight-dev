@@ -90,17 +90,17 @@ const ADMIN_IMPORTS_PATH = "/admin";
 
 <script is:inline>
   (() => {
-    if (window.__traceoflightMobileNavBound) {
-      return;
-    }
-    window.__traceoflightMobileNavBound = true;
-
     const setup = () => {
       const dialog = document.querySelector("[data-mobile-nav-sheet]");
       const trigger = document.querySelector("[data-mobile-nav-trigger]");
       if (!(dialog instanceof HTMLDialogElement) || !(trigger instanceof HTMLElement)) {
         return;
       }
+      // Per-element guard so View Transition swaps wire fresh DOM but never double-bind.
+      if (dialog.dataset.bound === "true") {
+        return;
+      }
+      dialog.dataset.bound = "true";
 
       trigger.addEventListener("click", () => {
         if (!dialog.open) {
@@ -133,6 +133,7 @@ const ADMIN_IMPORTS_PATH = "/admin";
       });
     };
 
+    document.addEventListener("astro:page-load", setup);
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", setup);
     } else {

@@ -133,17 +133,16 @@ import sunIcon from "../../assets/icons/utility/sun.svg?raw";
 
 <script is:inline>
   (() => {
-    if (window.__traceoflightFloatingUtilityBound) {
-      return;
-    }
-    window.__traceoflightFloatingUtilityBound = true;
-
     const STORAGE_KEY = "traceoflight-theme";
     const SCROLL_TOP_THRESHOLD = 240;
+    let scrollListenerBound = false;
+    let themeSyncBound = false;
 
     const initScrollTop = () => {
       const button = document.querySelector("[data-scroll-top]");
       if (!(button instanceof HTMLElement)) return;
+      if (button.dataset.bound === "true") return;
+      button.dataset.bound = "true";
 
       const sync = () => {
         const visible = window.scrollY > SCROLL_TOP_THRESHOLD;
@@ -151,7 +150,10 @@ import sunIcon from "../../assets/icons/utility/sun.svg?raw";
       };
 
       sync();
-      window.addEventListener("scroll", sync, { passive: true });
+      if (!scrollListenerBound) {
+        window.addEventListener("scroll", sync, { passive: true });
+        scrollListenerBound = true;
+      }
       button.addEventListener("click", () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
@@ -160,6 +162,8 @@ import sunIcon from "../../assets/icons/utility/sun.svg?raw";
     const initThemeToggle = () => {
       const button = document.querySelector("[data-theme-toggle]");
       if (!(button instanceof HTMLElement)) return;
+      if (button.dataset.bound === "true") return;
+      button.dataset.bound = "true";
 
       const label = button.querySelector("[data-theme-label]");
 
@@ -185,21 +189,26 @@ import sunIcon from "../../assets/icons/utility/sun.svg?raw";
         syncAria();
       });
 
-      // BaseHead's bootstrap script re-applies theme on Astro page transitions.
-      // Re-sync the toggle's aria state in case the data-theme attribute was
-      // updated before our click handler runs.
-      document.addEventListener("astro:after-swap", syncAria);
-      document.addEventListener("astro:page-load", syncAria);
+      if (!themeSyncBound) {
+        // BaseHead's bootstrap script re-applies theme on Astro page transitions.
+        // Re-sync the toggle's aria state in case the data-theme attribute was
+        // updated before our click handler runs.
+        document.addEventListener("astro:after-swap", syncAria);
+        document.addEventListener("astro:page-load", syncAria);
+        themeSyncBound = true;
+      }
     };
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
-        initScrollTop();
-        initThemeToggle();
-      });
-    } else {
+    const setup = () => {
       initScrollTop();
       initThemeToggle();
+    };
+
+    document.addEventListener("astro:page-load", setup);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setup);
+    } else {
+      setup();
     }
   })();
 </script>

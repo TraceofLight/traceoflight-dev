@@ -130,17 +130,17 @@ const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none foc
 
 <script is:inline>
   (() => {
-    if (window.__traceoflightFooterAdminBound) {
-      return;
-    }
-    window.__traceoflightFooterAdminBound = true;
-
     const setupModal = () => {
       const dialog = document.querySelector("[data-footer-admin-dialog]");
       const trigger = document.querySelector("[data-footer-admin-trigger]");
       if (!(dialog instanceof HTMLDialogElement) || !(trigger instanceof HTMLElement)) {
         return;
       }
+      // Per-element guard so View Transition swaps wire fresh DOM but never double-bind.
+      if (dialog.dataset.bound === "true") {
+        return;
+      }
+      dialog.dataset.bound = "true";
 
       const form = dialog.querySelector("#footer-admin-login-form");
       const usernameInput = dialog.querySelector("#footer-admin-username");
@@ -265,6 +265,8 @@ const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none foc
       }
     };
 
+    // astro:page-load fires on initial load and after every ClientRouter swap.
+    document.addEventListener("astro:page-load", setupModal);
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", setupModal);
     } else {
