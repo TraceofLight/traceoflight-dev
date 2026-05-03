@@ -33,10 +33,28 @@ pipeline {
       }
     }
 
+    stage('Build Frontend Image') {
+      steps {
+        dir('infra/docker/web') {
+          sh 'docker compose --env-file ../../../apps/web/.env.web build'
+        }
+      }
+    }
+
+    stage('Reclaim Container Name') {
+      // Defensive cleanup so a container left over from a previous compose project name
+      // (or any out-of-band tester) does not block the rename. Only runs after the build
+      // above succeeds, so a build failure leaves the old container in place — no outage
+      // window from a half-applied deploy.
+      steps {
+        sh 'docker rm -f traceoflight-frontend || true'
+      }
+    }
+
     stage('Deploy Frontend') {
       steps {
         dir('infra/docker/web') {
-          sh 'docker compose --env-file ../../../apps/web/.env.web up -d --build --remove-orphans'
+          sh 'docker compose --env-file ../../../apps/web/.env.web up -d --no-build --remove-orphans'
         }
       }
     }

@@ -65,10 +65,28 @@ pipeline {
       }
     }
 
+    stage('Build Backend Image') {
+      steps {
+        dir('infra/docker/api') {
+          sh 'docker compose --env-file ../../../apps/api/.env.api build api'
+        }
+      }
+    }
+
+    stage('Reclaim Container Name') {
+      // Defensive cleanup so a container left over from a previous compose project name
+      // (or any out-of-band tester) does not block the rename. Only runs after the build
+      // above succeeds, so a build failure leaves the old container in place — no outage
+      // window from a half-applied deploy.
+      steps {
+        sh 'docker rm -f traceoflight-api || true'
+      }
+    }
+
     stage('Deploy Backend') {
       steps {
         dir('infra/docker/api') {
-          sh 'docker compose --env-file ../../../apps/api/.env.api up -d --build --no-deps api'
+          sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-build --no-deps api'
         }
       }
     }
