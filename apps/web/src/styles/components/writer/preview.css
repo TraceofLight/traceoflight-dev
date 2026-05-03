@@ -138,9 +138,68 @@
 .writer-preview-content h1,
 .writer-preview-content h2,
 .writer-preview-content h3,
-.writer-preview-content h4 {
+.writer-preview-content h4,
+.writer-preview-content h5,
+.writer-preview-content h6 {
   color: var(--writer-text);
+  font-weight: 700;
   line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.writer-preview-content h1 {
+  margin: 1.6rem 0 0.8rem;
+  font-size: 2rem;
+}
+
+.writer-preview-content h2 {
+  margin: 1.4rem 0 0.7rem;
+  font-size: 1.5rem;
+}
+
+.writer-preview-content h3 {
+  margin: 1.2rem 0 0.6rem;
+  font-size: 1.25rem;
+}
+
+.writer-preview-content h4 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.writer-preview-content h5,
+.writer-preview-content h6 {
+  margin: 0.9rem 0 0.45rem;
+  font-size: 1rem;
+}
+
+.writer-preview-content p {
+  margin: 0 0 1rem;
+}
+
+.writer-preview-content ul,
+.writer-preview-content ol {
+  margin: 0 0 1rem;
+  padding-left: 1.5rem;
+}
+
+.writer-preview-content ul {
+  list-style: disc;
+}
+
+.writer-preview-content ol {
+  list-style: decimal;
+}
+
+.writer-preview-content li {
+  margin: 0.25rem 0;
+}
+
+.writer-preview-content blockquote {
+  margin: 0 0 1rem;
+  padding: 0.2rem 0 0.2rem 1rem;
+  border-left: 3px solid var(--writer-primary-strong);
+  color: var(--writer-text-muted);
 }
 
 .writer-preview-content figure {
