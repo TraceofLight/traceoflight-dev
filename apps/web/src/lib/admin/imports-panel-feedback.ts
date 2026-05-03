@@ -1,8 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
 
+import type { FeedbackState } from "@/lib/feedback-state";
 import { cn } from "@/lib/utils";
 
-export type FeedbackState = "info" | "pending" | "ok" | "error";
+export type { FeedbackState };
 
 export type StatusMessage = {
   message: string;

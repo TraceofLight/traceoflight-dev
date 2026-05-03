@@ -1,3 +1,5 @@
+import type { FeedbackState } from "@/lib/feedback-state";
+
 import { sanitizeEditorMarkdown } from "./editor-markdown";
 import {
   isSlugAlreadyExistsError,
@@ -19,8 +21,6 @@ import type {
   PostTopMediaKind,
   PostVisibility,
 } from "./types";
-
-type FeedbackState = "info" | "pending" | "ok" | "error";
 type ShowFeedback = (
   message: string,
   type: FeedbackState,

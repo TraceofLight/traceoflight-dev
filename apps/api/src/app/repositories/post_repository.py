@@ -406,26 +406,20 @@ class PostRepository:
         self.db.flush()
         return int(result.rowcount or 0)
 
+    def _project_profile_fields(self, payload: dict[str, object]) -> dict[str, object | None]:
+        intro = payload.get("project_intro")
+        return {
+            "period_label": str(payload["period_label"]),
+            "role_summary": str(payload["role_summary"]),
+            "project_intro": str(intro).strip() if intro else None,
+            "card_image_url": str(payload["card_image_url"]),
+            "highlights_json": list(payload.get("highlights") or []),
+            "resource_links_json": list(payload.get("resource_links") or []),
+        }
+
     def _build_project_profile(self, payload: dict[str, object]) -> ProjectProfile:
-        return ProjectProfile(
-            period_label=str(payload["period_label"]),
-            role_summary=str(payload["role_summary"]),
-            project_intro=str(payload["project_intro"]).strip() if payload.get("project_intro") else None,
-            card_image_url=str(payload["card_image_url"]),
-            highlights_json=list(payload.get("highlights") or []),
-            resource_links_json=list(payload.get("resource_links") or []),
-        )
+        return ProjectProfile(**self._project_profile_fields(payload))
 
     def _update_project_profile(self, profile: ProjectProfile, payload: dict[str, object]) -> None:
-        profile.period_label = str(payload["period_label"])
-        profile.role_summary = str(payload["role_summary"])
-        profile.project_intro = (
-            str(payload["project_intro"]).strip() if payload.get("project_intro") else None
-        )
-        profile.card_image_url = str(payload["card_image_url"])
-        profile.highlights_json = list(payload.get("highlights") or [])
-        profile.resource_links_json = list(payload.get("resource_links") or [])
-
-
-# Backwards-compatible alias for callers that imported the private helper.
-_format_reading_label = format_reading_label
+        for field, value in self._project_profile_fields(payload).items():
+            setattr(profile, field, value)

@@ -10,8 +10,8 @@ const seriesAdminPanelPath = new URL(
   "../src/components/public/SeriesAdminPanel.tsx",
   import.meta.url,
 );
-const seriesReorderListPath = new URL(
-  "../src/components/public/SeriesReorderList.tsx",
+const collectionOrderListPath = new URL(
+  "../src/components/public/CollectionOrderList.tsx",
   import.meta.url,
 );
 
@@ -51,9 +51,9 @@ test("series detail page mounts a React admin panel while keeping the public ser
 });
 
 test("series admin panel keeps metadata save, upload, and reorder flows in React islands", async () => {
-  const [panelSource, reorderSource] = await Promise.all([
+  const [panelSource, orderListSource] = await Promise.all([
     readFile(seriesAdminPanelPath, "utf8"),
-    readFile(seriesReorderListPath, "utf8"),
+    readFile(collectionOrderListPath, "utf8"),
   ]);
 
   assert.match(
@@ -62,19 +62,19 @@ test("series admin panel keeps metadata save, upload, and reorder flows in React
   );
   assert.match(
     panelSource,
-    /import SeriesReorderList from ["']\.\/SeriesReorderList["']/,
+    /import CollectionOrderList,?\s*\{[\s\S]*?\} from ["']\.\/CollectionOrderList["']/,
   );
   assert.match(panelSource, /id="series-admin-panel"/);
   assert.match(panelSource, /id="series-admin-cover-upload-trigger"/);
   assert.match(panelSource, /id="series-admin-cover-upload-input"/);
   assert.match(panelSource, /id="series-admin-save-meta"/);
+  assert.match(panelSource, /saveLabel="글 순서 저장"/);
   assert.match(
     panelSource,
     /\/internal-api\/series\/\$\{encodeURIComponent\(seriesSlug\)\}/,
   );
-  assert.match(reorderSource, /data-series-move="up"/);
-  assert.match(reorderSource, /data-series-move="down"/);
-  assert.match(reorderSource, /id="series-admin-save-order"/);
+  assert.match(orderListSource, /data-order-move="up"/);
+  assert.match(orderListSource, /data-order-move="down"/);
   assert.doesNotMatch(
     panelSource,
     /설명과 썸네일을 저장하면 공개 시리즈 헤더에 바로 반영됩니다\./,
@@ -87,9 +87,5 @@ test("series admin panel keeps metadata save, upload, and reorder flows in React
   assert.doesNotMatch(
     panelSource,
     /빈 값이면 기본 시리즈 이미지를 사용합니다\./,
-  );
-  assert.doesNotMatch(
-    reorderSource,
-    /순서를 조정한 뒤 저장하면 시리즈 시작 글과 목록 순서가 함께 반영됩니다\./,
   );
 });

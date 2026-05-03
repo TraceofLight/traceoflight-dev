@@ -3,10 +3,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from sqlalchemy.orm import Session
 
+from app.core.password import password_hasher
 from app.models.post_comment import (
     PostComment,
     PostCommentAuthorType,
@@ -45,7 +45,7 @@ class CommentConflictError(ValueError):
 class PostCommentService:
     def __init__(self, db: Session) -> None:
         self.repo = PostCommentRepository(db)
-        self._password_hasher = PasswordHasher()
+        self._password_hasher = password_hasher
 
     def list_post_comments(self, post_slug: str, include_private: bool = False) -> PostCommentThreadList:
         post = self.repo.get_post_by_slug(post_slug)

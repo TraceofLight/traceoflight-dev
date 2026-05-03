@@ -6,14 +6,12 @@ import githubIconSvg from "@/assets/icons/footer/github.svg?raw";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  resolveImportsErrorMessage,
-  updateSiteProfile,
-} from "@/lib/admin/imports-client";
+import { updateSiteProfile } from "@/lib/admin/imports-client";
 import {
   getStatusClass,
   type StatusMessage,
 } from "@/lib/admin/imports-panel-feedback";
+import { resolveErrorMessage } from "@/lib/http";
 import {
   buildMailtoHref,
   resolveSiteProfile,
@@ -75,7 +73,7 @@ export function AdminSiteProfileSection({
       const { response, payload } = await updateSiteProfile(normalizedEmail, normalizedGithubUrl);
       if (!response.ok) {
         setSiteProfileStatus({
-          message: resolveImportsErrorMessage(payload, "footer 사용자 정보 저장에 실패했습니다."),
+          message: resolveErrorMessage(payload, "footer 사용자 정보 저장에 실패했습니다."),
           state: "error",
         });
         return;

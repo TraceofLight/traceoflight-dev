@@ -1,16 +1,10 @@
 from __future__ import annotations
 
+from app.core.text import normalize_optional_text
 from app.models.post import PostContentKind, PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PostCreate
 from app.services.series_projection_cache import request_series_projection_refresh
-
-
-def _normalized_series_title(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
 
 
 class PostService:
@@ -82,7 +76,7 @@ class PostService:
     def create_post(self, payload: PostCreate):
         created = self.repo.create(payload)
         self.repo.db.commit()
-        if _normalized_series_title(getattr(created, "series_title", None)) is not None:
+        if normalize_optional_text(getattr(created, "series_title", None)) is not None:
             request_series_projection_refresh("post-created-series-assigned")
         return created
 
@@ -91,7 +85,7 @@ class PostService:
         if before is None:
             return None
 
-        before_series = _normalized_series_title(getattr(before, "series_title", None))
+        before_series = normalize_optional_text(getattr(before, "series_title", None))
         before_published_at = getattr(before, "published_at", None)
 
         updated = self.repo.update_by_slug(current_slug=slug, payload=payload)
@@ -99,7 +93,7 @@ class PostService:
             return None
         self.repo.db.commit()
 
-        after_series = _normalized_series_title(getattr(updated, "series_title", None))
+        after_series = normalize_optional_text(getattr(updated, "series_title", None))
         after_published_at = getattr(updated, "published_at", None)
 
         should_refresh = before_series != after_series
@@ -119,7 +113,7 @@ class PostService:
     ) -> bool:
         existing = self.repo.get_by_slug(slug=slug, status=status, visibility=visibility)
         had_series = (
-            _normalized_series_title(getattr(existing, "series_title", None))
+            normalize_optional_text(getattr(existing, "series_title", None))
             if existing is not None
             else None
         )

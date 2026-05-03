@@ -2,20 +2,13 @@ import type { APIRoute } from 'astro';
 
 import { clearAdminAuthCookies } from '../../../lib/admin-auth';
 import { requestBackend } from '../../../lib/backend-api';
+import { readJsonSafe } from '../../../lib/http';
 
 export const prerender = false;
 
 interface CredentialUpdateRequest {
   loginId?: string;
   password?: string;
-}
-
-async function readJsonSafe(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 export const PUT: APIRoute = async ({ request, cookies }) => {

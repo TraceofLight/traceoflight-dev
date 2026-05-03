@@ -4,11 +4,12 @@ import hashlib
 import secrets
 from dataclasses import dataclass
 
-from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from redis.asyncio import Redis
 
 from app.core.config import settings
+from app.core.password import password_hasher
+from app.core.time import now_epoch_seconds
 from app.repositories.admin_credential_repository import AdminCredentialRepository
 from app.services.admin_refresh_store import AdminRefreshStore, RefreshState
 from app.services.admin_token_codec import AdminTokenCodec, AdminTokenPair
@@ -49,7 +50,7 @@ class AdminRefreshResult:
 class AdminAuthService:
     def __init__(self, repo: AdminCredentialRepository, redis: Redis) -> None:
         self.repo = repo
-        self._password_hasher = PasswordHasher()
+        self._password_hasher = password_hasher
         self._codec = AdminTokenCodec(
             secret=settings.admin_session_secret.strip(),
             access_max_age_seconds=max(60, settings.admin_access_token_max_age_seconds),
@@ -144,8 +145,8 @@ class AdminAuthService:
                 return AdminRefreshResult(kind="reuse_detected", revision=state_from_unsafe.credential_revision)
             return AdminRefreshResult(kind="invalid")
 
-        now_epoch_seconds = self._now_epoch_seconds()
-        if payload.exp <= now_epoch_seconds:
+        now_seconds = now_epoch_seconds()
+        if payload.exp <= now_seconds:
             if state_from_unsafe is not None:
                 await self._refresh_store.set_state(
                     RefreshState(**{**state_from_unsafe.__dict__, "revoked": True})
@@ -158,7 +159,7 @@ class AdminAuthService:
         if payload.credential_revision != await self.get_active_credential_revision():
             await self._refresh_store.set_state(RefreshState(**{**state.__dict__, "revoked": True}))
             return AdminRefreshResult(kind="invalid", revision=payload.credential_revision)
-        if state.expires_at <= now_epoch_seconds:
+        if state.expires_at <= now_seconds:
             await self._refresh_store.set_state(RefreshState(**{**state.__dict__, "revoked": True}))
             return AdminRefreshResult(kind="expired", revision=state.credential_revision)
 
@@ -177,7 +178,7 @@ class AdminAuthService:
             if (
                 child_state is not None
                 and not child_state.revoked
-                and child_state.expires_at > now_epoch_seconds
+                and child_state.expires_at > now_seconds
                 and not await self._refresh_store.is_family_revoked(child_state.family_id)
             ):
                 return AdminRefreshResult(kind="stale", revision=state.credential_revision)
@@ -265,10 +266,5 @@ class AdminAuthService:
             raise ValueError("password must be at least 8 characters")
 
     async def _revoke_family_from_state(self, state: RefreshState) -> None:
-        ttl_seconds = max(1, state.expires_at - self._now_epoch_seconds())
+        ttl_seconds = max(1, state.expires_at - now_epoch_seconds())
         await self._refresh_store.revoke_family(state.family_id, ttl_seconds)
-
-    def _now_epoch_seconds(self) -> int:
-        import time
-
-        return int(time.time())

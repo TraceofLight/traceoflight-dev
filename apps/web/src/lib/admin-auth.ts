@@ -6,6 +6,7 @@ import {
   type TokenPair,
 } from './admin-auth-core';
 import { requestBackend, requestBackendPublic } from './backend-api';
+import { readJsonSafe } from './http';
 
 export const ADMIN_ACCESS_COOKIE = 'traceoflight_admin_access';
 export const ADMIN_REFRESH_COOKIE = 'traceoflight_admin_refresh';
@@ -159,14 +160,6 @@ export async function verifyAdminCredentials(username: string, password: string)
 
   if (!config.loginPassword) return false;
   return safeCompare(password, config.loginPassword);
-}
-
-async function readJsonSafe(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 function mapBackendTokenPair(

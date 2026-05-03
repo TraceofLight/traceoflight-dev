@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, SaveIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export interface OrderableCollectionItem {
 interface CollectionOrderListProps {
   defaultCoverImage: string;
   emptyMessage: string;
+  footer?: ReactNode;
   items: OrderableCollectionItem[];
   itemLabel: string;
   onMoveItem: (slug: string, direction: "up" | "down") => void;
@@ -28,6 +30,7 @@ interface CollectionOrderListProps {
 export default function CollectionOrderList({
   defaultCoverImage,
   emptyMessage,
+  footer,
   items,
   itemLabel,
   onMoveItem,
@@ -124,6 +127,8 @@ export default function CollectionOrderList({
           {emptyMessage}
         </div>
       )}
+
+      {footer}
     </section>
   );
 }

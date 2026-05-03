@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 from redis.asyncio import Redis
 
+from app.core.time import now_epoch_seconds
+
 
 @dataclass(frozen=True)
 class RefreshState:
@@ -43,7 +45,7 @@ class AdminRefreshStore:
         )
 
     async def set_state(self, state: RefreshState) -> None:
-        ttl_seconds = max(1, state.expires_at - self._now_epoch_seconds())
+        ttl_seconds = max(1, state.expires_at - now_epoch_seconds())
         await self.redis.set(
             self._state_key(state.jti),
             json.dumps(
@@ -74,8 +76,3 @@ class AdminRefreshStore:
 
     def _family_key(self, family_id: str) -> str:
         return f"admin:refresh:family:{family_id}:revoked"
-
-    def _now_epoch_seconds(self) -> int:
-        import time
-
-        return int(time.time())

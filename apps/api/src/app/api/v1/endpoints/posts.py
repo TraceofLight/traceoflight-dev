@@ -28,6 +28,17 @@ def _post_conflict_detail(exc: IntegrityError) -> str:
     )
 
 
+def _public_visibility_filters(
+    status: PostStatus | None,
+    visibility: PostVisibility | None,
+    *,
+    is_internal_request: bool,
+) -> tuple[PostStatus | None, PostVisibility | None]:
+    if is_internal_request:
+        return status, visibility
+    return PostStatus.PUBLISHED, PostVisibility.PUBLIC
+
+
 @router.get(
     '/summary',
     response_model=PostSummaryListRead,
@@ -66,11 +77,9 @@ def list_post_summaries(
     is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> PostSummaryListRead:
-    effective_status = status
-    effective_visibility = visibility
-    if not is_internal_request:
-        effective_status = PostStatus.PUBLISHED
-        effective_visibility = PostVisibility.PUBLIC
+    effective_status, effective_visibility = _public_visibility_filters(
+        status, visibility, is_internal_request=is_internal_request
+    )
 
     return service.list_post_summaries(
         limit=limit,
@@ -115,11 +124,9 @@ def list_posts(
     is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> list[PostRead]:
-    effective_status = status
-    effective_visibility = visibility
-    if not is_internal_request:
-        effective_status = PostStatus.PUBLISHED
-        effective_visibility = PostVisibility.PUBLIC
+    effective_status, effective_visibility = _public_visibility_filters(
+        status, visibility, is_internal_request=is_internal_request
+    )
 
     return service.list_posts(
         limit=limit,
@@ -153,11 +160,9 @@ def get_post_by_slug(
     is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> PostRead:
-    effective_status = status
-    effective_visibility = visibility
-    if not is_internal_request:
-        effective_status = PostStatus.PUBLISHED
-        effective_visibility = PostVisibility.PUBLIC
+    effective_status, effective_visibility = _public_visibility_filters(
+        status, visibility, is_internal_request=is_internal_request
+    )
 
     post = service.get_post_by_slug(
         slug=slug,

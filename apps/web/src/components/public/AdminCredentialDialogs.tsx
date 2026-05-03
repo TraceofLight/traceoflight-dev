@@ -11,11 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  resolveImportsErrorMessage,
-  updateOperationalAdminCredentials,
-} from "@/lib/admin/imports-client";
+import { updateOperationalAdminCredentials } from "@/lib/admin/imports-client";
 import type { StatusMessage } from "@/lib/admin/imports-panel-feedback";
+import { resolveErrorMessage } from "@/lib/http";
 import {
   PUBLIC_PANEL_SURFACE_SOFT_CLASS,
   PUBLIC_SECTION_SURFACE_STRONG_CLASS,
@@ -96,7 +94,7 @@ export function AdminCredentialDialogs() {
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setCredentialLoginStatus({
-          message: resolveImportsErrorMessage(payload, "관리자 인증에 실패했습니다."),
+          message: resolveErrorMessage(payload, "관리자 인증에 실패했습니다."),
           state: "error",
         });
         return;
@@ -167,7 +165,7 @@ export function AdminCredentialDialogs() {
       );
       if (!response.ok) {
         setCredentialUpdateStatus({
-          message: resolveImportsErrorMessage(payload, "운영용 관리자 자격증명 저장에 실패했습니다."),
+          message: resolveErrorMessage(payload, "운영용 관리자 자격증명 저장에 실패했습니다."),
           state: "error",
         });
         return;

@@ -8,6 +8,8 @@ import {
 import { ImagePlusIcon, LoaderCircleIcon, SaveIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { FeedbackState } from "@/lib/feedback-state";
+import { readJsonSafe, resolveErrorMessage } from "@/lib/http";
 import {
   PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
 } from "@/lib/ui-effects";
@@ -15,10 +17,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { createUploadBundle } from "../../lib/admin/new-post-page/upload";
-import SeriesReorderList from "./SeriesReorderList";
-import type { SeriesAdminPost } from "./SeriesReorderList";
+import CollectionOrderList, {
+  type OrderableCollectionItem,
+} from "./CollectionOrderList";
 
-type FeedbackState = "info" | "pending" | "ok" | "error";
+export interface SeriesAdminPost {
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverImageUrl?: string | null;
+  orderIndex: number;
+}
+
+function toOrderItems(posts: SeriesAdminPost[]): OrderableCollectionItem[] {
+  return posts.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.excerpt,
+    coverImageUrl: post.coverImageUrl,
+    href: `/blog/${post.slug}`,
+  }));
+}
 
 export interface SeriesAdminPanelSeries {
   slug: string;
@@ -31,32 +50,6 @@ export interface SeriesAdminPanelSeries {
 
 interface SeriesAdminPanelProps {
   series: SeriesAdminPanelSeries;
-}
-
-async function readJsonSafe(
-  response: Response | { json?: () => Promise<unknown> },
-) {
-  if (typeof response.json !== "function") {
-    return null;
-  }
-
-  return response.json().catch(() => null);
-}
-
-function resolveErrorMessage(payload: unknown, fallback: string) {
-  if (payload && typeof payload === "object") {
-    const nextPayload = payload as Record<string, unknown>;
-    const detail = nextPayload.detail;
-    if (typeof detail === "string" && detail.trim()) {
-      return detail.trim();
-    }
-    const message = nextPayload.message;
-    if (typeof message === "string" && message.trim()) {
-      return message.trim();
-    }
-  }
-
-  return fallback;
 }
 
 function normalizeCoverImageUrl(value: string) {
@@ -458,12 +451,22 @@ export function SeriesAdminPanel({ series }: SeriesAdminPanelProps) {
         </p>
       </section>
 
-      <SeriesReorderList
+      <CollectionOrderList
         defaultCoverImage={defaultCoverImage}
-        onMovePost={handleMovePost}
+        emptyMessage="아직 시리즈에 포함된 글이 없습니다."
+        footer={
+          <p
+            className="mt-4 text-sm text-muted-foreground"
+            data-state={orderFeedback.state}
+          >
+            {orderFeedback.message}
+          </p>
+        }
+        items={toOrderItems(orderedPosts)}
+        itemLabel="글"
+        onMoveItem={handleMovePost}
         onSaveOrder={handleOrderSave}
-        orderFeedback={orderFeedback}
-        posts={orderedPosts}
+        saveLabel="글 순서 저장"
         saving={savingOrder}
       />
     </div>

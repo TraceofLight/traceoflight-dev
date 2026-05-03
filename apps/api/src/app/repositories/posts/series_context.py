@@ -13,7 +13,7 @@ class SeriesContextService:
     """Attach in-series prev/next navigation context to Post rows.
 
     The implementation issues at most two queries regardless of the
-    number of posts passed in (see BE-2 in the refactor plan).
+    number of posts passed in.
     """
 
     def __init__(self, db: Session) -> None:
