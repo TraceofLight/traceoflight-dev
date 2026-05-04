@@ -36,11 +36,14 @@ test("blog detail layout renders in-series navigation block", async () => {
   // phrasing, English uses "Post X of N", etc.
   assert.match(source, /t\.blogPost\.seriesProgress[\s\S]*?\.replace\(\s*"\{order\}"/);
   assert.match(source, /\.replace\(\s*"\{total\}"/);
+  // Series-detail layout: content column is fixed at the same 1046px width
+  // used by non-series posts, with the sidebar pinned beside it. This keeps
+  // body width consistent regardless of whether a sidebar is present.
   assert.match(
     source,
-    /xl:grid-cols-\[minmax\(0,3\.7fr\)_minmax\(320px,0\.9fr\)\]/,
+    /xl:grid-cols-\[minmax\(0,1046px\)_minmax\(0,320px\)\]/,
   );
-  assert.match(source, /max-w-\[1320px\]/);
+  assert.match(source, /max-w-\[1398px\]/);
   assert.match(source, /grid-cols-\[124px_minmax\(0,1fr\)\]/);
   assert.match(source, /items-center/);
   assert.match(source, /content-center/);
