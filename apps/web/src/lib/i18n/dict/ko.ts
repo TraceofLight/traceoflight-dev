@@ -21,10 +21,10 @@ export const ko = {
     viewAll: "전체 보기",
   },
   empty: {
-    noPosts: "게시글이 없습니다.",
+    noPosts: "게시글이 아직 없습니다.",
     noResults: "검색 결과가 없습니다.",
-    noProjects: "프로젝트가 없습니다.",
-    noSeries: "시리즈가 없습니다.",
+    noProjects: "아직 등록된 프로젝트가 없습니다.",
+    noSeries: "아직 등록된 시리즈가 없습니다.",
   },
   blogPost: {
     backToBlog: "블로그로 돌아가기",
@@ -34,6 +34,7 @@ export const ko = {
     updatedOn: "수정일",
     minRead: "분 읽기",
     seriesNavLabel: "시리즈 탐색",
+    seriesProgress: "{total}개 글 중 {order}번째",
     prevPost: "이전 글",
     nextPost: "다음 글",
     noExcerpt: "요약 없음",
@@ -87,11 +88,21 @@ export const ko = {
     deleteConfirm: "정말 삭제하시겠습니까?",
   },
   home: {
-    intro: "안녕하세요, TraceofLight입니다.",
+    intro:
+      "게임 개발, 그래픽스 프로그래밍, 데이터베이스 엔지니어링을 기록하는 TraceofLight의 기술 아카이브입니다.",
+    introTop:
+      "상상을 현실로, 가상 세계에 생동감을 불어넣는 개발자 TraceofLight입니다.",
+    introBottom:
+      "위로는 새로운 기술에 대한 호기심, 아래로는 기반 지식에 대한 꾸준한 탐구를 바탕으로 성장 중입니다.",
     recentPosts: "최근 글",
     seeAllPosts: "모든 글 보기",
     viewProjects: "프로젝트 보기",
     viewBlog: "블로그 보기",
+    viewAllProjects: "View All Projects",
+    viewAllSeries: "View All Series",
+    viewAllPosts: "View All Posts",
+    seriesArchiveSubtitle: "TraceofLight의 다양한 이야기를 주제별로 엮은 서고",
+    projectsArchiveSubtitle: "참여한 프로젝트들과 진행하면서 느끼고 고민한 것들",
     noSeriesYet: "아직 등록된 시리즈가 없습니다.",
     noPostsYet: "아직 공개된 글이 없습니다.",
     pageTitle: "게임 개발 · 그래픽스 프로그래밍 아카이브",

@@ -20,7 +20,7 @@ const mobileNavSheetPath = new URL(
   "../src/components/public/MobileNavSheet.astro",
   import.meta.url,
 );
-const homePagePath = new URL("../src/pages/index.astro", import.meta.url);
+const homePagePath = new URL("../src/pages/[locale]/index.astro", import.meta.url);
 const projectCardPath = new URL(
   "../src/components/ProjectCard.astro",
   import.meta.url,

@@ -15,12 +15,18 @@ interface Props {
 const { locale = 'ko', alternates = [] } = Astro.props;
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+const localizedNavLinks = NAV_LINKS.map((item) => {
+  const trimmed = item.href.replace(/^\/+|\/+$/g, "");
+  const localizedHref = trimmed.length === 0 ? `/${locale}/` : `/${locale}/${trimmed}/`;
+  return { ...item, href: localizedHref };
+});
+const homeHref = `/${locale}/`;
 ---
 
 <header class="site-header-surface sticky top-0 z-40 border-b border-white/60 bg-white/78 backdrop-blur-xl supports-[backdrop-filter]:bg-white/64">
   <div class="container flex min-h-16 items-center justify-between gap-4 py-3">
     <div class="flex items-center gap-3">
-      <a href="/" class="text-base font-semibold tracking-tight text-foreground">
+      <a href={homeHref} class="text-base font-semibold tracking-tight text-foreground">
         {SITE_TITLE}
       </a>
       {
@@ -51,14 +57,14 @@ const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false
     <div class="flex items-center gap-2">
       <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
         {
-          NAV_LINKS.map((item) => (
+          localizedNavLinks.map((item) => (
             <HeaderLink href={item.href}>{item.label}</HeaderLink>
           ))
         }
       </nav>
       {alternates.length > 0 && <LanguageToggle locale={locale} alternates={alternates} />}
       <div class="md:hidden">
-        <MobileNavSheet items={NAV_LINKS} isAdminViewer={isAdminViewer} />
+        <MobileNavSheet items={localizedNavLinks} isAdminViewer={isAdminViewer} />
       </div>
     </div>
   </div>

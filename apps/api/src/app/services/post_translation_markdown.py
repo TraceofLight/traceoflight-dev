@@ -16,6 +16,10 @@ _MEDIA_TAG_PATTERN = re.compile(r"<(?:iframe|video|audio|source|img)\b[^>]*>(?:<
 _MARKDOWN_IMAGE_PATTERN = re.compile(r"!\[[^\]]*]\([^)]+\)")
 _MARKDOWN_LINK_DESTINATION_PATTERN = re.compile(r"(?P<prefix>\[[^\]]*]\()(?P<target>[^)]+)(?P<suffix>\))")
 _BARE_URL_PATTERN = re.compile(r"(?P<url>https?://[^\s)>\]]+)")
+# Blockquote line markers (>, >>, > >, with optional 0-3 space indent and a
+# trailing single space). Masked per line so DeepL's HTML/XML tag handling
+# can't drop or relocate the bare `>` characters during translation.
+_BLOCKQUOTE_LINE_PATTERN = re.compile(r"(?m)^(?P<indent>[ ]{0,3})(?P<markers>(?:>[ \t]?)+)")
 
 
 def _placeholder(index: int) -> str:
@@ -49,6 +53,7 @@ def mask_markdown_translation_segments(markdown: str) -> MaskedMarkdown:
         group_name="target",
     )
     text = _replace_pattern(text, _BARE_URL_PATTERN, replacements)
+    text = _replace_pattern(text, _BLOCKQUOTE_LINE_PATTERN, replacements)
     return MaskedMarkdown(text=text, replacements=replacements)
 
 

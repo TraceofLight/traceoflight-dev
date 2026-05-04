@@ -1,4 +1,10 @@
 ---
+import { resolvePreferredLocale } from "../../lib/i18n/cookie";
+
 const slug = Astro.params.slug ?? "";
-return Astro.redirect(`/ko/projects/${slug}/`, 301);
+const locale = resolvePreferredLocale(
+  Astro.cookies,
+  Astro.request.headers.get("accept-language"),
+);
+return Astro.redirect(`/${locale}/projects/${slug}/`, 302);
 ---

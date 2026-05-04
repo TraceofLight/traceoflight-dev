@@ -108,7 +108,9 @@ test("blog post layout reuses shared cover media helpers for top media rendering
   assert.match(source, /width=\{detailCoverWidth\}/);
   assert.match(source, /height=\{detailCoverHeight\}/);
   assert.match(source, /rounded-3xl bg-white\/96 p-5 \$\{PUBLIC_PANEL_SURFACE_CLASS\}/);
-  assert.match(source, /\{seriesContext\.totalPosts\}개 글 중 \{seriesContext\.orderIndex\}번째/);
+  // The order indicator is sourced from the dictionary template so each
+  // locale can express the count naturally.
+  assert.match(source, /t\.blogPost\.seriesProgress[\s\S]*?\.replace\(\s*"\{order\}"/);
   assert.match(source, /group grid grid-cols-\[124px_minmax\(0,1fr\)\] items-center gap-4 rounded-2xl p-3\.5 transition duration-200 hover:-translate-y-0\.5 hover:border-sky-200\/70 hover:bg-white \$\{PUBLIC_PANEL_SURFACE_SOFT_CLASS\}/);
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });

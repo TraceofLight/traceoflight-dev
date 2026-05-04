@@ -26,10 +26,16 @@ test("blog detail layout renders in-series navigation block", async () => {
 
   assert.match(source, /interface SeriesContext/);
   assert.match(source, /seriesContext\?: SeriesContext/);
-  assert.match(source, /aria-label="시리즈 탐색"/);
+  // Aria label is now sourced from the dictionary so the sidebar speaks the
+  // current locale.
+  assert.match(source, /aria-label=\{t\.blogPost\.seriesNavLabel\}/);
   assert.match(source, /seriesPosts\.map/);
   assert.match(source, /relationLabel/);
-  assert.match(source, /\{seriesContext\.totalPosts\}개 글 중 \{seriesContext\.orderIndex\}번째/);
+  // The order indicator now goes through the dictionary so each locale can
+  // express "post N of M" naturally — Korean keeps its "N개 글 중 X번째"
+  // phrasing, English uses "Post X of N", etc.
+  assert.match(source, /t\.blogPost\.seriesProgress[\s\S]*?\.replace\(\s*"\{order\}"/);
+  assert.match(source, /\.replace\(\s*"\{total\}"/);
   assert.match(
     source,
     /xl:grid-cols-\[minmax\(0,3\.7fr\)_minmax\(320px,0\.9fr\)\]/,

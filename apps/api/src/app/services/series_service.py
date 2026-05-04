@@ -47,8 +47,17 @@ class SeriesService:
         """Returns Korean source series rows only, for admin reorder UI."""
         return self.repo.list_admin_sources()
 
-    def get_series_by_slug(self, slug: str, include_private: bool = False):
-        return self.repo.get_by_slug(slug=slug, include_private=include_private)
+    def get_series_by_slug(
+        self,
+        slug: str,
+        include_private: bool = False,
+        locale: PostLocale | None = None,
+    ):
+        return self.repo.get_by_slug(
+            slug=slug,
+            include_private=include_private,
+            locale=locale,
+        )
 
     def create_series(self, payload: SeriesUpsert):
         result = self.repo.create(payload)

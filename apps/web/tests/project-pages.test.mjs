@@ -7,11 +7,11 @@ const projectCardPath = new URL(
   import.meta.url,
 );
 const projectIndexPath = new URL(
-  "../src/pages/projects/index.astro",
+  "../src/pages/[locale]/projects/index.astro",
   import.meta.url,
 );
 const projectDetailPath = new URL(
-  "../src/pages/projects/[slug].astro",
+  "../src/pages/[locale]/projects/[slug].astro",
   import.meta.url,
 );
 const projectOrderPanelPath = new URL(
@@ -52,7 +52,13 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(cardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(cardSource, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(cardSource, /object-cover object-center/);
-  assert.match(cardSource, /href=\{`\/projects\/\$\{project\.slug\}`\}/);
+  // The card builds the href from an optional `locale` prop, with `/projects/<slug>`
+  // as a graceful fallback when no locale is provided.
+  assert.match(
+    cardSource,
+    /projectHref\s*=\s*locale\s*\?\s*`\/\$\{locale\}\/projects\/\$\{project\.slug\}`\s*:\s*`\/projects\/\$\{project\.slug\}`/,
+  );
+  assert.match(cardSource, /href=\{projectHref\}/);
   assert.match(cardSource, /data-astro-reload/);
   assert.doesNotMatch(cardSource, /class="surface-card"/);
   assert.doesNotMatch(cardSource, /class="thumb"/);
@@ -66,11 +72,11 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(indexSource, /listPublishedDbProjects|getPublishedProjectBySlug|listPublishedDbProjectPosts/);
   assert.match(indexSource, /ProjectOrderPanel/);
   assert.match(indexSource, /\/admin\/posts\/new\?content_kind=project/);
-  assert.match(indexSource, /글 작성/);
+  // "Write post" copy is now sourced from the dictionary so it adapts per locale.
+  assert.match(indexSource, /\{t\.archiveFilters\.writePost\}/);
   assert.match(indexSource, /isAdminViewer && \(/);
   assert.match(indexSource, /<ProjectOrderPanel client:load projects=\{projects\} \/>/);
-  assert.match(orderPanelSource, />\s*순서 조정\s*</);
-  assert.match(orderPanelSource, /프로젝트 순서 조정/);
+  assert.match(orderPanelSource, /title="프로젝트 순서 조정"/);
   assert.match(orderPanelSource, /\/internal-api\/projects\/order/);
   assert.doesNotMatch(indexSource, /getProjects\(/);
   assert.doesNotMatch(
@@ -78,7 +84,11 @@ test("project card and list page use the new public card shell", async () => {
     /<header[\s\S]*rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
   );
   assert.match(indexSource, />\s*Projects\s*</);
-  assert.match(indexSource, /참여한 프로젝트들과 진행하면서 느끼고 고민한 것들/);
+  assert.match(indexSource, /게임 개발과 그래픽스, 웹 작업을 포함한 TraceofLight의 프로젝트 모음/);
+  // The hero subtitle paragraph (under the H1) is the user-authored copy that
+  // must not be silently dropped during i18n refactors. It reads from the
+  // dictionary so each locale carries its own translation.
+  assert.match(indexSource, /\{t\.home\.projectsArchiveSubtitle\}/);
   assert.doesNotMatch(indexSource, /Lorem ipsum dolor sit amet/);
   assert.doesNotMatch(indexSource, /프로젝트 아카이브/);
   assert.doesNotMatch(indexSource, /Collection Snapshot/);
@@ -96,7 +106,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /verifyAccessToken/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/\.\.\/\.\.\/lib\/ui-effects";/,
   );
   assert.match(source, /class=\{PUBLIC_BADGE_STRONG_CLASS\}/);
   assert.match(source, /PUBLIC_SECTION_SURFACE_CLASS/);
@@ -110,13 +120,20 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /project\.topMediaImageUrl/);
   assert.match(source, /project\.topMediaYoutubeUrl/);
   assert.match(source, /project\.topMediaVideoUrl/);
-  assert.match(source, /프로젝트 소개/);
-  assert.match(source, /project\.intro \|\| "프로젝트 소개 문구를 준비 중입니다\."/);
+  // Project meta sections (intro, highlights, resources, period) now read
+  // headings from the dictionary instead of hardcoded Korean copy.
+  assert.match(source, /\{t\.projectDetail\.role\}/);
+  assert.match(source, /\{t\.projectDetail\.highlights\}/);
+  assert.match(source, /\{t\.projectDetail\.resources\}/);
+  assert.match(source, /\{t\.projectDetail\.period\}/);
+  assert.match(source, /\{project\.intro\}/);
   assert.match(source, /<section class="grid gap-6 lg:grid-cols-\[minmax\(0,1\.7fr\)_minmax\(260px,0\.8fr\)\]">/);
   assert.match(source, /relatedSeriesPosts|related series/i);
-  assert.match(source, /연관된 포스팅 시리즈/);
-  assert.match(source, /모든 프로젝트 보기/);
-  assert.match(source, /상세 내용/);
+  // The "related posts" heading is the same string used by blog series links.
+  assert.match(source, /\{t\.blogPost\.relatedSeries\}/);
+  // "View all" / "Back to list" are dictionary entries shared with other pages.
+  assert.match(source, /\{t\.buttons\.viewAll\}/);
+  assert.match(source, /\{t\.buttons\.backToList\}/);
   assert.match(source, /class="markdown-prose mt-5 text-base leading-8 text-foreground\/85"/);
   assert.match(source, /toYoutubeEmbedUrl/);
   assert.match(source, /topMediaKind === "video"/);
@@ -133,8 +150,9 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /video\.load\(\)/);
   assert.match(source, /isAdminViewer &&/);
   assert.match(source, /adminPostSlug=\{project\.slug\}/);
-  assert.match(source, /프로젝트를 찾을 수 없습니다/);
-  assert.match(source, /프로젝트 목록으로 돌아가기/);
+  // Not-found and back-to-list strings are sourced from the dictionary.
+  assert.match(source, /\{t\.notFound\.title\}/);
+  assert.match(source, /\{t\.notFound\.description\}/);
   assert.doesNotMatch(source, /class="section"/);
   assert.doesNotMatch(source, /class="surface-card"/);
   assert.doesNotMatch(source, /프로젝트 개요/);

@@ -9,14 +9,16 @@ export const ja: Dictionary = {
     search: "検索", loadMore: "もっと読み込む", retry: "再試行", viewAll: "すべて表示",
   },
   empty: {
-    noPosts: "記事がありません。", noResults: "検索結果がありません。",
-    noProjects: "プロジェクトがありません。", noSeries: "シリーズがありません。",
+    noPosts: "まだ記事がありません。", noResults: "検索結果がありません。",
+    noProjects: "まだ登録されたプロジェクトがありません。",
+    noSeries: "まだ登録されたシリーズがありません。",
   },
   blogPost: {
     backToBlog: "ブログへ戻る", viewAllPosts: "すべての記事を見る",
     relatedSeries: "このシリーズの他の記事",
     publishedOn: "公開日", updatedOn: "更新日", minRead: "分で読了",
     seriesNavLabel: "シリーズナビゲーション",
+    seriesProgress: "全 {total} 件中 {order} 番目",
     prevPost: "前の記事",
     nextPost: "次の記事",
     noExcerpt: "要約なし",
@@ -60,10 +62,22 @@ export const ja: Dictionary = {
     deleteConfirm: "本当に削除しますか?",
   },
   home: {
-    intro: "こんにちは、TraceofLightです。",
+    intro:
+      "ゲーム開発、グラフィックスプログラミング、データベースエンジニアリングを記録するTraceofLightの技術アーカイブです。",
+    introTop:
+      "想像を現実にし、仮想世界に生命を吹き込む開発者、TraceofLightです。",
+    introBottom:
+      "上には新しい技術への好奇心、下には基礎知識への着実な探求を糧に成長しています。",
     recentPosts: "最近の記事", seeAllPosts: "すべての記事を見る",
     viewProjects: "プロジェクトを見る",
     viewBlog: "ブログを見る",
+    viewAllProjects: "View All Projects",
+    viewAllSeries: "View All Series",
+    viewAllPosts: "View All Posts",
+    seriesArchiveSubtitle:
+      "TraceofLightのさまざまな物語をテーマ別にまとめた書庫",
+    projectsArchiveSubtitle:
+      "参加したプロジェクトと、進める中で感じ考えたこと",
     noSeriesYet: "まだシリーズが登録されていません。",
     noPostsYet: "まだ公開された記事がありません。",
     pageTitle: "ゲーム開発 · グラフィックスプログラミングアーカイブ",

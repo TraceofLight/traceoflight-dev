@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const seriesPagePath = new URL(
-  "../src/pages/series/index.astro",
+  "../src/pages/[locale]/series/index.astro",
   import.meta.url,
 );
 const seriesCardPath = new URL(
@@ -24,14 +24,15 @@ test("series index page renders archive list and links to detail route", async (
   ]);
 
   assert.match(source, /id="series-archive"/);
-  assert.match(source, /import SeriesCard from ["']\.\.\/\.\.\/components\/SeriesCard(?:\.astro)?["']/);
+  assert.match(source, /import SeriesCard from ["']\.\.\/\.\.\/\.\.\/components\/SeriesCard(?:\.astro)?["']/);
   // The series index page can rely on SeriesCard's default postCard
-  // dimensions and only pass series + fallbackCoverImageSrc.
+  // dimensions and only pass series, fallbackCoverImageSrc, and locale.
   assert.match(
     source,
-    /<SeriesCard[\s\S]*series=\{series\}[\s\S]*fallbackCoverImageSrc=\{defaultSeriesCoverImageSrc\}[\s\S]*\/>/,
+    /<SeriesCard[\s\S]*series=\{s\}[\s\S]*fallbackCoverImageSrc=\{defaultSeriesCoverImageSrc\}[\s\S]*locale=\{locale\}[\s\S]*\/>/,
   );
-  assert.match(source, /<h1[\s\S]*?>\s*Series\s*<\/h1>/);
+  // Heading text is sourced from the dictionary (`t.nav.series`).
+  assert.match(source, /<h1[\s\S]*?>\s*\{t\.nav\.series\}\s*<\/h1>/);
   assert.doesNotMatch(source, /max-w-6xl/);
   assert.match(source, /class="flex w-full flex-col gap-8"/);
   assert.match(
@@ -51,21 +52,32 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(cardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(cardSource, /object-cover object-center/);
   assert.match(cardSource, /FormattedDate/);
-  assert.match(cardSource, /href=\{`\/series\/\$\{series\.slug\}`\}/);
+  // The card builds the href from an optional `locale` prop, with `/series/<slug>`
+  // as a graceful fallback when no locale is provided.
+  assert.match(
+    cardSource,
+    /seriesHref\s*=\s*locale\s*\?\s*`\/\$\{locale\}\/series\/\$\{series\.slug\}`\s*:\s*`\/series\/\$\{series\.slug\}`/,
+  );
+  assert.match(cardSource, /href=\{seriesHref\}/);
   assert.match(source, /(\/images\/empty-series-image\.png|DEFAULT_SERIES_IMAGE)/);
-  assert.match(source, /TraceofLight의 다양한 이야기를 주제별로 엮은 서고/);
+  // The page-meta description is unchanged (used by SEO/head).
+  assert.match(source, /주제별로 정리한 TraceofLight 시리즈 모음/);
+  // The visible subtitle paragraph (under the H1) is the user-authored copy
+  // that must not be silently dropped by i18n refactors. It now reads from
+  // the dictionary so each locale can carry its own translation.
+  assert.match(source, /\{t\.home\.seriesArchiveSubtitle\}/);
   assert.match(source, /<header class="space-y-4 text-center">/);
   assert.match(source, /SeriesOrderPanel/);
   assert.match(source, /isAdminViewer && \(/);
   assert.match(source, /<SeriesOrderPanel client:load series=\{series\} \/>/);
-  assert.match(orderPanelSource, />\s*순서 조정\s*</);
-  assert.match(orderPanelSource, /시리즈 순서 조정/);
+  assert.match(orderPanelSource, /title="시리즈 순서 조정"/);
   assert.match(orderPanelSource, /\/internal-api\/series\/order/);
   assert.doesNotMatch(
     source,
     /<header[\s\S]*rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
   );
-  assert.match(source, /아직 등록된 시리즈가 없습니다/);
+  // Empty-state copy now goes through the dictionary.
+  assert.match(source, /\{t\.empty\.noSeries\}/);
   assert.doesNotMatch(source, /주제별로 읽는 TraceofLight/);
   assert.doesNotMatch(source, /Archive Snapshot/);
   assert.doesNotMatch(source, /Admin view/);

@@ -80,6 +80,9 @@ const alternates = buildLocalizedAlternates(
       >
         {t.nav.series}
       </h1>
+      <p class="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
+        {t.home.seriesArchiveSubtitle}
+      </p>
       {isAdminViewer && (
         <div class="flex w-full justify-center gap-3 sm:justify-end">
           <SeriesOrderPanel client:load series={series} />

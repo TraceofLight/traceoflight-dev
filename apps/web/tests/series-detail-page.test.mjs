@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const detailPagePath = new URL(
-  "../src/pages/series/[slug].astro",
+  "../src/pages/[locale]/series/[slug].astro",
   import.meta.url,
 );
 const seriesAdminPanelPath = new URL(
@@ -26,12 +26,14 @@ test("series detail page mounts a React admin panel while keeping the public ser
   assert.match(source, /series\.posts/);
   assert.match(source, /id="series-start-link"/);
   assert.match(source, /<header class=\{`grid gap-8 p-6/);
-  assert.match(source, /시리즈 시작하기/);
-  assert.match(source, />\s*모든 시리즈 보기\s*</);
-  assert.match(source, />\s*시리즈 목록\s*</);
+  // Localized via dictionary instead of hardcoded Korean strings.
+  assert.match(source, /pickDictionary\(locale\)/);
+  assert.match(source, /\{t\.buttons\.readMore\}/);
+  assert.match(source, /\{t\.buttons\.viewAll\}/);
+  assert.match(source, /\{t\.buttons\.backToList\}/);
   assert.match(
     source,
-    /import SeriesAdminPanel from ["']\.\.\/\.\.\/components\/public\/SeriesAdminPanel["']/,
+    /import SeriesAdminPanel from ["']\.\.\/\.\.\/\.\.\/components\/public\/SeriesAdminPanel["']/,
   );
   assert.match(
     source,
@@ -48,6 +50,9 @@ test("series detail page mounts a React admin panel while keeping the public ser
     /순서대로 읽으며 시리즈의 흐름을 따라갈 수 있습니다\./,
   );
   assert.doesNotMatch(source, /시리즈 목록으로 돌아가기/);
+  // Hardcoded Korean strings must be sourced from the dictionary now.
+  assert.doesNotMatch(source, />\s*시리즈 시작하기\s*</);
+  assert.doesNotMatch(source, />\s*모든 시리즈 보기\s*</);
 });
 
 test("series admin panel keeps metadata save, upload, and reorder flows in React islands", async () => {

@@ -108,12 +108,17 @@ def get_series_by_slug(
         default=None,
         description="When internal secret is valid, controls whether private/draft-linked posts are included.",
     ),
+    locale: PostLocale | None = Query(
+        default=None,
+        description="Filter series sibling row by locale. When omitted, the Korean source row is returned.",
+    ),
     trusted_internal: bool = Depends(optional_internal_secret),
     service: SeriesService = Depends(get_series_service),
 ) -> SeriesDetailRead:
     series = service.get_series_by_slug(
         slug=slug,
         include_private=_resolve_include_private(include_private, trusted_internal),
+        locale=locale,
     )
     if series is None:
         raise HTTPException(status_code=404, detail="series not found")

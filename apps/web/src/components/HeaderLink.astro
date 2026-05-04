@@ -6,8 +6,18 @@ type Props = HTMLAttributes<'a'>;
 
 const { href, class: className, ...props } = Astro.props;
 const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
-const subpath = pathname.match(/[^/]+/g);
-const isActive = href === pathname || href === '/' + (subpath?.[0] || '');
+const normalize = (value: string): string => `/${value.replace(/^\/+|\/+$/g, '')}`;
+const hrefStr = typeof href === 'string' ? href : '';
+const normalizedHref = hrefStr ? normalize(hrefStr) : '';
+const normalizedPath = normalize(pathname);
+const segments = normalizedPath.split('/').filter(Boolean);
+// Active when the path matches exactly, or is a child of the link target. Treat
+// `/{locale}/` (length 1) as the home root and `/{locale}/{section}` as the
+// section root, so deep links keep the parent nav highlighted.
+const sectionRoot = segments.length >= 2 ? `/${segments[0]}/${segments[1]}` : `/${segments[0] ?? ''}`;
+const isActive =
+  normalizedHref === normalizedPath ||
+  normalizedHref === sectionRoot;
 ---
 
 <a

@@ -110,12 +110,19 @@ class SeriesRepository:
         )
         return list(self.db.scalars(stmt))
 
-    def get_by_slug(self, slug: str, include_private: bool = False) -> dict[str, object] | None:
+    def get_by_slug(
+        self,
+        slug: str,
+        include_private: bool = False,
+        locale: PostLocale | None = None,
+    ) -> dict[str, object] | None:
         stmt = (
             select(Series)
             .options(selectinload(Series.series_posts).selectinload(SeriesPost.post))
             .where(Series.slug == slug)
         )
+        if locale is not None:
+            stmt = stmt.where(Series.locale == locale)
         row = self.db.scalar(stmt)
         if row is None:
             return None

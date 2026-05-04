@@ -1,3 +1,9 @@
 ---
-return Astro.redirect("/ko/series/", 301);
+import { resolvePreferredLocale } from "../../lib/i18n/cookie";
+
+const locale = resolvePreferredLocale(
+  Astro.cookies,
+  Astro.request.headers.get("accept-language"),
+);
+return Astro.redirect(`/${locale}/series/`, 302);
 ---

@@ -271,12 +271,14 @@ const articleStructuredData = postSlug
             <div class="space-y-1">
               <a
                 class="block font-medium text-foreground transition-colors hover:text-primary"
-                href={`/series/${seriesContext.seriesSlug}`}
+                href={`/${locale}/series/${seriesContext.seriesSlug}/`}
               >
                 {seriesContext.seriesTitle}
               </a>
               <p class="text-sm text-muted-foreground">
-                {seriesContext.orderIndex} / {seriesContext.totalPosts}
+                {t.blogPost.seriesProgress
+                  .replace("{order}", String(seriesContext.orderIndex))
+                  .replace("{total}", String(seriesContext.totalPosts))}
               </p>
             </div>
             <ol class="mt-4 grid gap-3">

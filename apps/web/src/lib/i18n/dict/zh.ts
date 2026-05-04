@@ -10,13 +10,14 @@ export const zh: Dictionary = {
   },
   empty: {
     noPosts: "还没有文章。", noResults: "没有搜索结果。",
-    noProjects: "还没有项目。", noSeries: "还没有系列。",
+    noProjects: "还没有已登记的项目。", noSeries: "还没有已登记的系列。",
   },
   blogPost: {
     backToBlog: "返回博客", viewAllPosts: "查看所有文章",
     relatedSeries: "本系列其他文章",
     publishedOn: "发布", updatedOn: "更新", minRead: "分钟阅读",
     seriesNavLabel: "系列导航",
+    seriesProgress: "第 {order} 篇，共 {total} 篇",
     prevPost: "上一篇",
     nextPost: "下一篇",
     noExcerpt: "无摘要",
@@ -60,10 +61,22 @@ export const zh: Dictionary = {
     deleteConfirm: "确定要删除吗?",
   },
   home: {
-    intro: "你好，我是 TraceofLight。",
+    intro:
+      "记录游戏开发、图形编程与数据库工程的 TraceofLight 技术归档。",
+    introTop:
+      "我是 TraceofLight，把想象变为现实、为虚拟世界注入生命力的开发者。",
+    introBottom:
+      "向上以对新技术的好奇心探索，向下以对基础知识的持续钻研扎根，不断成长。",
     recentPosts: "最近文章", seeAllPosts: "查看所有文章",
     viewProjects: "查看项目",
     viewBlog: "查看博客",
+    viewAllProjects: "View All Projects",
+    viewAllSeries: "View All Series",
+    viewAllPosts: "View All Posts",
+    seriesArchiveSubtitle:
+      "把 TraceofLight 的各种故事按主题编织起来的书库",
+    projectsArchiveSubtitle:
+      "参与过的项目，以及推进过程中的感受与思考",
     noSeriesYet: "还没有注册的系列。",
     noPostsYet: "还没有公开的文章。",
     pageTitle: "游戏开发 · 图形编程归档",

@@ -10,6 +10,11 @@ import {
   verifyAccessToken,
 } from "./lib/admin-auth";
 import { getSiteUrl } from "./lib/env";
+import {
+  extractLocaleFromPathname,
+  readLocaleCookie,
+  writeLocaleCookie,
+} from "./lib/i18n/cookie";
 import { buildPublicCanonicalUrl } from "./lib/public-url";
 
 const SECURITY_HEADERS = {
@@ -123,6 +128,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (redirectUrl) {
     return context.redirect(redirectUrl.toString(), 301);
+  }
+
+  // Refresh the locale-preference cookie whenever the visitor is on a
+  // localized public page so that root-level redirects and cross-page
+  // navigation can honor it across sessions.
+  const pathLocale = extractLocaleFromPathname(pathname);
+  if (pathLocale && readLocaleCookie(context.cookies) !== pathLocale) {
+    writeLocaleCookie(context.cookies, pathLocale);
   }
 
   if (

@@ -16,7 +16,8 @@ test('base layout uses site-shell body for sticky footer layout', async () => {
   ]);
 
   assert.match(layoutSource, /<body class="site-shell">/);
-  assert.match(layoutSource, /<Header \/>/);
+  // The Header now receives locale + alternate-link props for the language toggle.
+  assert.match(layoutSource, /<Header[\s\S]*locale=\{locale\}[\s\S]*alternates=\{alternates\}[\s\S]*\/>/);
   assert.match(layoutSource, /<Footer visitorSummary=\{visitorSummary\} \/>/);
   assert.doesNotMatch(layoutSource, /transition:persist/);
   assert.match(cssSource, /body\s*\{/);

@@ -18,7 +18,12 @@ test("post card uses reading-time helper instead of title-and-excerpt minute tex
 
   assert.match(source, /formatReadingTimeLabel/);
   assert.match(source, /post\.commentCount \?\? 0/);
-  assert.match(source, /댓글 \{commentCount\}개/);
+  // Comment-count copy now goes through the dictionary (`t.comments.title` +
+  // `t.archiveFilters.commentCount`) so it can be translated per locale.
+  assert.match(
+    source,
+    /\{t\.comments\.title\} \{commentCount\}\{t\.archiveFilters\.commentCount\}/,
+  );
   assert.match(source, /\{readingLabel\}/);
   assert.match(source, /text-xs text-muted-foreground/);
   assert.doesNotMatch(source, /post-card-archive-meta/);

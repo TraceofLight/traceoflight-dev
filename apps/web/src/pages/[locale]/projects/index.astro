@@ -62,6 +62,9 @@ const alternates = buildLocalizedAlternates(
       >
         Projects
       </h1>
+      <p class="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
+        {t.home.projectsArchiveSubtitle}
+      </p>
       {isAdminViewer && (
         <div class="flex w-full justify-center gap-3 sm:justify-end">
           <ProjectOrderPanel client:load projects={projects} />

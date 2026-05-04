@@ -35,17 +35,21 @@ test("locale-prefixed series detail exists", async () => {
 });
 
 const REDIRECT_FIXTURES = [
-  ["src/pages/index.astro", "/ko/"],
-  ["src/pages/projects/index.astro", "/ko/projects/"],
-  ["src/pages/projects/[slug].astro", "/ko/projects/${slug}/"],
-  ["src/pages/series/index.astro", "/ko/series/"],
-  ["src/pages/series/[slug].astro", "/ko/series/${slug}/"],
+  ["src/pages/index.astro", "/${locale}/"],
+  ["src/pages/projects/index.astro", "/${locale}/projects/"],
+  ["src/pages/projects/[slug].astro", "/${locale}/projects/${slug}/"],
+  ["src/pages/series/index.astro", "/${locale}/series/"],
+  ["src/pages/series/[slug].astro", "/${locale}/series/${slug}/"],
 ];
 
 for (const [path, target] of REDIRECT_FIXTURES) {
-  test(`${path} 301-redirects to ${target}`, async () => {
+  test(`${path} dynamically redirects based on locale preference`, async () => {
     const src = await readFile(path, "utf8");
     assert.match(src, /Astro\.redirect\(/);
-    assert.match(src, /301/);
+    // 302 (temporary) — destination depends on cookie / Accept-Language, so 301
+    // (permanent) would be wrong for this content negotiation.
+    assert.match(src, /302/);
+    assert.match(src, /resolvePreferredLocale/);
+    assert.ok(src.includes(target), `expected source to redirect to ${target}`);
   });
 }

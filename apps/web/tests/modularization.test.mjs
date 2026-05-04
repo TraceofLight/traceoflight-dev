@@ -33,9 +33,11 @@ test("blog and project list markup is extracted to shared components", async () 
   await exists("src/components/ProjectCard.astro");
   await exists("src/components/public/BlogArchiveFilters.tsx");
 
-  const homePage = await read("src/pages/index.astro");
+  // The actual page bodies live under `[locale]/`; the unprefixed entry points
+  // are now thin redirect stubs that pick the visitor's preferred locale.
+  const homePage = await read("src/pages/[locale]/index.astro");
   const blogIndex = await read("src/pages/[locale]/blog/index.astro");
-  const projectIndex = await read("src/pages/projects/index.astro");
+  const projectIndex = await read("src/pages/[locale]/projects/index.astro");
 
   assert.match(homePage, /import PostCard from/);
   assert.match(homePage, /import ProjectCard from/);

@@ -13,8 +13,8 @@ const blogIndexPath = new URL("../src/pages/[locale]/blog/index.astro", import.m
 const postCardPath = new URL("../src/components/PostCard.astro", import.meta.url);
 const seriesCardPath = new URL("../src/components/SeriesCard.astro", import.meta.url);
 const homePagePath = new URL("../src/pages/[locale]/index.astro", import.meta.url);
-const seriesIndexPath = new URL("../src/pages/series/index.astro", import.meta.url);
-const seriesDetailPath = new URL("../src/pages/series/[slug].astro", import.meta.url);
+const seriesIndexPath = new URL("../src/pages/[locale]/series/index.astro", import.meta.url);
+const seriesDetailPath = new URL("../src/pages/[locale]/series/[slug].astro", import.meta.url);
 const seriesAdminPanelPath = new URL(
   "../src/components/public/SeriesAdminPanel.tsx",
   import.meta.url,

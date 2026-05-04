@@ -17,6 +17,7 @@ export const en: Dictionary = {
     relatedSeries: "More from this series",
     publishedOn: "Published", updatedOn: "Updated", minRead: "min read",
     seriesNavLabel: "Series navigation",
+    seriesProgress: "Post {order} of {total}",
     prevPost: "Previous post",
     nextPost: "Next post",
     noExcerpt: "No excerpt",
@@ -60,10 +61,22 @@ export const en: Dictionary = {
     deleteConfirm: "Are you sure you want to delete this?",
   },
   home: {
-    intro: "Hello, I'm TraceofLight.",
+    intro:
+      "Technical archive of TraceofLight, documenting game development, graphics programming, and database engineering.",
+    introTop:
+      "I'm TraceofLight, a developer who turns imagination into reality and breathes life into virtual worlds.",
+    introBottom:
+      "Growing through curiosity for new technologies up top and steady exploration of foundational knowledge underneath.",
     recentPosts: "Recent posts", seeAllPosts: "See all posts",
     viewProjects: "View Projects",
     viewBlog: "View Blog",
+    viewAllProjects: "View All Projects",
+    viewAllSeries: "View All Series",
+    viewAllPosts: "View All Posts",
+    seriesArchiveSubtitle:
+      "An archive of TraceofLight's varied stories woven together by theme",
+    projectsArchiveSubtitle:
+      "Projects I've worked on, with the thoughts and questions they raised along the way",
     noSeriesYet: "No series registered yet.",
     noPostsYet: "No public posts yet.",
     pageTitle: "Game Dev · Graphics Programming Archive",

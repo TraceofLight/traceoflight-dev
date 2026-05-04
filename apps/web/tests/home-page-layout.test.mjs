@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const homePagePath = new URL("../src/pages/[locale]/index.astro", import.meta.url);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
+const koDictPath = new URL("../src/lib/i18n/dict/ko.ts", import.meta.url);
 
 test("home page uses tailwind sections while keeping the curated resume content", async () => {
   const source = await readFile(homePagePath, "utf8");
@@ -94,6 +95,16 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/blog\/`\}>/);
   assert.match(source, /<a class=\{surfaceActionClass\} href=\{`\/\$\{locale\}\/projects\/`\}>/);
   assert.match(source, /<a class=\{surfaceActionClass\} href=\{`\/\$\{locale\}\/series\/`\}>/);
+  // The hero intro must keep the two-paragraph copy (top + bottom). Don't
+  // collapse it back into a single dictionary entry — that's the regression
+  // we're guarding against.
+  assert.match(source, /\{t\.home\.introTop\}/);
+  assert.match(source, /\{t\.home\.introBottom\}/);
+  // Section "View All ..." CTAs use dedicated dictionary keys distinct from the
+  // hero CTA copy ("프로젝트 보기", "블로그 보기").
+  assert.match(source, /\{t\.home\.viewAllProjects\}/);
+  assert.match(source, /\{t\.home\.viewAllSeries\}/);
+  assert.match(source, /\{t\.home\.viewAllPosts\}/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_CLASS\}>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_STRONG_CLASS\}>/);
   assert.match(source, /const dbPosts = await listPublishedDbPostSummaries\(3,\s*\{/);
@@ -129,33 +140,21 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.ok(stackIndex < seriesIndex);
   assert.ok(seriesIndex < postIndex);
 
-  const education2026Index = source.indexOf("2026.02.");
-  const education2023Index = source.indexOf("2023.08.");
-  const education2022Index = source.indexOf("2022.08.");
-  assert.ok(education2026Index < education2023Index);
-  assert.ok(education2023Index < education2022Index);
+  // Resume copy now lives in the dictionary instead of being inlined in the
+  // page. The sub-test below validates the same date/section ordering against
+  // the canonical Korean source.
 
-  const leftEducationIndex = source.indexOf('title: "Education"');
-  const leftLicenseIndex = source.indexOf('title: "License"');
-  const leftMilServiceIndex = source.indexOf('title: "Military Service"');
-  assert.ok(leftEducationIndex < leftLicenseIndex);
-  assert.ok(leftLicenseIndex < leftMilServiceIndex);
-
-  const rightCareerIndex = source.indexOf('title: "Career"');
-  const rightExperienceIndex = source.indexOf('title: "Experience"');
-  const rightAwardIndex = source.indexOf('title: "Award"');
-  assert.ok(rightCareerIndex < rightExperienceIndex);
-  assert.ok(rightExperienceIndex < rightAwardIndex);
-
-  assert.match(source, /title:\s*"Web"/);
+  // The page still wires the Web/Language/SCM/GameDev tech-stack groups, but
+  // the human-readable headings now come from the dictionary (`techStackTitles`).
+  assert.match(source, /title:\s*t\.home\.techStackTitles\.web/);
+  assert.match(source, /title:\s*t\.home\.techStackTitles\.language/);
+  assert.match(source, /title:\s*t\.home\.techStackTitles\.gameDev/);
+  assert.match(source, /title:\s*t\.home\.techStackTitles\.scm/);
   assert.doesNotMatch(source, /divider:\s*true/);
   assert.doesNotMatch(source, /title:\s*"Backend"/);
   assert.doesNotMatch(source, /title:\s*"Frontend"/);
-  assert.match(source, /title:\s*"Language"/);
   assert.match(source, /label:\s*"HLSL",\s*icon:\s*"\/icons\/tech\/hlsl\.svg"/);
   assert.doesNotMatch(source, /label:\s*"HLSL",\s*fallback:\s*"HLSL"/);
-  assert.match(source, /period:\s*"2023\.10\. ~ 2024\.11\."/);
-  assert.match(source, /main:\s*"Cloud-Native 차세대 DB 개발 프로젝트 참여"/);
   assert.match(
     source,
     /const resumeRowClass =\s*"grid gap-1 sm:grid-cols-\[136px_minmax\(0,1fr\)\] sm:items-start sm:gap-3";/,
@@ -163,9 +162,36 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /const resumePeriodClass = "text-sm leading-7 font-medium text-foreground";/);
   assert.match(source, /const resumeContentClass = "space-y-0\.5";/);
   assert.match(source, /const resumeTextClass = "text-sm leading-7 text-muted-foreground";/);
+});
 
-  assert.match(source, /2021\.11\./);
-  assert.match(source, /sub:\s*"[^"]*\\n: [^"]*"/);
+test("home resume content in the Korean dictionary preserves chronological ordering and key entries", async () => {
+  const dict = await readFile(koDictPath, "utf8");
+
+  // Section title ordering on the left column: Education → License → Military.
+  const educationTitleIndex = dict.indexOf('education: "학력"');
+  const licenseTitleIndex = dict.indexOf('license: "자격"');
+  const militaryTitleIndex = dict.indexOf('military: "병역"');
+  assert.ok(educationTitleIndex >= 0 && educationTitleIndex < licenseTitleIndex);
+  assert.ok(licenseTitleIndex < militaryTitleIndex);
+
+  // Section title ordering on the right column: Career → Experience → Award.
+  const careerTitleIndex = dict.indexOf('career: "경력"');
+  const experienceTitleIndex = dict.indexOf('experience: "경험"');
+  const awardTitleIndex = dict.indexOf('award: "수상"');
+  assert.ok(careerTitleIndex >= 0 && careerTitleIndex < experienceTitleIndex);
+  assert.ok(experienceTitleIndex < awardTitleIndex);
+
+  // Education entries are listed newest-first.
+  const education2026Index = dict.indexOf("2026.02.");
+  const education2023Index = dict.indexOf("2023.08.");
+  const education2022Index = dict.indexOf("2022.08.");
+  assert.ok(education2026Index >= 0 && education2026Index < education2023Index);
+  assert.ok(education2023Index < education2022Index);
+
+  // Career and experience entries are still present.
+  assert.match(dict, /period:\s*"2023\.10\. ~ 2024\.11\."/);
+  assert.match(dict, /main:\s*"Cloud-Native 차세대 DB 개발 프로젝트 참여"/);
+  assert.match(dict, /2021\.11\./);
 });
 
 test("home page no longer depends on dedicated home css hooks", async () => {
