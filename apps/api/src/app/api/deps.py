@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from fastapi import Depends
+from redis import Redis as SyncRedis
 from redis.asyncio import Redis
 from sqlalchemy.orm import Session
 
@@ -29,8 +30,30 @@ from app.services.resume_service import (
 from app.services.site_profile_service import SiteProfileService
 from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
-from app.services.translation_provider import NoopTranslationProvider
+from app.services.translation_queue import TranslationQueue
 from app.storage.minio_client import MinioStorageClient
+
+
+_sync_redis_client: SyncRedis | None = None
+_translation_queue: TranslationQueue | None = None
+
+
+def _get_translation_queue() -> TranslationQueue | None:
+    global _sync_redis_client, _translation_queue
+    if _translation_queue is not None:
+        return _translation_queue
+    try:
+        _sync_redis_client = SyncRedis.from_url(settings.redis_url)
+        # Smoke ping; if Redis isn't reachable, fall back to no queue rather
+        # than failing every post-create request.
+        _sync_redis_client.ping()
+    except Exception:
+        return None
+    _translation_queue = TranslationQueue(
+        connection=_sync_redis_client,
+        name=settings.redis_queue_name,
+    )
+    return _translation_queue
 
 
 def get_db(db: Session = Depends(get_db_session)) -> Session:
@@ -40,7 +63,7 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
 def get_post_service(db: Session = Depends(get_db)) -> PostService:
     return PostService(
         repo=PostRepository(db),
-        translation_service=PostTranslationService(provider=NoopTranslationProvider()),
+        translation_service=PostTranslationService(queue=_get_translation_queue()),
     )
 
 

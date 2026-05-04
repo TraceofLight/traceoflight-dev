@@ -41,6 +41,8 @@ class Settings(BaseSettings):
         alias='ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS',
     )
     redis_url: str = Field(default='redis://localhost:6379/0', alias='REDIS_URL')
+    redis_queue_name: str = Field(default='translations', alias='REDIS_QUEUE_NAME')
+    deepl_api_key: str | None = Field(default=None, alias='DEEPL_API_KEY')
     draft_retention_days: int = Field(default=7, alias='DRAFT_RETENTION_DAYS')
     media_orphan_retention_days: int = Field(default=7, alias='MEDIA_ORPHAN_RETENTION_DAYS')
     draft_cleanup_start_hour: int = Field(default=0, alias='DRAFT_CLEANUP_START_HOUR')

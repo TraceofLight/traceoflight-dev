@@ -20,7 +20,12 @@ class PostService:
     def _sync_translations(self, post) -> None:  # type: ignore[no-untyped-def]
         if self.translation_service is None:
             return
-        locale = str(getattr(post, "locale", "") or "").strip().lower()
+        locale_obj = getattr(post, "locale", None)
+        # PostLocale is a (str, enum.Enum) mixin; on Python 3.12, str(enum_member)
+        # returns "PostLocale.KO" rather than the value "ko". Use .value when
+        # present so the comparison works for both ORM rows and string fixtures.
+        locale_raw = getattr(locale_obj, "value", locale_obj)
+        locale = str(locale_raw or "").strip().lower()
         source_post_id = getattr(post, "source_post_id", None)
         if locale != "ko" or source_post_id is not None:
             return

@@ -104,3 +104,28 @@ def test_post_service_skips_translation_sync_for_non_source_posts() -> None:
     service.update_post_by_slug(slug="post-a", payload=object())  # type: ignore[arg-type]
 
     assert translation_service.calls == []
+
+
+def test_post_service_calls_translation_sync_when_locale_is_str_enum() -> None:
+    """Regression: ORM rows expose post.locale as a PostLocale enum, not
+    a plain string. On Python 3.12 str(PostLocale.KO) returns "PostLocale.KO",
+    not "ko"; without the .value-aware comparison, _sync_translations would
+    silently skip every real save. (Caught during live end-to-end verification.)"""
+    from app.models.post import PostLocale
+
+    @dataclass
+    class _OrmPostStub:
+        slug: str
+        series_title: str | None = None
+        published_at: datetime | None = None
+        locale: PostLocale = PostLocale.KO
+        source_post_id: uuid.UUID | None = None
+
+    repo = _RepoStub()
+    repo.created = _OrmPostStub(slug="enum-source", published_at=datetime.now(timezone.utc))
+    translation_service = _TranslationServiceStub()
+    service = PostService(repo=repo, translation_service=translation_service)
+
+    service.create_post(payload=object())  # type: ignore[arg-type]
+
+    assert translation_service.calls == ["enum-source"]

@@ -7,6 +7,15 @@ portfolio, personal blog, misc
 - `apps/web`: Astro frontend (landing, blog, projects)
 - `apps/api`: FastAPI backend (posts + media metadata API)
 
+## Translations
+
+The site is multi-locale (ko/en/ja/zh). Korean posts are the source of truth;
+en/ja/zh siblings are auto-generated via DeepL by a background `rq` worker.
+Set `DEEPL_API_KEY` in `apps/api/.env.api` to enable translation; without a
+key, the API still serves Korean content unchanged.
+
+Design: `docs/plans/site-translations-design.md`.
+
 ## Infra
 
 - `infra/docker/api`: `api + postgres + minio` stack for single-instance deployment

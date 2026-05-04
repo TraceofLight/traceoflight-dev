@@ -1,115 +1,95 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import uuid
+from dataclasses import dataclass
+from typing import Any
 
-from app.services.post_translation_service import PostTranslationService
-from app.services.translation_provider import NoopTranslationProvider
+from app.services.post_translation_service import (
+    PostTranslationService,
+    TARGET_TRANSLATION_LOCALES,
+)
 
 
 @dataclass
-class _PostStub:
-    slug: str
-    title: str
-    excerpt: str | None
-    body_markdown: str
+class _Post:
+    id: Any
     locale: str
-    source_post_id: uuid.UUID | None = None
+    source_post_id: Any | None = None
+    title: str = "t"
+    excerpt: str | None = None
+    body_markdown: str = "b"
 
 
-class _ProviderStub:
+class _StubQueue:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, str]] = []
-        self.bodies: list[str] = []
+        self.calls: list[tuple[Any, str]] = []
 
-    def translate_post(self, post, target_locale: str):  # type: ignore[no-untyped-def]
-        self.calls.append((post.slug, target_locale))
-        self.bodies.append(post.body_markdown)
-        return {"slug": f"{post.slug}-{target_locale}", "locale": target_locale}
+    def enqueue_translation_job(self, *, source_post_id, target_locale):
+        self.calls.append((source_post_id, target_locale))
+        return ("enqueued", source_post_id, target_locale)
 
 
-def test_post_translation_service_targets_en_ja_zh_for_korean_source_posts() -> None:
-    provider = _ProviderStub()
-    service = PostTranslationService(provider=provider)
+def test_sync_source_post_enqueues_one_job_per_target_locale() -> None:
+    queue = _StubQueue()
+    svc = PostTranslationService(queue=queue)
+    post = _Post(id=uuid.uuid4(), locale="ko")
 
-    results = service.sync_source_post(
-        _PostStub(
-            slug="hello-world",
-            title="Hello World",
-            excerpt="excerpt",
-            body_markdown="body",
-            locale="ko",
-        )
-    )
+    result = svc.sync_source_post(post)
 
-    assert provider.calls == [
-        ("hello-world", "en"),
-        ("hello-world", "ja"),
-        ("hello-world", "zh"),
-    ]
-    assert len(results) == 3
+    assert len(result) == len(TARGET_TRANSLATION_LOCALES)
+    assert [target for (_id, target) in queue.calls] == list(TARGET_TRANSLATION_LOCALES)
+    for source_id, _target in queue.calls:
+        assert source_id == post.id
 
 
-def test_post_translation_service_masks_body_markdown_before_provider_call() -> None:
-    provider = _ProviderStub()
-    service = PostTranslationService(provider=provider)
+def test_sync_source_post_skips_non_korean_locale() -> None:
+    queue = _StubQueue()
+    svc = PostTranslationService(queue=queue)
+    post = _Post(id=uuid.uuid4(), locale="en")
 
-    service.sync_source_post(
-        _PostStub(
-            slug="hello-world",
-            title="Hello World",
-            excerpt="excerpt",
-            body_markdown='본문 [링크](https://example.com) 와 `const value = 1`',
-            locale="ko",
-        )
-    )
+    result = svc.sync_source_post(post)
 
-    assert provider.bodies
-    assert "https://example.com" not in provider.bodies[0]
-    assert "const value = 1" not in provider.bodies[0]
-    assert "@@TLP" in provider.bodies[0]
+    assert result == []
+    assert queue.calls == []
 
 
-def test_post_translation_service_skips_non_source_posts() -> None:
-    provider = _ProviderStub()
-    service = PostTranslationService(provider=provider)
+def test_sync_source_post_skips_translated_variants() -> None:
+    queue = _StubQueue()
+    svc = PostTranslationService(queue=queue)
+    post = _Post(id=uuid.uuid4(), locale="ko", source_post_id=uuid.uuid4())
 
-    translated_results = service.sync_source_post(
-        _PostStub(
-            slug="hello-world-en",
-            title="Hello World",
-            excerpt="excerpt",
-            body_markdown="body",
-            locale="en",
-        )
-    )
-    child_results = service.sync_source_post(
-        _PostStub(
-            slug="hello-world-ja",
-            title="Hello World",
-            excerpt="excerpt",
-            body_markdown="body",
-            locale="ko",
-            source_post_id=uuid.uuid4(),
-        )
-    )
+    result = svc.sync_source_post(post)
 
-    assert translated_results == []
-    assert child_results == []
-    assert provider.calls == []
+    assert result == []
+    assert queue.calls == []
 
 
-def test_post_translation_service_noop_provider_returns_no_translations() -> None:
-    service = PostTranslationService(provider=NoopTranslationProvider())
+def test_sync_source_post_with_no_queue_is_noop() -> None:
+    svc = PostTranslationService(queue=None)
+    post = _Post(id=uuid.uuid4(), locale="ko")
+    result = svc.sync_source_post(post)
+    assert result == []
 
-    results = service.sync_source_post(
-        _PostStub(
-            slug="hello-world",
-            title="Hello World",
-            excerpt="excerpt",
-            body_markdown="body",
-            locale="ko",
-        )
-    )
 
-    assert results == []
+def test_sync_source_post_handles_str_enum_locale() -> None:
+    """Regression: ORM rows expose post.locale as a PostLocale enum, and
+    on Python 3.12 str(PostLocale.KO) returns "PostLocale.KO" — not "ko".
+    The service must read .value to compare correctly. Without this fix,
+    every real ORM-driven save would silently skip enqueueing translation
+    jobs (caught during live end-to-end verification, not unit tests)."""
+    from app.models.post import PostLocale
+
+    @dataclass
+    class _OrmPost:
+        id: Any
+        locale: PostLocale
+        source_post_id: Any | None = None
+
+    queue = _StubQueue()
+    svc = PostTranslationService(queue=queue)
+    post = _OrmPost(id=uuid.uuid4(), locale=PostLocale.KO)
+
+    result = svc.sync_source_post(post)
+
+    assert len(result) == len(TARGET_TRANSLATION_LOCALES)
+    assert [target for (_id, target) in queue.calls] == list(TARGET_TRANSLATION_LOCALES)

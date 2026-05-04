@@ -79,14 +79,14 @@ pipeline {
       // above succeeds, so a build failure leaves the old container in place — no outage
       // window from a half-applied deploy.
       steps {
-        sh 'docker rm -f traceoflight-api || true'
+        sh 'docker rm -f traceoflight-api traceoflight-translation-worker || true'
       }
     }
 
     stage('Deploy Backend') {
       steps {
         dir('infra/docker/api') {
-          sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-build --no-deps api'
+          sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-build --no-deps api translation-worker'
         }
       }
     }

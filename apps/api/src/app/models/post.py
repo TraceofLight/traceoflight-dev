@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -64,8 +64,11 @@ def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
 
 class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = 'posts'
+    __table_args__ = (
+        UniqueConstraint("slug", "locale", name="uq_posts_slug_locale"),
+    )
 
-    slug: Mapped[str] = mapped_column(String(160), unique=True, index=True, nullable=False)
+    slug: Mapped[str] = mapped_column(String(160), index=True, nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     excerpt: Mapped[str | None] = mapped_column(String(400), nullable=True)
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
@@ -104,6 +107,10 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Enum(PostTranslationSourceKind, name="post_translation_source_kind", values_callable=_enum_values),
         nullable=False,
         default=PostTranslationSourceKind.MANUAL,
+    )
+    translated_from_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
     )
     content_kind: Mapped[PostContentKind] = mapped_column(
         Enum(PostContentKind, name='post_content_kind', values_callable=_enum_values),

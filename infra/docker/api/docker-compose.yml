@@ -5,6 +5,7 @@ services:
     build:
       context: ../../../apps/api
       dockerfile: Dockerfile
+    image: traceoflight-api-stack-api:latest
     container_name: traceoflight-api
     restart: unless-stopped
     env_file:
@@ -26,6 +27,31 @@ services:
       - "${API_PORT}"
     networks:
       - edge
+      - api_internal
+
+  translation-worker:
+    image: traceoflight-api-stack-api:latest
+    container_name: traceoflight-translation-worker
+    restart: unless-stopped
+    env_file:
+      - ../../../apps/api/.env.api
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      REDIS_URL: redis://redis:${REDIS_PORT}/0
+    entrypoint: []
+    command:
+      - rq
+      - worker
+      - translations
+      - --url
+      - redis://redis:${REDIS_PORT}/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
       - api_internal
 
   postgres:

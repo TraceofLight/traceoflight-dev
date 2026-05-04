@@ -159,3 +159,22 @@ Implement in slices:
 5. Add language toggle UI and sitemap alternates.
 
 This ordering keeps the foundation stable before any provider-specific translation work is introduced.
+
+## Provider integration (delivered)
+
+The translation seam from the core rollout is now backed by:
+
+- `DeeplTranslationProvider` (deepl SDK, ko → en/ja/zh)
+- `TranslationQueue` (rq on Redis, queue name `translations`)
+- `translate_post_to_locale` worker job (one row per target locale)
+- sha256 `translated_from_hash` on translated rows for change detection
+
+Source-post create/update enqueues three jobs (en, ja, zh). The worker
+skips the DeepL call when the source's translatable-field hash matches the
+sibling's stored hash, but always re-syncs non-translated metadata
+(cover image, status, published_at, series_title).
+
+Failure surface: provider errors mark the corresponding sibling row's
+translation_status='failed' and re-raise so rq retains the job in its
+failed registry. The next source-save retries automatically because hash
+mismatch and `failed` status both bypass the skip path.
