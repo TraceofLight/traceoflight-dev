@@ -78,6 +78,29 @@ def test_post_strategy_upsert_creates_sibling_with_translation(session) -> None:
     assert sibling.translation_source_kind == PostTranslationSourceKind.MACHINE
 
 
+def test_post_strategy_upsert_shares_tags_with_source(session) -> None:
+    """Tag rows are locale-agnostic — siblings must reference the same Tag
+    rows as the KO source so tag chips render on every translated page."""
+    from app.models.tag import Tag
+    p = _korean_post(session, slug="ko-tag-post")
+    tag_a = Tag(slug="boj", label="boj")
+    tag_b = Tag(slug="ps", label="ps")
+    session.add_all([tag_a, tag_b])
+    p.tags = [tag_a, tag_b]
+    session.commit()
+    strategy = PostTranslationStrategy()
+    sibling = strategy.upsert_sibling(
+        session, source=p, sibling=None, target_locale=PostLocale.JA,
+        translated_fields={"title": "T", "excerpt": None, "body_markdown": "B"},
+        source_hash="abc",
+    )
+    session.commit()
+    sibling_tag_slugs = sorted(t.slug for t in sibling.tags)
+    assert sibling_tag_slugs == ["boj", "ps"]
+    # Crucially the sibling must share the same Tag rows (no new row inserted).
+    assert {t.id for t in sibling.tags} == {tag_a.id, tag_b.id}
+
+
 def test_post_strategy_upsert_replicates_project_profile(session) -> None:
     """When the source has a project_profile, the sibling must mirror it."""
     from app.models.project_profile import ProjectProfile
@@ -99,6 +122,44 @@ def test_post_strategy_upsert_replicates_project_profile(session) -> None:
     assert sibling.project_profile is not None
     assert sibling.project_profile.period_label == "2026.05"
     assert sibling.project_profile.role_summary == "dev"
+    # Regression guard: the sibling profile must point back at the sibling's own
+    # post id. Earlier the strategy passed sibling.id verbatim while the sibling
+    # was still pre-flush (id=None), causing a post_id NOT NULL violation in
+    # production where autoflush did not happen to fire in time.
+    assert sibling.project_profile.post_id == sibling.id
+
+
+def test_post_strategy_upsert_handles_pre_flush_sibling(session) -> None:
+    """A KO source whose translation has never been written must still produce
+    a sibling profile whose post_id matches the freshly inserted sibling row,
+    even when no incidental autoflush happens between Post(...) and
+    ProjectProfile(...)."""
+    from app.models.project_profile import ProjectProfile
+
+    p = _korean_post(session, slug="ko-pre-flush")
+    p.content_kind = PostContentKind.PROJECT
+    profile = ProjectProfile(
+        post_id=p.id, period_label="2026.06", role_summary="role",
+        project_intro="intro", card_image_url="cover.png",
+        highlights_json=["a"], resource_links_json=[],
+    )
+    session.add(profile)
+    session.commit()
+    session.expire_all()  # drop autoflush-side cached state
+    p_reloaded = session.get(type(p), p.id)
+    assert p_reloaded is not None
+
+    # autoflush off so sibling.id stays None until commit ordering kicks in
+    with session.no_autoflush:
+        sibling = PostTranslationStrategy().upsert_sibling(
+            session, source=p_reloaded, sibling=None, target_locale=PostLocale.EN,
+            translated_fields={"title": "T", "excerpt": None, "body_markdown": "B"},
+            source_hash="hash-pre-flush",
+        )
+    session.commit()
+    assert sibling.id is not None
+    assert sibling.project_profile is not None
+    assert sibling.project_profile.post_id == sibling.id
 
 
 def test_post_strategy_translates_project_profile_fields(session, monkeypatch) -> None:

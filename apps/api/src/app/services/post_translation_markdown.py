@@ -20,6 +20,12 @@ _BARE_URL_PATTERN = re.compile(r"(?P<url>https?://[^\s)>\]]+)")
 # trailing single space). Masked per line so DeepL's HTML/XML tag handling
 # can't drop or relocate the bare `>` characters during translation.
 _BLOCKQUOTE_LINE_PATTERN = re.compile(r"(?m)^(?P<indent>[ ]{0,3})(?P<markers>(?:>[ \t]?)+)")
+# Bold markers (`**...**`). DeepL has been observed to silently drop the
+# asterisks on some target locales, leaving the inner text unbolded. Mask
+# every `**` run so the marker survives translation untouched. Code-block and
+# inline-code regions are masked earlier in the pipeline, so `**` inside code
+# is not affected.
+_BOLD_MARKER_PATTERN = re.compile(r"\*\*")
 
 
 def _placeholder(index: int) -> str:
@@ -54,6 +60,7 @@ def mask_markdown_translation_segments(markdown: str) -> MaskedMarkdown:
     )
     text = _replace_pattern(text, _BARE_URL_PATTERN, replacements)
     text = _replace_pattern(text, _BLOCKQUOTE_LINE_PATTERN, replacements)
+    text = _replace_pattern(text, _BOLD_MARKER_PATTERN, replacements)
     return MaskedMarkdown(text=text, replacements=replacements)
 
 

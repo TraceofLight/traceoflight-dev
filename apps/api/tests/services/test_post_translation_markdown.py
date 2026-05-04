@@ -107,3 +107,31 @@ def test_mask_does_not_touch_inline_greater_than() -> None:
     masked = mask_markdown_translation_segments(markdown)
     assert masked.text == markdown
     assert masked.replacements == {}
+
+
+def test_mask_protects_bold_markers() -> None:
+    """`**bold**` runs in prose must survive translation. DeepL has dropped
+    the asterisks for some target locales, so we replace each `**` with an
+    ignored placeholder and unmask afterwards."""
+    markdown = "**컨테이너 구동 원리**\n\n일반 문단"
+    masked = mask_markdown_translation_segments(markdown)
+    # The literal `**` must not survive into the body the provider sees.
+    assert "**" not in masked.text
+    # Inner text must remain visible for translation.
+    assert "컨테이너 구동 원리" in masked.text
+
+
+def test_mask_unmask_roundtrip_preserves_bold_markers() -> None:
+    original = "앞 문장 **강조 표시** 그리고 뒤 문장.\n\n**제목 같은 문구**"
+    masked = mask_markdown_translation_segments(original)
+    restored = unmask_markdown_translation_segments(masked.text, masked.replacements)
+    assert restored == original
+
+
+def test_mask_does_not_touch_bold_inside_code() -> None:
+    """`**` inside fenced or inline code regions must be left alone — those
+    regions are already masked earlier in the pipeline."""
+    markdown = "Use `**not bold**` literal\n\n```\n**still code**\n```"
+    masked = mask_markdown_translation_segments(markdown)
+    restored = unmask_markdown_translation_segments(masked.text, masked.replacements)
+    assert restored == markdown

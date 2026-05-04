@@ -618,7 +618,7 @@ const alternates = buildLocalizedAlternates(
       <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {
           projects.map((project) => (
-            <ProjectCard project={project} stackLimit={3} />
+            <ProjectCard project={project} stackLimit={3} locale={locale} />
           ))
         }
       </div>
@@ -645,7 +645,7 @@ const alternates = buildLocalizedAlternates(
         featuredSeriesCards.length > 0 ? (
           <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {featuredSeriesCards.map((card) => (
-              <SeriesCard series={card} />
+              <SeriesCard series={card} locale={locale} />
             ))}
           </div>
         ) : (
@@ -677,7 +677,7 @@ const alternates = buildLocalizedAlternates(
         posts.length > 0 ? (
           <div class="mt-6 grid gap-6 lg:grid-cols-3">
             {posts.map((post) => (
-              <PostCard post={post} />
+              <PostCard post={post} locale={locale} />
             ))}
           </div>
         ) : (

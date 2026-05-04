@@ -103,6 +103,11 @@ class PostTranslationStrategy:
             sibling.translation_status = PostTranslationStatus.SYNCED
         elif sibling.translated_from_hash != source_hash:
             sibling.translated_from_hash = source_hash
+        # Tags are locale-agnostic (Tag has no locale column) — siblings share
+        # the same Tag rows as the source so tag chips render on every locale.
+        # Assigned after title/required fields to avoid an autoflush firing on
+        # an incomplete sibling row.
+        sibling.tags = list(source.tags)
         # Replicate project_profile when present (translating text fields for non-KO locales)
         self._sync_project_profile(db, source=source, sibling=sibling, target_locale=target_locale)
         return sibling
@@ -117,7 +122,10 @@ class PostTranslationStrategy:
         from app.models.project_profile import ProjectProfile
         target_profile = getattr(sibling, "project_profile", None)
         if target_profile is None:
-            target_profile = ProjectProfile(post_id=sibling.id)
+            # Use the ORM relationship so SQLAlchemy fills post_id from the
+            # sibling's pk when it INSERTs — referencing sibling.id directly
+            # is None for fresh siblings that have not been flushed yet.
+            target_profile = ProjectProfile(post=sibling)
             db.add(target_profile)
 
         # Always copy non-translated metadata

@@ -55,10 +55,11 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /010-\d{3,4}-\d{4}/);
   assert.match(source, /traceoflight-profile\.png/);
   // SeriesCard accepts default postCard dimensions, so the home page may pass
-  // them explicitly or rely on the component default.
+  // them explicitly or rely on the component default. The card must also
+  // receive locale=&#123;locale&#125; so it builds locale-prefixed hrefs.
   assert.match(
     source,
-    /<SeriesCard\s+series=\{card\}(?:\s+imageWidth=\{(?:960|IMAGE_SIZES\.postCard\.width)\}\s+imageHeight=\{(?:640|IMAGE_SIZES\.postCard\.height)\})?\s*\/>/,
+    /<SeriesCard[\s\S]*?series=\{card\}[\s\S]*?locale=\{locale\}[\s\S]*?\/>/,
   );
   assert.match(source, /import \{ listPublishedDbPostSummaries \} from "\.\.\/\.\.\/lib\/blog-db";/);
   assert.doesNotMatch(source, /import \{ listPublishedDbPosts \} from "\.\.\/\.\.\/lib\/blog-db";/);
@@ -100,6 +101,10 @@ test("home page uses tailwind sections while keeping the curated resume content"
   // we're guarding against.
   assert.match(source, /\{t\.home\.introTop\}/);
   assert.match(source, /\{t\.home\.introBottom\}/);
+  // Each card must receive locale={locale} so its href stays locale-prefixed
+  // and clicking from the home page doesn't bounce through the cookie redirect.
+  assert.match(source, /<ProjectCard[\s\S]*?locale=\{locale\}[\s\S]*?\/>/);
+  assert.match(source, /<PostCard[\s\S]*?locale=\{locale\}[\s\S]*?\/>/);
   // Section "View All ..." CTAs use dedicated dictionary keys distinct from the
   // hero CTA copy ("프로젝트 보기", "블로그 보기").
   assert.match(source, /\{t\.home\.viewAllProjects\}/);
