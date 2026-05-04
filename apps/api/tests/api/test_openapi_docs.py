@@ -68,10 +68,14 @@ def test_post_and_media_component_schemas_have_field_descriptions() -> None:
     assert 'example' in post_create['title']
     assert post_create['tags']['description'] == 'Tag slug list assigned to this post.'
     assert post_create['series_title']['description'] == 'Optional series title selected in writer publish settings.'
+    assert post_create['locale']['description'] == 'Locale code for this stored post variant.'
     assert post_read['tags']['description'] == 'Normalized tag objects assigned to this post.'
     assert post_read['comment_count']['description'] == 'Total comments linked to this post.'
+    assert post_read['locale']['description'] == 'Locale code for this stored post variant.'
+    assert post_read['translation_group_id']['description'] == 'Shared translation group identifier for sibling locale variants.'
     assert 'body_markdown' not in post_summary
     assert post_summary['comment_count']['description'] == 'Total comments linked to this post.'
+    assert post_summary['locale']['description'] == 'Locale code for this stored post variant.'
     assert media_upload['filename']['description'] == 'Original file name from client.'
     assert 'example' in media_upload['mime_type']
 

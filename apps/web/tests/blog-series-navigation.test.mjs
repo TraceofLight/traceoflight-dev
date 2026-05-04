@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 const blogPostLayoutPath = new URL("../src/layouts/BlogPost.astro", import.meta.url);
 const dbAdapterPath = new URL("../src/lib/blog-db.ts", import.meta.url);
-const blogSlugPagePath = new URL("../src/pages/blog/[...slug].astro", import.meta.url);
+const blogSlugPagePath = new URL("../src/pages/[locale]/blog/[...slug].astro", import.meta.url);
 
 test("blog db adapter exposes series context projection", async () => {
   const source = await readFile(dbAdapterPath, "utf8");

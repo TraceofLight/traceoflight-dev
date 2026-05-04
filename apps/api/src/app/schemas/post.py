@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.post import (
     PostContentKind,
+    PostLocale,
     PostStatus,
     PostTopMediaKind,
     PostVisibility,
@@ -109,6 +110,19 @@ class PostCreate(BaseModel):
         description='Publication timestamp in UTC. Null for unpublished drafts.',
         json_schema_extra={'example': '2026-03-05T09:00:00Z'},
     )
+    locale: PostLocale = Field(
+        default=PostLocale.KO,
+        description="Locale code for this stored post variant.",
+        json_schema_extra={"example": "ko"},
+    )
+    translation_group_id: uuid.UUID | None = Field(
+        default=None,
+        description="Shared translation group identifier for sibling locale variants.",
+    )
+    source_post_id: uuid.UUID | None = Field(
+        default=None,
+        description="Source post identifier when this row is a translated variant.",
+    )
     tags: list[str] = Field(
         default_factory=list,
         description='Tag slug list assigned to this post.',
@@ -158,6 +172,18 @@ class _PostBase(BaseModel):
 
 class PostRead(_PostBase):
     body_markdown: str
+    locale: PostLocale = Field(
+        default=PostLocale.KO,
+        description="Locale code for this stored post variant.",
+    )
+    translation_group_id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        description="Shared translation group identifier for sibling locale variants.",
+    )
+    source_post_id: uuid.UUID | None = Field(
+        default=None,
+        description="Source post identifier when this row is a translated variant.",
+    )
     series_context: PostSeriesContext | None = Field(
         default=None,
         description='Optional in-series projection used by post detail navigation.',
@@ -169,6 +195,10 @@ class PostRead(_PostBase):
 
 
 class PostSummaryRead(_PostBase):
+    locale: PostLocale = Field(
+        default=PostLocale.KO,
+        description="Locale code for this stored post variant.",
+    )
     reading_label: str = Field(
         description='Estimated reading-time label derived from markdown content.',
     )

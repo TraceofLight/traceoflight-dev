@@ -70,6 +70,7 @@ class _PostStub:
     top_media_youtube_url: str | None
     top_media_video_url: str | None
     series_title: str | None
+    locale: str
     content_kind: str
     status: str
     visibility: str
@@ -94,6 +95,7 @@ def _make_post_stub(**overrides) -> _PostStub:  # type: ignore[no-untyped-def]
         "top_media_youtube_url": None,
         "top_media_video_url": None,
         "series_title": None,
+        "locale": "ko",
         "content_kind": "blog",
         "status": "published",
         "visibility": "public",
@@ -121,6 +123,7 @@ def test_post_serializer_to_summary_includes_all_expected_keys() -> None:
         "top_media_youtube_url",
         "top_media_video_url",
         "series_title",
+        "locale",
         "content_kind",
         "status",
         "visibility",

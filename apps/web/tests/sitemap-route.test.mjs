@@ -139,8 +139,21 @@ test("runtime sitemap includes public detail urls from db-backed content", async
     assert.equal(response.status, 200);
     assert.equal(response.contentType, "application/xml; charset=utf-8");
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/<\/loc>/);
-    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/blog<\/loc>/);
-    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/blog\/seo-check<\/loc>/);
+    // blog index is emitted for every supported locale (the index pages
+    // exist regardless of how many translated post rows have been written)
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/blog\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/blog\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/blog\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/blog\/<\/loc>/);
+    // a blog post is emitted only at its actual stored locale; we don't
+    // advertise translated URLs that don't exist as real DB rows yet
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/blog\/seo-check\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/blog\/seo-check\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/blog\/seo-check\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/blog\/seo-check\/<\/loc>/);
+    // xhtml:link alternates are emitted on index entries (which all exist)
+    assert.match(response.body, /xhtml:link rel="alternate"/);
+    assert.match(response.body, /hreflang="x-default"/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/projects\/render-pipeline<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/series\/graphics-notes<\/loc>/);
     assert.match(response.body, /<lastmod>2026-03-27T05:10:00.000Z<\/lastmod>/);

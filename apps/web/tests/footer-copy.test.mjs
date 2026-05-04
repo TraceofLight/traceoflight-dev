@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 const footerPath = new URL("../src/components/Footer.astro", import.meta.url);
 const constsPath = new URL("../src/consts.ts", import.meta.url);
-const blogPostPagePath = new URL("../src/pages/blog/[...slug].astro", import.meta.url);
+const blogPostPagePath = new URL("../src/pages/[locale]/blog/[...slug].astro", import.meta.url);
 
 test("footer uses compact two-line rights copy with visitor summary metadata", async () => {
   const source = await readFile(footerPath, "utf8");

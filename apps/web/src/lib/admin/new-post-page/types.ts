@@ -30,6 +30,7 @@ export interface AdminPostPayload {
   series_title?: string | null;
   status: PostStatus;
   visibility: PostVisibility;
+  locale?: string;
   tags: string[];
   series_context?: AdminSeriesContext | null;
   project_profile?: AdminProjectProfile | null;

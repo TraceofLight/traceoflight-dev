@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from app.api.deps import get_post_service
 from app.api.error_handlers import integrity_conflict_detail
 from app.api.security import optional_internal_secret, require_internal_secret
-from app.models.post import PostContentKind, PostStatus, PostVisibility
+from app.core.config import settings
+from app.models.post import PostContentKind, PostLocale, PostStatus, PostVisibility
 from app.schemas.post import PostCreate, PostRead, PostSummaryListRead
 from app.services.post_service import PostService
 
@@ -58,6 +59,7 @@ def list_post_summaries(
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
     content_kind: PostContentKind | None = Query(default=None),
+    locale: PostLocale | None = Query(default=None),
     tag: list[str] | None = Query(
         default=None,
         description='Repeatable tag query parameter. Example: ?tag=fastapi&tag=astro',
@@ -92,6 +94,7 @@ def list_post_summaries(
         content_kind=content_kind,
         sort=sort,
         include_private_visibility_counts=is_internal_request,
+        locale=locale,
     )
 
 
@@ -113,6 +116,7 @@ def list_posts(
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
     content_kind: PostContentKind | None = Query(default=None),
+    locale: PostLocale | None = Query(default=None),
     tag: list[str] | None = Query(
         default=None,
         description='Repeatable tag query parameter. Example: ?tag=fastapi&tag=astro',
@@ -136,6 +140,7 @@ def list_posts(
         content_kind=content_kind,
         tags=tag,
         tag_match=tag_match,
+        locale=locale,
     )
 
 
@@ -157,6 +162,7 @@ def get_post_by_slug(
     status: PostStatus | None = Query(default=None),
     visibility: PostVisibility | None = Query(default=None),
     content_kind: PostContentKind | None = Query(default=None),
+    locale: PostLocale | None = Query(default=None),
     is_internal_request: bool = Depends(optional_internal_secret),
     service: PostService = Depends(get_post_service),
 ) -> PostRead:
@@ -169,6 +175,7 @@ def get_post_by_slug(
         status=effective_status,
         visibility=effective_visibility,
         content_kind=content_kind,
+        locale=locale,
     )
     if post is None:
         raise HTTPException(status_code=404, detail='post not found')

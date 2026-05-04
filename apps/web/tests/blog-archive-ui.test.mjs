@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const blogIndexPath = new URL("../src/pages/blog/index.astro", import.meta.url);
+const blogIndexPath = new URL("../src/pages/[locale]/blog/index.astro", import.meta.url);
 const blogArchiveFiltersPath = new URL(
   "../src/components/public/BlogArchiveFilters.tsx",
   import.meta.url,
@@ -20,7 +20,7 @@ test("blog archive page mounts a React filter island and passes server data", as
 
   assert.match(
     pageSource,
-    /import BlogArchiveFilters(?:,\s*\{[\s\S]*type BlogArchivePost[\s\S]*\})? from ["']\.\.\/\.\.\/components\/public\/BlogArchiveFilters["']/,
+    /import BlogArchiveFilters(?:,\s*\{[\s\S]*type BlogArchivePost[\s\S]*\})? from ["'](?:\.\.\/)*components\/public\/BlogArchiveFilters["']/,
   );
   assert.match(pageSource, /<BlogArchiveFilters[\s\S]*client:load/);
   assert.match(pageSource, /initialPosts=\{initialPosts\}/);
@@ -102,6 +102,8 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /댓글 \{post\.commentCount\}개[\s\S]*<span aria-hidden="true">•<\/span>[\s\S]*<span>\{post\.readingLabel\}<\/span>/);
   assert.match(source, /const deferredQuery = useDeferredValue\(query\);/);
   assert.match(source, /setAvailableTagFilters\(payload\.tagFilters\);/);
+  assert.match(source, /locale\?: string;/);
+  assert.match(source, /href=\{`\/\$\{locale\}\/blog\/\$\{post\.slug\}\/`\}/);
 });
 
 test("blog archive page does not cap db-backed posts at a fixed 50-item fetch", async () => {

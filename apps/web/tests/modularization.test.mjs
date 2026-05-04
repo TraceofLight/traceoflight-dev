@@ -34,7 +34,7 @@ test("blog and project list markup is extracted to shared components", async () 
   await exists("src/components/public/BlogArchiveFilters.tsx");
 
   const homePage = await read("src/pages/index.astro");
-  const blogIndex = await read("src/pages/blog/index.astro");
+  const blogIndex = await read("src/pages/[locale]/blog/index.astro");
   const projectIndex = await read("src/pages/projects/index.astro");
 
   assert.match(homePage, /import PostCard from/);
@@ -82,7 +82,7 @@ test("component stylesheet is split by domain modules", async () => {
 test("legacy public css hooks are removed while writer css stays wired", async () => {
   const [layoutCss, blogSlugPage, emptyStateNotice] = await Promise.all([
     read("src/styles/layout.css"),
-    read("src/pages/blog/[...slug].astro"),
+    read("src/pages/[locale]/blog/[...slug].astro"),
     read("src/components/EmptyStateNotice.astro"),
   ]);
 

@@ -20,14 +20,13 @@ interface Props {
   modifiedTime?: Date | string;
   structuredData?: Record<string, unknown>;
   robots?: string;
+  locale?: string;
+  alternates?: ReadonlyArray<{ hrefLang: string; href: URL | string }>;
 }
 
+const { title, description, image, bodyClass = '', locale = 'ko', alternates = [] } = Astro.props;
 const {
-  title,
-  description,
-  image,
   imageUrl,
-  bodyClass = '',
   pageType,
   author,
   publishedTime,
@@ -40,7 +39,7 @@ const visitorSummary = await getGa4VisitorSummary();
 ---
 
 <!doctype html>
-<html lang="ko" class={htmlClassName}>
+<html lang={locale} class={htmlClassName}>
   <head>
     <BaseHead
       title={title}
@@ -53,6 +52,8 @@ const visitorSummary = await getGa4VisitorSummary();
       modifiedTime={modifiedTime}
       structuredData={structuredData}
       robots={robots}
+      locale={locale}
+      alternates={alternates}
     />
     <PageTransitions />
   </head>

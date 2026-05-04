@@ -1,0 +1,122 @@
+---
+import { render } from "astro:content";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import BlogPost from "../../../layouts/BlogPost.astro";
+import EmptyStateNotice from "../../../components/EmptyStateNotice.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
+import { getPublishedDbPostBySlug, renderDbMarkdown } from "../../../lib/blog-db";
+import { getBlogSource, getContentProvider } from "../../../lib/content-source";
+import {
+  emptyPostCommentThreadList,
+  fetchInitialPostComments,
+} from "../../../lib/post-comments";
+import { loadSeriesSidebarPosts } from "../../../lib/series/load-series-context";
+import {
+  isSupportedPublicLocale,
+  SUPPORTED_PUBLIC_LOCALES,
+  type PublicLocale,
+} from "../../../lib/i18n/locales";
+import { buildLocalizedAlternates } from "../../../lib/seo/localized-urls";
+import { SITE_URL } from "../../../consts";
+
+const rawLocale = Astro.params.locale;
+if (!rawLocale || !isSupportedPublicLocale(rawLocale)) {
+  return new Response(null, { status: 404 });
+}
+const locale: PublicLocale = rawLocale;
+
+const slug = Astro.params.slug ?? "";
+const provider = getContentProvider();
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+const markdownPost =
+  provider === "file" && locale === "ko" ? await getBlogSource().getPostBySlug(slug) : null;
+let dbPost: Awaited<ReturnType<typeof getPublishedDbPostBySlug>> = null;
+
+if (provider === "db") {
+  try {
+    dbPost = await getPublishedDbPostBySlug(slug, {
+      includePrivate: isAdminViewer,
+      locale,
+    });
+  } catch {
+    dbPost = null;
+  }
+}
+
+let Content: Awaited<ReturnType<typeof render>>["Content"] | null = null;
+let dbPostHtml: string | null = null;
+let dbSeriesPostsForSidebar: Awaited<ReturnType<typeof loadSeriesSidebarPosts>> = [];
+let commentsData = emptyPostCommentThreadList();
+
+if (markdownPost) {
+  ({ Content } = await render(markdownPost));
+  commentsData = await fetchInitialPostComments(slug, {
+    includePrivate: isAdminViewer,
+  });
+} else if (dbPost) {
+  dbPostHtml = renderDbMarkdown(dbPost.bodyMarkdown);
+  commentsData = await fetchInitialPostComments(dbPost.slug, {
+    includePrivate: isAdminViewer,
+  });
+  dbSeriesPostsForSidebar = await loadSeriesSidebarPosts(dbPost, {
+    includePrivate: isAdminViewer,
+  });
+} else {
+  Astro.response.status = 404;
+}
+
+const alternates = slug
+  ? buildLocalizedAlternates(
+      Object.fromEntries(SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/blog/${slug}/`])) as Record<PublicLocale, string>,
+      new URL(SITE_URL),
+    )
+  : [];
+---
+
+{
+  markdownPost && Content ? (
+    <BlogPost {...markdownPost.data} postSlug={slug} showAdminActions={false} isAdminViewer={isAdminViewer} commentsData={commentsData} locale={locale} alternates={alternates}>
+      <Content />
+    </BlogPost>
+  ) : dbPost && dbPostHtml ? (
+    <BlogPost
+      title={dbPost.title}
+      description={dbPost.description}
+      pubDate={dbPost.publishedAt}
+      updatedDate={dbPost.updatedAt}
+      coverImage={dbPost.coverImageUrl}
+      topMediaKind={dbPost.topMediaKind}
+      topMediaImageUrl={dbPost.topMediaImageUrl}
+      topMediaYoutubeUrl={dbPost.topMediaYoutubeUrl}
+      topMediaVideoUrl={dbPost.topMediaVideoUrl}
+      postSlug={dbPost.slug}
+      adminPostSlug={dbPost.slug}
+      showAdminActions={isAdminViewer}
+      isAdminViewer={isAdminViewer}
+      seriesContext={dbPost.seriesContext}
+      seriesPosts={dbSeriesPostsForSidebar}
+      commentsData={commentsData}
+      locale={locale}
+      alternates={alternates}
+    >
+      <div set:html={dbPostHtml} />
+    </BlogPost>
+  ) : (
+    <BaseLayout
+      title="게시글을 찾을 수 없습니다"
+      description="삭제되었거나 비공개로 전환된 글일 수 있습니다."
+      locale={locale}
+    >
+      <section class="flex justify-center py-8 sm:py-12">
+        <EmptyStateNotice
+          title="게시글을 찾을 수 없습니다"
+          description="삭제되었거나 비공개로 전환된 글일 수 있습니다."
+          href={`/${locale}/blog`}
+          actionLabel="블로그로 돌아가기"
+        />
+      </section>
+    </BaseLayout>
+  )
+}

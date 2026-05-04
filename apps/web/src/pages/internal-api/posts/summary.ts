@@ -54,6 +54,8 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
 
+  const locale = url.searchParams.get("locale")?.trim().toLowerCase() ?? "";
+
   try {
     const summaryPage = await listPublishedDbPostSummaryPage({
       includePrivate: isAdminViewer,
@@ -63,6 +65,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       sort: resolveSort(url.searchParams.get("sort")),
       visibility: resolveVisibility(url.searchParams.get("visibility"), isAdminViewer),
       tags: selectedTags,
+      locale,
     });
 
     return jsonResponse({

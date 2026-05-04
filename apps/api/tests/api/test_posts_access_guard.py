@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.api import security as security_module
 from app.api.deps import get_post_service
+from app.api.v1.endpoints import posts as posts_endpoint
 from app.main import app
 from app.models.post import PostContentKind, PostStatus, PostVisibility
 
@@ -16,6 +17,7 @@ def _build_post_payload(
     status: PostStatus = PostStatus.PUBLISHED,
     visibility: PostVisibility = PostVisibility.PUBLIC,
     content_kind: PostContentKind = PostContentKind.BLOG,
+    locale: str = "ko",
     project_profile: dict[str, object] | None = None,
 ) -> dict[str, object]:
     now = datetime.now(timezone.utc)
@@ -29,6 +31,9 @@ def _build_post_payload(
         'content_kind': content_kind,
         'status': status,
         'visibility': visibility,
+        'locale': locale,
+        'translation_group_id': uuid.uuid4(),
+        'source_post_id': None,
         'published_at': now if status == PostStatus.PUBLISHED else None,
         'project_profile': project_profile,
         'created_at': now,
@@ -50,6 +55,7 @@ class _StubPostService:
         offset=0,
         status=None,
         visibility=None,
+        locale=None,
         content_kind=None,
         tags=None,
         tag_match="any",
@@ -59,17 +65,19 @@ class _StubPostService:
             'offset': offset,
             'status': status,
             'visibility': visibility,
+            'locale': locale,
             'content_kind': content_kind,
             'tags': tags,
             'tag_match': tag_match,
         }
         return []
 
-    def get_post_by_slug(self, slug: str, status=None, visibility=None, content_kind=None):  # type: ignore[no-untyped-def]
+    def get_post_by_slug(self, slug: str, status=None, visibility=None, locale=None, content_kind=None):  # type: ignore[no-untyped-def]
         self.get_call = {
             'slug': slug,
             'status': status,
             'visibility': visibility,
+            'locale': locale,
             'content_kind': content_kind,
         }
         return _build_post_payload(slug=slug)
@@ -148,6 +156,33 @@ def test_posts_get_accepts_content_kind_query(monkeypatch) -> None:
     assert response.status_code == 200
     assert service.get_call is not None
     assert service.get_call['content_kind'] == PostContentKind.BLOG
+
+
+def test_posts_list_accepts_locale_query(monkeypatch) -> None:
+    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    service = _StubPostService()
+    client = _client_with_service(service)
+
+    response = client.get('/api/v1/web-service/posts?locale=en')
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.list_call is not None
+    assert service.list_call['locale'] == 'en'
+
+
+def test_posts_get_accepts_locale_query(monkeypatch) -> None:
+    monkeypatch.setattr(posts_endpoint.settings, 'internal_api_secret', 'test-shared-secret')
+    service = _StubPostService()
+    client = _client_with_service(service)
+
+    response = client.get('/api/v1/web-service/posts/hidden-post?locale=zh')
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.get_call is not None
+    assert service.get_call['locale'] == 'zh'
+    assert response.json()['locale'] == 'ko'
 
 
 def test_posts_write_requires_internal_secret(monkeypatch) -> None:

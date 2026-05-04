@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const blogIndexPath = new URL("../src/pages/blog/index.astro", import.meta.url);
+const blogIndexPath = new URL("../src/pages/[locale]/blog/index.astro", import.meta.url);
 const blogArchiveFiltersPath = new URL(
   "../src/components/public/BlogArchiveFilters.tsx",
   import.meta.url,

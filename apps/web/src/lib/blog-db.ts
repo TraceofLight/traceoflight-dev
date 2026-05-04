@@ -23,6 +23,7 @@ export interface DbPost {
   top_media_video_url?: string | null;
   status: 'draft' | 'published' | 'archived';
   visibility?: 'public' | 'private';
+  locale?: string;
   tags: DbTag[];
   comment_count?: number;
   series_context?: DbSeriesContextRaw | null;
@@ -50,6 +51,7 @@ export interface DbBlogPost {
   topMediaYoutubeUrl?: string;
   topMediaVideoUrl?: string;
   visibility: 'public' | 'private';
+  locale?: string;
   tags: DbTag[];
   seriesContext?: DbSeriesContext;
   createdAt: Date;
@@ -69,6 +71,7 @@ export interface DbPostSummary {
   top_media_video_url?: string | null;
   status: 'draft' | 'published' | 'archived';
   visibility?: 'public' | 'private';
+  locale?: string;
   tags: DbTag[];
   comment_count?: number;
   reading_label: string;
@@ -90,6 +93,7 @@ export interface DbBlogPostSummary {
   topMediaYoutubeUrl?: string;
   topMediaVideoUrl?: string;
   visibility: 'public' | 'private';
+  locale?: string;
   tags: DbTag[];
   readingLabel: string;
   createdAt: Date;
@@ -154,6 +158,7 @@ const markdown = createMarkdownRenderer();
 
 interface PublishedQueryOptions {
   includePrivate?: boolean;
+  locale?: string;
 }
 
 export interface PublishedPostSummaryQueryOptions extends PublishedQueryOptions {
@@ -163,6 +168,7 @@ export interface PublishedPostSummaryQueryOptions extends PublishedQueryOptions 
   sort?: 'latest' | 'oldest' | 'title';
   visibility?: 'all' | 'public' | 'private';
   tags?: string[];
+  locale?: string;
 }
 
 const POSTS_PAGE_SIZE = 100;
@@ -298,6 +304,11 @@ function buildPublishedPostSummaryQuery(
     }
   }
 
+  const normalizedLocale = options.locale?.trim().toLowerCase() ?? '';
+  if (normalizedLocale) {
+    params.set('locale', normalizedLocale);
+  }
+
   return `/posts/summary?${params.toString()}`;
 }
 
@@ -387,6 +398,10 @@ export async function getPublishedDbPostBySlug(
   const params = new URLSearchParams({ status: 'published', content_kind: 'blog' });
   if (!options.includePrivate) {
     params.set('visibility', 'public');
+  }
+  const normalizedLocale = options.locale?.trim().toLowerCase() ?? '';
+  if (normalizedLocale) {
+    params.set('locale', normalizedLocale);
   }
 
   const response = await requestBackend(`/posts/${encodeURIComponent(slug)}?${params.toString()}`);

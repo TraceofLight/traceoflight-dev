@@ -57,6 +57,7 @@ class PostSerializerService:
             "top_media_youtube_url": post.top_media_youtube_url,
             "top_media_video_url": post.top_media_video_url,
             "series_title": post.series_title,
+            "locale": post.locale,
             "content_kind": post.content_kind,
             "status": post.status,
             "visibility": post.visibility,

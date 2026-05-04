@@ -19,6 +19,7 @@ from app.services.import_service import ImportService
 from app.services.media_service import MediaService
 from app.services.post_comment_service import PostCommentService
 from app.services.post_service import PostService
+from app.services.post_translation_service import PostTranslationService
 from app.services.project_service import ProjectService
 from app.services.resume_service import (
     PORTFOLIO_PDF_CONFIG,
@@ -28,6 +29,7 @@ from app.services.resume_service import (
 from app.services.site_profile_service import SiteProfileService
 from app.services.series_service import SeriesService
 from app.services.tag_service import TagService
+from app.services.translation_provider import NoopTranslationProvider
 from app.storage.minio_client import MinioStorageClient
 
 
@@ -36,7 +38,10 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
 
 
 def get_post_service(db: Session = Depends(get_db)) -> PostService:
-    return PostService(repo=PostRepository(db))
+    return PostService(
+        repo=PostRepository(db),
+        translation_service=PostTranslationService(provider=NoopTranslationProvider()),
+    )
 
 
 def get_post_comment_service(db: Session = Depends(get_db)) -> PostCommentService:

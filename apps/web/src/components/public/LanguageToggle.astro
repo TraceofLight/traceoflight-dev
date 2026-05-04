@@ -1,0 +1,36 @@
+---
+interface AlternateLink {
+  hrefLang: string;
+  href: URL | string;
+}
+
+interface Props {
+  locale: string;
+  alternates: ReadonlyArray<AlternateLink>;
+}
+
+const LOCALE_LABELS: Record<string, string> = {
+  ko: "한국어",
+  en: "English",
+  ja: "日本語",
+  zh: "中文",
+};
+
+const { locale, alternates } = Astro.props;
+const visible = alternates.filter(
+  (alt) => alt.hrefLang !== "x-default" && alt.hrefLang !== locale,
+);
+---
+
+<nav aria-label="Language" class="flex flex-wrap gap-2 text-xs text-slate-500">
+  {visible.map((alt) => (
+    <a
+      class="rounded-md px-2 py-1 underline-offset-2 transition hover:bg-white/60 hover:text-slate-700"
+      hreflang={alt.hrefLang}
+      href={typeof alt.href === "string" ? alt.href : alt.href.toString()}
+      lang={alt.hrefLang}
+    >
+      {LOCALE_LABELS[alt.hrefLang] ?? alt.hrefLang}
+    </a>
+  ))}
+</nav>

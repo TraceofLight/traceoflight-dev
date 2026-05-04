@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Iterable
 from datetime import datetime, timezone
 
@@ -11,6 +12,7 @@ from app.core.text import normalize_optional_text, normalize_slug_list
 from app.models.post import (
     Post,
     PostContentKind,
+    PostLocale,
     PostStatus,
     PostVisibility,
 )
@@ -61,6 +63,7 @@ class PostRepository:
         content_kind: PostContentKind | None = PostContentKind.BLOG,
         tags: list[str] | None = None,
         tag_match: str = "any",
+        locale: PostLocale | None = None,
     ) -> list[Post]:
         ordering = PostFilterBuilder.build_ordering(
             status=status,
@@ -84,6 +87,8 @@ class PostRepository:
             tags=tags,
             tag_match=tag_match,
         )
+        if locale is not None:
+            stmt = stmt.where(Post.locale == locale)
         stmt = stmt.limit(limit).offset(offset)
         rows = list(self.db.scalars(stmt))
         public_only = status == PostStatus.PUBLISHED and visibility == PostVisibility.PUBLIC
@@ -203,6 +208,7 @@ class PostRepository:
         sort: str = "latest",
         include_tag_filters: bool = True,
         include_private_visibility_counts: bool = False,
+        locale: PostLocale | None = None,
     ) -> dict[str, object]:
         ordering = PostFilterBuilder.build_ordering(
             status=status,
@@ -216,6 +222,7 @@ class PostRepository:
             "tags": tags,
             "tag_match": tag_match,
             "query": query,
+            "locale": locale,
         }
 
         rows, total_count = self._fetch_summary_rows(
@@ -278,6 +285,7 @@ class PostRepository:
         status: PostStatus | None = None,
         visibility: PostVisibility | None = None,
         content_kind: PostContentKind | None = None,
+        locale: PostLocale | None = None,
     ) -> Post | None:
         stmt = (
             select(Post)
@@ -294,6 +302,8 @@ class PostRepository:
             stmt = stmt.where(Post.visibility == visibility)
         if content_kind is not None:
             stmt = stmt.where(Post.content_kind == content_kind)
+        if locale is not None:
+            stmt = stmt.where(Post.locale == locale)
         row = self.db.scalar(stmt)
         if row is None:
             return None
@@ -336,6 +346,8 @@ class PostRepository:
         post_data["series_title"] = normalize_optional_text(post_data.get("series_title"))
         if post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
+        if post_data.get("translation_group_id") is None:
+            post_data["translation_group_id"] = uuid.uuid4()
 
         post = Post(**post_data)
         if post.content_kind == PostContentKind.PROJECT and project_profile_data is not None:
@@ -365,6 +377,10 @@ class PostRepository:
             post_data["published_at"] = existing_published_at
         elif post_data["status"] == PostStatus.PUBLISHED and post_data.get("published_at") is None:
             post_data["published_at"] = datetime.now(timezone.utc)
+        if post_data.get("translation_group_id") is None:
+            post_data["translation_group_id"] = post.translation_group_id
+        if "source_post_id" in post_data and post_data.get("source_post_id") is None:
+            post_data["source_post_id"] = post.source_post_id
 
         for field, value in post_data.items():
             setattr(post, field, value)

@@ -53,6 +53,7 @@ export interface SubmitPayload {
   series_title: string | null;
   status: PostStatus;
   visibility: PostVisibility;
+  locale: string;
   tags: string[];
   published_at: string | null;
   project_profile: {
@@ -140,6 +141,7 @@ export function buildSubmitPayload(input: SubmitPayloadInput): SubmitPayload {
     series_title: seriesTitle.trim() || null,
     status,
     visibility,
+    locale: "ko",
     tags,
     published_at: status === "published" ? nowIso : null,
     project_profile: isProject

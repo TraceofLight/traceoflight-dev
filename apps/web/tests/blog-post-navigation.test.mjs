@@ -11,7 +11,9 @@ test("blog post layout keeps top and bottom archive navigation in the new shell"
   const source = await readFile(blogPostLayoutPath, "utf8");
 
   assert.match(source, /aria-label="Post navigation"/);
-  assert.match(source, /href="\/blog\/"/);
+  assert.match(source, /locale\?: string;/);
+  assert.match(source, /const localizedBlogIndexPath = `\/\$\{locale\}\/blog\/`;/);
+  assert.match(source, /href=\{localizedBlogIndexPath\}/);
   assert.match(source, /블로그로 돌아가기/);
   assert.match(source, /모든 글 보기/);
   assert.match(source, /PUBLIC_SURFACE_ACTION_CLASS/);

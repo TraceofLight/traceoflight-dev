@@ -47,3 +47,6 @@ Thumbs.db
 
 # AI Workloads
 .claude/
+
+# Local scratch / safety-net files
+.local/

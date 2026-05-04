@@ -16,6 +16,7 @@ test("base head uses canonical site urls and custom favicon assets", async () =>
 
   assert.match(source, /const canonicalBase = resolvePublicSiteOrigin\(Astro\.site \?\? SITE_URL\);/);
   assert.match(source, /const canonicalURL = new URL\(Astro\.url\.pathname, canonicalBase\);/);
+  assert.match(source, /const alternates = Array\.isArray\(Astro\.props\.alternates\) \? Astro\.props\.alternates : \[];/);
   assert.match(
     source,
     /const ogImage = image\s*\?\s*new URL\(image\.src, canonicalBase\)\s*:\s*new URL\('\/android-chrome-512x512\.png', canonicalBase\);/,
@@ -27,6 +28,7 @@ test("base head uses canonical site urls and custom favicon assets", async () =>
   assert.match(source, /<meta property="article:published_time" content=\{publishedTimeIso\} \/>/);
   assert.match(source, /<script is:inline type="application\/ld\+json" set:html=\{structuredDataJson\} \/>/);
   assert.match(source, /<meta property="twitter:url" content=\{canonicalURL\} \/>/);
+  assert.match(source, /<link rel="alternate" hreflang=\{alternate\.hrefLang\} href=\{alternate\.href\} \/>/);
   assert.match(source, /const iconVersion = '20260313';/);
   assert.match(source, /<link rel="shortcut icon" href=\{`\/favicon\.ico\?v=\$\{iconVersion\}`\} \/>/);
   assert.match(source, /<link rel="icon" type="image\/png" sizes="32x32" href=\{`\/favicon-32x32\.png\?v=\$\{iconVersion\}`\} \/>/);
@@ -58,13 +60,13 @@ test("public site exposes a minimal allow-all robots.txt with sitemap", async ()
   assert.doesNotMatch(robotsSource, /^Disallow: \/admin\s*$/m);
 });
 
-test("layout shell uses Korean document language for public and admin pages", async () => {
+test("layout shell sets html lang attribute (locale-driven for public, Korean for admin)", async () => {
   const [baseLayoutSource, adminWriterLayoutSource] = await Promise.all([
     readFile(baseLayoutPath, "utf8"),
     readFile(adminWriterLayoutPath, "utf8"),
   ]);
 
-  assert.match(baseLayoutSource, /<html lang="ko" class=\{htmlClassName\}>/);
+  assert.match(baseLayoutSource, /<html lang=\{locale\} class=\{htmlClassName\}>/);
   assert.match(adminWriterLayoutSource, /<html lang="ko">/);
 });
 

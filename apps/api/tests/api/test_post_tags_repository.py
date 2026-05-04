@@ -260,3 +260,39 @@ def test_get_project_post_by_slug_returns_profile_metadata() -> None:
     assert fetched.project_profile.resource_links_json == [
         {"label": "GitHub", "href": "https://github.com/traceoflight"}
     ]
+
+
+def test_posts_default_to_korean_locale_and_can_filter_by_locale() -> None:
+    db = _build_session()
+    repo = PostRepository(db)
+
+    source_post = repo.create(_payload("korean-post", ["ko"]))
+    repo.create(
+        PostCreate(
+            slug="english-post",
+            title="english-post",
+            excerpt=None,
+            body_markdown="# english-post",
+            cover_image_url=None,
+            status=PostStatus.PUBLISHED,
+            visibility=PostVisibility.PUBLIC,
+            published_at=None,
+            tags=[],
+            locale="en",
+        )
+    )
+
+    korean_posts = repo.list(
+        status=PostStatus.PUBLISHED,
+        visibility=PostVisibility.PUBLIC,
+        locale="ko",
+    )
+    english_posts = repo.list(
+        status=PostStatus.PUBLISHED,
+        visibility=PostVisibility.PUBLIC,
+        locale="en",
+    )
+
+    assert source_post.locale.value == "ko"
+    assert [post.slug for post in korean_posts] == ["korean-post"]
+    assert [post.slug for post in english_posts] == ["english-post"]

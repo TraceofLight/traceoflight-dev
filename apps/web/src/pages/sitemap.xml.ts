@@ -1,14 +1,22 @@
 import type { APIRoute } from "astro";
 
 import { listAllPublishedDbPosts } from "../lib/blog-db";
+import { SUPPORTED_PUBLIC_LOCALES } from "../lib/i18n/locales";
+import { buildLocalizedBlogIndexPath, buildLocalizedBlogPostPath } from "../lib/i18n/pathnames";
 import { fetchAllPaged } from "../lib/paginate";
 import { resolvePublicSiteOrigin } from "../lib/public-url";
 import { listPublishedDbProjects } from "../lib/projects";
 import { listSeries } from "../lib/series-db";
 
+interface LocalizedAlternate {
+  hrefLang: string;
+  path: string;
+}
+
 interface SitemapEntry {
   path: string;
   lastmod?: string;
+  alternates?: LocalizedAlternate[];
 }
 
 function toAbsoluteUrl(path: string, site: URL): string {
@@ -29,8 +37,24 @@ function serializeEntry(entry: SitemapEntry, site: URL): string {
   if (entry.lastmod) {
     lines.push(`<lastmod>${escapeXml(entry.lastmod)}</lastmod>`);
   }
+  if (entry.alternates && entry.alternates.length > 0) {
+    for (const alt of entry.alternates) {
+      lines.push(
+        `<xhtml:link rel="alternate" hreflang="${escapeXml(alt.hrefLang)}" href="${escapeXml(toAbsoluteUrl(alt.path, site))}"/>`,
+      );
+    }
+  }
   lines.push(`</url>`);
   return lines.join("");
+}
+
+function buildBlogAlternates(path: (locale: string) => string): LocalizedAlternate[] {
+  const alternates: LocalizedAlternate[] = SUPPORTED_PUBLIC_LOCALES.map((l) => ({
+    hrefLang: l,
+    path: path(l),
+  }));
+  alternates.push({ hrefLang: "x-default", path: path("ko") });
+  return alternates;
 }
 
 async function getDynamicEntries(): Promise<SitemapEntry[]> {
@@ -51,11 +75,19 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
     ),
   ]);
 
+  // Post entries: emit one URL per actual stored post at its own locale.
+  // We intentionally do not emit alternates yet — until the translation
+  // provider creates sibling rows, only the source-locale URL exists, and
+  // advertising the other three would point search engines at 404s.
+  // Once siblings exist, group `posts` by translation_group_id and emit
+  // alternates from the actual sibling locales here.
+  const postEntries: SitemapEntry[] = posts.map((post) => ({
+    path: buildLocalizedBlogPostPath(post.locale ?? "ko", post.slug),
+    lastmod: (post.updatedAt ?? post.publishedAt).toISOString(),
+  }));
+
   return [
-    ...posts.map((post) => ({
-      path: `/blog/${post.slug}`,
-      lastmod: (post.updatedAt ?? post.publishedAt).toISOString(),
-    })),
+    ...postEntries,
     ...projects.map((project) => ({
       path: `/projects/${project.slug}`,
     })),
@@ -68,16 +100,23 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
 
 export const GET: APIRoute = async ({ site }) => {
   const siteOrigin = resolvePublicSiteOrigin(site);
+
+  const blogIndexAlternates = buildBlogAlternates((l) => buildLocalizedBlogIndexPath(l));
+  const blogIndexEntries: SitemapEntry[] = SUPPORTED_PUBLIC_LOCALES.map((l) => ({
+    path: buildLocalizedBlogIndexPath(l),
+    alternates: blogIndexAlternates,
+  }));
+
   const entries: SitemapEntry[] = [
     { path: "/" },
-    { path: "/blog" },
     { path: "/projects" },
     { path: "/series" },
+    ...blogIndexEntries,
     ...(await getDynamicEntries()),
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">` +
     entries.map((entry) => serializeEntry(entry, siteOrigin)).join("") +
     `</urlset>`;
 

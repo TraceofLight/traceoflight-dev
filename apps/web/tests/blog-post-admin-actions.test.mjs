@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const blogSlugPagePath = new URL("../src/pages/blog/[...slug].astro", import.meta.url);
+const blogSlugPagePath = new URL("../src/pages/[locale]/blog/[...slug].astro", import.meta.url);
 const blogPostLayoutPath = new URL("../src/layouts/BlogPost.astro", import.meta.url);
 const postAdminActionsPath = new URL(
   "../src/components/public/PostAdminActions.tsx",

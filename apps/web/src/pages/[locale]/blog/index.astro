@@ -1,0 +1,200 @@
+---
+import BlogArchiveFilters, {
+  type BlogArchivePost,
+} from "../../../components/public/BlogArchiveFilters";
+import LanguageToggle from "../../../components/public/LanguageToggle.astro";
+import {
+  DEFAULT_ARTICLE_IMAGE,
+  IMAGE_SIZES,
+  PAGINATION,
+  SITE_AUTHOR,
+  SITE_TITLE,
+  SITE_URL,
+} from "../../../consts";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
+import { listPublishedDbPostSummaryPage } from "../../../lib/blog-db";
+import {
+  getBlogSource,
+  getContentProvider,
+  toPostCard,
+  type PostCard as PostCardData,
+} from "../../../lib/content-source";
+import { toBrowserImageUrl } from "../../../lib/cover-media";
+import {
+  isSupportedPublicLocale,
+  SUPPORTED_PUBLIC_LOCALES,
+  type PublicLocale,
+} from "../../../lib/i18n/locales";
+import { buildLocalizedAlternates } from "../../../lib/seo/localized-urls";
+import { formatReadingTimeLabel } from "../../../lib/reading-time";
+
+const rawLocale = Astro.params.locale;
+if (!rawLocale || !isSupportedPublicLocale(rawLocale)) {
+  return new Response(null, { status: 404 });
+}
+const locale: PublicLocale = rawLocale;
+
+const alternates = buildLocalizedAlternates(
+  Object.fromEntries(SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/blog/`])) as Record<PublicLocale, string>,
+  new URL(SITE_URL),
+);
+
+const provider = getContentProvider();
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+const ARCHIVE_PAGE_SIZE = PAGINATION.ARCHIVE_PAGE_SIZE;
+const POST_CARD_IMAGE_SIZE = IMAGE_SIZES.postCard;
+const selectedTagsFromQuery = Astro.url.searchParams
+  .getAll("tag")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+const initialQuery = Astro.url.searchParams.get("query")?.trim() ?? "";
+const sortFromQuery = Astro.url.searchParams.get("sort");
+const initialSort =
+  sortFromQuery === "oldest" || sortFromQuery === "title" ? sortFromQuery : "latest";
+const visibilityFromQuery = Astro.url.searchParams.get("visibility");
+const initialVisibility =
+  visibilityFromQuery === "public" || (isAdminViewer && visibilityFromQuery === "private")
+    ? visibilityFromQuery
+    : "all";
+let posts: PostCardData[] = [];
+let initialHasMore = false;
+let initialOffset = 0;
+let initialTotalCount = 0;
+let initialVisibilityCounts = { all: 0, public: 0, private: 0 };
+let tagFilters: { slug: string; count: number }[] = [];
+
+if (provider === "db") {
+  try {
+    const summaryPage = await listPublishedDbPostSummaryPage({
+      includePrivate: isAdminViewer,
+      limit: ARCHIVE_PAGE_SIZE,
+      offset: 0,
+      query: initialQuery,
+      sort: initialSort,
+      visibility: initialVisibility,
+      tags: selectedTagsFromQuery,
+      locale,
+    });
+    posts = summaryPage.items.map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      description: post.description,
+      readingLabel: post.readingLabel,
+      commentCount: post.commentCount,
+      pubDate: post.publishedAt,
+      updatedDate: post.updatedAt,
+      coverMedia: post.coverMedia,
+      visibility: post.visibility,
+      tags: post.tags.map((tag) => tag.slug),
+    }));
+    initialHasMore = summaryPage.hasMore;
+    initialOffset = summaryPage.nextOffset ?? summaryPage.items.length;
+    initialTotalCount = summaryPage.totalCount;
+    initialVisibilityCounts = summaryPage.visibilityCounts;
+    tagFilters = summaryPage.tagFilters;
+  } catch {
+    posts = [];
+    initialHasMore = false;
+    initialOffset = 0;
+    initialTotalCount = 0;
+    initialVisibilityCounts = { all: 0, public: 0, private: 0 };
+    tagFilters = [];
+  }
+} else if (locale === "ko") {
+  posts = (await getBlogSource().listPosts()).map(toPostCard);
+  const tagCountMap = new Map<string, number>();
+  for (const post of posts) {
+    const normalizedTags = new Set(
+      (post.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean),
+    );
+    for (const tag of normalizedTags) {
+      tagCountMap.set(tag, (tagCountMap.get(tag) ?? 0) + 1);
+    }
+  }
+  tagFilters = Array.from(tagCountMap.entries())
+    .map(([slug, count]) => ({ slug, count }))
+    .sort((left, right) => left.slug.localeCompare(right.slug, "ko-KR"));
+  initialOffset = posts.length;
+  initialTotalCount = posts.length;
+  initialVisibilityCounts = {
+    all: posts.length,
+    public: posts.length,
+    private: 0,
+  };
+}
+
+function resolveCoverImageSrc(
+  post: PostCardData,
+  width: number,
+  height: number,
+) {
+  if (!post.coverMedia) {
+    return toBrowserImageUrl(DEFAULT_ARTICLE_IMAGE, {
+      width,
+      height,
+      fit: "inside",
+    });
+  }
+
+  return post.coverMedia.kind === "optimized"
+    ? post.coverMedia.src.src
+    : toBrowserImageUrl(post.coverMedia.src, { width, height, fit: "inside" });
+}
+
+const initialPosts: BlogArchivePost[] = posts.map((post) => ({
+  slug: post.slug,
+  title: post.title,
+  description: post.description,
+  visibility: post.visibility === "private" ? "private" : "public",
+  tags: (post.tags ?? [])
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean),
+  publishedAt: post.pubDate.toISOString(),
+  publishedAtValue: post.pubDate.valueOf(),
+  commentCount: post.commentCount ?? 0,
+  readingLabel: post.readingLabel ?? formatReadingTimeLabel(post.body ?? ""),
+  coverImageSrc: resolveCoverImageSrc(
+    post,
+    POST_CARD_IMAGE_SIZE.width,
+    POST_CARD_IMAGE_SIZE.height,
+  ),
+}));
+---
+
+<BaseLayout
+  title={`Blog | ${SITE_TITLE}`}
+  description="C++, 셸, 그래픽스, 개발 경험을 모아둔 TraceofLight 블로그 아카이브"
+  locale={locale}
+  alternates={alternates}
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: `${SITE_TITLE} Blog`,
+    url: new URL(`/${locale}/blog`, SITE_URL).toString(),
+    inLanguage: locale === "ko" ? "ko-KR" : locale,
+    author: {
+      "@type": "Person",
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+  }}
+>
+  {alternates.length > 0 && <LanguageToggle locale={locale} alternates={alternates} />}
+  <BlogArchiveFilters
+    client:load
+    initialSelectedTags={selectedTagsFromQuery}
+    initialQuery={initialQuery}
+    initialSort={initialSort}
+    initialVisibility={initialVisibility}
+    isAdminViewer={isAdminViewer}
+    initialPosts={initialPosts}
+    initialHasMore={initialHasMore}
+    initialOffset={initialOffset}
+    initialTotalCount={initialTotalCount}
+    initialVisibilityCounts={initialVisibilityCounts}
+    tagFilters={tagFilters}
+    locale={locale}
+  />
+</BaseLayout>

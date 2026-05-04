@@ -19,6 +19,7 @@ class _StubPostService:
         offset=0,
         status=None,
         visibility=None,
+        locale=None,
         tags=None,
         tag_match="any",
         query=None,
@@ -31,6 +32,7 @@ class _StubPostService:
             "offset": offset,
             "status": status,
             "visibility": visibility,
+            "locale": locale,
             "tags": tags,
             "tag_match": tag_match,
             "query": query,
@@ -55,6 +57,7 @@ class _StubPostService:
                     "content_kind": "blog",
                     "status": "published",
                     "visibility": "public",
+                    "locale": "ko",
                     "published_at": now.isoformat(),
                     "reading_label": "1 min read",
                     "tags": [{"slug": "astro", "label": "astro"}],
@@ -108,3 +111,17 @@ def test_posts_summary_endpoint_accepts_content_kind_query() -> None:
     assert response.status_code == 200
     assert service.summary_call is not None
     assert service.summary_call["content_kind"] == PostContentKind.BLOG
+
+
+def test_posts_summary_endpoint_accepts_locale_query() -> None:
+    service = _StubPostService()
+    app.dependency_overrides[get_post_service] = lambda: service
+    client = TestClient(app)
+
+    response = client.get("/api/v1/web-service/posts/summary?locale=ja")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert service.summary_call is not None
+    assert service.summary_call["locale"] == "ja"
+    assert response.json()["items"][0]["locale"] == "ko"

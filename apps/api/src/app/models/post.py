@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import enum
+import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, Integer, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -30,6 +31,25 @@ class PostVisibility(str, enum.Enum):
 class PostContentKind(str, enum.Enum):
     BLOG = 'blog'
     PROJECT = 'project'
+
+
+class PostLocale(str, enum.Enum):
+    KO = "ko"
+    EN = "en"
+    JA = "ja"
+    ZH = "zh"
+
+
+class PostTranslationStatus(str, enum.Enum):
+    SOURCE = "source"
+    SYNCED = "synced"
+    STALE = "stale"
+    FAILED = "failed"
+
+
+class PostTranslationSourceKind(str, enum.Enum):
+    MANUAL = "manual"
+    MACHINE = "machine"
 
 
 class PostTopMediaKind(str, enum.Enum):
@@ -59,6 +79,32 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     top_media_video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     project_order_index: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     series_title: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    locale: Mapped[PostLocale] = mapped_column(
+        Enum(PostLocale, name="post_locale", values_callable=_enum_values),
+        index=True,
+        nullable=False,
+        default=PostLocale.KO,
+    )
+    translation_group_id: Mapped[uuid.UUID] = mapped_column(
+        index=True,
+        nullable=False,
+        default=uuid.uuid4,
+    )
+    source_post_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("posts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    translation_status: Mapped[PostTranslationStatus] = mapped_column(
+        Enum(PostTranslationStatus, name="post_translation_status", values_callable=_enum_values),
+        nullable=False,
+        default=PostTranslationStatus.SOURCE,
+    )
+    translation_source_kind: Mapped[PostTranslationSourceKind] = mapped_column(
+        Enum(PostTranslationSourceKind, name="post_translation_source_kind", values_callable=_enum_values),
+        nullable=False,
+        default=PostTranslationSourceKind.MANUAL,
+    )
     content_kind: Mapped[PostContentKind] = mapped_column(
         Enum(PostContentKind, name='post_content_kind', values_callable=_enum_values),
         index=True,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy import distinct, func, or_, select
 
-from app.models.post import Post, PostContentKind, PostStatus, PostVisibility
+from app.models.post import Post, PostContentKind, PostLocale, PostStatus, PostVisibility
 from app.models.tag import Tag
 from app.repositories.tag_repository import normalize_tag_slugs
 
@@ -27,6 +27,7 @@ class PostFilterBuilder:
         tags: list[str] | None = None,
         tag_match: str = "any",
         query: str | None = None,
+        locale: PostLocale | None = None,
     ):
         if status is not None:
             stmt = stmt.where(Post.status == status)
@@ -34,6 +35,8 @@ class PostFilterBuilder:
             stmt = stmt.where(Post.visibility == visibility)
         if content_kind is not None:
             stmt = stmt.where(Post.content_kind == content_kind)
+        if locale is not None:
+            stmt = stmt.where(Post.locale == locale)
 
         normalized_query = (query or "").strip()
         if normalized_query:

@@ -63,6 +63,7 @@ type BlogArchiveFiltersProps = {
   initialVisibilityCounts?: BlogArchiveVisibilityCounts;
   tagFilters: BlogArchiveTagFilter[];
   writeHref?: string;
+  locale?: string;
 };
 
 const PAGE_SIZE = 24;
@@ -82,6 +83,7 @@ function buildSummaryRequestUrl(options: {
   visibility: VisibilityMode;
   selectedTag: string;
   isAdminViewer: boolean;
+  locale: string;
 }) {
   const params = new URLSearchParams({
     limit: String(PAGE_SIZE),
@@ -104,6 +106,11 @@ function buildSummaryRequestUrl(options: {
 
   if (options.selectedTag) {
     params.append("tag", options.selectedTag);
+  }
+
+  const normalizedLocale = options.locale.trim().toLowerCase();
+  if (normalizedLocale) {
+    params.set("locale", normalizedLocale);
   }
 
   return `/internal-api/posts/summary?${params.toString()}`;
@@ -205,6 +212,7 @@ export function BlogArchiveFilters({
   },
   tagFilters,
   writeHref = "/admin/posts/new?content_kind=blog",
+  locale = "ko",
 }: BlogArchiveFiltersProps) {
   const [query, setQuery] = useState(initialQuery);
   const deferredQuery = useDeferredValue(query);
@@ -275,6 +283,7 @@ export function BlogArchiveFilters({
           visibility,
           selectedTag,
           isAdminViewer,
+          locale,
         }),
         { method: "GET" },
       );
@@ -311,7 +320,7 @@ export function BlogArchiveFilters({
     return () => {
       cancelled = true;
     };
-  }, [deferredQuery, isAdminViewer, selectedTag, sort, visibility]);
+  }, [deferredQuery, isAdminViewer, locale, selectedTag, sort, visibility]);
 
   useEffect(() => {
     if (!hasMore || isRefreshing || isLoadingMore) {
@@ -343,6 +352,7 @@ export function BlogArchiveFilters({
               visibility,
               selectedTag,
               isAdminViewer,
+              locale,
             }),
             { method: "GET" },
           );
@@ -375,6 +385,7 @@ export function BlogArchiveFilters({
     isAdminViewer,
     isLoadingMore,
     isRefreshing,
+    locale,
     nextOffset,
     selectedTag,
     sort,
@@ -540,7 +551,7 @@ export function BlogArchiveFilters({
                 <a
                   aria-label={`${post.title} 읽기`}
                   className={anchorClass}
-                  href={`/blog/${post.slug}`}
+                  href={`/${locale}/blog/${post.slug}/`}
                 >
                   <div className={mediaFrameClass}>
                     <img

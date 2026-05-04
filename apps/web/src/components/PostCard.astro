@@ -19,6 +19,7 @@ interface Props {
   imageWidth?: number;
   imageHeight?: number;
   showVisibility?: boolean;
+  locale?: string;
 }
 
 const {
@@ -27,7 +28,9 @@ const {
   imageWidth = IMAGE_SIZES.postCard.width,
   imageHeight = IMAGE_SIZES.postCard.height,
   showVisibility = false,
+  locale = "ko",
 } = Astro.props;
+const localizedPostHref = `/${locale}/blog/${post.slug}/`;
 const normalizedVisibility = post.visibility === "private" ? "private" : "public";
 const descriptionText = post.description?.trim() ?? "";
 const hasDescription = descriptionText.length > 0;
@@ -62,7 +65,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
   {
     variant === "archive" ? (
       <>
-        <a class={anchorClass} href={`/blog/${post.slug}`} aria-label={post.title}>
+        <a class={anchorClass} href={localizedPostHref} aria-label={post.title}>
           <div class={mediaFrameClass}>
             {
               post.coverMedia ? (
@@ -124,7 +127,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
       </>
     ) : (
       <>
-        <a class={anchorClass} href={`/blog/${post.slug}`} aria-label={post.title}>
+        <a class={anchorClass} href={localizedPostHref} aria-label={post.title}>
           <div class={mediaFrameClass}>
             {
               post.coverMedia ? (
