@@ -21,6 +21,7 @@ from app.services.media_service import MediaService
 from app.services.post_comment_service import PostCommentService
 from app.services.post_service import PostService
 from app.services.post_translation_service import PostTranslationService
+from app.services.series_translation_service import SeriesTranslationService
 from app.services.project_service import ProjectService
 from app.services.resume_service import (
     PORTFOLIO_PDF_CONFIG,
@@ -56,6 +57,10 @@ def _get_translation_queue() -> TranslationQueue | None:
     return _translation_queue
 
 
+def get_series_translation_service() -> SeriesTranslationService:
+    return SeriesTranslationService(queue=_get_translation_queue())
+
+
 def get_db(db: Session = Depends(get_db_session)) -> Session:
     return db
 
@@ -89,7 +94,10 @@ def get_tag_service(db: Session = Depends(get_db)) -> TagService:
 
 
 def get_series_service(db: Session = Depends(get_db)) -> SeriesService:
-    return SeriesService(repo=SeriesRepository(db))
+    return SeriesService(
+        repo=SeriesRepository(db),
+        translation_service=get_series_translation_service(),
+    )
 
 
 def get_import_service(db: Session = Depends(get_db)) -> ImportService:

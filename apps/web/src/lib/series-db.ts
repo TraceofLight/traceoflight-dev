@@ -4,6 +4,7 @@ import { requestBackend, resolveBackendAssetUrl } from "./backend-api";
 export interface DbSeriesSummary {
   id: string;
   slug: string;
+  locale?: string;
   title: string;
   description: string;
   cover_image_url: string | null;
@@ -29,6 +30,7 @@ export interface DbSeriesDetail extends DbSeriesSummary {
 export interface SeriesSummary {
   id: string;
   slug: string;
+  locale?: string;
   title: string;
   description: string;
   coverImageUrl?: string;
@@ -53,6 +55,7 @@ export interface SeriesDetail extends SeriesSummary {
 
 interface SeriesQueryOptions {
   includePrivate?: boolean;
+  locale?: string;
   limit?: number;
   offset?: number;
 }
@@ -62,6 +65,7 @@ function toSeriesSummary(row: DbSeriesSummary): SeriesSummary {
   return {
     id: row.id,
     slug: row.slug,
+    locale: row.locale,
     title: row.title,
     description: row.description,
     coverImageUrl: resolveBackendAssetUrl(normalizedCoverImageUrl),
@@ -88,6 +92,9 @@ function buildSeriesQuery(options: SeriesQueryOptions = {}): string {
   const params = new URLSearchParams();
   if (typeof options.includePrivate === "boolean") {
     params.set("include_private", options.includePrivate ? "true" : "false");
+  }
+  if (options.locale) {
+    params.set("locale", options.locale);
   }
   if (typeof options.limit === "number") {
     params.set("limit", String(options.limit));
@@ -132,6 +139,7 @@ export async function listFeaturedSeries(
   const limit = typeof options.limit === "number" ? options.limit : 3;
   return listSeries({
     includePrivate: options.includePrivate,
+    locale: options.locale,
     limit: limit,
   });
 }

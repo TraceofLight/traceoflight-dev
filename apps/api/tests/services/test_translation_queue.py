@@ -33,8 +33,8 @@ def test_enqueued_job_uses_full_function_path(fake_redis) -> None:
         target_locale="ja",
     )
 
-    assert job.func_name == "app.services.translation_worker.translate_post_to_locale"
-    assert job.args == (str(source_id), "ja")
+    assert job.func_name == "app.services.translation_worker.translate_to_locale"
+    assert job.args == ("post", str(source_id), "ja")
 
 
 def test_enqueue_normalizes_uuid_to_string(fake_redis) -> None:
@@ -47,7 +47,7 @@ def test_enqueue_normalizes_uuid_to_string(fake_redis) -> None:
         target_locale="zh",
     )
 
-    assert isinstance(job.args[0], str)
+    assert isinstance(job.args[1], str)
 
 
 def test_translation_queue_uses_configured_name(fake_redis) -> None:
@@ -59,3 +59,20 @@ def test_translation_queue_uses_configured_name(fake_redis) -> None:
 
     assert fake_redis.llen("rq:queue:custom-queue") == 1
     assert fake_redis.llen("rq:queue:translations") == 0
+
+
+def test_enqueue_with_kind_series(fake_redis) -> None:
+    queue = TranslationQueue(connection=fake_redis, name="translations")
+    job = queue.enqueue_translation_job(
+        source_post_id=uuid.uuid4(), target_locale="ja", kind="series",
+    )
+    assert job.func_name == "app.services.translation_worker.translate_to_locale"
+    assert job.args[0] == "series"
+
+
+def test_enqueue_default_kind_is_post(fake_redis) -> None:
+    queue = TranslationQueue(connection=fake_redis, name="translations")
+    job = queue.enqueue_translation_job(
+        source_post_id=uuid.uuid4(), target_locale="en",
+    )
+    assert job.args[0] == "post"

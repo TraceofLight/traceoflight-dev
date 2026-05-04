@@ -51,6 +51,7 @@ class _StubSeriesService:
         include_private: bool = False,
         limit: int = 50,
         offset: int = 0,
+        locale=None,
     ):  # type: ignore[no-untyped-def]
         self.list_calls.append((include_private, limit, offset))
         return [_series_payload("my-series")]

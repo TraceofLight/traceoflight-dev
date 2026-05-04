@@ -24,6 +24,7 @@ export interface RelatedSeriesPost {
 export interface ProjectItem {
   id: string;
   slug: string;
+  locale?: string;
   title: string;
   summary: string;
   description: string;
@@ -74,6 +75,7 @@ interface DbRelatedSeriesPost {
 interface DbProjectPost {
   id: string;
   slug: string;
+  locale?: string;
   title: string;
   excerpt: string | null;
   body_markdown: string;
@@ -96,6 +98,7 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
   return {
     id: project.id,
     slug: project.slug,
+    locale: project.locale,
     title: project.title,
     summary: project.excerpt?.trim() ?? "",
     intro: profile.project_intro?.trim() ?? "",
@@ -130,6 +133,7 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
 interface ListProjectsOptions {
   limit?: number;
   offset?: number;
+  locale?: string;
 }
 
 export async function listPublishedDbProjects(
@@ -137,7 +141,14 @@ export async function listPublishedDbProjects(
 ): Promise<ProjectItem[]> {
   const limit = options.limit ?? 50;
   const offset = options.offset ?? 0;
-  const response = await requestBackend(`/projects?limit=${limit}&offset=${offset}`);
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  const normalizedLocale = options.locale?.trim().toLowerCase() ?? "";
+  if (normalizedLocale) {
+    params.set("locale", normalizedLocale);
+  }
+  const response = await requestBackend(`/projects?${params.toString()}`);
   if (!response.ok) {
     throw new Error(`failed to fetch projects: ${response.status}`);
   }
@@ -146,8 +157,21 @@ export async function listPublishedDbProjects(
   return payload.map(toProjectItem);
 }
 
-export async function getPublishedDbProjectBySlug(slug: string): Promise<ProjectItem | null> {
-  const response = await requestBackend(`/projects/${encodeURIComponent(slug)}`);
+interface GetProjectOptions {
+  locale?: string;
+}
+
+export async function getPublishedDbProjectBySlug(
+  slug: string,
+  options: GetProjectOptions = {},
+): Promise<ProjectItem | null> {
+  const params = new URLSearchParams();
+  const normalizedLocale = options.locale?.trim().toLowerCase() ?? "";
+  if (normalizedLocale) {
+    params.set("locale", normalizedLocale);
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const response = await requestBackend(`/projects/${encodeURIComponent(slug)}${query}`);
   if (response.status === 404) {
     return null;
   }

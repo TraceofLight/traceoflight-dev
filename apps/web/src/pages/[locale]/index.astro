@@ -1,0 +1,698 @@
+---
+import { Image } from "astro:assets";
+import PostCard from "../../components/PostCard.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import SeriesCard from "../../components/SeriesCard.astro";
+import profileImage from "../../assets/traceoflight-profile.png";
+import { GITHUB_URL, SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { listPublishedDbPostSummaries } from "../../lib/blog-db";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
+import {
+  getBlogSource,
+  getContentProvider,
+  toPostCard,
+  type PostCard as PostCardData,
+} from "../../lib/content-source";
+import { listPublishedDbProjects } from "../../lib/projects";
+import { listFeaturedSeries } from "../../lib/series-db";
+import {
+  isSupportedPublicLocale,
+  SUPPORTED_PUBLIC_LOCALES,
+  type PublicLocale,
+} from "../../lib/i18n/locales";
+import { pickDictionary } from "../../lib/i18n/dictionary";
+import { buildLocalizedAlternates } from "../../lib/seo/localized-urls";
+import {
+  PUBLIC_BADGE_CLASS,
+  PUBLIC_BADGE_STRONG_CLASS,
+  PUBLIC_EMPTY_STATE_CLASS,
+  PUBLIC_PANEL_SURFACE_CLASS,
+  PUBLIC_PILL_CLASS,
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+  PUBLIC_SECTION_SURFACE_CLASS,
+  PUBLIC_SURFACE_ACTION_CLASS,
+  PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS,
+  PUBLIC_TOP_MEDIA_SURFACE_CLASS,
+} from "../../lib/ui-effects";
+
+// ── Locale validation ──────────────────────────────────────────────────────
+const rawLocale = Astro.params.locale;
+if (!rawLocale || !isSupportedPublicLocale(rawLocale)) {
+  return new Response(null, { status: 404 });
+}
+const locale: PublicLocale = rawLocale;
+const t = pickDictionary(locale);
+
+// ── Data fetching ──────────────────────────────────────────────────────────
+const provider = getContentProvider();
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+
+let posts: PostCardData[] = [];
+if (provider === "db") {
+  try {
+    const dbPosts = await listPublishedDbPostSummaries(3, {
+      includePrivate: isAdminViewer,
+      locale,
+    });
+    posts = dbPosts.map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      description: post.description,
+      readingLabel: post.readingLabel,
+      commentCount: post.commentCount,
+      pubDate: post.publishedAt,
+      updatedDate: post.updatedAt,
+      coverMedia: post.coverMedia,
+      visibility: post.visibility,
+      tags: post.tags.map((tag) => tag.slug),
+    }));
+  } catch {
+    posts = [];
+  }
+} else {
+  posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
+}
+
+let projects: Awaited<ReturnType<typeof listPublishedDbProjects>> = [];
+try {
+  projects = await listPublishedDbProjects({ limit: 3 });
+} catch {
+  projects = [];
+}
+
+// ── CSS helpers ────────────────────────────────────────────────────────────
+const topMediaShellClass =
+  `${PUBLIC_TOP_MEDIA_SURFACE_CLASS} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
+const topMediaCopyPanelClass =
+  `${PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS} px-6 py-7 sm:px-8 sm:py-8`;
+const sectionShellClass = `${PUBLIC_SECTION_SURFACE_CLASS} p-6`;
+const panelSurfaceClass = `${PUBLIC_PANEL_SURFACE_CLASS} p-5`;
+const pillClass = PUBLIC_PILL_CLASS;
+const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;
+const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;
+const resumeRowClass =
+  "grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3";
+const resumePeriodClass = "text-sm leading-7 font-medium text-foreground";
+const resumeContentClass = "space-y-0.5";
+const resumeTextClass = "text-sm leading-7 text-muted-foreground";
+
+const profile = {
+  name: "Hi there, I'm TraceofLight!",
+};
+
+type ResumeBadge = {
+  label: string;
+  icon: string;
+};
+
+type ResumeItem = {
+  main: string;
+  period?: string;
+  sub?: string;
+  badges?: ResumeBadge[];
+};
+
+type ResumeSection = {
+  title: string;
+  items: ResumeItem[];
+};
+
+type ResumeDisplay = {
+  period?: string;
+  text: string;
+};
+
+type TechStackItem = {
+  label: string;
+  icon?: string;
+  iconClass?: string;
+  iconWidth?: number;
+  iconHeight?: number;
+  fallback?: string;
+};
+
+type TechStackGroup = {
+  title: string;
+  items: TechStackItem[];
+};
+
+const inferResumePeriod = (main: string): ResumeDisplay => {
+  const value = main.trim();
+  const rangeMatch = value.match(
+    /^(\d{4}\.\d{2}\.\s*~\s*\d{4}\.\d{2}\.)\s*(.+)$/u,
+  );
+  if (rangeMatch) {
+    return { period: rangeMatch[1], text: rangeMatch[2] };
+  }
+  const monthMatch = value.match(/^(\d{4}\.\d{2}\.)\s*(.+)$/u);
+  if (monthMatch) {
+    return { period: monthMatch[1], text: monthMatch[2] };
+  }
+  const yearMatch = value.match(/^(\d{4})\s+(.+)$/u);
+  if (yearMatch) {
+    return { period: yearMatch[1], text: yearMatch[2] };
+  }
+  return { text: main };
+};
+
+const toResumeDisplay = (item: ResumeItem): ResumeDisplay => {
+  if (item.period) {
+    return { period: item.period, text: item.main };
+  }
+  return inferResumePeriod(item.main);
+};
+
+const introRoleTokens = [
+  "Game Development",
+  "Graphics Programming",
+  "Database Engineering",
+];
+
+const resumeLeftSections: ResumeSection[] = [
+  {
+    title: "Education",
+    items: [
+      { main: "2026.02. 크래프톤 정글 게임테크랩 2기 수료" },
+      { main: "2023.08. 삼성 청년 SW 아카데미 8기 수료" },
+      { main: "2022.08. 연세대학교 도시공학과 졸업" },
+    ],
+  },
+  {
+    title: "License",
+    items: [{ main: "2022.12. SQL 개발자" }],
+  },
+  {
+    title: "Military Service",
+    items: [{ main: "2017.06. ~ 2019.05. 공군 병장 만기전역" }],
+  },
+];
+
+const resumeRightSections: ResumeSection[] = [
+  {
+    title: "Career",
+    items: [{ main: "2023.10. ~ 2024.11. 티맥스티베로 DB본부 연구원" }],
+  },
+  {
+    title: "Experience",
+    items: [
+      {
+        period: "2023.10. ~ 2024.11.",
+        main: "Cloud-Native 차세대 DB 개발 프로젝트 참여",
+        badges: [
+          { label: "C++", icon: "/icons/tech/cplusplus.svg" },
+          { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
+          { label: "Vim", icon: "/icons/tech/vim.svg" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Award",
+    items: [
+      {
+        main: "2021.11. 도시공학과 종합설계 작품전 우수작품상",
+        sub: "미래 모빌리티와 연계한 고양시 발전방향 기획안\n: 성남시와 비교 분석",
+      },
+    ],
+  },
+];
+
+const techStackGroups: TechStackGroup[] = [
+  {
+    title: "Language",
+    items: [
+      { label: "C++", icon: "/icons/tech/cplusplus.svg" },
+      { label: "HLSL", icon: "/icons/tech/hlsl.svg" },
+      { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
+      { label: "Java", icon: "/icons/tech/java.svg" },
+      { label: "Python", icon: "/icons/tech/python.svg" },
+      { label: "SQL", icon: "/icons/tech/sql.svg" },
+    ],
+  },
+  {
+    title: "Game Development",
+    items: [
+      {
+        label: "DirectX 11",
+        icon: "/icons/tech/directx11.webp",
+        iconWidth: 18,
+        iconHeight: 11,
+      },
+      {
+        label: "Unreal Engine 5",
+        icon: "/icons/tech/unrealengine.svg",
+        iconClass: "theme-invert-on-light",
+      },
+    ],
+  },
+  {
+    title: "SCM",
+    items: [
+      { label: "Git", icon: "/icons/tech/git.svg" },
+      { label: "Perforce", icon: "/icons/tech/perforce.svg" },
+    ],
+  },
+  {
+    title: "Web",
+    items: [
+      { label: "FastAPI", icon: "/icons/tech/fastapi.svg" },
+      { label: "Spring Boot", icon: "/icons/tech/springboot.svg" },
+      { label: "React", icon: "/icons/tech/react.svg" },
+    ],
+  },
+];
+
+type FeaturedSeriesCard = {
+  slug: string;
+  title: string;
+  description: string;
+  postCount: number;
+  updatedAt: Date;
+  coverImageUrl: string | undefined;
+};
+
+function isFeaturedSeriesCard(
+  row: FeaturedSeriesCard | null,
+): row is FeaturedSeriesCard {
+  return row !== null;
+}
+
+const featuredSeriesCards: FeaturedSeriesCard[] =
+  provider === "db"
+    ? await (async () => {
+        try {
+          const seriesList = await listFeaturedSeries({
+            includePrivate: isAdminViewer,
+            limit: 3,
+          });
+          return seriesList
+            .map(
+              (series) =>
+                ({
+                  slug: series.slug,
+                  title: series.title,
+                  description: series.description,
+                  postCount: series.postCount,
+                  updatedAt: series.updatedAt,
+                  coverImageUrl: series.coverImageUrl,
+                }) satisfies FeaturedSeriesCard,
+            )
+            .filter(isFeaturedSeriesCard);
+        } catch {
+          return [];
+        }
+      })()
+    : [];
+
+// ── SEO alternates ─────────────────────────────────────────────────────────
+const alternates = buildLocalizedAlternates(
+  Object.fromEntries(SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/`])),
+  new URL(SITE_URL),
+);
+---
+
+<BaseLayout
+  title={`${SITE_TITLE} | ${t.home.pageTitle}`}
+  description={t.home.intro}
+  bodyClass="page-home"
+  locale={locale}
+  alternates={alternates}
+  structuredData={{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: SITE_TITLE,
+        description: t.home.intro,
+        inLanguage: locale,
+        publisher: { "@id": `${SITE_URL}/#person` },
+      },
+      {
+        "@type": "Person",
+        "@id": `${SITE_URL}/#person`,
+        name: SITE_AUTHOR,
+        url: SITE_URL,
+        sameAs: [GITHUB_URL],
+        jobTitle: "Game / Graphics / Database Engineer",
+        knowsAbout: [
+          "Game Development",
+          "Graphics Programming",
+          "Database Engineering",
+        ],
+      },
+    ],
+  }}
+>
+  <div class="flex w-full flex-col gap-8 py-4 sm:py-6">
+    <section
+      class={`grid gap-6 ${topMediaShellClass}`}
+      aria-labelledby="home-profile-title"
+    >
+      <div
+        id="home-intro-copy-panel"
+        class={`grid h-full content-center gap-6 ${topMediaCopyPanelClass}`}
+      >
+        <div class="space-y-4">
+          <p class={pillClass}>About Me</p>
+          <h1
+            id="home-profile-title"
+            class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+          >
+            {profile.name}
+          </h1>
+          <div class="space-y-2.5 text-base leading-[1.65] text-muted-foreground sm:text-lg sm:leading-[1.7]">
+            <p>{t.home.intro}</p>
+          </div>
+        </div>
+
+        <ul class="flex flex-wrap gap-3">
+          {introRoleTokens.map((role) => <li class={pillClass}>{role}</li>)}
+        </ul>
+
+        <div class="flex flex-wrap gap-3">
+          <a class={primaryOutlineActionClass} href={`/${locale}/projects/`}>
+            {t.home.viewProjects}
+          </a>
+          <a class={primaryOutlineActionClass} href={`/${locale}/blog/`}>
+            {t.home.viewBlog}
+          </a>
+        </div>
+      </div>
+
+      <div
+        id="home-intro-profile-panel"
+        class="flex h-full items-center justify-center px-4 py-2 sm:px-6 sm:py-4"
+      >
+        <div
+          id="home-intro-profile-frame"
+          class="aspect-square w-full max-w-[18rem] sm:max-w-[19rem]"
+        >
+          <Image
+            src={profileImage}
+            alt="TraceofLight profile logo"
+            width={320}
+            height={320}
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+            class="h-full w-full object-contain"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="home-experience-education"
+      class={sectionShellClass}
+      aria-labelledby="home-experience-heading"
+    >
+      <div class="space-y-2">
+        <h2
+          id="home-experience-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Profile
+        </h2>
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <div class="grid gap-4">
+          {
+            resumeLeftSections.map((section) => (
+              <article class={panelSurfaceClass}>
+                <h3 class="text-lg font-semibold tracking-tight text-foreground">
+                  {section.title}
+                </h3>
+                <ul class="mt-4 grid gap-4">
+                  {section.items.map((item) => {
+                    const display = toResumeDisplay(item);
+                    return (
+                      <li class="space-y-3">
+                        {display.period ? (
+                          <div class={resumeRowClass}>
+                            <p class={resumePeriodClass}>
+                              {display.period}
+                            </p>
+                            <div class={resumeContentClass}>
+                              <p class={resumeTextClass}>
+                                {display.text}
+                              </p>
+                              {item.sub ? (
+                                <p class={`whitespace-pre-line ${resumeTextClass}`}>
+                                  {item.sub}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div class={resumeContentClass}>
+                            <p class={resumeTextClass}>
+                              {display.text}
+                            </p>
+                            {item.sub ? (
+                              <p class={`whitespace-pre-line ${resumeTextClass}`}>
+                                {item.sub}
+                              </p>
+                            ) : null}
+                          </div>
+                        )}
+                        {item.badges?.length ? (
+                          <ul
+                            class="flex flex-wrap gap-2"
+                            aria-label="Experience stack"
+                          >
+                            {item.badges.map((badge) => (
+                              <li class={PUBLIC_BADGE_CLASS}>
+                                <img
+                                  src={badge.icon}
+                                  alt=""
+                                  loading="lazy"
+                                  width="14"
+                                  height="14"
+                                />
+                                <span>{badge.label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </article>
+            ))
+          }
+        </div>
+
+        <div class="grid gap-4">
+          {
+            resumeRightSections.map((section) => (
+              <article class={panelSurfaceClass}>
+                <h3 class="text-lg font-semibold tracking-tight text-foreground">
+                  {section.title}
+                </h3>
+                <ul class="mt-4 grid gap-4">
+                  {section.items.map((item) => {
+                    const display = toResumeDisplay(item);
+                    return (
+                      <li class="space-y-3">
+                        {display.period ? (
+                          <div class={resumeRowClass}>
+                            <p class={resumePeriodClass}>
+                              {display.period}
+                            </p>
+                            <div class={resumeContentClass}>
+                              <p class={resumeTextClass}>
+                                {display.text}
+                              </p>
+                              {item.sub ? (
+                                <p class={`whitespace-pre-line ${resumeTextClass}`}>
+                                  {item.sub}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div class={resumeContentClass}>
+                            <p class={resumeTextClass}>
+                              {display.text}
+                            </p>
+                            {item.sub ? (
+                              <p class={`whitespace-pre-line ${resumeTextClass}`}>
+                                {item.sub}
+                              </p>
+                            ) : null}
+                          </div>
+                        )}
+                        {item.badges?.length ? (
+                          <ul
+                            class="flex flex-wrap gap-2"
+                            aria-label="Experience stack"
+                          >
+                            {item.badges.map((badge) => (
+                              <li class={PUBLIC_BADGE_CLASS}>
+                                <img
+                                  src={badge.icon}
+                                  alt=""
+                                  loading="lazy"
+                                  width="14"
+                                  height="14"
+                                />
+                                <span>{badge.label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="home-tech-stack"
+      class={sectionShellClass}
+      aria-labelledby="home-tech-heading"
+    >
+      <div class="space-y-2">
+        <h2
+          id="home-tech-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Skill
+        </h2>
+      </div>
+
+      <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {
+          techStackGroups.map((group) => (
+            <article class={panelSurfaceClass}>
+              <h3 class="text-lg font-semibold tracking-tight text-foreground">
+                {group.title}
+              </h3>
+              <ul class="mt-4 flex flex-wrap gap-2">
+                {group.items.map((item) => (
+                    <li class={PUBLIC_BADGE_STRONG_CLASS}>
+                      {item.icon ? (
+                        <img
+                          src={item.icon}
+                          alt={`${item.label} logo`}
+                          class={item.iconClass}
+                          loading="lazy"
+                          width={item.iconWidth ?? 18}
+                          height={item.iconHeight ?? 18}
+                        />
+                      ) : (
+                        <span aria-hidden="true">{item.fallback}</span>
+                      )}
+                      <span>{item.label}</span>
+                    </li>
+                  ))}
+              </ul>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section
+      id="home-featured-projects"
+      class={sectionShellClass}
+      aria-labelledby="home-projects-heading"
+    >
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h2
+          id="home-projects-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Featured Projects
+        </h2>
+        <a class={surfaceActionClass} href={`/${locale}/projects/`}>
+          {t.home.viewProjects}
+        </a>
+      </div>
+
+      <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {
+          projects.map((project) => (
+            <ProjectCard project={project} stackLimit={3} />
+          ))
+        }
+      </div>
+    </section>
+
+    <section
+      id="home-featured-series"
+      class={sectionShellClass}
+      aria-labelledby="home-series-heading"
+    >
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h2
+          id="home-series-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Featured Series
+        </h2>
+        <a class={surfaceActionClass} href={`/${locale}/series/`}>
+          {t.buttons.viewAll}
+        </a>
+      </div>
+
+      {
+        featuredSeriesCards.length > 0 ? (
+          <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {featuredSeriesCards.map((card) => (
+              <SeriesCard series={card} />
+            ))}
+          </div>
+        ) : (
+          <div class={`${PUBLIC_EMPTY_STATE_CLASS} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
+            {t.home.noSeriesYet}
+          </div>
+        )
+      }
+    </section>
+
+    <section
+      id="home-latest-posts"
+      class={sectionShellClass}
+      aria-labelledby="home-posts-heading"
+    >
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h2
+          id="home-posts-heading"
+          class="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          Latest Posts
+        </h2>
+        <a class={surfaceActionClass} href={`/${locale}/blog/`}>
+          {t.home.seeAllPosts}
+        </a>
+      </div>
+
+      {
+        posts.length > 0 ? (
+          <div class="mt-6 grid gap-6 lg:grid-cols-3">
+            {posts.map((post) => (
+              <PostCard post={post} />
+            ))}
+          </div>
+        ) : (
+          <div class={`${PUBLIC_EMPTY_STATE_CLASS} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
+            {t.home.noPostsYet}
+          </div>
+        )
+      }
+    </section>
+
+  </div>
+</BaseLayout>

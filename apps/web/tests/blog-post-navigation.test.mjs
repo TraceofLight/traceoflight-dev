@@ -14,8 +14,8 @@ test("blog post layout keeps top and bottom archive navigation in the new shell"
   assert.match(source, /locale\?: string;/);
   assert.match(source, /const localizedBlogIndexPath = `\/\$\{locale\}\/blog\/`;/);
   assert.match(source, /href=\{localizedBlogIndexPath\}/);
-  assert.match(source, /블로그로 돌아가기/);
-  assert.match(source, /모든 글 보기/);
+  assert.match(source, /t\.blogPost\.backToBlog/);
+  assert.match(source, /t\.blogPost\.viewAllPosts/);
   assert.match(source, /PUBLIC_SURFACE_ACTION_CLASS/);
   assert.match(source, /class=\{PUBLIC_SURFACE_ACTION_CLASS\}/);
   assert.doesNotMatch(source, /button button-ghost/);
@@ -28,7 +28,7 @@ test("blog post layout no longer depends on legacy navigation hook classes", asy
   assert.doesNotMatch(source, /post-bottom-nav/);
   assert.doesNotMatch(source, /post-back-link/);
   assert.doesNotMatch(source, /post-archive-link/);
-  assert.match(source, /모든 글 보기/);
+  assert.match(source, /t\.blogPost\.viewAllPosts/);
 });
 
 test("blog post layout gives markdown code blocks a dedicated shell instead of the plain global pre box", async () => {
@@ -47,5 +47,5 @@ test("blog post layout mounts the comments surface below the archive action", as
   assert.match(source, /client:load/);
   assert.match(source, /commentsData/);
   assert.match(source, /isAdminViewer/);
-  assert.match(source, /모든 글 보기[\s\S]*<section class="mt-10"/);
+  assert.match(source, /t\.blogPost\.viewAllPosts[\s\S]*<section class="mt-10"/);
 });

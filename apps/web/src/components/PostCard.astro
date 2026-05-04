@@ -8,6 +8,8 @@ import {
 } from "../lib/cover-media";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
+import { pickDictionary } from "../lib/i18n/dictionary";
+import type { PublicLocale } from "../lib/i18n/locales";
 import {
   PUBLIC_HOVER_CARD_CLASS,
   PUBLIC_MEDIA_FRAME_CLASS,
@@ -30,6 +32,7 @@ const {
   showVisibility = false,
   locale = "ko",
 } = Astro.props;
+const t = pickDictionary(locale as PublicLocale);
 const localizedPostHref = `/${locale}/blog/${post.slug}/`;
 const normalizedVisibility = post.visibility === "private" ? "private" : "public";
 const descriptionText = post.description?.trim() ?? "";
@@ -94,7 +97,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
             {
               showVisibility && (
                 <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{normalizedVisibility === "private" ? "비공개 포스트" : "공개 포스트"}</span>
+                  <span>{normalizedVisibility === "private" ? t.archiveFilters.privatePost : t.archiveFilters.publicPost}</span>
                 </div>
               )
             }
@@ -118,7 +121,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
             <p class="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
               <time datetime={pubDateIso}>{formattedPubDate}</time>
               <span aria-hidden="true">•</span>
-              <span>댓글 {commentCount}개</span>
+              <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
               <span aria-hidden="true">•</span>
               <span>{readingLabel}</span>
             </p>
@@ -156,7 +159,7 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
             <p class="flex items-center gap-2 text-xs text-muted-foreground">
               <time datetime={pubDateIso}>{formattedPubDate}</time>
               <span aria-hidden="true">•</span>
-              <span>댓글 {commentCount}개</span>
+              <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
               <span aria-hidden="true">•</span>
               <span>{readingLabel}</span>
               {

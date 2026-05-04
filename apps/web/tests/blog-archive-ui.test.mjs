@@ -58,11 +58,11 @@ test("blog archive filter island provides search, sort, and admin visibility con
     source,
     /import \{[\s\S]*PUBLIC_FIELD_FRAME_CLASS[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_STRONG_CLASS[\s\S]*\} from ["']@\/lib\/ui-effects["'];/,
   );
-  assert.match(source, /placeholder="포스트 검색/);
-  assert.match(source, /aria-label="정렬 방식"/);
-  assert.match(source, /글 작성/);
+  assert.match(source, /placeholder=\{labels\.searchPlaceholder\}/);
+  assert.match(source, /aria-label=\{labels\.sortLabel\}/);
+  assert.match(source, /labels\.writePost/);
   assert.match(source, /비공개/);
-  assert.match(source, /총 \{totalCount\}개의 포스트/);
+  assert.match(source, /labels\.totalCountPrefix[\s\S]*\{totalCount\}[\s\S]*labels\.totalCountSuffix/);
   assert.doesNotMatch(source, /const archiveIntroClass =/);
   assert.match(source, /<header className="space-y-3 text-center">/);
   assert.match(source, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
@@ -98,8 +98,8 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /event\.currentTarget\.src = fallbackCoverImageSrc/);
   assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
   assert.match(source, /commentCount: number;/);
-  assert.match(source, /댓글 \{post\.commentCount\}개/);
-  assert.match(source, /댓글 \{post\.commentCount\}개[\s\S]*<span aria-hidden="true">•<\/span>[\s\S]*<span>\{post\.readingLabel\}<\/span>/);
+  assert.match(source, /labels\.commentTitle[\s\S]*\{post\.commentCount\}/);
+  assert.match(source, /labels\.commentTitle[\s\S]*\{post\.commentCount\}[\s\S]*<span aria-hidden="true">•<\/span>[\s\S]*<span>\{post\.readingLabel\}<\/span>/);
   assert.match(source, /const deferredQuery = useDeferredValue\(query\);/);
   assert.match(source, /setAvailableTagFilters\(payload\.tagFilters\);/);
   assert.match(source, /locale\?: string;/);

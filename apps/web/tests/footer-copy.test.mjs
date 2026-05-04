@@ -46,5 +46,5 @@ test("site metadata and missing blog fallback use real copy instead of lorem ips
   assert.doesNotMatch(blogFallbackSource, /Lorem ipsum/i);
   assert.match(blogFallbackSource, /게시글을 찾을 수 없습니다/);
   assert.match(blogFallbackSource, /삭제되었거나 비공개로 전환된 글일 수 있습니다/);
-  assert.match(blogFallbackSource, /블로그로 돌아가기/);
+  assert.match(blogFallbackSource, /t\.blogPost\.backToBlog/);
 });

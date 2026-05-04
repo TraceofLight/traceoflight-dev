@@ -78,6 +78,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
         {
           id: "project-1",
           slug: "render-pipeline",
+          locale: "ko",
           title: "Render Pipeline",
           excerpt: "graphics",
           body_markdown: "body",
@@ -109,6 +110,7 @@ test("runtime sitemap includes public detail urls from db-backed content", async
         {
           id: "series-1",
           slug: "graphics-notes",
+          locale: "ko",
           title: "Graphics Notes",
           description: "series desc",
           cover_image_url: null,
@@ -138,25 +140,62 @@ test("runtime sitemap includes public detail urls from db-backed content", async
 
     assert.equal(response.status, 200);
     assert.equal(response.contentType, "application/xml; charset=utf-8");
-    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/<\/loc>/);
-    // blog index is emitted for every supported locale (the index pages
-    // exist regardless of how many translated post rows have been written)
+
+    // Home: 4 locale roots must be emitted (legacy "/" is NOT emitted)
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/<\/loc>/);
+
+    // Project index: 4 locale URLs (legacy "/projects" is NOT emitted)
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/projects\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/projects\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/projects\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/projects\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/projects<\/loc>/);
+
+    // Project detail: only the actual stored locale (ko), not other locales
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/projects\/render-pipeline\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/projects\/render-pipeline\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/projects\/render-pipeline\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/projects\/render-pipeline\/<\/loc>/);
+
+    // Series index: 4 locale URLs (legacy "/series" is NOT emitted)
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/series\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/series\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/series\/<\/loc>/);
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/series\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/series<\/loc>/);
+
+    // Series detail: only the actual stored locale (ko), not other locales
+    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/series\/graphics-notes\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/series\/graphics-notes\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/series\/graphics-notes\/<\/loc>/);
+    assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/series\/graphics-notes\/<\/loc>/);
+
+    // Blog index is emitted for every supported locale
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/blog\/<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/blog\/<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/blog\/<\/loc>/);
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/blog\/<\/loc>/);
-    // a blog post is emitted only at its actual stored locale; we don't
-    // advertise translated URLs that don't exist as real DB rows yet
+
+    // Blog post: emitted only at its actual stored locale; no other locale variants
     assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ko\/blog\/seo-check\/<\/loc>/);
     assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/en\/blog\/seo-check\/<\/loc>/);
     assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/ja\/blog\/seo-check\/<\/loc>/);
     assert.doesNotMatch(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/zh\/blog\/seo-check\/<\/loc>/);
+
     // xhtml:link alternates are emitted on index entries (which all exist)
     assert.match(response.body, /xhtml:link rel="alternate"/);
     assert.match(response.body, /hreflang="x-default"/);
-    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/projects\/render-pipeline<\/loc>/);
-    assert.match(response.body, /<loc>https:\/\/www\.traceoflight\.dev\/series\/graphics-notes<\/loc>/);
+
+    // lastmod for series detail
+    assert.match(response.body, /<lastmod>2026-03-27T04:00:00.000Z<\/lastmod>/);
+    // lastmod for blog post
     assert.match(response.body, /<lastmod>2026-03-27T05:10:00.000Z<\/lastmod>/);
+
+    // No traceoflight.dev (non-www) URLs
     assert.doesNotMatch(response.body, /<loc>https:\/\/traceoflight\.dev\//);
   } finally {
     server.close();

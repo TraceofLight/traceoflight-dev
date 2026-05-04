@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const homePagePath = new URL("../src/pages/index.astro", import.meta.url);
+const homePagePath = new URL("../src/pages/[locale]/index.astro", import.meta.url);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
 
 test("home page uses tailwind sections while keeping the curated resume content", async () => {
@@ -11,7 +11,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.doesNotMatch(source, /max-w-6xl/);
   assert.match(
     source,
-    /<BaseLayout[\s\S]*title=\{`\$\{SITE_TITLE\} \| 게임 개발 · 그래픽스 프로그래밍 아카이브`\}[\s\S]*description=\{SITE_DESCRIPTION\}[\s\S]*bodyClass="page-home"/,
+    /<BaseLayout[\s\S]*title=\{`\$\{SITE_TITLE\} \| \$\{t\.home\.pageTitle\}`\}[\s\S]*description=\{t\.home\.intro\}[\s\S]*bodyClass="page-home"/,
   );
   assert.match(source, /<div class="flex w-full flex-col gap-8 py-4 sm:py-6">/);
   assert.doesNotMatch(source, /class="home-resume"/);
@@ -32,9 +32,9 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /\/icons\/tech\/react\.svg/);
   assert.match(source, /\/icons\/tech\/fastapi\.svg/);
   assert.match(source, /\/icons\/tech\/vim\.svg/);
-  assert.match(source, /import SeriesCard from "\.\.\/components\/SeriesCard\.astro";/);
+  assert.match(source, /import SeriesCard from "\.\.\/\.\.\/components\/SeriesCard\.astro";/);
   assert.match(source, /featuredSeriesCards\.length > 0/);
-  assert.match(source, /아직 등록된 시리즈가 없습니다\./);
+  assert.match(source, /t\.home\.noSeriesYet/);
   assert.match(
     source,
     /id="home-experience-heading"[\s\S]*?>\s*Profile\s*<\/h2>/,
@@ -59,16 +59,16 @@ test("home page uses tailwind sections while keeping the curated resume content"
     source,
     /<SeriesCard\s+series=\{card\}(?:\s+imageWidth=\{(?:960|IMAGE_SIZES\.postCard\.width)\}\s+imageHeight=\{(?:640|IMAGE_SIZES\.postCard\.height)\})?\s*\/>/,
   );
-  assert.match(source, /import \{ listPublishedDbPostSummaries \} from "\.\.\/lib\/blog-db";/);
-  assert.doesNotMatch(source, /import \{ listPublishedDbPosts \} from "\.\.\/lib\/blog-db";/);
-  assert.match(source, /import \{ listFeaturedSeries \} from "\.\.\/lib\/series-db";/);
+  assert.match(source, /import \{ listPublishedDbPostSummaries \} from "\.\.\/\.\.\/lib\/blog-db";/);
+  assert.doesNotMatch(source, /import \{ listPublishedDbPosts \} from "\.\.\/\.\.\/lib\/blog-db";/);
+  assert.match(source, /import \{ listFeaturedSeries \} from "\.\.\/\.\.\/lib\/series-db";/);
   assert.doesNotMatch(source, /getSeriesBySlug/);
   assert.match(source, /"Game Development"/);
   assert.match(source, /"Graphics Programming"/);
   assert.match(source, /"Database Engineering"/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_TOP_MEDIA_SURFACE_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_TOP_MEDIA_SURFACE_CLASS[\s\S]*\} from "\.\.\/\.\.\/lib\/ui-effects";/,
   );
   assert.match(
     source,
@@ -90,13 +90,14 @@ test("home page uses tailwind sections while keeping the curated resume content"
     source,
     /const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;/,
   );
-  assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/projects">\s*프로젝트 보기\s*<\/a>/);
-  assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/blog">\s*블로그 보기\s*<\/a>/);
-  assert.match(source, /<a class=\{surfaceActionClass\} href="\/projects">\s*View All Projects\s*<\/a>/);
-  assert.match(source, /<a class=\{surfaceActionClass\} href="\/series">\s*View All Series\s*<\/a>/);
+  assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/projects\/`\}>/);
+  assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/blog\/`\}>/);
+  assert.match(source, /<a class=\{surfaceActionClass\} href=\{`\/\$\{locale\}\/projects\/`\}>/);
+  assert.match(source, /<a class=\{surfaceActionClass\} href=\{`\/\$\{locale\}\/series\/`\}>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_CLASS\}>/);
   assert.match(source, /<li class=\{PUBLIC_BADGE_STRONG_CLASS\}>/);
   assert.match(source, /const dbPosts = await listPublishedDbPostSummaries\(3,\s*\{/);
+  assert.match(source, /locale,/);
   assert.match(source, /const featuredSeriesCards: FeaturedSeriesCard\[] =[\s\S]*listFeaturedSeries\(/);
   assert.doesNotMatch(source, /Promise\.all\(\s*seriesList\.map/);
   assert.doesNotMatch(

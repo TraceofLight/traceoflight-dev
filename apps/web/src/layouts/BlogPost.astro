@@ -27,7 +27,8 @@ import {
 } from "../lib/ui-effects";
 import type { PostCommentThreadList } from "../lib/post-comments";
 import { buildBlogPostingSchema } from "../lib/seo/structured-data";
-import LanguageToggle from "../components/public/LanguageToggle.astro";
+import { pickDictionary } from "../lib/i18n/dictionary";
+import type { PublicLocale } from "../lib/i18n/locales";
 
 type MarkdownPostData = CollectionEntry<"blog">["data"];
 
@@ -96,6 +97,7 @@ const {
   locale = "ko",
   alternates = [],
 } = Astro.props;
+const t = pickDictionary(locale as PublicLocale);
 const localizedBlogIndexPath = `/${locale}/blog/`;
 const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const detailCoverWidth = IMAGE_SIZES.blogPostCover.width;
@@ -174,7 +176,7 @@ const articleStructuredData = postSlug
           href={localizedBlogIndexPath}
         >
           <span aria-hidden="true">‹</span>
-          <span>블로그로 돌아가기</span>
+          <span>{t.blogPost.backToBlog}</span>
         </a>
         {
           shouldRenderAdminActions && (
@@ -182,8 +184,6 @@ const articleStructuredData = postSlug
           )
         }
       </nav>
-      {alternates.length > 0 && <LanguageToggle locale={locale} alternates={alternates} />}
-
       {
         topMediaKind === "video" && topMediaVideoUrl ? (
           <video
@@ -243,7 +243,7 @@ const articleStructuredData = postSlug
           href={localizedBlogIndexPath}
         >
           <span aria-hidden="true">☰</span>
-          <span>모든 글 보기</span>
+          <span>{t.blogPost.viewAllPosts}</span>
         </a>
       </nav>
 
@@ -265,7 +265,7 @@ const articleStructuredData = postSlug
       hasSeriesSidebar && seriesContext && (
         <aside
           class="xl:sticky xl:top-24 xl:self-start"
-          aria-label="시리즈 탐색"
+          aria-label={t.blogPost.seriesNavLabel}
         >
           <section class={`rounded-3xl bg-white/96 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
             <div class="space-y-1">
@@ -276,14 +276,14 @@ const articleStructuredData = postSlug
                 {seriesContext.seriesTitle}
               </a>
               <p class="text-sm text-muted-foreground">
-                {seriesContext.totalPosts}개 글 중 {seriesContext.orderIndex}번째
+                {seriesContext.orderIndex} / {seriesContext.totalPosts}
               </p>
             </div>
             <ol class="mt-4 grid gap-3">
               {seriesPosts.map((seriesPost) => {
                 const previewText = (seriesPost.excerpt ?? "").trim();
                 const relationLabel =
-                  seriesPost.relation === "prev" ? "이전 글" : "다음 글";
+                  seriesPost.relation === "prev" ? t.blogPost.prevPost : t.blogPost.nextPost;
                 const resolvedSeriesPostCoverImageSrc = seriesPost.coverImageUrl
                   ? toBrowserImageUrl(seriesPost.coverImageUrl, {
                       width: IMAGE_SIZES.seriesSidebarThumb.width,
@@ -313,7 +313,7 @@ const articleStructuredData = postSlug
                           {seriesPost.title}
                         </strong>
                         <em class="line-clamp-2 text-sm not-italic text-muted-foreground">
-                          {previewText.length > 0 ? previewText : "요약 없음"}
+                          {previewText.length > 0 ? previewText : t.blogPost.noExcerpt}
                         </em>
                       </span>
                     </a>

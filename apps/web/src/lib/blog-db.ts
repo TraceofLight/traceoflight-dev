@@ -361,6 +361,7 @@ export async function listPublishedDbPostSummaries(
 ): Promise<DbBlogPostSummary[]> {
   const page = await listPublishedDbPostSummaryPage({
     includePrivate: options.includePrivate,
+    locale: options.locale,
     limit,
   });
   return page.items;

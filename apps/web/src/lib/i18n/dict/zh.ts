@@ -1,0 +1,71 @@
+import type { Dictionary } from "./ko";
+
+export const zh: Dictionary = {
+  nav: { blog: "博客", projects: "项目", series: "系列" },
+  footer: { copyright: "© TraceofLight", builtWith: "Built with Astro" },
+  buttons: {
+    readMore: "阅读更多", backToList: "返回列表",
+    save: "保存", cancel: "取消", delete: "删除", edit: "编辑",
+    search: "搜索", loadMore: "加载更多", retry: "重试", viewAll: "查看全部",
+  },
+  empty: {
+    noPosts: "还没有文章。", noResults: "没有搜索结果。",
+    noProjects: "还没有项目。", noSeries: "还没有系列。",
+  },
+  blogPost: {
+    backToBlog: "返回博客", viewAllPosts: "查看所有文章",
+    relatedSeries: "本系列其他文章",
+    publishedOn: "发布", updatedOn: "更新", minRead: "分钟阅读",
+    seriesNavLabel: "系列导航",
+    prevPost: "上一篇",
+    nextPost: "下一篇",
+    noExcerpt: "无摘要",
+  },
+  archiveFilters: {
+    searchPlaceholder: "搜索文章",
+    searchLabel: "搜索文章",
+    sortLabel: "排序方式",
+    sort: { latest: "最新", oldest: "最早", title: "按标题" },
+    visibility: { all: "全部", public: "公开", private: "私密" },
+    privatePost: "私密文章",
+    publicPost: "公开文章",
+    totalCountPrefix: "共 ",
+    totalCountSuffix: " 篇文章",
+    commentCount: "条",
+    loadingPosts: "正在加载文章。",
+    loadError: "加载文章失败。",
+    loadMoreError: "加载更多文章失败。",
+    coverImageAlt: "封面图片",
+    writePost: "写文章",
+    readPost: "阅读",
+    noPosts: "暂无文章。",
+    archiveDescription: "TraceofLight 的开发故事与随笔归档",
+  },
+  languageToggle: { ko: "한국어", en: "English", ja: "日本語", zh: "中文" },
+  notFound: {
+    title: "页面未找到",
+    description: "您查找的页面不存在或已被移动。",
+    cta: "返回首页",
+  },
+  projectDetail: {
+    role: "角色", period: "时间",
+    highlights: "亮点", resources: "资源",
+  },
+  seriesDetail: {
+    postCount: "文章数", empty: "本系列还没有文章。",
+  },
+  comments: {
+    title: "评论", placeholder: "写下评论",
+    submit: "发表评论", empty: "还没有评论。",
+    deleteConfirm: "确定要删除吗?",
+  },
+  home: {
+    intro: "你好，我是 TraceofLight。",
+    recentPosts: "最近文章", seeAllPosts: "查看所有文章",
+    viewProjects: "查看项目",
+    viewBlog: "查看博客",
+    noSeriesYet: "还没有注册的系列。",
+    noPostsYet: "还没有公开的文章。",
+    pageTitle: "游戏开发 · 图形编程归档",
+  },
+} as const;

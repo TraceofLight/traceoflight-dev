@@ -59,7 +59,7 @@ const visitorSummary = await getGa4VisitorSummary();
   </head>
   <body class="site-shell">
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <Header />
+    <Header locale={locale} alternates={alternates} />
     <main id="main-content" class="page container" transition:name="page-content">
       <slot />
     </main>

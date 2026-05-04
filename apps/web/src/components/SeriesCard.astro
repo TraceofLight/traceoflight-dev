@@ -25,6 +25,7 @@ interface Props {
   imageWidth?: number;
   imageHeight?: number;
   fallbackCoverImageSrc?: string;
+  locale?: string;
 }
 
 const {
@@ -32,7 +33,9 @@ const {
   imageWidth = IMAGE_SIZES.postCard.width,
   imageHeight = IMAGE_SIZES.postCard.height,
   fallbackCoverImageSrc,
+  locale,
 } = Astro.props;
+const seriesHref = locale ? `/${locale}/series/${series.slug}` : `/series/${series.slug}`;
 const fallbackCoverImage = DEFAULT_SERIES_IMAGE;
 const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl(fallbackCoverImage, {
   width: imageWidth,
@@ -60,7 +63,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
 <article class="group h-full">
   <a
     class={`flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`}
-    href={`/series/${series.slug}`}
+    href={seriesHref}
   >
     <div class={mediaFrameClass}>
       <img

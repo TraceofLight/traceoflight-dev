@@ -33,7 +33,7 @@ def test_series_tables_and_uniques_exist() -> None:
         for index in series_table.indexes
         if index.unique
     }
-    assert ("slug",) in (constraint_unique_sets | index_unique_sets)
+    assert ("locale", "slug") in (constraint_unique_sets | index_unique_sets)
 
     mapping_unique_sets = {
         tuple(sorted(constraint.columns.keys()))

@@ -1,0 +1,108 @@
+---
+import SeriesCard from "../../../components/SeriesCard.astro";
+import SeriesOrderPanel from "../../../components/public/SeriesOrderPanel";
+import {
+  DEFAULT_SERIES_IMAGE,
+  IMAGE_SIZES,
+  SITE_AUTHOR,
+  SITE_TITLE,
+  SITE_URL,
+} from "../../../consts";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
+import { toBrowserImageUrl } from "../../../lib/cover-media";
+import { listSeries } from "../../../lib/series-db";
+import {
+  isSupportedPublicLocale,
+  SUPPORTED_PUBLIC_LOCALES,
+  type PublicLocale,
+} from "../../../lib/i18n/locales";
+import { pickDictionary } from "../../../lib/i18n/dictionary";
+import { buildLocalizedAlternates } from "../../../lib/seo/localized-urls";
+
+// ── Locale validation ──────────────────────────────────────────────────────
+const rawLocale = Astro.params.locale;
+if (!rawLocale || !isSupportedPublicLocale(rawLocale)) {
+  return new Response(null, { status: 404 });
+}
+const locale: PublicLocale = rawLocale;
+const t = pickDictionary(locale);
+
+// ── Data fetching ──────────────────────────────────────────────────────────
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+const defaultSeriesCoverImage = DEFAULT_SERIES_IMAGE;
+const defaultSeriesCoverImageSrc = toBrowserImageUrl(defaultSeriesCoverImage, {
+  width: IMAGE_SIZES.postCard.width,
+  height: IMAGE_SIZES.postCard.height,
+  fit: "cover",
+});
+
+let series: Awaited<ReturnType<typeof listSeries>> = [];
+try {
+  series = await listSeries({ includePrivate: isAdminViewer, locale, limit: 100 });
+} catch {
+  series = [];
+}
+
+// ── SEO alternates ─────────────────────────────────────────────────────────
+const alternates = buildLocalizedAlternates(
+  Object.fromEntries(SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/series/`])) as Record<PublicLocale, string>,
+  new URL(SITE_URL),
+);
+---
+
+<BaseLayout
+  title={`${t.nav.series} | ${SITE_TITLE}`}
+  description="주제별로 정리한 TraceofLight 시리즈 모음"
+  locale={locale}
+  alternates={alternates}
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${t.nav.series} | ${SITE_TITLE}`,
+    url: new URL(`/${locale}/series`, SITE_URL).toString(),
+    inLanguage: locale === "ko" ? "ko-KR" : locale,
+    author: {
+      "@type": "Person",
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+  }}
+>
+  <section
+    id="series-archive"
+    class="flex w-full flex-col gap-8"
+  >
+    <header class="space-y-4 text-center">
+      <h1
+        class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+      >
+        {t.nav.series}
+      </h1>
+      {isAdminViewer && (
+        <div class="flex w-full justify-center gap-3 sm:justify-end">
+          <SeriesOrderPanel client:load series={series} />
+        </div>
+      )}
+    </header>
+
+    {
+      series.length > 0 ? (
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {series.map((s) => (
+            <SeriesCard
+              series={s}
+              fallbackCoverImageSrc={defaultSeriesCoverImageSrc}
+              locale={locale}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="rounded-3xl border border-dashed border-white/80 bg-white/84 px-6 py-10 text-center text-sm text-muted-foreground shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+          {t.empty.noSeries}
+        </div>
+      )
+    }
+  </section>
+</BaseLayout>

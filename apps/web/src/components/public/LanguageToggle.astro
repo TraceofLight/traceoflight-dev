@@ -1,4 +1,6 @@
 ---
+import { pickDictionary } from "../../lib/i18n/dictionary";
+
 interface AlternateLink {
   hrefLang: string;
   href: URL | string;
@@ -9,12 +11,8 @@ interface Props {
   alternates: ReadonlyArray<AlternateLink>;
 }
 
-const LOCALE_LABELS: Record<string, string> = {
-  ko: "한국어",
-  en: "English",
-  ja: "日本語",
-  zh: "中文",
-};
+// Native-names pattern: always show each language in its own name regardless of viewer locale.
+const LANG_LABELS = pickDictionary("ko").languageToggle;
 
 const { locale, alternates } = Astro.props;
 const visible = alternates.filter(
@@ -30,7 +28,7 @@ const visible = alternates.filter(
       href={typeof alt.href === "string" ? alt.href : alt.href.toString()}
       lang={alt.hrefLang}
     >
-      {LOCALE_LABELS[alt.hrefLang] ?? alt.hrefLang}
+      {LANG_LABELS[alt.hrefLang as keyof typeof LANG_LABELS] ?? alt.hrefLang}
     </a>
   ))}
 </nav>

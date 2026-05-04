@@ -86,21 +86,49 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
     lastmod: (post.updatedAt ?? post.publishedAt).toISOString(),
   }));
 
+  // Project detail entries: emit one URL per actual stored project row (no alternates).
+  const projectEntries: SitemapEntry[] = projects.map((project) => ({
+    path: `/${project.locale ?? "ko"}/projects/${project.slug}/`,
+  }));
+
+  // Series detail entries: emit one URL per actual stored series row (no alternates).
+  const seriesDetailEntries: SitemapEntry[] = series.map((s) => ({
+    path: `/${s.locale ?? "ko"}/series/${s.slug}/`,
+    lastmod: s.updatedAt.toISOString(),
+  }));
+
   return [
     ...postEntries,
-    ...projects.map((project) => ({
-      path: `/projects/${project.slug}`,
-    })),
-    ...series.map((seriesItem) => ({
-      path: `/series/${seriesItem.slug}`,
-      lastmod: seriesItem.updatedAt.toISOString(),
-    })),
+    ...projectEntries,
+    ...seriesDetailEntries,
   ];
 }
 
 export const GET: APIRoute = async ({ site }) => {
   const siteOrigin = resolvePublicSiteOrigin(site);
 
+  // Home — always 4 locales, with alternates
+  const homeAlternates = buildBlogAlternates((l) => `/${l}/`);
+  const homeEntries: SitemapEntry[] = SUPPORTED_PUBLIC_LOCALES.map((l) => ({
+    path: `/${l}/`,
+    alternates: homeAlternates,
+  }));
+
+  // Project index — always 4 locales, with alternates
+  const projectIndexAlternates = buildBlogAlternates((l) => `/${l}/projects/`);
+  const projectIndexEntries: SitemapEntry[] = SUPPORTED_PUBLIC_LOCALES.map((l) => ({
+    path: `/${l}/projects/`,
+    alternates: projectIndexAlternates,
+  }));
+
+  // Series index — always 4 locales, with alternates
+  const seriesIndexAlternates = buildBlogAlternates((l) => `/${l}/series/`);
+  const seriesIndexEntries: SitemapEntry[] = SUPPORTED_PUBLIC_LOCALES.map((l) => ({
+    path: `/${l}/series/`,
+    alternates: seriesIndexAlternates,
+  }));
+
+  // Blog index — always 4 locales, with alternates
   const blogIndexAlternates = buildBlogAlternates((l) => buildLocalizedBlogIndexPath(l));
   const blogIndexEntries: SitemapEntry[] = SUPPORTED_PUBLIC_LOCALES.map((l) => ({
     path: buildLocalizedBlogIndexPath(l),
@@ -108,9 +136,9 @@ export const GET: APIRoute = async ({ site }) => {
   }));
 
   const entries: SitemapEntry[] = [
-    { path: "/" },
-    { path: "/projects" },
-    { path: "/series" },
+    ...homeEntries,
+    ...projectIndexEntries,
+    ...seriesIndexEntries,
     ...blogIndexEntries,
     ...(await getDynamicEntries()),
   ];

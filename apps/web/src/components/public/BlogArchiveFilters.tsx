@@ -50,6 +50,30 @@ type BlogArchiveSummaryResponse = {
   visibilityCounts: BlogArchiveVisibilityCounts;
 };
 
+export type BlogArchiveLabels = {
+  archiveDescription: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  sortLabel: string;
+  sortLatest: string;
+  sortOldest: string;
+  sortTitle: string;
+  visibilityAll: string;
+  visibilityPublic: string;
+  visibilityPrivate: string;
+  writePost: string;
+  totalCountPrefix: string;
+  totalCountSuffix: string;
+  commentTitle: string;
+  commentCountSuffix: string;
+  readPost: string;
+  loadingPosts: string;
+  loadError: string;
+  loadMoreError: string;
+  coverImageAlt: string;
+  noPosts: string;
+};
+
 type BlogArchiveFiltersProps = {
   initialSelectedTags: string[];
   initialQuery?: string;
@@ -64,6 +88,7 @@ type BlogArchiveFiltersProps = {
   tagFilters: BlogArchiveTagFilter[];
   writeHref?: string;
   locale?: string;
+  labels?: BlogArchiveLabels;
 };
 
 const PAGE_SIZE = 24;
@@ -72,8 +97,8 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function getCoverImageAlt(title: string) {
-  return `${title} 대표 이미지`;
+function getCoverImageAlt(title: string, altSuffix: string) {
+  return `${title} ${altSuffix}`;
 }
 
 function buildSummaryRequestUrl(options: {
@@ -195,6 +220,30 @@ const filterChipInactiveClass =
 const filterChipActiveClass =
   "border-sky-300/90 bg-sky-200/85 text-sky-950 shadow-[0_18px_36px_rgba(56,189,248,0.16)] ring-1 ring-sky-300/80";
 
+const DEFAULT_LABELS: BlogArchiveLabels = {
+  archiveDescription: "TraceofLight의 개발과 다양한 이야기 Archive",
+  searchLabel: "포스트 검색",
+  searchPlaceholder: "포스트 검색...",
+  sortLabel: "정렬 방식",
+  sortLatest: "최신순",
+  sortOldest: "오래된순",
+  sortTitle: "제목순",
+  visibilityAll: "전체",
+  visibilityPublic: "공개",
+  visibilityPrivate: "비공개",
+  writePost: "글 작성",
+  totalCountPrefix: "총 ",
+  totalCountSuffix: "개의 포스트",
+  commentTitle: "댓글",
+  commentCountSuffix: "개",
+  readPost: "읽기",
+  loadingPosts: "포스트를 불러오는 중입니다.",
+  loadError: "포스트 목록을 불러오지 못했습니다.",
+  loadMoreError: "추가 포스트를 불러오지 못했습니다.",
+  coverImageAlt: "대표 이미지",
+  noPosts: "게시글이 아직 없습니다.",
+};
+
 export function BlogArchiveFilters({
   initialSelectedTags,
   initialQuery = "",
@@ -213,6 +262,7 @@ export function BlogArchiveFilters({
   tagFilters,
   writeHref = "/admin/posts/new?content_kind=blog",
   locale = "ko",
+  labels = DEFAULT_LABELS,
 }: BlogArchiveFiltersProps) {
   const [query, setQuery] = useState(initialQuery);
   const deferredQuery = useDeferredValue(query);
@@ -308,7 +358,7 @@ export function BlogArchiveFilters({
         setHasMore(false);
         setNextOffset(0);
         setTotalCount(0);
-        setErrorMessage("포스트 목록을 불러오지 못했습니다.");
+        setErrorMessage(labels.loadError);
       })
       .finally(() => {
         if (cancelled || requestSequenceRef.current !== requestSequence) {
@@ -366,7 +416,7 @@ export function BlogArchiveFilters({
           setTotalCount(payload.totalCount);
         })()
           .catch(() => {
-            setErrorMessage("추가 포스트를 불러오지 못했습니다.");
+            setErrorMessage(labels.loadMoreError);
           })
           .finally(() => {
             setIsLoadingMore(false);
@@ -403,7 +453,7 @@ export function BlogArchiveFilters({
           Blog
         </h1>
         <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
-          TraceofLight의 개발과 다양한 이야기 Archive
+          {labels.archiveDescription}
         </p>
       </header>
 
@@ -413,14 +463,14 @@ export function BlogArchiveFilters({
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <label className="grid flex-1 gap-2" htmlFor="blog-search">
-            <span className="sr-only">포스트 검색</span>
+            <span className="sr-only">{labels.searchLabel}</span>
             <div className={PUBLIC_FIELD_FRAME_CLASS}>
               <Input
                 autoComplete="off"
                 className="border-transparent bg-transparent shadow-none focus-visible:ring-0"
                 id="blog-search"
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="포스트 검색..."
+                placeholder={labels.searchPlaceholder}
                 value={query}
               />
             </div>
@@ -433,22 +483,22 @@ export function BlogArchiveFilters({
                 className="border-white/80 bg-white/94 shadow-[0_14px_36px_rgba(15,23,42,0.08)] hover:border-sky-200/70 hover:text-sky-700"
                 variant="outline"
               >
-                <a href={writeHref}>글 작성</a>
+                <a href={writeHref}>{labels.writePost}</a>
               </Button>
             ) : null}
 
             <label className="grid gap-2 text-sm text-muted-foreground">
-              <span className="sr-only">정렬 방식</span>
+              <span className="sr-only">{labels.sortLabel}</span>
               <div className={PUBLIC_FIELD_FRAME_CLASS}>
                 <select
-                  aria-label="정렬 방식"
+                  aria-label={labels.sortLabel}
                   className="h-10 min-w-36 rounded-xl border border-transparent bg-transparent px-3 text-sm text-foreground outline-none transition focus:border-sky-200 focus:bg-sky-50/70"
                   onChange={(event) => setSort(event.target.value as SortMode)}
                   value={sort}
                 >
-                  <option value="latest">최신순</option>
-                  <option value="oldest">오래된순</option>
-                  <option value="title">제목순</option>
+                  <option value="latest">{labels.sortLatest}</option>
+                  <option value="oldest">{labels.sortOldest}</option>
+                  <option value="title">{labels.sortTitle}</option>
                 </select>
               </div>
             </label>
@@ -467,7 +517,7 @@ export function BlogArchiveFilters({
               onClick={() => setVisibility("all")}
               type="button"
             >
-              전체 ({allPostsCount})
+              {labels.visibilityAll} ({allPostsCount})
             </button>
             {isAdminViewer ? (
               <>
@@ -483,7 +533,7 @@ export function BlogArchiveFilters({
                   onClick={() => setVisibility("public")}
                   type="button"
                 >
-                  공개 ({publicCount})
+                  {labels.visibilityPublic} ({publicCount})
                 </button>
                 <button
                   aria-pressed={visibility === "private"}
@@ -497,7 +547,7 @@ export function BlogArchiveFilters({
                   onClick={() => setVisibility("private")}
                   type="button"
                 >
-                  비공개 ({privateCount})
+                  {labels.visibilityPrivate} ({privateCount})
                 </button>
               </>
             ) : null}
@@ -534,7 +584,7 @@ export function BlogArchiveFilters({
       </section>
 
       <p className="text-sm text-muted-foreground">
-        총 {totalCount}개의 포스트
+        {`${labels.totalCountPrefix}${totalCount}${labels.totalCountSuffix}`}
       </p>
 
       {errorMessage ? (
@@ -549,13 +599,13 @@ export function BlogArchiveFilters({
             {filteredPosts.map((post) => (
               <article key={post.slug} className="group h-full">
                 <a
-                  aria-label={`${post.title} 읽기`}
+                  aria-label={`${post.title} ${labels.readPost}`}
                   className={anchorClass}
                   href={`/${locale}/blog/${post.slug}/`}
                 >
                   <div className={mediaFrameClass}>
                     <img
-                      alt={getCoverImageAlt(post.title)}
+                      alt={getCoverImageAlt(post.title, labels.coverImageAlt)}
                       className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-300 group-hover:scale-[1.06]"
                       loading="lazy"
                       onError={(event) => {
@@ -570,7 +620,7 @@ export function BlogArchiveFilters({
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{formatDateLabel(post.publishedAt)}</span>
                       <span aria-hidden="true">•</span>
-                      <span>댓글 {post.commentCount}개</span>
+                      <span>{labels.commentTitle} {post.commentCount}{labels.commentCountSuffix}</span>
                       <span aria-hidden="true">•</span>
                       <span>{post.readingLabel}</span>
                       {isAdminViewer && post.visibility === "private" ? (
@@ -619,13 +669,13 @@ export function BlogArchiveFilters({
 
           {isRefreshing || isLoadingMore ? (
             <p className="text-center text-sm text-muted-foreground">
-              포스트를 불러오는 중입니다.
+              {labels.loadingPosts}
             </p>
           ) : null}
         </>
       ) : (
         <div className="rounded-3xl border border-dashed border-border/60 bg-card/50 px-6 py-14 text-center text-sm text-muted-foreground">
-          게시글이 아직 없습니다.
+          {labels.noPosts}
         </div>
       )}
     </section>

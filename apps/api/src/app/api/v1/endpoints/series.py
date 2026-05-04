@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.deps import get_series_service
 from app.api.error_handlers import integrity_conflict_detail
 from app.api.security import optional_internal_secret, require_internal_secret
+from app.models.post import PostLocale
 from app.repositories.series_repository import SeriesConflictError, SeriesValidationError
 from app.schemas.series import (
     SeriesDetailRead,
@@ -56,6 +57,10 @@ def list_series(
         default=None,
         description="When internal secret is valid, controls whether private/draft-linked posts are included.",
     ),
+    locale: PostLocale | None = Query(
+        default=None,
+        description="Filter series by locale. When omitted, returns all locales.",
+    ),
     trusted_internal: bool = Depends(optional_internal_secret),
     service: SeriesService = Depends(get_series_service),
 ) -> list[SeriesRead]:
@@ -63,6 +68,7 @@ def list_series(
         include_private=_resolve_include_private(include_private, trusted_internal),
         limit=limit,
         offset=offset,
+        locale=locale,
     )
 
 

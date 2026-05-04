@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.post import PostVisibility
+from app.models.post import PostLocale, PostVisibility
 
 
 class SeriesUpsert(BaseModel):
@@ -65,6 +65,18 @@ class SeriesRead(BaseModel):
     cover_image_url: str | None
     post_count: int = Field(
         description="Number of posts included in current visibility scope.",
+    )
+    locale: PostLocale = Field(
+        default=PostLocale.KO,
+        description="Locale code for this stored series variant.",
+    )
+    translation_group_id: uuid.UUID | None = Field(
+        default=None,
+        description="Shared translation group identifier.",
+    )
+    source_series_id: uuid.UUID | None = Field(
+        default=None,
+        description="Source series identifier when translated.",
     )
     created_at: datetime
     updated_at: datetime

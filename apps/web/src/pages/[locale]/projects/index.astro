@@ -1,0 +1,91 @@
+---
+import ProjectCard from "../../../components/ProjectCard.astro";
+import ProjectOrderPanel from "../../../components/public/ProjectOrderPanel";
+import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../../consts";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
+import { listPublishedDbProjects } from "../../../lib/projects";
+import {
+  isSupportedPublicLocale,
+  SUPPORTED_PUBLIC_LOCALES,
+  type PublicLocale,
+} from "../../../lib/i18n/locales";
+import { pickDictionary } from "../../../lib/i18n/dictionary";
+import { buildLocalizedAlternates } from "../../../lib/seo/localized-urls";
+import {
+  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
+} from "../../../lib/ui-effects";
+
+// ── Locale validation ──────────────────────────────────────────────────────
+const rawLocale = Astro.params.locale;
+if (!rawLocale || !isSupportedPublicLocale(rawLocale)) {
+  return new Response(null, { status: 404 });
+}
+const locale: PublicLocale = rawLocale;
+const t = pickDictionary(locale);
+
+// ── Data fetching ──────────────────────────────────────────────────────────
+const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+const projects = await listPublishedDbProjects({ locale });
+const projectWriteHref = "/admin/posts/new?content_kind=project";
+
+// ── SEO alternates ─────────────────────────────────────────────────────────
+const alternates = buildLocalizedAlternates(
+  Object.fromEntries(SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/projects/`])) as Record<PublicLocale, string>,
+  new URL(SITE_URL),
+);
+---
+
+<BaseLayout
+  title={`${t.nav.projects} | ${SITE_TITLE}`}
+  description="게임 개발과 그래픽스, 웹 작업을 포함한 TraceofLight의 프로젝트 모음"
+  locale={locale}
+  alternates={alternates}
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${t.nav.projects} | ${SITE_TITLE}`,
+    url: new URL(`/${locale}/projects`, SITE_URL).toString(),
+    inLanguage: locale === "ko" ? "ko-KR" : locale,
+    author: {
+      "@type": "Person",
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+  }}
+>
+  <section class="flex w-full flex-col gap-8">
+    <header class="space-y-4 text-center">
+      <h1
+        class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+      >
+        Projects
+      </h1>
+      {isAdminViewer && (
+        <div class="flex w-full justify-center gap-3 sm:justify-end">
+          <ProjectOrderPanel client:load projects={projects} />
+          <a class={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS} href={projectWriteHref}>
+            {t.archiveFilters.writePost}
+          </a>
+        </div>
+      )}
+    </header>
+
+    {
+      projects.length > 0 ? (
+        <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {projects.map((project) => (
+            <ProjectCard project={project} locale={locale} />
+          ))}
+        </section>
+      ) : (
+        <section class="rounded-3xl border border-dashed border-border/70 bg-card/80 px-6 py-12 text-center shadow-sm">
+          <p class="text-base text-muted-foreground">
+            {t.empty.noProjects}
+          </p>
+        </section>
+      )
+    }
+  </section>
+</BaseLayout>

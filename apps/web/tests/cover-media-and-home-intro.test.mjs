@@ -12,7 +12,7 @@ const blogPostLayoutPath = new URL("../src/layouts/BlogPost.astro", import.meta.
 const blogIndexPath = new URL("../src/pages/[locale]/blog/index.astro", import.meta.url);
 const postCardPath = new URL("../src/components/PostCard.astro", import.meta.url);
 const seriesCardPath = new URL("../src/components/SeriesCard.astro", import.meta.url);
-const homePagePath = new URL("../src/pages/index.astro", import.meta.url);
+const homePagePath = new URL("../src/pages/[locale]/index.astro", import.meta.url);
 const seriesIndexPath = new URL("../src/pages/series/index.astro", import.meta.url);
 const seriesDetailPath = new URL("../src/pages/series/[slug].astro", import.meta.url);
 const seriesAdminPanelPath = new URL(
@@ -89,8 +89,8 @@ test("home intro section uses separate copy and profile panels with centered pro
   assert.match(source, /class="h-full w-full object-contain"/);
   assert.match(source, /src=\{profileImage\}/);
   assert.match(source, /const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;/);
-  assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/projects">/);
-  assert.match(source, /<a class=\{primaryOutlineActionClass\} href="\/blog">/);
+  assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/projects\/`\}>/);
+  assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/blog\/`\}>/);
   assert.doesNotMatch(source, /h\u0065roRoleTokens/);
 });
 

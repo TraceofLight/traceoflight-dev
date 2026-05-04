@@ -4,10 +4,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.post import PostLocale, PostTranslationSourceKind, PostTranslationStatus, _enum_values
 
 if TYPE_CHECKING:
     from app.models.post import Post
@@ -15,12 +16,34 @@ if TYPE_CHECKING:
 
 class Series(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "series"
+    __table_args__ = (
+        UniqueConstraint("slug", "locale", name="uq_series_slug_locale"),
+    )
 
-    slug: Mapped[str] = mapped_column(String(160), unique=True, index=True, nullable=False)
+    slug: Mapped[str] = mapped_column(String(160), index=True, nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     cover_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     list_order_index: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    locale: Mapped[PostLocale] = mapped_column(
+        Enum(PostLocale, name="post_locale", values_callable=_enum_values),
+        index=True, nullable=False, default=PostLocale.KO,
+    )
+    translation_group_id: Mapped[uuid.UUID] = mapped_column(
+        index=True, nullable=False, default=uuid.uuid4,
+    )
+    source_series_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("series.id", ondelete="SET NULL"), nullable=True, index=True,
+    )
+    translation_status: Mapped[PostTranslationStatus] = mapped_column(
+        Enum(PostTranslationStatus, name="post_translation_status", values_callable=_enum_values),
+        nullable=False, default=PostTranslationStatus.SOURCE,
+    )
+    translation_source_kind: Mapped[PostTranslationSourceKind] = mapped_column(
+        Enum(PostTranslationSourceKind, name="post_translation_source_kind", values_callable=_enum_values),
+        nullable=False, default=PostTranslationSourceKind.MANUAL,
+    )
+    translated_from_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     series_posts: Mapped[list["SeriesPost"]] = relationship(
         "SeriesPost",

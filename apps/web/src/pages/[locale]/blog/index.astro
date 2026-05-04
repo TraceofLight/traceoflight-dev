@@ -1,6 +1,7 @@
 ---
 import BlogArchiveFilters, {
   type BlogArchivePost,
+  type BlogArchiveLabels,
 } from "../../../components/public/BlogArchiveFilters";
 import LanguageToggle from "../../../components/public/LanguageToggle.astro";
 import {
@@ -28,6 +29,7 @@ import {
 } from "../../../lib/i18n/locales";
 import { buildLocalizedAlternates } from "../../../lib/seo/localized-urls";
 import { formatReadingTimeLabel } from "../../../lib/reading-time";
+import { pickDictionary } from "../../../lib/i18n/dictionary";
 
 const rawLocale = Astro.params.locale;
 if (!rawLocale || !isSupportedPublicLocale(rawLocale)) {
@@ -39,6 +41,31 @@ const alternates = buildLocalizedAlternates(
   Object.fromEntries(SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/blog/`])) as Record<PublicLocale, string>,
   new URL(SITE_URL),
 );
+
+const t = pickDictionary(locale);
+const archiveLabels: BlogArchiveLabels = {
+  archiveDescription: t.archiveFilters.archiveDescription,
+  searchLabel: t.archiveFilters.searchLabel,
+  searchPlaceholder: t.archiveFilters.searchPlaceholder,
+  sortLabel: t.archiveFilters.sortLabel,
+  sortLatest: t.archiveFilters.sort.latest,
+  sortOldest: t.archiveFilters.sort.oldest,
+  sortTitle: t.archiveFilters.sort.title,
+  visibilityAll: t.archiveFilters.visibility.all,
+  visibilityPublic: t.archiveFilters.visibility.public,
+  visibilityPrivate: t.archiveFilters.visibility.private,
+  writePost: t.archiveFilters.writePost,
+  totalCountPrefix: t.archiveFilters.totalCountPrefix,
+  totalCountSuffix: t.archiveFilters.totalCountSuffix,
+  commentTitle: t.comments.title,
+  commentCountSuffix: t.archiveFilters.commentCount,
+  readPost: t.archiveFilters.readPost,
+  loadingPosts: t.archiveFilters.loadingPosts,
+  loadError: t.archiveFilters.loadError,
+  loadMoreError: t.archiveFilters.loadMoreError,
+  coverImageAlt: t.archiveFilters.coverImageAlt,
+  noPosts: t.archiveFilters.noPosts,
+};
 
 const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
@@ -196,5 +223,6 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
     initialVisibilityCounts={initialVisibilityCounts}
     tagFilters={tagFilters}
     locale={locale}
+    labels={archiveLabels}
   />
 </BaseLayout>

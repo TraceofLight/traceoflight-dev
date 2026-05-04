@@ -16,6 +16,7 @@ interface Props {
   imageWidth?: number;
   imageHeight?: number;
   stackLimit?: number;
+  locale?: string;
 }
 
 const {
@@ -23,7 +24,9 @@ const {
   imageWidth = IMAGE_SIZES.postCard.width,
   imageHeight = IMAGE_SIZES.postCard.height,
   stackLimit,
+  locale,
 } = Astro.props;
+const projectHref = locale ? `/${locale}/projects/${project.slug}` : `/projects/${project.slug}`;
 const visibleStack =
   typeof stackLimit === "number"
     ? project.stack.slice(0, stackLimit)
@@ -55,7 +58,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
   <a
     class={anchorClass}
     data-astro-reload
-    href={`/projects/${project.slug}`}
+    href={projectHref}
   >
     <div class={mediaFrameClass}>
       <img

@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.text import normalize_slug_list
-from app.models.post import Post, PostStatus, PostVisibility
+from app.models.post import Post, PostLocale, PostStatus, PostVisibility
 from app.models.series import Series, SeriesPost
 from app.schemas.series import SeriesUpsert
 
@@ -62,6 +62,9 @@ class SeriesRepository:
             "description": series.description,
             "cover_image_url": series.cover_image_url,
             "post_count": len(scoped_posts),
+            "locale": series.locale,
+            "translation_group_id": series.translation_group_id,
+            "source_series_id": series.source_series_id,
             "created_at": series.created_at,
             "updated_at": series.updated_at,
         }
@@ -74,6 +77,7 @@ class SeriesRepository:
         include_private: bool = False,
         limit: int = 50,
         offset: int = 0,
+        locale: PostLocale | None = None,
     ) -> list[dict[str, object]]:
         stmt = (
             select(Series)
@@ -82,14 +86,29 @@ class SeriesRepository:
             .limit(limit)
             .offset(offset)
         )
+        if locale is not None:
+            stmt = stmt.where(Series.locale == locale)
         rows = list(self.db.scalars(stmt))
         serialized: list[dict[str, object]] = []
         for row in rows:
             item = self._serialize_series(row, include_private=include_private, include_posts=False)
-            if item["post_count"] == 0:
+            if locale is None and item["post_count"] == 0:
                 continue
             serialized.append(item)
         return serialized
+
+    def list_admin_sources(self) -> list[Series]:
+        """Returns Korean source rows only — for admin reorder where each
+        translation_group must be represented by exactly one row."""
+        stmt = (
+            select(Series)
+            .where(
+                Series.locale == PostLocale.KO,
+                Series.source_series_id.is_(None),
+            )
+            .order_by(Series.list_order_index.asc().nulls_last(), Series.created_at.desc())
+        )
+        return list(self.db.scalars(stmt))
 
     def get_by_slug(self, slug: str, include_private: bool = False) -> dict[str, object] | None:
         stmt = (
@@ -205,4 +224,8 @@ class SeriesRepository:
 
         # Transaction commit is owned by the calling service layer.
         self.db.flush()
-        return self.list(include_private=True, limit=max(len(series_slugs), 1), offset=0)
+        sources = self.list_admin_sources()
+        return [
+            self._serialize_series(s, include_private=True, include_posts=False)
+            for s in sources
+        ]

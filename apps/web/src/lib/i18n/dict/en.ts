@@ -1,0 +1,71 @@
+import type { Dictionary } from "./ko";
+
+export const en: Dictionary = {
+  nav: { blog: "Blog", projects: "Projects", series: "Series" },
+  footer: { copyright: "© TraceofLight", builtWith: "Built with Astro" },
+  buttons: {
+    readMore: "Read more", backToList: "Back to list",
+    save: "Save", cancel: "Cancel", delete: "Delete", edit: "Edit",
+    search: "Search", loadMore: "Load more", retry: "Retry", viewAll: "View all",
+  },
+  empty: {
+    noPosts: "No posts yet.", noResults: "No results found.",
+    noProjects: "No projects yet.", noSeries: "No series yet.",
+  },
+  blogPost: {
+    backToBlog: "Back to blog", viewAllPosts: "View all posts",
+    relatedSeries: "More from this series",
+    publishedOn: "Published", updatedOn: "Updated", minRead: "min read",
+    seriesNavLabel: "Series navigation",
+    prevPost: "Previous post",
+    nextPost: "Next post",
+    noExcerpt: "No excerpt",
+  },
+  archiveFilters: {
+    searchPlaceholder: "Search posts",
+    searchLabel: "Search posts",
+    sortLabel: "Sort order",
+    sort: { latest: "Latest", oldest: "Oldest", title: "By title" },
+    visibility: { all: "All", public: "Public", private: "Private" },
+    privatePost: "Private post",
+    publicPost: "Public post",
+    totalCountPrefix: "",
+    totalCountSuffix: " posts",
+    commentCount: "",
+    loadingPosts: "Loading posts...",
+    loadError: "Failed to load posts.",
+    loadMoreError: "Failed to load more posts.",
+    coverImageAlt: "cover image",
+    writePost: "Write post",
+    readPost: "Read",
+    noPosts: "No posts yet.",
+    archiveDescription: "Development stories and more from TraceofLight",
+  },
+  languageToggle: { ko: "한국어", en: "English", ja: "日本語", zh: "中文" },
+  notFound: {
+    title: "Page not found",
+    description: "The page you're looking for doesn't exist or has moved.",
+    cta: "Back to home",
+  },
+  projectDetail: {
+    role: "Role", period: "Period",
+    highlights: "Highlights", resources: "Resources",
+  },
+  seriesDetail: {
+    postCount: "Posts", empty: "This series has no posts yet.",
+  },
+  comments: {
+    title: "Comments", placeholder: "Write a comment",
+    submit: "Post comment", empty: "No comments yet.",
+    deleteConfirm: "Are you sure you want to delete this?",
+  },
+  home: {
+    intro: "Hello, I'm TraceofLight.",
+    recentPosts: "Recent posts", seeAllPosts: "See all posts",
+    viewProjects: "View Projects",
+    viewBlog: "View Blog",
+    noSeriesYet: "No series registered yet.",
+    noPostsYet: "No public posts yet.",
+    pageTitle: "Game Dev · Graphics Programming Archive",
+  },
+} as const;

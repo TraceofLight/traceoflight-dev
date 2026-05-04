@@ -8,7 +8,7 @@ from typing import Any
 from rq import Queue
 from rq.job import Job
 
-_JOB_FUNC_PATH = "app.services.translation_worker.translate_post_to_locale"
+_JOB_FUNC_PATH = "app.services.translation_worker.translate_to_locale"
 
 
 class TranslationQueue:
@@ -26,9 +26,6 @@ class TranslationQueue:
         *,
         source_post_id: uuid.UUID | str,
         target_locale: str,
+        kind: str = "post",
     ) -> Job:
-        return self._queue.enqueue(
-            _JOB_FUNC_PATH,
-            str(source_post_id),
-            target_locale,
-        )
+        return self._queue.enqueue(_JOB_FUNC_PATH, kind, str(source_post_id), target_locale)

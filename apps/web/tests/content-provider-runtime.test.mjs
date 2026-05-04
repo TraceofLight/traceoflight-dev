@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 const contentSourcePath = new URL('../src/lib/content-source.ts', import.meta.url);
-const homePath = new URL('../src/pages/index.astro', import.meta.url);
+const homePath = new URL('../src/pages/[locale]/index.astro', import.meta.url);
 const rssPath = new URL('../src/pages/rss.xml.js', import.meta.url);
 const blogDetailPath = new URL('../src/pages/[locale]/blog/[...slug].astro', import.meta.url);
 
