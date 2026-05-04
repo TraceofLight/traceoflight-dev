@@ -15,6 +15,7 @@ from app.models.post import (
 from app.services.translation_hash import compute_source_hash
 from app.models.series import Series
 from app.services.translation_strategy import PostTranslationStrategy, SeriesTranslationStrategy
+import app.services.translation_worker as translation_worker
 
 
 @pytest.fixture
@@ -98,6 +99,151 @@ def test_post_strategy_upsert_replicates_project_profile(session) -> None:
     assert sibling.project_profile is not None
     assert sibling.project_profile.period_label == "2026.05"
     assert sibling.project_profile.role_summary == "dev"
+
+
+def test_post_strategy_translates_project_profile_fields(session, monkeypatch) -> None:
+    """upsert_sibling calls the provider for each profile text field on non-KO targets."""
+    from app.models.project_profile import ProjectProfile
+
+    p = _korean_post(session)
+    p.content_kind = PostContentKind.PROJECT
+    profile = ProjectProfile(
+        post_id=p.id,
+        period_label="2025. 12. ~ 2026. 02. (6주)",
+        role_summary="개발자",
+        project_intro="프로젝트 소개",
+        card_image_url="card.png",
+        highlights_json=["성과1", "성과2"],
+        resource_links_json=[{"label": "GitHub", "href": "https://github.com/x"}],
+    )
+    session.add(profile)
+    session.commit()
+
+    # Stub provider that prefixes every title with "EN:"
+    class _PrefixProvider:
+        def translate_post(self, post, target_locale):
+            return {
+                "title": f"EN:{post.title}" if post.title else None,
+                "excerpt": None,
+                "body_markdown": post.body_markdown or "",
+            }
+
+    monkeypatch.setattr(translation_worker, "_get_provider", lambda: _PrefixProvider())
+
+    strategy = PostTranslationStrategy()
+    sibling = strategy.upsert_sibling(
+        session, source=p, sibling=None, target_locale=PostLocale.EN,
+        translated_fields={"title": "EN:제목", "excerpt": None, "body_markdown": "EN:안녕"},
+        source_hash="abc",
+    )
+    session.commit()
+
+    tp = sibling.project_profile
+    assert tp is not None
+    assert tp.role_summary == "EN:개발자"
+    assert tp.project_intro == "EN:프로젝트 소개"
+    assert tp.period_label == "EN:2025. 12. ~ 2026. 02. (6주)"
+    assert tp.highlights_json == ["EN:성과1", "EN:성과2"]
+    assert tp.resource_links_json == [{"label": "EN:GitHub", "href": "https://github.com/x"}]
+    # Non-translated field must still be copied
+    assert tp.card_image_url == "card.png"
+
+
+def test_post_strategy_profile_korean_target_copies_verbatim(session, monkeypatch) -> None:
+    """For a KO target sibling, profile fields are copied verbatim without calling the provider."""
+    from app.models.project_profile import ProjectProfile
+
+    # Track whether provider is ever called
+    calls = []
+
+    class _TrackingProvider:
+        def translate_post(self, post, target_locale):
+            calls.append(target_locale)
+            return None
+
+    monkeypatch.setattr(translation_worker, "_get_provider", lambda: _TrackingProvider())
+
+    # Use a unique slug so the KO sibling doesn't clash with the KO source
+    p = _korean_post(session, slug="ko-source-verbatim")
+    p.content_kind = PostContentKind.PROJECT
+    profile = ProjectProfile(
+        post_id=p.id,
+        period_label="2026.01",
+        role_summary="역할",
+        project_intro="소개",
+        card_image_url="img.png",
+        highlights_json=["H"],
+        resource_links_json=[],
+    )
+    session.add(profile)
+    session.commit()
+
+    # Build the sibling manually so it has a distinct id but same group
+    import uuid as _uuid
+    from app.models.post import PostStatus, PostVisibility
+    from datetime import datetime, timezone
+    sibling_post = Post(
+        slug="ko-sibling-verbatim",
+        title="제목", excerpt="짧음", body_markdown="안녕",
+        content_kind=PostContentKind.PROJECT,
+        status=PostStatus.PUBLISHED, visibility=PostVisibility.PUBLIC,
+        locale=PostLocale.KO,
+        translation_group_id=p.translation_group_id,
+        source_post_id=p.id,
+        translation_status=PostTranslationStatus.SYNCED,
+        translation_source_kind=PostTranslationSourceKind.MACHINE,
+        published_at=datetime.now(timezone.utc),
+    )
+    session.add(sibling_post)
+    session.commit()
+    session.refresh(sibling_post)
+
+    strategy = PostTranslationStrategy()
+    result = strategy._sync_project_profile(
+        session, source=p, sibling=sibling_post, target_locale=PostLocale.KO,
+    )
+    session.commit()
+
+    tp = sibling_post.project_profile
+    assert tp is not None
+    assert tp.period_label == "2026.01"
+    assert tp.role_summary == "역할"
+    assert calls == [], "Provider must not be called for KO target"
+
+
+def test_post_strategy_compute_hash_includes_profile(session) -> None:
+    """compute_source_hash changes when project_profile fields change."""
+    from app.models.project_profile import ProjectProfile
+    from app.services.translation_hash import compute_post_source_hash
+
+    p = _korean_post(session)
+    p.content_kind = PostContentKind.PROJECT
+
+    # Hash without profile
+    hash_no_profile = PostTranslationStrategy().compute_source_hash(p)
+
+    profile = ProjectProfile(
+        post_id=p.id,
+        period_label="2026.01",
+        role_summary="dev",
+        project_intro="intro",
+        card_image_url="x",
+        highlights_json=[],
+        resource_links_json=[],
+    )
+    session.add(profile)
+    session.commit()
+    session.refresh(p)
+
+    hash_with_profile = PostTranslationStrategy().compute_source_hash(p)
+    assert hash_no_profile != hash_with_profile
+
+    # Changing role_summary must change the hash
+    profile.role_summary = "designer"
+    session.commit()
+    session.refresh(p)
+    hash_changed = PostTranslationStrategy().compute_source_hash(p)
+    assert hash_changed != hash_with_profile
 
 
 # ---------------------------------------------------------------------------

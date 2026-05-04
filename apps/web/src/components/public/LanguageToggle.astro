@@ -1,6 +1,4 @@
 ---
-import { pickDictionary } from "../../lib/i18n/dictionary";
-
 interface AlternateLink {
   hrefLang: string;
   href: URL | string;
@@ -11,24 +9,55 @@ interface Props {
   alternates: ReadonlyArray<AlternateLink>;
 }
 
-// Native-names pattern: always show each language in its own name regardless of viewer locale.
-const LANG_LABELS = pickDictionary("ko").languageToggle;
+const NATIVE_LABELS: Record<string, string> = {
+  ko: "한국어",
+  en: "English",
+  ja: "日本語",
+  zh: "中文",
+};
 
 const { locale, alternates } = Astro.props;
 const visible = alternates.filter(
   (alt) => alt.hrefLang !== "x-default" && alt.hrefLang !== locale,
 );
+const currentLabel = NATIVE_LABELS[locale] ?? locale;
 ---
 
-<nav aria-label="Language" class="flex flex-wrap gap-2 text-xs text-slate-500">
-  {visible.map((alt) => (
-    <a
-      class="rounded-md px-2 py-1 underline-offset-2 transition hover:bg-white/60 hover:text-slate-700"
-      hreflang={alt.hrefLang}
-      href={typeof alt.href === "string" ? alt.href : alt.href.toString()}
-      lang={alt.hrefLang}
+{visible.length > 0 && (
+  <details class="relative inline-block text-xs">
+    <summary class="cursor-pointer select-none list-none rounded-md px-2 py-1 text-slate-500 transition hover:bg-white/60 hover:text-slate-700">
+      {currentLabel}
+      <span aria-hidden="true" class="ml-1 inline-block">▾</span>
+    </summary>
+    <nav
+      aria-label="Language"
+      class="absolute right-0 top-full z-10 mt-1 min-w-[7rem] rounded-md border border-white/60 bg-white/95 p-1 shadow-md backdrop-blur"
     >
-      {LANG_LABELS[alt.hrefLang as keyof typeof LANG_LABELS] ?? alt.hrefLang}
-    </a>
-  ))}
-</nav>
+      {visible.map((alt) => (
+        <a
+          class="block rounded-sm px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          hreflang={alt.hrefLang}
+          href={typeof alt.href === "string" ? alt.href : alt.href.toString()}
+          lang={alt.hrefLang}
+        >
+          {NATIVE_LABELS[alt.hrefLang] ?? alt.hrefLang}
+        </a>
+      ))}
+    </nav>
+  </details>
+)}
+
+<style>
+  /* hide default disclosure marker on Safari */
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+</style>
+
+<script>
+  document.addEventListener("click", (e) => {
+    document.querySelectorAll<HTMLDetailsElement>("details.relative").forEach((d) => {
+      if (!d.contains(e.target as Node)) d.open = false;
+    });
+  });
+</script>

@@ -59,7 +59,7 @@ class _StubProjectService:
         self.get_called_with: dict[str, object] | None = None
         self.reorder_called_with: list[str] | None = None
 
-    def list_projects(self, limit=20, offset=0, include_private=False):  # type: ignore[no-untyped-def]
+    def list_projects(self, limit=20, offset=0, include_private=False, locale=None):  # type: ignore[no-untyped-def]
         self.list_called_with = {
             "limit": limit,
             "offset": offset,
@@ -67,7 +67,7 @@ class _StubProjectService:
         }
         return [_build_project_payload("trace-renderer")]
 
-    def get_project_by_slug(self, slug: str, include_private=False):  # type: ignore[no-untyped-def]
+    def get_project_by_slug(self, slug: str, include_private=False, locale=None):  # type: ignore[no-untyped-def]
         self.get_called_with = {
             "slug": slug,
             "include_private": include_private,
@@ -136,7 +136,7 @@ def test_project_detail_allows_uploaded_video_media_payload() -> None:
         payload["top_media_video_url"] = "/media/project-demo.mp4"
         return payload
 
-    service.get_project_by_slug = lambda slug, include_private=False: _video_payload(slug)  # type: ignore[assignment]
+    service.get_project_by_slug = lambda slug, include_private=False, locale=None: _video_payload(slug)  # type: ignore[assignment]
     client = _client_with_service(service)
 
     response = client.get("/api/v1/web-service/projects/trace-renderer")

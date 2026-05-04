@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.core.text import normalize_optional_text
-from app.models.post import PostContentKind, PostStatus, PostVisibility
+from app.models.post import PostContentKind, PostLocale, PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.repositories.series_repository import SeriesRepository
 
@@ -27,7 +27,13 @@ class ProjectService:
         self.post_repo = post_repo
         self.series_repo = series_repo
 
-    def list_projects(self, limit: int = 20, offset: int = 0, include_private: bool = False):
+    def list_projects(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        include_private: bool = False,
+        locale: PostLocale | None = None,
+    ):
         status = None if include_private else PostStatus.PUBLISHED
         visibility = None if include_private else PostVisibility.PUBLIC
         return self.post_repo.list(
@@ -36,9 +42,15 @@ class ProjectService:
             status=status,
             visibility=visibility,
             content_kind=PostContentKind.PROJECT,
+            locale=locale,
         )
 
-    def get_project_by_slug(self, slug: str, include_private: bool = False):
+    def get_project_by_slug(
+        self,
+        slug: str,
+        include_private: bool = False,
+        locale: PostLocale | None = None,
+    ):
         status = None if include_private else PostStatus.PUBLISHED
         visibility = None if include_private else PostVisibility.PUBLIC
         project = self.post_repo.get_by_slug(
@@ -46,6 +58,7 @@ class ProjectService:
             status=status,
             visibility=visibility,
             content_kind=PostContentKind.PROJECT,
+            locale=locale,
         )
         if project is None:
             return None

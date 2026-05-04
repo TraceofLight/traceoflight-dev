@@ -15,7 +15,7 @@ from app.models.post import (
     Post, PostLocale, PostTranslationSourceKind, PostTranslationStatus,
 )
 from app.models.series import Series
-from app.services.translation_hash import compute_source_hash
+from app.services.translation_hash import compute_source_hash, compute_post_source_hash
 
 
 class TranslationStrategy(Protocol):
@@ -57,8 +57,11 @@ class PostTranslationStrategy:
         )
 
     def compute_source_hash(self, source: Post) -> str:
-        return compute_source_hash(
-            title=source.title, excerpt=source.excerpt, body_markdown=source.body_markdown,
+        return compute_post_source_hash(
+            title=source.title,
+            excerpt=source.excerpt,
+            body_markdown=source.body_markdown,
+            project_profile=getattr(source, "project_profile", None),
         )
 
     def get_translatable_fields(self, source: Post) -> dict[str, str | None]:
@@ -100,11 +103,13 @@ class PostTranslationStrategy:
             sibling.translation_status = PostTranslationStatus.SYNCED
         elif sibling.translated_from_hash != source_hash:
             sibling.translated_from_hash = source_hash
-        # Replicate project_profile when present
-        self._sync_project_profile(db, source=source, sibling=sibling)
+        # Replicate project_profile when present (translating text fields for non-KO locales)
+        self._sync_project_profile(db, source=source, sibling=sibling, target_locale=target_locale)
         return sibling
 
-    def _sync_project_profile(self, db: Session, *, source: Post, sibling: Post) -> None:
+    def _sync_project_profile(
+        self, db: Session, *, source: Post, sibling: Post, target_locale: PostLocale,
+    ) -> None:
         source_profile = getattr(source, "project_profile", None)
         if source_profile is None:
             return
@@ -114,12 +119,86 @@ class PostTranslationStrategy:
         if target_profile is None:
             target_profile = ProjectProfile(post_id=sibling.id)
             db.add(target_profile)
-        for field in (
-            "period_label", "role_summary", "project_intro", "card_image_url",
-            "highlights_json", "resource_links_json",
-        ):
-            if hasattr(source_profile, field):
-                setattr(target_profile, field, getattr(source_profile, field))
+
+        # Always copy non-translated metadata
+        target_profile.card_image_url = source_profile.card_image_url
+
+        if target_locale == PostLocale.KO:
+            # Korean target — same content as source, no translation needed
+            target_profile.period_label = source_profile.period_label
+            target_profile.role_summary = source_profile.role_summary
+            target_profile.project_intro = source_profile.project_intro
+            target_profile.highlights_json = list(source_profile.highlights_json or [])
+            target_profile.resource_links_json = list(source_profile.resource_links_json or [])
+            return
+
+        # Non-Korean target — translate the user-facing text fields via DeepL
+        translated = self._translate_profile_fields(source_profile, target_locale)
+        target_profile.period_label = translated["period_label"]
+        target_profile.role_summary = translated["role_summary"]
+        target_profile.project_intro = translated["project_intro"]
+        target_profile.highlights_json = translated["highlights"]
+        target_profile.resource_links_json = translated["resource_links"]
+
+    def _translate_profile_fields(self, source_profile, target_locale: PostLocale) -> dict:
+        """Batch-translate the profile text fields. Returns a dict matching the
+        target_profile field shapes. Calls the translation provider once per
+        scalar field and once per highlight / resource-link label.
+
+        TODO (follow-up): batch into a single DeepL call using the list API to
+        reduce round-trips from ~10 to 1 per project-locale pair.
+        """
+        from app.services.translation_worker import _get_provider, _LOCALE_BY_KEY
+
+        # Reverse map PostLocale enum → "en" / "ja" / "zh"
+        target_str = next((k for k, v in _LOCALE_BY_KEY.items() if v == target_locale), None)
+        if target_str is None:
+            # Should not happen — caller always passes a real target locale
+            return {
+                "period_label": source_profile.period_label,
+                "role_summary": source_profile.role_summary,
+                "project_intro": source_profile.project_intro,
+                "highlights": list(source_profile.highlights_json or []),
+                "resource_links": list(source_profile.resource_links_json or []),
+            }
+
+        provider = _get_provider()
+
+        def _translate_one(text: str | None) -> str | None:
+            """Translate a single string by packing it into the title slot of a
+            virtual post object and unpacking the returned title."""
+            if not text:
+                return text
+            view = type("_Single", (), {
+                "title": text, "excerpt": None, "body_markdown": "",
+            })()
+            result = provider.translate_post(view, target_str)
+            if result is None:
+                # NoopProvider (no API key) — keep source verbatim
+                return text
+            return result.get("title") or text
+
+        period_label = _translate_one(source_profile.period_label)
+        role_summary = _translate_one(source_profile.role_summary)
+        project_intro = _translate_one(source_profile.project_intro)
+
+        highlights = [
+            _translate_one(h) or ""
+            for h in (source_profile.highlights_json or [])
+        ]
+
+        resource_links = [
+            {**link, "label": _translate_one(link.get("label", "")) or ""}
+            for link in (source_profile.resource_links_json or [])
+        ]
+
+        return {
+            "period_label": period_label,
+            "role_summary": role_summary,
+            "project_intro": project_intro,
+            "highlights": highlights,
+            "resource_links": resource_links,
+        }
 
     def mark_failed(self, db: Session, *, source: Post, target_locale: PostLocale, source_hash: str) -> None:
         sibling = self.find_sibling(db, source, target_locale)
