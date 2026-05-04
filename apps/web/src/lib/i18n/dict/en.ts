@@ -67,5 +67,41 @@ export const en: Dictionary = {
     noSeriesYet: "No series registered yet.",
     noPostsYet: "No public posts yet.",
     pageTitle: "Game Dev · Graphics Programming Archive",
+    sectionTitles: {
+      education: "Education",
+      license: "License",
+      military: "Military Service",
+      career: "Career",
+      experience: "Experience",
+      award: "Award",
+    },
+    techStackTitles: {
+      language: "Language",
+      gameDev: "Game Development",
+      scm: "SCM",
+      web: "Web",
+    },
+    resume: {
+      education: [
+        "2026.02 Completed KRAFTON Jungle Gametech Lab, 2nd cohort",
+        "2023.08 Completed Samsung Software Academy for Youth (SSAFY), 8th cohort",
+        "2022.08 Yonsei University, B.S. in Urban Planning",
+      ],
+      license: ["2022.12 SQL Developer (SQLD)"],
+      military: ["2017.06 – 2019.05 Republic of Korea Air Force, completed service as Sergeant"],
+      career: ["2023.10 – 2024.11 Researcher, DB Division at TmaxTibero"],
+      experience: [
+        {
+          period: "2023.10 – 2024.11",
+          main: "Cloud-native next-generation DB development project",
+        },
+      ],
+      award: [
+        {
+          main: "2021.11 Excellence Award, Urban Planning Senior Design Showcase",
+          sub: "Goyang City development proposal connected with future mobility:\ncomparative analysis with Seongnam City",
+        },
+      ],
+    },
   },
 } as const;

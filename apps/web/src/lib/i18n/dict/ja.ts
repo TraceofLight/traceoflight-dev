@@ -67,5 +67,41 @@ export const ja: Dictionary = {
     noSeriesYet: "まだシリーズが登録されていません。",
     noPostsYet: "まだ公開された記事がありません。",
     pageTitle: "ゲーム開発 · グラフィックスプログラミングアーカイブ",
+    sectionTitles: {
+      education: "学歴",
+      license: "資格",
+      military: "兵役",
+      career: "経歴",
+      experience: "経験",
+      award: "受賞",
+    },
+    techStackTitles: {
+      language: "言語",
+      gameDev: "ゲーム開発",
+      scm: "SCM",
+      web: "Web",
+    },
+    resume: {
+      education: [
+        "2026.02 KRAFTON Jungleゲームテックラボ 第2期 修了",
+        "2023.08 サムスン青年SWアカデミー（SSAFY）第8期 修了",
+        "2022.08 延世大学校 都市工学科 卒業",
+      ],
+      license: ["2022.12 SQL開発者（SQLD）"],
+      military: ["2017.06 ～ 2019.05 韓国空軍 兵長 満期除隊"],
+      career: ["2023.10 ～ 2024.11 TmaxTibero DB本部 研究員"],
+      experience: [
+        {
+          period: "2023.10 ～ 2024.11",
+          main: "Cloud-Native次世代DB開発プロジェクト参加",
+        },
+      ],
+      award: [
+        {
+          main: "2021.11 都市工学科 総合設計作品展 優秀賞",
+          sub: "未来モビリティと連携した高陽市の発展方向企画案\n：城南市との比較分析",
+        },
+      ],
+    },
   },
 } as const;

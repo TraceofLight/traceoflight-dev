@@ -95,6 +95,42 @@ export const ko = {
     noSeriesYet: "아직 등록된 시리즈가 없습니다.",
     noPostsYet: "아직 공개된 글이 없습니다.",
     pageTitle: "게임 개발 · 그래픽스 프로그래밍 아카이브",
+    sectionTitles: {
+      education: "학력",
+      license: "자격",
+      military: "병역",
+      career: "경력",
+      experience: "경험",
+      award: "수상",
+    },
+    techStackTitles: {
+      language: "언어",
+      gameDev: "게임 개발",
+      scm: "SCM",
+      web: "웹",
+    },
+    resume: {
+      education: [
+        "2026.02. 크래프톤 정글 게임테크랩 2기 수료",
+        "2023.08. 삼성 청년 SW 아카데미 8기 수료",
+        "2022.08. 연세대학교 도시공학과 졸업",
+      ],
+      license: ["2022.12. SQL 개발자"],
+      military: ["2017.06. ~ 2019.05. 공군 병장 만기전역"],
+      career: ["2023.10. ~ 2024.11. 티맥스티베로 DB본부 연구원"],
+      experience: [
+        {
+          period: "2023.10. ~ 2024.11.",
+          main: "Cloud-Native 차세대 DB 개발 프로젝트 참여",
+        },
+      ],
+      award: [
+        {
+          main: "2021.11. 도시공학과 종합설계 작품전 우수작품상",
+          sub: "미래 모빌리티와 연계한 고양시 발전방향 기획안\n: 성남시와 비교 분석",
+        },
+      ],
+    },
   },
 } as const;
 

@@ -67,5 +67,41 @@ export const zh: Dictionary = {
     noSeriesYet: "还没有注册的系列。",
     noPostsYet: "还没有公开的文章。",
     pageTitle: "游戏开发 · 图形编程归档",
+    sectionTitles: {
+      education: "教育",
+      license: "资格证书",
+      military: "兵役",
+      career: "职业",
+      experience: "经历",
+      award: "获奖",
+    },
+    techStackTitles: {
+      language: "语言",
+      gameDev: "游戏开发",
+      scm: "SCM",
+      web: "Web",
+    },
+    resume: {
+      education: [
+        "2026.02 完成 KRAFTON Jungle Gametech Lab 第2期",
+        "2023.08 完成三星青年软件学院（SSAFY）第8期",
+        "2022.08 延世大学城市工学专业毕业",
+      ],
+      license: ["2022.12 SQL开发者（SQLD）"],
+      military: ["2017.06 - 2019.05 韩国空军 中士 服役期满退伍"],
+      career: ["2023.10 - 2024.11 TmaxTibero 数据库本部 研究员"],
+      experience: [
+        {
+          period: "2023.10 - 2024.11",
+          main: "参与云原生新一代数据库开发项目",
+        },
+      ],
+      award: [
+        {
+          main: "2021.11 城市工学专业综合设计作品展 优秀作品奖",
+          sub: "结合未来出行的高阳市发展方向规划方案\n：与城南市的对比分析",
+        },
+      ],
+    },
   },
 } as const;

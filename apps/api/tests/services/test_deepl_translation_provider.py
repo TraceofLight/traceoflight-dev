@@ -56,12 +56,12 @@ def test_translate_post_calls_deepl_with_correct_target_codes() -> None:
     for call in calls:
         assert call.kwargs["source_lang"] == "KO"
         assert call.kwargs["target_lang"] == "EN-US"
-        assert call.kwargs["tag_handling"] == "xml"
+        assert call.kwargs["tag_handling"] == "html"
         assert call.kwargs["ignore_tags"] == ["x-tlp"]
 
 
 def test_translate_passes_xml_tag_handling_options() -> None:
-    """_translate must pass tag_handling='xml' and ignore_tags=['x-tlp'] to DeepL
+    """_translate must pass tag_handling="html" and ignore_tags=['x-tlp'] to DeepL
     so that x-tlp placeholder elements are preserved verbatim in JA translations."""
     body_with_placeholder = 'Some text <x-tlp i="0"/> more text'
     translator = _stub_translator(
@@ -78,7 +78,7 @@ def test_translate_passes_xml_tag_handling_options() -> None:
     )
 
     call = translator.translate_text.call_args
-    assert call.kwargs["tag_handling"] == "xml"
+    assert call.kwargs["tag_handling"] == "html"
     assert call.kwargs["ignore_tags"] == ["x-tlp"]
 
 

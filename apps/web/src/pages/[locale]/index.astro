@@ -172,56 +172,48 @@ const introRoleTokens = [
 
 const resumeLeftSections: ResumeSection[] = [
   {
-    title: "Education",
-    items: [
-      { main: "2026.02. 크래프톤 정글 게임테크랩 2기 수료" },
-      { main: "2023.08. 삼성 청년 SW 아카데미 8기 수료" },
-      { main: "2022.08. 연세대학교 도시공학과 졸업" },
-    ],
+    title: t.home.sectionTitles.education,
+    items: t.home.resume.education.map((main) => ({ main })),
   },
   {
-    title: "License",
-    items: [{ main: "2022.12. SQL 개발자" }],
+    title: t.home.sectionTitles.license,
+    items: t.home.resume.license.map((main) => ({ main })),
   },
   {
-    title: "Military Service",
-    items: [{ main: "2017.06. ~ 2019.05. 공군 병장 만기전역" }],
+    title: t.home.sectionTitles.military,
+    items: t.home.resume.military.map((main) => ({ main })),
   },
 ];
 
 const resumeRightSections: ResumeSection[] = [
   {
-    title: "Career",
-    items: [{ main: "2023.10. ~ 2024.11. 티맥스티베로 DB본부 연구원" }],
+    title: t.home.sectionTitles.career,
+    items: t.home.resume.career.map((main) => ({ main })),
   },
   {
-    title: "Experience",
-    items: [
-      {
-        period: "2023.10. ~ 2024.11.",
-        main: "Cloud-Native 차세대 DB 개발 프로젝트 참여",
-        badges: [
-          { label: "C++", icon: "/icons/tech/cplusplus.svg" },
-          { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
-          { label: "Vim", icon: "/icons/tech/vim.svg" },
-        ],
-      },
-    ],
+    title: t.home.sectionTitles.experience,
+    items: t.home.resume.experience.map((entry) => ({
+      period: entry.period,
+      main: entry.main,
+      badges: [
+        { label: "C++", icon: "/icons/tech/cplusplus.svg" },
+        { label: "Shellscript", icon: "/icons/tech/gnubash.svg" },
+        { label: "Vim", icon: "/icons/tech/vim.svg" },
+      ],
+    })),
   },
   {
-    title: "Award",
-    items: [
-      {
-        main: "2021.11. 도시공학과 종합설계 작품전 우수작품상",
-        sub: "미래 모빌리티와 연계한 고양시 발전방향 기획안\n: 성남시와 비교 분석",
-      },
-    ],
+    title: t.home.sectionTitles.award,
+    items: t.home.resume.award.map((entry) => ({
+      main: entry.main,
+      sub: entry.sub,
+    })),
   },
 ];
 
 const techStackGroups: TechStackGroup[] = [
   {
-    title: "Language",
+    title: t.home.techStackTitles.language,
     items: [
       { label: "C++", icon: "/icons/tech/cplusplus.svg" },
       { label: "HLSL", icon: "/icons/tech/hlsl.svg" },
@@ -232,7 +224,7 @@ const techStackGroups: TechStackGroup[] = [
     ],
   },
   {
-    title: "Game Development",
+    title: t.home.techStackTitles.gameDev,
     items: [
       {
         label: "DirectX 11",
@@ -248,14 +240,14 @@ const techStackGroups: TechStackGroup[] = [
     ],
   },
   {
-    title: "SCM",
+    title: t.home.techStackTitles.scm,
     items: [
       { label: "Git", icon: "/icons/tech/git.svg" },
       { label: "Perforce", icon: "/icons/tech/perforce.svg" },
     ],
   },
   {
-    title: "Web",
+    title: t.home.techStackTitles.web,
     items: [
       { label: "FastAPI", icon: "/icons/tech/fastapi.svg" },
       { label: "Spring Boot", icon: "/icons/tech/springboot.svg" },

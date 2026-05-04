@@ -51,11 +51,13 @@ class DeeplTranslationProvider:
         }
 
     def _translate(self, text: str, target_lang: str) -> str:
+        if not text:
+            return text
         result = self._client.translate_text(
             text,
             source_lang="KO",
             target_lang=target_lang,
-            tag_handling="xml",
+            tag_handling="html",
             ignore_tags=["x-tlp"],
         )
         return str(result.text)

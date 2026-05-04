@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.text import normalize_optional_text
 from app.db.session import SessionLocal
-from app.models.post import Post, PostContentKind
+from app.models.post import Post, PostContentKind, PostLocale
 from app.models.series import Series, SeriesPost
 
 logger = logging.getLogger(__name__)
@@ -65,6 +65,8 @@ def _build_projection_rows(
     for post in posts:
         if getattr(post, "content_kind", PostContentKind.BLOG) != PostContentKind.BLOG:
             continue
+        if getattr(post, "locale", PostLocale.KO) != PostLocale.KO:
+            continue
         series_title = normalize_optional_text(post.series_title)
         if series_title is None:
             continue
@@ -97,11 +99,23 @@ def _build_projection_rows(
 
 
 def rebuild_series_projection_cache() -> dict[str, int]:
+    """Rebuild projection cache for ko-source series only. Sibling-locale series
+    and their series_posts mappings are owned by SeriesTranslationStrategy and
+    are not touched here."""
     with SessionLocal() as db:
-        posts = list(db.scalars(select(Post).where(Post.series_title.is_not(None))))
+        posts = list(
+            db.scalars(
+                select(Post).where(
+                    Post.series_title.is_not(None),
+                    Post.locale == PostLocale.KO,
+                )
+            )
+        )
         existing_rows = list(
             db.scalars(
-                select(Series).options(selectinload(Series.series_posts))
+                select(Series)
+                .options(selectinload(Series.series_posts))
+                .where(Series.locale == PostLocale.KO)
             )
         )
         existing_order_by_slug = {
@@ -122,7 +136,11 @@ def rebuild_series_projection_cache() -> dict[str, int]:
         mapped_post_count = 0
 
         try:
-            db.execute(delete(SeriesPost))
+            ko_series_ids = [row.id for row in existing_rows]
+            if ko_series_ids:
+                db.execute(
+                    delete(SeriesPost).where(SeriesPost.series_id.in_(ko_series_ids))
+                )
 
             for row in projection_rows:
                 series = existing_by_slug.get(row.slug)
@@ -132,6 +150,7 @@ def rebuild_series_projection_cache() -> dict[str, int]:
                         title=row.title,
                         description=f"{row.title} series",
                         cover_image_url=None,
+                        locale=PostLocale.KO,
                     )
                     db.add(series)
                     db.flush()
