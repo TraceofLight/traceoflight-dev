@@ -295,7 +295,48 @@ class SeriesTranslationStrategy:
             sibling.translation_status = PostTranslationStatus.SYNCED
         elif sibling.translated_from_hash != source_hash:
             sibling.translated_from_hash = source_hash
+
+        # Replicate series_posts mappings to sibling (using translated post IDs)
+        self._sync_series_posts(db, source=source, sibling=sibling, target_locale=target_locale)
         return sibling
+
+    def _sync_series_posts(
+        self, db: Session, *, source: Series, sibling: Series, target_locale: PostLocale,
+    ) -> None:
+        """For each (post_id, order_index) in source.series_posts, find the sibling
+        post in target_locale via Post.translation_group_id and create a series_posts
+        row mapping the sibling series to that sibling post.
+
+        If a sibling row already exists for (sibling.id, sibling_post.id), skip.
+        If post_id has no sibling in target_locale (translation hasn't propagated yet),
+        skip silently — the next sibling-series sync will pick it up.
+        """
+        from app.models.series import SeriesPost
+
+        # Wipe sibling's existing mappings — full replace, since order_index may shift
+        sibling.series_posts.clear()
+        db.flush()
+
+        for source_mapping in source.series_posts:
+            source_post = source_mapping.post
+            if source_post is None:
+                continue
+            # Find sibling post via translation_group_id
+            sibling_post = db.scalar(
+                select(Post).where(
+                    Post.translation_group_id == source_post.translation_group_id,
+                    Post.locale == target_locale,
+                )
+            )
+            if sibling_post is None:
+                continue
+            sibling.series_posts.append(
+                SeriesPost(
+                    post_id=sibling_post.id,
+                    order_index=source_mapping.order_index,
+                )
+            )
+        db.flush()
 
     def mark_failed(self, db: Session, *, source: Series, target_locale: PostLocale, source_hash: str) -> None:
         sibling = self.find_sibling(db, source, target_locale)

@@ -55,5 +55,7 @@ class DeeplTranslationProvider:
             text,
             source_lang="KO",
             target_lang=target_lang,
+            tag_handling="xml",
+            ignore_tags=["x-tlp"],
         )
         return str(result.text)

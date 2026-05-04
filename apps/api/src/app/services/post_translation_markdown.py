@@ -19,7 +19,7 @@ _BARE_URL_PATTERN = re.compile(r"(?P<url>https?://[^\s)>\]]+)")
 
 
 def _placeholder(index: int) -> str:
-    return f"@@TLP{index}@@"
+    return f'<x-tlp i="{index}"/>'
 
 
 def _replace_pattern(text: str, pattern: re.Pattern[str], replacements: dict[str, str], *, group_name: str | None = None) -> str:

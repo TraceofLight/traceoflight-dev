@@ -3,7 +3,6 @@ import BlogArchiveFilters, {
   type BlogArchivePost,
   type BlogArchiveLabels,
 } from "../../../components/public/BlogArchiveFilters";
-import LanguageToggle from "../../../components/public/LanguageToggle.astro";
 import {
   DEFAULT_ARTICLE_IMAGE,
   IMAGE_SIZES,
@@ -208,7 +207,6 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
     },
   }}
 >
-  {alternates.length > 0 && <LanguageToggle locale={locale} alternates={alternates} />}
   <BlogArchiveFilters
     client:load
     initialSelectedTags={selectedTagsFromQuery}

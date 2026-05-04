@@ -296,3 +296,94 @@ def test_series_strategy_upsert_creates_sibling(session) -> None:
     assert sibling.locale == PostLocale.JA
     assert sibling.translation_status == PostTranslationStatus.SYNCED
     assert sibling.cover_image_url == s.cover_image_url
+
+
+# ---------------------------------------------------------------------------
+# _sync_series_posts tests
+# ---------------------------------------------------------------------------
+
+def _make_post(db: Session, locale: PostLocale, slug: str, group_id: uuid.UUID) -> Post:
+    p = Post(
+        slug=slug, title="제목", excerpt="짧음", body_markdown="내용",
+        content_kind=PostContentKind.BLOG,
+        status=PostStatus.PUBLISHED, visibility=PostVisibility.PUBLIC,
+        locale=locale, translation_group_id=group_id,
+        translation_status=PostTranslationStatus.SOURCE,
+        translation_source_kind=PostTranslationSourceKind.MANUAL,
+        published_at=datetime.now(timezone.utc),
+    )
+    db.add(p); db.commit(); db.refresh(p); return p
+
+
+def test_series_strategy_replicates_series_posts_to_sibling(session) -> None:
+    """upsert_sibling mirrors source series_posts to the sibling with translated post IDs."""
+    from app.models.series import SeriesPost
+
+    group1 = uuid.uuid4()
+    group2 = uuid.uuid4()
+
+    # Create ko source series with 2 mapped ko posts
+    ko_series = _korean_series(session, slug="ko-series-sync")
+    ko_post1 = _make_post(session, PostLocale.KO, "ko-post-1", group1)
+    ko_post2 = _make_post(session, PostLocale.KO, "ko-post-2", group2)
+
+    session.add(SeriesPost(series_id=ko_series.id, post_id=ko_post1.id, order_index=1))
+    session.add(SeriesPost(series_id=ko_series.id, post_id=ko_post2.id, order_index=2))
+    session.commit()
+    session.refresh(ko_series)
+
+    # Create en sibling posts in the same translation groups
+    en_post1 = _make_post(session, PostLocale.EN, "en-post-1", group1)
+    en_post2 = _make_post(session, PostLocale.EN, "en-post-2", group2)
+
+    strategy = SeriesTranslationStrategy()
+    en_sibling = strategy.upsert_sibling(
+        session, source=ko_series, sibling=None, target_locale=PostLocale.EN,
+        translated_fields={"title": "Series", "excerpt": None, "body_markdown": "Description"},
+        source_hash="hash1",
+    )
+    session.commit()
+    session.refresh(en_sibling)
+
+    assert len(en_sibling.series_posts) == 2
+    mapped_post_ids = {sp.post_id for sp in en_sibling.series_posts}
+    assert en_post1.id in mapped_post_ids
+    assert en_post2.id in mapped_post_ids
+    # order_index must be preserved
+    order_map = {sp.post_id: sp.order_index for sp in en_sibling.series_posts}
+    assert order_map[en_post1.id] == 1
+    assert order_map[en_post2.id] == 2
+
+
+def test_series_strategy_skips_missing_sibling_post(session) -> None:
+    """If a ko post has no en sibling yet, _sync_series_posts skips it silently."""
+    from app.models.series import SeriesPost
+
+    group_no_sibling = uuid.uuid4()
+    group_has_sibling = uuid.uuid4()
+
+    ko_series = _korean_series(session, slug="ko-series-partial")
+    ko_post_orphan = _make_post(session, PostLocale.KO, "ko-orphan", group_no_sibling)
+    ko_post_linked = _make_post(session, PostLocale.KO, "ko-linked", group_has_sibling)
+
+    session.add(SeriesPost(series_id=ko_series.id, post_id=ko_post_orphan.id, order_index=1))
+    session.add(SeriesPost(series_id=ko_series.id, post_id=ko_post_linked.id, order_index=2))
+    session.commit()
+    session.refresh(ko_series)
+
+    # Only create an en sibling for the second post
+    en_post_linked = _make_post(session, PostLocale.EN, "en-linked", group_has_sibling)
+
+    strategy = SeriesTranslationStrategy()
+    en_sibling = strategy.upsert_sibling(
+        session, source=ko_series, sibling=None, target_locale=PostLocale.EN,
+        translated_fields={"title": "Series", "excerpt": None, "body_markdown": "Desc"},
+        source_hash="hash2",
+    )
+    session.commit()
+    session.refresh(en_sibling)
+
+    # Only the post with a sibling should be mapped
+    assert len(en_sibling.series_posts) == 1
+    assert en_sibling.series_posts[0].post_id == en_post_linked.id
+    assert en_sibling.series_posts[0].order_index == 2

@@ -285,6 +285,7 @@ const featuredSeriesCards: FeaturedSeriesCard[] =
         try {
           const seriesList = await listFeaturedSeries({
             includePrivate: isAdminViewer,
+            locale,
             limit: 3,
           });
           return seriesList

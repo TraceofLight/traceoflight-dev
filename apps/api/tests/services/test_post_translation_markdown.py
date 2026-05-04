@@ -30,7 +30,7 @@ https://traceoflight.dev/blog/test
     assert "/media/image/cover.png" not in masked.text
     assert "https://traceoflight.dev/blog/test" not in masked.text
     assert '<iframe src="https://www.youtube.com/embed/abc"></iframe>' not in masked.text
-    assert "@@TLP0@@" in masked.text
+    assert '<x-tlp i="0"/>' in masked.text
 
 
 def test_unmask_markdown_translation_segments_restores_original_content() -> None:
@@ -46,3 +46,23 @@ print("hello")
     restored = unmask_markdown_translation_segments(masked.text, masked.replacements)
 
     assert restored == markdown
+
+
+def test_placeholder_format_is_xml_element() -> None:
+    """Placeholder must be an XML element so DeepL preserves it via tag_handling='xml'."""
+    markdown = "Hello ![alt](https://example.com/img.png) `code` world"
+    masked = mask_markdown_translation_segments(markdown)
+    # All placeholders must use the x-tlp XML format
+    for key in masked.replacements:
+        assert key.startswith("<x-tlp "), f"unexpected placeholder format: {key!r}"
+        assert key.endswith("/>"), f"placeholder must be self-closing: {key!r}"
+
+
+def test_mask_unmask_roundtrip_preserves_placeholders() -> None:
+    """Mask → simulate DeepL verbatim passthrough → unmask must recover original."""
+    original = "Hello ![alt](https://example.com/img.png) `code` world"
+    masked = mask_markdown_translation_segments(original)
+    # Simulate DeepL preserving the XML tags verbatim (tag_handling="xml")
+    translated_text = masked.text  # DeepL returns tags unchanged
+    restored = unmask_markdown_translation_segments(translated_text, masked.replacements)
+    assert restored == original
