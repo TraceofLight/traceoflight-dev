@@ -22,7 +22,7 @@ pipeline {
             # Normalize Windows CRLF credentials to LF for safe shell parsing.
             sed -i 's/\r$//' apps/web/.env.web
 
-            for key in SITE_URL PORT CONTENT_PROVIDER API_BASE_URL ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
+            for key in SITE_URL PORT API_BASE_URL ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
               if ! grep -Eq "^${key}=.+" apps/web/.env.web; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1

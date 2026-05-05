@@ -98,6 +98,7 @@ const seriesStructuredData = series
       title: series.title,
       description: series.description,
       updatedAt: series.updatedAt,
+      locale,
       coverImageUrl: series.coverImageUrl ?? undefined,
       posts: series.posts.map((post) => ({ slug: post.slug, title: post.title })),
     })

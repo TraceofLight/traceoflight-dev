@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 
-import { listAllPublishedDbPosts } from "../lib/blog-db";
+import { listAllPublishedDbPosts, type DbBlogPost } from "../lib/blog-db";
 import { SUPPORTED_PUBLIC_LOCALES } from "../lib/i18n/locales";
 import { buildLocalizedBlogIndexPath, buildLocalizedBlogPostPath } from "../lib/i18n/pathnames";
 import { fetchAllPaged } from "../lib/paginate";
@@ -75,16 +75,39 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
     ),
   ]);
 
-  // Post entries: emit one URL per actual stored post at its own locale.
-  // We intentionally do not emit alternates yet — until the translation
-  // provider creates sibling rows, only the source-locale URL exists, and
-  // advertising the other three would point search engines at 404s.
-  // Once siblings exist, group `posts` by translation_group_id and emit
-  // alternates from the actual sibling locales here.
-  const postEntries: SitemapEntry[] = posts.map((post) => ({
-    path: buildLocalizedBlogPostPath(post.locale ?? "ko", post.slug),
-    lastmod: (post.updatedAt ?? post.publishedAt).toISOString(),
-  }));
+  // Group posts by translation group so each sibling URL advertises the
+  // other locales via xhtml:link alternates. Posts without a group ID, or
+  // groups of size 1, emit a single URL with no alternates (advertising
+  // alternates that don't exist would point Google at 404s).
+  const postsByGroup = new Map<string, DbBlogPost[]>();
+  for (const post of posts) {
+    const key = post.translationGroupId;
+    if (!key) continue;
+    const bucket = postsByGroup.get(key);
+    if (bucket) bucket.push(post);
+    else postsByGroup.set(key, [post]);
+  }
+
+  const postEntries: SitemapEntry[] = posts.map((post) => {
+    const path = buildLocalizedBlogPostPath(post.locale ?? "ko", post.slug);
+    const lastmod = (post.updatedAt ?? post.publishedAt).toISOString();
+    const siblings = post.translationGroupId
+      ? postsByGroup.get(post.translationGroupId) ?? []
+      : [];
+    if (siblings.length < 2) {
+      return { path, lastmod };
+    }
+    const alternates: LocalizedAlternate[] = siblings.map((sibling) => ({
+      hrefLang: sibling.locale ?? "ko",
+      path: buildLocalizedBlogPostPath(sibling.locale ?? "ko", sibling.slug),
+    }));
+    const xDefault = siblings.find((s) => s.locale === "ko") ?? siblings[0];
+    alternates.push({
+      hrefLang: "x-default",
+      path: buildLocalizedBlogPostPath(xDefault.locale ?? "ko", xDefault.slug),
+    });
+    return { path, lastmod, alternates };
+  });
 
   // Project detail entries: emit one URL per actual stored project row (no alternates).
   const projectEntries: SitemapEntry[] = projects.map((project) => ({

@@ -10,7 +10,6 @@ test("frontend compose reads runtime ports and backend url from env instead of h
   assert.match(source, /env_file:\s*\r?\n\s*-\s*\.\.\/\.\.\/\.\.\/apps\/web\/\.env\.web/);
   assert.match(source, /PORT:\s*\$\{PORT\}/);
   assert.match(source, /SITE_URL:\s*\$\{SITE_URL\}/);
-  assert.match(source, /CONTENT_PROVIDER:\s*\$\{CONTENT_PROVIDER\}/);
   assert.match(source, /API_BASE_URL:\s*\$\{API_BASE_URL\}/);
   assert.match(source, /-\s*"\$\{PORT\}"/);
   assert.doesNotMatch(source, /PORT:\s*6543/);

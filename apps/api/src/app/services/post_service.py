@@ -4,6 +4,7 @@ from app.core.text import normalize_optional_text
 from app.models.post import PostContentKind, PostLocale, PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PostCreate
+from app.services.indexnow_service import IndexNowService
 from app.services.post_translation_service import PostTranslationService
 from app.services.series_projection_cache import request_series_projection_refresh
 
@@ -13,9 +14,30 @@ class PostService:
         self,
         repo: PostRepository,
         translation_service: PostTranslationService | None = None,
+        indexnow_service: IndexNowService | None = None,
     ) -> None:
         self.repo = repo
         self.translation_service = translation_service
+        self.indexnow_service = indexnow_service
+
+    def _ping_indexnow(self, post) -> None:  # type: ignore[no-untyped-def]
+        if self.indexnow_service is None or not self.indexnow_service.is_configured():
+            return
+        status_obj = getattr(post, "status", None)
+        status = str(getattr(status_obj, "value", status_obj) or "").strip().lower()
+        if status != "published":
+            return
+        locale_obj = getattr(post, "locale", None)
+        locale = str(getattr(locale_obj, "value", locale_obj) or "ko").strip().lower()
+        slug = getattr(post, "slug", None)
+        host = self.indexnow_service.host
+        if not slug or not host:
+            return
+        url = f"https://{host}/{locale}/blog/{slug}/"
+        try:
+            self.indexnow_service.submit_urls([url])
+        except Exception:  # noqa: BLE001 — IndexNow is best-effort, must not block the save
+            return
 
     def _sync_translations(self, post) -> None:  # type: ignore[no-untyped-def]
         if self.translation_service is None:
@@ -106,6 +128,7 @@ class PostService:
         created = self.repo.create(payload)
         self.repo.db.commit()
         self._sync_translations(created)
+        self._ping_indexnow(created)
         if normalize_optional_text(getattr(created, "series_title", None)) is not None:
             request_series_projection_refresh("post-created-series-assigned")
         return created
@@ -123,6 +146,7 @@ class PostService:
             return None
         self.repo.db.commit()
         self._sync_translations(updated)
+        self._ping_indexnow(updated)
 
         after_series = normalize_optional_text(getattr(updated, "series_title", None))
         after_published_at = getattr(updated, "published_at", None)

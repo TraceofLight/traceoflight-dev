@@ -17,6 +17,7 @@ from app.repositories.series_repository import SeriesRepository
 from app.repositories.tag_repository import TagRepository
 from app.services.admin_auth_service import AdminAuthService
 from app.services.import_service import ImportService
+from app.services.indexnow_service import IndexNowService
 from app.services.media_service import MediaService
 from app.services.post_comment_service import PostCommentService
 from app.services.post_service import PostService
@@ -37,6 +38,7 @@ from app.storage.minio_client import MinioStorageClient
 
 _sync_redis_client: SyncRedis | None = None
 _translation_queue: TranslationQueue | None = None
+_indexnow_service: IndexNowService | None = None
 
 
 def _get_translation_queue() -> TranslationQueue | None:
@@ -65,10 +67,28 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
     return db
 
 
+def _get_indexnow_service() -> IndexNowService:
+    global _indexnow_service
+    if _indexnow_service is not None:
+        return _indexnow_service
+    _indexnow_service = IndexNowService(
+        key=settings.indexnow_key,
+        host=settings.indexnow_host,
+        endpoint=settings.indexnow_endpoint,
+        key_location=(
+            f"https://{settings.indexnow_host}/{settings.indexnow_key}.txt"
+            if settings.indexnow_host and settings.indexnow_key
+            else None
+        ),
+    )
+    return _indexnow_service
+
+
 def get_post_service(db: Session = Depends(get_db)) -> PostService:
     return PostService(
         repo=PostRepository(db),
         translation_service=PostTranslationService(queue=_get_translation_queue()),
+        indexnow_service=_get_indexnow_service(),
     )
 
 

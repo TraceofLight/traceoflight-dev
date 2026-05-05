@@ -24,6 +24,7 @@ export interface DbPost {
   status: 'draft' | 'published' | 'archived';
   visibility?: 'public' | 'private';
   locale?: string;
+  translation_group_id?: string;
   tags: DbTag[];
   comment_count?: number;
   series_context?: DbSeriesContextRaw | null;
@@ -52,6 +53,7 @@ export interface DbBlogPost {
   topMediaVideoUrl?: string;
   visibility: 'public' | 'private';
   locale?: string;
+  translationGroupId?: string;
   tags: DbTag[];
   seriesContext?: DbSeriesContext;
   createdAt: Date;
@@ -242,6 +244,8 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
   return {
     ...toSharedBlogPostFields(post),
     bodyMarkdown: post.body_markdown,
+    locale: post.locale,
+    translationGroupId: post.translation_group_id,
     seriesContext: post.series_context ? toDbSeriesContext(post.series_context) : undefined,
   };
 }

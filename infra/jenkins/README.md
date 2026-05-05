@@ -50,7 +50,6 @@ Note:
 - Required keys:
   - `SITE_URL`
   - `PORT`
-  - `CONTENT_PROVIDER`
   - `API_BASE_URL`
   - `ADMIN_SESSION_SECRET`
   - `ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS`

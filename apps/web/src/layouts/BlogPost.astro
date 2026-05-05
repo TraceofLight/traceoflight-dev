@@ -1,6 +1,4 @@
 ---
-import type { CollectionEntry } from "astro:content";
-
 import CoverMediaImage from "../components/CoverMediaImage.astro";
 import PostAdminActions from "../components/public/PostAdminActions";
 import PostComments from "../components/public/PostComments";
@@ -29,8 +27,6 @@ import type { PostCommentThreadList } from "../lib/post-comments";
 import { buildBlogPostingSchema } from "../lib/seo/structured-data";
 import { pickDictionary } from "../lib/i18n/dictionary";
 import type { PublicLocale } from "../lib/i18n/locales";
-
-type MarkdownPostData = CollectionEntry<"blog">["data"];
 
 interface DbPostData {
   title: string;
@@ -75,7 +71,7 @@ interface BlogPostAdminProps {
   alternates?: ReadonlyArray<{ hrefLang: string; href: URL | string }>;
 }
 
-type Props = (MarkdownPostData | DbPostData) & BlogPostAdminProps;
+type Props = DbPostData & BlogPostAdminProps;
 
 const {
   title,
@@ -138,6 +134,7 @@ const articleStructuredData = postSlug
       postSlug,
       pubDate,
       updatedDate,
+      locale: locale as PublicLocale,
       imageUrl: seoImageUrl,
       imageMetadata: seoImageMetadata,
     })

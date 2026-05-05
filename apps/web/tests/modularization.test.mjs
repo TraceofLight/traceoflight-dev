@@ -16,18 +16,6 @@ async function exists(relativePath) {
   await access(path.join(projectRoot, relativePath));
 }
 
-test("rss route uses shared blog source abstraction", async () => {
-  const rssSource = await read("src/pages/rss.xml.js");
-  assert.match(rssSource, /getBlogSource/);
-  assert.doesNotMatch(rssSource, /getCollection\('blog'\)/);
-});
-
-test("blog source slug lookup avoids listPosts indirection", async () => {
-  const source = await read("src/lib/content-source.ts");
-  assert.match(source, /getCollection\('blog',/);
-  assert.doesNotMatch(source, /const posts = await this\.listPosts\(\);/);
-});
-
 test("blog and project list markup is extracted to shared components", async () => {
   await exists("src/components/PostCard.astro");
   await exists("src/components/ProjectCard.astro");

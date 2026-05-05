@@ -178,7 +178,6 @@ This keeps browser clients from directly coupling to backend host/port.
 
 - `SITE_URL`
 - `PORT`
-- `CONTENT_PROVIDER`
 - `API_BASE_URL` (default `http://traceoflight-api:6654/api/v1/web-service`)
 - `ADMIN_LOGIN_ID`
 - `ADMIN_LOGIN_PASSWORD_HASH`

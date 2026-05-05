@@ -1,12 +1,9 @@
 ---
-import { render } from "astro:content";
-
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import BlogPost from "../../../layouts/BlogPost.astro";
 import EmptyStateNotice from "../../../components/EmptyStateNotice.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { getPublishedDbPostBySlug, renderDbMarkdown } from "../../../lib/blog-db";
-import { getBlogSource, getContentProvider } from "../../../lib/content-source";
 import {
   emptyPostCommentThreadList,
   fetchInitialPostComments,
@@ -29,35 +26,24 @@ const locale: PublicLocale = rawLocale;
 const t = pickDictionary(locale);
 
 const slug = Astro.params.slug ?? "";
-const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
-const markdownPost =
-  provider === "file" && locale === "ko" ? await getBlogSource().getPostBySlug(slug) : null;
 let dbPost: Awaited<ReturnType<typeof getPublishedDbPostBySlug>> = null;
 
-if (provider === "db") {
-  try {
-    dbPost = await getPublishedDbPostBySlug(slug, {
-      includePrivate: isAdminViewer,
-      locale,
-    });
-  } catch {
-    dbPost = null;
-  }
+try {
+  dbPost = await getPublishedDbPostBySlug(slug, {
+    includePrivate: isAdminViewer,
+    locale,
+  });
+} catch {
+  dbPost = null;
 }
 
-let Content: Awaited<ReturnType<typeof render>>["Content"] | null = null;
 let dbPostHtml: string | null = null;
 let dbSeriesPostsForSidebar: Awaited<ReturnType<typeof loadSeriesSidebarPosts>> = [];
 let commentsData = emptyPostCommentThreadList();
 
-if (markdownPost) {
-  ({ Content } = await render(markdownPost));
-  commentsData = await fetchInitialPostComments(slug, {
-    includePrivate: isAdminViewer,
-  });
-} else if (dbPost) {
+if (dbPost) {
   dbPostHtml = renderDbMarkdown(dbPost.bodyMarkdown);
   commentsData = await fetchInitialPostComments(dbPost.slug, {
     includePrivate: isAdminViewer,
@@ -79,11 +65,7 @@ const alternates = slug
 ---
 
 {
-  markdownPost && Content ? (
-    <BlogPost {...markdownPost.data} postSlug={slug} showAdminActions={false} isAdminViewer={isAdminViewer} commentsData={commentsData} locale={locale} alternates={alternates}>
-      <Content />
-    </BlogPost>
-  ) : dbPost && dbPostHtml ? (
+  dbPost && dbPostHtml ? (
     <BlogPost
       title={dbPost.title}
       description={dbPost.description}

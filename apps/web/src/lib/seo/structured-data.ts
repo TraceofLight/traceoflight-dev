@@ -6,6 +6,7 @@
  */
 
 import { SITE_AUTHOR, SITE_URL } from "../../consts";
+import { localeToBcp47, type PublicLocale } from "../i18n/locales";
 
 type StructuredData = Record<string, unknown>;
 
@@ -36,6 +37,7 @@ export interface BlogPostingSchemaInput {
   postSlug: string;
   pubDate: Date;
   updatedDate?: Date;
+  locale: PublicLocale;
   /** Direct URL to the cover image (preferred when present). */
   imageUrl?: string;
   /**
@@ -49,7 +51,7 @@ export interface BlogPostingSchemaInput {
 export function buildBlogPostingSchema(
   input: BlogPostingSchemaInput,
 ): StructuredData {
-  const canonicalUrl = toAbsoluteUrl(`/blog/${input.postSlug}`);
+  const canonicalUrl = toAbsoluteUrl(`/${input.locale}/blog/${input.postSlug}`);
   const schema: StructuredData = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -57,7 +59,7 @@ export function buildBlogPostingSchema(
     description: input.description,
     url: canonicalUrl,
     mainEntityOfPage: canonicalUrl,
-    inLanguage: "ko-KR",
+    inLanguage: localeToBcp47(input.locale),
     datePublished: input.pubDate.toISOString(),
     ...(input.updatedDate
       ? { dateModified: input.updatedDate.toISOString() }
@@ -82,9 +84,9 @@ export function buildBlogPostingSchema(
   }
 
   schema.breadcrumb = buildBreadcrumb([
-    { name: "Home", path: "/" },
-    { name: "Blog", path: "/blog" },
-    { name: input.title, path: `/blog/${input.postSlug}` },
+    { name: "Home", path: `/${input.locale}/` },
+    { name: "Blog", path: `/${input.locale}/blog/` },
+    { name: input.title, path: `/${input.locale}/blog/${input.postSlug}` },
   ]);
 
   return schema;
@@ -95,6 +97,7 @@ export interface SeriesCollectionSchemaInput {
   title: string;
   description: string;
   updatedAt: Date;
+  locale: PublicLocale;
   coverImageUrl?: string;
   posts: { slug: string; title: string }[];
 }
@@ -102,7 +105,7 @@ export interface SeriesCollectionSchemaInput {
 export function buildSeriesCollectionSchema(
   input: SeriesCollectionSchemaInput,
 ): StructuredData {
-  const canonicalUrl = toAbsoluteUrl(`/series/${input.slug}`);
+  const canonicalUrl = toAbsoluteUrl(`/${input.locale}/series/${input.slug}`);
   const schema: StructuredData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -111,7 +114,7 @@ export function buildSeriesCollectionSchema(
     description: input.description,
     url: canonicalUrl,
     mainEntityOfPage: canonicalUrl,
-    inLanguage: "ko-KR",
+    inLanguage: localeToBcp47(input.locale),
     dateModified: input.updatedAt.toISOString(),
     author: {
       "@type": "Person",
@@ -127,13 +130,13 @@ export function buildSeriesCollectionSchema(
   schema.hasPart = input.posts.map((post) => ({
     "@type": "Article",
     headline: post.title,
-    url: toAbsoluteUrl(`/blog/${post.slug}`),
+    url: toAbsoluteUrl(`/${input.locale}/blog/${post.slug}`),
   }));
 
   schema.breadcrumb = buildBreadcrumb([
-    { name: "Home", path: "/" },
-    { name: "Series", path: "/series" },
-    { name: input.title, path: `/series/${input.slug}` },
+    { name: "Home", path: `/${input.locale}/` },
+    { name: "Series", path: `/${input.locale}/series/` },
+    { name: input.title, path: `/${input.locale}/series/${input.slug}` },
   ]);
 
   return schema;
@@ -144,13 +147,14 @@ export interface ProjectCreativeWorkSchemaInput {
   title: string;
   summary: string;
   stack: string[];
+  locale: PublicLocale;
   coverImageUrl?: string;
 }
 
 export function buildProjectCreativeWorkSchema(
   input: ProjectCreativeWorkSchemaInput,
 ): StructuredData {
-  const canonicalUrl = toAbsoluteUrl(`/projects/${input.slug}`);
+  const canonicalUrl = toAbsoluteUrl(`/${input.locale}/projects/${input.slug}`);
   const schema: StructuredData = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
@@ -159,7 +163,7 @@ export function buildProjectCreativeWorkSchema(
     description: input.summary,
     url: canonicalUrl,
     mainEntityOfPage: canonicalUrl,
-    inLanguage: "ko-KR",
+    inLanguage: localeToBcp47(input.locale),
     ...(input.stack.length > 0 ? { keywords: input.stack.join(", ") } : {}),
     author: {
       "@type": "Person",
@@ -173,9 +177,9 @@ export function buildProjectCreativeWorkSchema(
   }
 
   schema.breadcrumb = buildBreadcrumb([
-    { name: "Home", path: "/" },
-    { name: "Projects", path: "/projects" },
-    { name: input.title, path: `/projects/${input.slug}` },
+    { name: "Home", path: `/${input.locale}/` },
+    { name: "Projects", path: `/${input.locale}/projects/` },
+    { name: input.title, path: `/${input.locale}/projects/${input.slug}` },
   ]);
 
   return schema;

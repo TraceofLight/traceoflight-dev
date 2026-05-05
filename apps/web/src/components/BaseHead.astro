@@ -4,6 +4,7 @@ import '../styles/global.css';
 import type { ImageMetadata } from 'astro';
 
 import { SITE_AUTHOR, SITE_TITLE, SITE_URL } from '../consts';
+import { SUPPORTED_PUBLIC_LOCALES } from '../lib/i18n/locales';
 import { resolvePublicSiteOrigin } from '../lib/public-url';
 
 interface Props {
@@ -102,7 +103,21 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
 {alternateLinks.map((alternate) => (
   <link rel="alternate" hreflang={alternate.hrefLang} href={alternate.href} />
 ))}
-<link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href={new URL('rss.xml', canonicalBase)} />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={SITE_TITLE}
+  href={new URL(`/${locale}/rss.xml`, canonicalBase)}
+/>
+{SUPPORTED_PUBLIC_LOCALES.filter((feedLocale) => feedLocale !== locale).map((feedLocale) => (
+  <link
+    rel="alternate"
+    type="application/rss+xml"
+    hreflang={feedLocale}
+    title={`${SITE_TITLE} (${feedLocale.toUpperCase()})`}
+    href={new URL(`/${feedLocale}/rss.xml`, canonicalBase)}
+  />
+))}
 
 <script is:inline>
   (() => {

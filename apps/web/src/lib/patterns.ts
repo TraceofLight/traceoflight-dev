@@ -4,9 +4,6 @@
  * handling) between independent regex literals.
  */
 
-/** Matches `.md` or `.mdx` filename suffixes (case-insensitive). */
-export const MD_EXT_RE = /\.(md|mdx)$/i;
-
 /**
  * Matches an absolute http(s) URL prefix (case-insensitive). Use `.test`
  * to detect external references that should not be rewritten through the

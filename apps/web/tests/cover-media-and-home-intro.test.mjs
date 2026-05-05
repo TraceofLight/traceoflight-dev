@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const contentConfigPath = new URL("../src/content.config.ts", import.meta.url);
-const contentSourcePath = new URL("../src/lib/content-source.ts", import.meta.url);
 const coverMediaLibPath = new URL("../src/lib/cover-media.ts", import.meta.url);
 const backendApiPath = new URL("../src/lib/backend-api.ts", import.meta.url);
 const blogDbPath = new URL("../src/lib/blog-db.ts", import.meta.url);
@@ -22,8 +20,6 @@ const seriesAdminPanelPath = new URL(
 
 test("cover naming replaces the old highlight terminology across public content rendering", async () => {
   const sources = await Promise.all([
-    readFile(contentConfigPath, "utf8"),
-    readFile(contentSourcePath, "utf8"),
     readFile(blogDbPath, "utf8"),
     readFile(blogPostLayoutPath, "utf8"),
     readFile(blogIndexPath, "utf8"),

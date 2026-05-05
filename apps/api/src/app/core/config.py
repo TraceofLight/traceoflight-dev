@@ -55,6 +55,12 @@ class Settings(BaseSettings):
         default=200,
         alias='READING_WORDS_PER_MINUTE',
     )
+    indexnow_key: str | None = Field(default=None, alias='INDEXNOW_KEY')
+    indexnow_host: str | None = Field(default=None, alias='INDEXNOW_HOST')
+    indexnow_endpoint: str = Field(
+        default='https://api.indexnow.org/indexnow',
+        alias='INDEXNOW_ENDPOINT',
+    )
 
     @property
     def database_url(self) -> str:

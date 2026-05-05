@@ -14,15 +14,11 @@ import {
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { listPublishedDbPostSummaryPage } from "../../../lib/blog-db";
-import {
-  getBlogSource,
-  getContentProvider,
-  toPostCard,
-  type PostCard as PostCardData,
-} from "../../../lib/content-source";
 import { toBrowserImageUrl } from "../../../lib/cover-media";
+import type { PostCard as PostCardData } from "../../../lib/post-card";
 import {
   isSupportedPublicLocale,
+  localeToBcp47,
   SUPPORTED_PUBLIC_LOCALES,
   type PublicLocale,
 } from "../../../lib/i18n/locales";
@@ -66,7 +62,6 @@ const archiveLabels: BlogArchiveLabels = {
   noPosts: t.archiveFilters.noPosts,
 };
 
-const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
 const ARCHIVE_PAGE_SIZE = PAGINATION.ARCHIVE_PAGE_SIZE;
@@ -91,64 +86,41 @@ let initialTotalCount = 0;
 let initialVisibilityCounts = { all: 0, public: 0, private: 0 };
 let tagFilters: { slug: string; count: number }[] = [];
 
-if (provider === "db") {
-  try {
-    const summaryPage = await listPublishedDbPostSummaryPage({
-      includePrivate: isAdminViewer,
-      limit: ARCHIVE_PAGE_SIZE,
-      offset: 0,
-      query: initialQuery,
-      sort: initialSort,
-      visibility: initialVisibility,
-      tags: selectedTagsFromQuery,
-      locale,
-    });
-    posts = summaryPage.items.map((post) => ({
-      slug: post.slug,
-      title: post.title,
-      description: post.description,
-      readingLabel: post.readingLabel,
-      commentCount: post.commentCount,
-      pubDate: post.publishedAt,
-      updatedDate: post.updatedAt,
-      coverMedia: post.coverMedia,
-      visibility: post.visibility,
-      tags: post.tags.map((tag) => tag.slug),
-    }));
-    initialHasMore = summaryPage.hasMore;
-    initialOffset = summaryPage.nextOffset ?? summaryPage.items.length;
-    initialTotalCount = summaryPage.totalCount;
-    initialVisibilityCounts = summaryPage.visibilityCounts;
-    tagFilters = summaryPage.tagFilters;
-  } catch {
-    posts = [];
-    initialHasMore = false;
-    initialOffset = 0;
-    initialTotalCount = 0;
-    initialVisibilityCounts = { all: 0, public: 0, private: 0 };
-    tagFilters = [];
-  }
-} else if (locale === "ko") {
-  posts = (await getBlogSource().listPosts()).map(toPostCard);
-  const tagCountMap = new Map<string, number>();
-  for (const post of posts) {
-    const normalizedTags = new Set(
-      (post.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean),
-    );
-    for (const tag of normalizedTags) {
-      tagCountMap.set(tag, (tagCountMap.get(tag) ?? 0) + 1);
-    }
-  }
-  tagFilters = Array.from(tagCountMap.entries())
-    .map(([slug, count]) => ({ slug, count }))
-    .sort((left, right) => left.slug.localeCompare(right.slug, "ko-KR"));
-  initialOffset = posts.length;
-  initialTotalCount = posts.length;
-  initialVisibilityCounts = {
-    all: posts.length,
-    public: posts.length,
-    private: 0,
-  };
+try {
+  const summaryPage = await listPublishedDbPostSummaryPage({
+    includePrivate: isAdminViewer,
+    limit: ARCHIVE_PAGE_SIZE,
+    offset: 0,
+    query: initialQuery,
+    sort: initialSort,
+    visibility: initialVisibility,
+    tags: selectedTagsFromQuery,
+    locale,
+  });
+  posts = summaryPage.items.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.description,
+    readingLabel: post.readingLabel,
+    commentCount: post.commentCount,
+    pubDate: post.publishedAt,
+    updatedDate: post.updatedAt,
+    coverMedia: post.coverMedia,
+    visibility: post.visibility,
+    tags: post.tags.map((tag) => tag.slug),
+  }));
+  initialHasMore = summaryPage.hasMore;
+  initialOffset = summaryPage.nextOffset ?? summaryPage.items.length;
+  initialTotalCount = summaryPage.totalCount;
+  initialVisibilityCounts = summaryPage.visibilityCounts;
+  tagFilters = summaryPage.tagFilters;
+} catch {
+  posts = [];
+  initialHasMore = false;
+  initialOffset = 0;
+  initialTotalCount = 0;
+  initialVisibilityCounts = { all: 0, public: 0, private: 0 };
+  tagFilters = [];
 }
 
 function resolveCoverImageSrc(
@@ -199,7 +171,7 @@ const initialPosts: BlogArchivePost[] = posts.map((post) => ({
     "@type": "Blog",
     name: `${SITE_TITLE} Blog`,
     url: new URL(`/${locale}/blog`, SITE_URL).toString(),
-    inLanguage: locale === "ko" ? "ko-KR" : locale,
+    inLanguage: localeToBcp47(locale),
     author: {
       "@type": "Person",
       name: SITE_AUTHOR,

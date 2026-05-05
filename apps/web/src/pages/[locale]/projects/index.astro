@@ -7,6 +7,7 @@ import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth"
 import { listPublishedDbProjects } from "../../../lib/projects";
 import {
   isSupportedPublicLocale,
+  localeToBcp47,
   SUPPORTED_PUBLIC_LOCALES,
   type PublicLocale,
 } from "../../../lib/i18n/locales";
@@ -47,7 +48,7 @@ const alternates = buildLocalizedAlternates(
     "@type": "CollectionPage",
     name: `${t.nav.projects} | ${SITE_TITLE}`,
     url: new URL(`/${locale}/projects`, SITE_URL).toString(),
-    inLanguage: locale === "ko" ? "ko-KR" : locale,
+    inLanguage: localeToBcp47(locale),
     author: {
       "@type": "Person",
       name: SITE_AUTHOR,

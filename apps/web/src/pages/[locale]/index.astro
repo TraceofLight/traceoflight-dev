@@ -8,16 +8,12 @@ import { GITHUB_URL, SITE_AUTHOR, SITE_TITLE, SITE_URL } from "../../consts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { listPublishedDbPostSummaries } from "../../lib/blog-db";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../lib/admin-auth";
-import {
-  getBlogSource,
-  getContentProvider,
-  toPostCard,
-  type PostCard as PostCardData,
-} from "../../lib/content-source";
+import type { PostCard as PostCardData } from "../../lib/post-card";
 import { listPublishedDbProjects } from "../../lib/projects";
 import { listFeaturedSeries } from "../../lib/series-db";
 import {
   isSupportedPublicLocale,
+  localeToBcp47,
   SUPPORTED_PUBLIC_LOCALES,
   type PublicLocale,
 } from "../../lib/i18n/locales";
@@ -45,34 +41,29 @@ const locale: PublicLocale = rawLocale;
 const t = pickDictionary(locale);
 
 // ── Data fetching ──────────────────────────────────────────────────────────
-const provider = getContentProvider();
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
 const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
 
 let posts: PostCardData[] = [];
-if (provider === "db") {
-  try {
-    const dbPosts = await listPublishedDbPostSummaries(3, {
-      includePrivate: isAdminViewer,
-      locale,
-    });
-    posts = dbPosts.map((post) => ({
-      slug: post.slug,
-      title: post.title,
-      description: post.description,
-      readingLabel: post.readingLabel,
-      commentCount: post.commentCount,
-      pubDate: post.publishedAt,
-      updatedDate: post.updatedAt,
-      coverMedia: post.coverMedia,
-      visibility: post.visibility,
-      tags: post.tags.map((tag) => tag.slug),
-    }));
-  } catch {
-    posts = [];
-  }
-} else {
-  posts = (await getBlogSource().listPosts()).slice(0, 3).map(toPostCard);
+try {
+  const dbPosts = await listPublishedDbPostSummaries(3, {
+    includePrivate: isAdminViewer,
+    locale,
+  });
+  posts = dbPosts.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.description,
+    readingLabel: post.readingLabel,
+    commentCount: post.commentCount,
+    pubDate: post.publishedAt,
+    updatedDate: post.updatedAt,
+    coverMedia: post.coverMedia,
+    visibility: post.visibility,
+    tags: post.tags.map((tag) => tag.slug),
+  }));
+} catch {
+  posts = [];
 }
 
 let projects: Awaited<ReturnType<typeof listPublishedDbProjects>> = [];
@@ -271,33 +262,30 @@ function isFeaturedSeriesCard(
   return row !== null;
 }
 
-const featuredSeriesCards: FeaturedSeriesCard[] =
-  provider === "db"
-    ? await (async () => {
-        try {
-          const seriesList = await listFeaturedSeries({
-            includePrivate: isAdminViewer,
-            locale,
-            limit: 3,
-          });
-          return seriesList
-            .map(
-              (series) =>
-                ({
-                  slug: series.slug,
-                  title: series.title,
-                  description: series.description,
-                  postCount: series.postCount,
-                  updatedAt: series.updatedAt,
-                  coverImageUrl: series.coverImageUrl,
-                }) satisfies FeaturedSeriesCard,
-            )
-            .filter(isFeaturedSeriesCard);
-        } catch {
-          return [];
-        }
-      })()
-    : [];
+const featuredSeriesCards: FeaturedSeriesCard[] = await (async () => {
+  try {
+    const seriesList = await listFeaturedSeries({
+      includePrivate: isAdminViewer,
+      locale,
+      limit: 3,
+    });
+    return seriesList
+      .map(
+        (series) =>
+          ({
+            slug: series.slug,
+            title: series.title,
+            description: series.description,
+            postCount: series.postCount,
+            updatedAt: series.updatedAt,
+            coverImageUrl: series.coverImageUrl,
+          }) satisfies FeaturedSeriesCard,
+      )
+      .filter(isFeaturedSeriesCard);
+  } catch {
+    return [];
+  }
+})();
 
 // ── SEO alternates ─────────────────────────────────────────────────────────
 const alternates = buildLocalizedAlternates(
@@ -321,7 +309,7 @@ const alternates = buildLocalizedAlternates(
         url: SITE_URL,
         name: SITE_TITLE,
         description: t.home.intro,
-        inLanguage: locale,
+        inLanguage: localeToBcp47(locale),
         publisher: { "@id": `${SITE_URL}/#person` },
       },
       {

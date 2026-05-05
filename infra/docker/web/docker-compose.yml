@@ -14,7 +14,6 @@ services:
       HOST: 0.0.0.0
       PORT: ${PORT}
       SITE_URL: ${SITE_URL}
-      CONTENT_PROVIDER: ${CONTENT_PROVIDER}
       API_BASE_URL: ${API_BASE_URL}
     expose:
       - "${PORT}"

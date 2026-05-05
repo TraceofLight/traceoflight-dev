@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const contentConfigPath = new URL("../src/content.config.ts", import.meta.url);
 const coverMediaLibPath = new URL("../src/lib/cover-media.ts", import.meta.url);
 const coverMediaComponentPath = new URL(
   "../src/components/CoverMediaImage.astro",
@@ -13,33 +12,7 @@ const blogPostLayoutPath = new URL(
   "../src/layouts/BlogPost.astro",
   import.meta.url,
 );
-const contentSourcePath = new URL("../src/lib/content-source.ts", import.meta.url);
 const blogDbPath = new URL("../src/lib/blog-db.ts", import.meta.url);
-
-test("blog content schema accepts both optimized images and string cover paths", async () => {
-  const source = await readFile(contentConfigPath, "utf8");
-
-  assert.match(
-    source,
-    /import \{ existsSync, readdirSync \} from "node:fs";/,
-  );
-  assert.match(
-    source,
-    /const blogContentRoot = new URL\("\.\/content\/blog\/", import\.meta\.url\);/,
-  );
-  assert.match(
-    source,
-    /const hasBlogEntries = existsSync\(blogContentRoot\) && readdirSync\(blogContentRoot, \{ recursive: true \}\)\.some\(\(entry\) =>/,
-  );
-  assert.match(
-    source,
-    /loader:\s*hasBlogEntries\s*\?\s*glob\(\{\s*base:\s*['"]\.\/src['"],\s*pattern:\s*['"]content\/blog\/\*\*\/\*\.\{md,mdx\}['"]\s*\}\)\s*:\s*async\s*\(\)\s*=>\s*\[\s*\]/,
-  );
-  assert.match(
-    source,
-    /coverImage:\s*z\.union\(\[image\(\),\s*z\.string\(\)\]\)\.optional\(\)/,
-  );
-});
 
 test("cover media support is centralized in a shared model and renderer", async () => {
   await access(coverMediaLibPath);
@@ -115,15 +88,9 @@ test("blog post layout reuses shared cover media helpers for top media rendering
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });
 
-test("content and db sources both expose cover media through the shared type", async () => {
-  const [contentSource, blogDbSource] = await Promise.all([
-    readFile(contentSourcePath, "utf8"),
-    readFile(blogDbPath, "utf8"),
-  ]);
+test("db source exposes cover media through the shared type", async () => {
+  const blogDbSource = await readFile(blogDbPath, "utf8");
 
-  assert.match(contentSource, /import \{ normalizeCoverMedia, type CoverMedia \} from '\.\/cover-media';/);
-  assert.match(contentSource, /coverMedia\?: CoverMedia;/);
-  assert.match(contentSource, /coverMedia:\s*normalizeCoverMedia\(post\.data\.coverImage\)/);
   assert.match(blogDbSource, /import \{[\s\S]*normalizeCoverMedia[\s\S]*normalizeOptionalImageUrl[\s\S]*type CoverMedia[\s\S]*\} from '\.\/cover-media';/);
   assert.match(blogDbSource, /import \{[\s\S]*requestBackend[\s\S]*requestBackendPublic[\s\S]*resolveBackendAssetUrl[\s\S]*\} from '\.\/backend-api';/);
   assert.match(blogDbSource, /coverMedia\?: CoverMedia;/);
