@@ -20,7 +20,7 @@ export interface SeriesSidebarItem {
  */
 export async function loadSeriesSidebarPosts(
   dbPost: DbPost,
-  options: { includePrivate: boolean },
+  options: { includePrivate: boolean; locale?: string },
 ): Promise<SeriesSidebarItem[]> {
   const seriesSlug = dbPost.seriesContext?.seriesSlug?.trim() ?? "";
   if (seriesSlug.length === 0) {
@@ -31,6 +31,7 @@ export async function loadSeriesSidebarPosts(
   try {
     detail = await getSeriesBySlug(seriesSlug, {
       includePrivate: options.includePrivate,
+      locale: options.locale,
     });
   } catch {
     return [];

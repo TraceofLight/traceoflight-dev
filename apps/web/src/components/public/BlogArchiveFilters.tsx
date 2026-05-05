@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -514,7 +515,12 @@ export function BlogArchiveFilters({
                 isAllChipActive ? filterChipActiveClass : filterChipInactiveClass,
               )}
               data-active={isAllChipActive}
-              onClick={() => setVisibility("all")}
+              onClick={() => {
+                // Hard reset — clearing tag/query is what lights the chip up.
+                setVisibility("all");
+                setSelectedTag("");
+                setQuery("");
+              }}
               type="button"
             >
               {labels.visibilityAll} ({allPostsCount})
@@ -593,7 +599,16 @@ export function BlogArchiveFilters({
         </div>
       ) : null}
 
-      {filteredPosts.length > 0 ? (
+      {filteredPosts.length === 0 && isRefreshing ? (
+        <div
+          aria-label={labels.loadingPosts}
+          className="flex items-center justify-center rounded-3xl border border-dashed border-border/60 bg-card/50 px-6 py-14"
+          data-testid="blog-archive-loading"
+          role="status"
+        >
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredPosts.length > 0 ? (
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredPosts.map((post) => (

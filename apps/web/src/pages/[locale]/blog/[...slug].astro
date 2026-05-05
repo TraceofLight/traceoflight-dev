@@ -64,6 +64,7 @@ if (markdownPost) {
   });
   dbSeriesPostsForSidebar = await loadSeriesSidebarPosts(dbPost, {
     includePrivate: isAdminViewer,
+    locale,
   });
 } else {
   Astro.response.status = 404;

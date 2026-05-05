@@ -175,6 +175,52 @@ describe("BlogArchiveFilters", () => {
     expect(screen.getByRole("link", { name: /Astro Layouts 읽기/ })).toBeInTheDocument();
   });
 
+  it("All button resets selected tag and search query when pressed", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          createSummaryPayload(posts, {
+            totalCount: posts.length,
+          }),
+      } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <BlogArchiveFilters
+        initialSelectedTags={["astro"]}
+        initialQuery="layouts"
+        initialSort="latest"
+        initialVisibility="all"
+        isAdminViewer={false}
+        initialPosts={[posts[2]]}
+        initialHasMore={false}
+        initialOffset={1}
+        initialTotalCount={1}
+        initialVisibilityCounts={{ all: 3, public: 2, private: 1 }}
+        tagFilters={tagFilters}
+        writeHref="/admin/posts/new"
+      />,
+    );
+
+    const astroTagButton = screen.getByRole("button", { name: "astro (2)" });
+    const allChip = screen.getByRole("button", { name: /^전체 \(/ });
+    const searchInput = screen.getByLabelText("포스트 검색") as HTMLInputElement;
+    expect(astroTagButton).toHaveAttribute("aria-pressed", "true");
+    expect(allChip).toHaveAttribute("aria-pressed", "false");
+    expect(searchInput.value).toBe("layouts");
+
+    fireEvent.click(allChip);
+
+    await waitFor(() => {
+      expect(astroTagButton).toHaveAttribute("aria-pressed", "false");
+    });
+    expect(allChip).toHaveAttribute("aria-pressed", "true");
+    expect(searchInput.value).toBe("");
+    expect(window.location.search).not.toContain("tag=");
+  });
+
   it("lets admin viewers switch visibility and sorting", async () => {
     const fetchMock = vi
       .fn()
