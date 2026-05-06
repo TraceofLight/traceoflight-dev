@@ -5,6 +5,7 @@ WORKDIR /build
 # Manifest layer first so cargo's dep cache survives source-only edits.
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+COPY migrations ./migrations
 
 RUN cargo build --release
 

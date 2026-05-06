@@ -143,6 +143,8 @@ async fn main() -> anyhow::Result<()> {
         .max_connections(settings.database_max_connections)
         .connect_lazy(&settings.database_url)?;
 
+    sqlx::migrate!("./migrations").run(&pool).await?;
+
     let refresh_store = if let Some(url) = settings.redis_url.as_deref() {
         let client = redis::Client::open(url)
             .map_err(|err| anyhow::anyhow!("redis client init failed: {err}"))?;
@@ -232,12 +234,11 @@ async fn main() -> anyhow::Result<()> {
             delete_resume_pdf_handler
         ));
 
-    let infra_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
-        .routes(routes!(healthz))
-        .routes(routes!(readyz));
+    let api_routes = api_routes
+        .routes(routes!(health))
+        .routes(routes!(ready));
 
     let (axum_router, openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .merge(infra_routes)
         .nest(&settings.api_prefix, api_routes)
         .split_for_parts();
 
@@ -272,22 +273,22 @@ async fn main() -> anyhow::Result<()> {
 
 #[utoipa::path(
     get,
-    path = "/healthz",
+    path = "/health",
     tag = "infra",
-    operation_id = "healthz",
+    operation_id = "health",
     summary = "Liveness probe",
     description = "Always returns 200 when the process can serve HTTP. Does not check downstream dependencies.",
     responses((status = 200, description = "Process is up", body = String)),
 )]
-async fn healthz() -> &'static str {
+async fn health() -> &'static str {
     "ok"
 }
 
 #[utoipa::path(
     get,
-    path = "/readyz",
+    path = "/ready",
     tag = "infra",
-    operation_id = "readyz",
+    operation_id = "ready",
     summary = "Readiness probe",
     description = "Returns 200 only after a successful Postgres `SELECT 1`. 503 while the pool cannot reach the database.",
     responses(
@@ -295,13 +296,13 @@ async fn healthz() -> &'static str {
         (status = 503, description = "Database unreachable"),
     ),
 )]
-async fn readyz(State(state): State<AppState>) -> Result<&'static str, StatusCode> {
+async fn ready(State(state): State<AppState>) -> Result<&'static str, StatusCode> {
     sqlx::query_scalar::<_, i32>("SELECT 1")
         .fetch_one(&state.pool)
         .await
         .map(|_| "ok")
         .map_err(|err| {
-            error!(error = %err, "readyz db ping failed");
+            error!(error = %err, "ready db ping failed");
             StatusCode::SERVICE_UNAVAILABLE
         })
 }

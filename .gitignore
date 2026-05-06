@@ -20,12 +20,11 @@ node_modules/
 
 # Environment files
 # Convention:
-#   apps/api/.env.api               local runtime (uvicorn / pytest / docker compose)
+#   apps/api-rs/.env.api-rs         local runtime (cargo run / docker compose)
 #   apps/web/.env.web               local runtime (bun run dev / docker compose)
-#   apps/api/.env.api.example, apps/web/.env.web.example
+#   apps/api-rs/.env.api-rs.example, apps/web/.env.web.example
 #                                   committed templates (the only env files under version control)
-#   apps/api/.env.api.jenkins, apps/web/.env.web.jenkins
-#                                   local copy of the Jenkins credential payload (gitignored)
+#   *.env.*.jenkins                 local copy of Jenkins credential payload (gitignored)
 .env
 .env.*
 !.env.example
