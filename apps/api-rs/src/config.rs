@@ -11,6 +11,18 @@ pub struct Settings {
     pub internal_api_secret: String,
     pub reading_words_per_minute: u32,
     pub minio: MinioSettings,
+    pub admin: AdminSettings,
+    pub redis_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AdminSettings {
+    pub login_id: String,
+    pub login_password: String,
+    pub login_password_hash: String,
+    pub session_secret: String,
+    pub access_max_age_seconds: i64,
+    pub refresh_max_age_seconds: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +95,28 @@ impl Settings {
             region: env::var("MINIO_REGION").unwrap_or_else(|_| "us-east-1".into()),
         };
 
+        let admin = AdminSettings {
+            login_id: env::var("ADMIN_LOGIN_ID").unwrap_or_default(),
+            login_password: env::var("ADMIN_LOGIN_PASSWORD").unwrap_or_default(),
+            login_password_hash: env::var("ADMIN_LOGIN_PASSWORD_HASH").unwrap_or_default(),
+            session_secret: env::var("ADMIN_SESSION_SECRET").unwrap_or_default(),
+            access_max_age_seconds: env::var("ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(900)
+                .max(60),
+            refresh_max_age_seconds: env::var("ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(1_209_600)
+                .max(60),
+        };
+
+        let redis_url = env::var("REDIS_URL")
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
         Ok(Settings {
             api_rs_port,
             api_prefix,
@@ -93,6 +127,8 @@ impl Settings {
             internal_api_secret,
             reading_words_per_minute,
             minio,
+            admin,
+            redis_url,
         })
     }
 }

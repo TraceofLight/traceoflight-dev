@@ -1,7 +1,9 @@
+mod admin_auth;
 mod auth;
 mod comments;
 mod config;
 mod error;
+mod imports;
 mod media;
 mod observability;
 mod posts;
@@ -15,10 +17,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
-    body::Bytes,
-    extract::{FromRef, Path, State},
-    http::{HeaderMap, HeaderValue, StatusCode},
-    response::Json,
+    body::{Body, Bytes},
+    extract::{FromRef, Multipart, Path, State},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{Json, Response},
     Router,
 };
 use axum_extra::extract::Query;
@@ -35,6 +37,14 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
+    admin_auth::{
+        get_active_credential_revision, login as admin_login, revoke_refresh_token_family,
+        rotate_refresh_token, update_operational_credentials, AdminAuthContext,
+        AdminAuthLoginRequest, AdminAuthLoginResponse, AdminCredentialRevisionResponse,
+        AdminCredentialUpdateRequest, AdminCredentialUpdateResponse, AdminLogoutRequest,
+        AdminLogoutResponse, AdminRefreshRequest, AdminRefreshResponse, RefreshOutcome,
+        RefreshStore,
+    },
     auth::{AuthContext, OptionalInternalSecret, RequireInternalSecret},
     comments::{
         create_comment, delete_comment, list_admin_comments, list_post_comments, update_comment,
@@ -42,6 +52,7 @@ use crate::{
         PostCommentThreadList, PostCommentUpdate,
     },
     config::{MinioSettings, Settings},
+    imports::{download_posts_backup, load_posts_backup, BackupLoadRead},
     media::{
         build_object_key, presigned_put_url, proxy_upload, register_media, MediaCreate, MediaRead,
         MediaUploadRequest, MediaUploadResponse,
@@ -74,6 +85,7 @@ pub struct AppState {
     auth: AuthContext,
     reading_words_per_minute: u32,
     minio: Arc<MinioSettings>,
+    admin: AdminAuthContext,
 }
 
 impl FromRef<AppState> for AuthContext {
@@ -97,6 +109,8 @@ impl FromRef<AppState> for AuthContext {
         (name = "site-profile", description = "Footer profile (email + GitHub URL) shown across the site."),
         (name = "comments", description = "Threaded post comments, guest+admin authoring, soft-delete and admin feed."),
         (name = "media", description = "Object-storage upload URL issue, metadata register, and server-side body proxy."),
+        (name = "admin-auth", description = "Admin login, refresh-token rotation (RTR), logout and credential management."),
+        (name = "imports", description = "Backup ZIP download and restore (admin-only)."),
         (name = "infra", description = "Liveness and readiness probes consumed by orchestrators and health monitors."),
     ),
 )]
@@ -113,11 +127,25 @@ async fn main() -> anyhow::Result<()> {
         .max_connections(settings.database_max_connections)
         .connect_lazy(&settings.database_url)?;
 
+    let refresh_store = if let Some(url) = settings.redis_url.as_deref() {
+        let client = redis::Client::open(url)
+            .map_err(|err| anyhow::anyhow!("redis client init failed: {err}"))?;
+        let conn = client
+            .get_connection_manager()
+            .await
+            .map_err(|err| anyhow::anyhow!("redis connect failed: {err}"))?;
+        Some(RefreshStore::new(conn))
+    } else {
+        None
+    };
+    let admin_ctx = AdminAuthContext::new(settings.admin.clone(), refresh_store);
+
     let state = AppState {
         pool,
         auth: AuthContext::new(settings.internal_api_secret.clone()),
         reading_words_per_minute: settings.reading_words_per_minute,
         minio: Arc::new(settings.minio.clone()),
+        admin: admin_ctx,
     };
 
     let api_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
@@ -156,7 +184,14 @@ async fn main() -> anyhow::Result<()> {
         .routes(routes!(list_admin_comments_handler))
         .routes(routes!(create_upload_url_handler))
         .routes(routes!(register_media_handler))
-        .routes(routes!(upload_media_proxy_handler));
+        .routes(routes!(upload_media_proxy_handler))
+        .routes(routes!(admin_login_handler))
+        .routes(routes!(admin_refresh_handler))
+        .routes(routes!(admin_logout_handler))
+        .routes(routes!(admin_get_revision_handler))
+        .routes(routes!(admin_update_credentials_handler))
+        .routes(routes!(download_posts_backup_handler))
+        .routes(routes!(load_posts_backup_handler));
 
     let infra_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
         .routes(routes!(healthz))
@@ -947,6 +982,218 @@ async fn replace_series_posts_handler(
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
     Ok(Json(replaced))
+}
+
+// ── Imports (backup) ────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/imports/backups/posts.zip",
+    tag = "imports",
+    operation_id = "download_posts_backup",
+    summary = "Download posts backup ZIP",
+    description = "Bundle posts, series, tags, comments, site profile, and referenced media into a ZIP archive. Requires `x-internal-api-secret`.",
+    responses(
+        (status = 200, description = "Backup ZIP stream", content_type = "application/zip"),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn download_posts_backup_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+) -> Result<Response, AppError> {
+    let (filename, bytes) = download_posts_backup(&state.pool, &state.minio).await?;
+    let disposition = format!("attachment; filename=\"{filename}\"");
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/zip")
+        .header(header::CONTENT_DISPOSITION, disposition)
+        .body(Body::from(bytes))
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("response build failed: {e}")))?;
+    Ok(response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/imports/backups/load",
+    tag = "imports",
+    operation_id = "load_posts_backup",
+    summary = "Load posts backup ZIP",
+    description = "Restore the contents of a backup ZIP. Wipes existing rows in dependency order and rebuilds. Stages media to staging keys first, promotes on DB success, rolls back on DB failure. Requires `x-internal-api-secret`.",
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Backup restore finished", body = BackupLoadRead),
+        (status = 400, description = "Invalid backup payload", body = ErrorDetail),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn load_posts_backup_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<BackupLoadRead>, AppError> {
+    let mut file_name: Option<String> = None;
+    let mut file_bytes: Option<Vec<u8>> = None;
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("multipart parse failed: {e}")))?
+    {
+        if field.name() == Some("file") {
+            file_name = field.file_name().map(str::to_string).or(Some(String::new()));
+            let bytes = field
+                .bytes()
+                .await
+                .map_err(|e| AppError::BadRequest(format!("multipart body read: {e}")))?;
+            file_bytes = Some(bytes.to_vec());
+            break;
+        }
+    }
+
+    let file_name = file_name
+        .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
+    let file_bytes = file_bytes
+        .ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
+    let result = load_posts_backup(&state.pool, &state.minio, &file_name, &file_bytes).await?;
+    Ok(Json(result))
+}
+
+// ── Admin auth ──────────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/admin/auth/login",
+    tag = "admin-auth",
+    operation_id = "admin_login",
+    summary = "Admin login",
+    description = "Verify credentials (operational row → master env fallback) and issue an access+refresh token pair.",
+    request_body = AdminAuthLoginRequest,
+    responses(
+        (status = 200, description = "Login succeeded", body = AdminAuthLoginResponse),
+        (status = 401, description = "Invalid admin credentials", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn admin_login_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AdminAuthLoginRequest>,
+) -> Result<Json<AdminAuthLoginResponse>, AppError> {
+    let response = admin_login(&state.pool, &state.admin, payload).await?;
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/auth/refresh",
+    tag = "admin-auth",
+    operation_id = "admin_refresh",
+    summary = "Admin refresh-token rotation",
+    description = "RTR: validate the supplied refresh token, issue a new pair, mark the old jti as used+rotated. Reuse of an already-used token revokes the family.",
+    request_body = AdminRefreshRequest,
+    responses(
+        (status = 200, description = "Tokens rotated", body = AdminRefreshResponse),
+        (status = 401, description = "Refresh token invalid/expired/reused", body = ErrorDetail),
+        (status = 409, description = "Refresh token superseded by a newer rotation", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn admin_refresh_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AdminRefreshRequest>,
+) -> Result<Json<AdminRefreshResponse>, AppError> {
+    let outcome = rotate_refresh_token(&state.pool, &state.admin, &payload.refresh_token).await?;
+    match outcome {
+        RefreshOutcome::Rotated { revision, pair } => Ok(Json(AdminRefreshResponse {
+            ok: true,
+            credential_revision: revision,
+            access_token: pair.access_token,
+            refresh_token: pair.refresh_token,
+            access_max_age_seconds: pair.access_max_age_seconds,
+            refresh_max_age_seconds: pair.refresh_max_age_seconds,
+        })),
+        RefreshOutcome::Stale { .. } => Err(AppError::Conflict("refresh token is stale".into())),
+        RefreshOutcome::InvalidOrExpired { kind, .. } => Err(AppError::UnauthorizedDetail(
+            format!("refresh token {kind}"),
+        )),
+        RefreshOutcome::ReuseDetected { .. } => Err(AppError::UnauthorizedDetail(
+            "refresh token reuse_detected".into(),
+        )),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/auth/logout",
+    tag = "admin-auth",
+    operation_id = "admin_logout",
+    summary = "Admin logout",
+    description = "Revoke the entire refresh-token family the supplied token belongs to. Always 200 even if the token is unknown.",
+    request_body = AdminLogoutRequest,
+    responses(
+        (status = 200, description = "Logout acknowledged", body = AdminLogoutResponse),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn admin_logout_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AdminLogoutRequest>,
+) -> Result<Json<AdminLogoutResponse>, AppError> {
+    revoke_refresh_token_family(&state.admin, &payload.refresh_token).await?;
+    Ok(Json(AdminLogoutResponse { ok: true }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/auth/revision",
+    tag = "admin-auth",
+    operation_id = "admin_get_revision",
+    summary = "Get current admin credential revision",
+    description = "Returns the active operational credential revision, or 0 if no operational row exists. Requires `x-internal-api-secret`.",
+    responses(
+        (status = 200, description = "Revision returned", body = AdminCredentialRevisionResponse),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn admin_get_revision_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+) -> Result<Json<AdminCredentialRevisionResponse>, AppError> {
+    let credential_revision = get_active_credential_revision(&state.pool).await?;
+    Ok(Json(AdminCredentialRevisionResponse {
+        credential_revision,
+    }))
+}
+
+#[utoipa::path(
+    put,
+    path = "/admin/auth/credentials",
+    tag = "admin-auth",
+    operation_id = "admin_update_credentials",
+    summary = "Update admin operational credentials",
+    description = "Store/replace the operational admin credentials in the DB. Bumps `credential_revision`, which invalidates older refresh tokens. Requires `x-internal-api-secret`.",
+    request_body = AdminCredentialUpdateRequest,
+    responses(
+        (status = 200, description = "Credentials updated", body = AdminCredentialUpdateResponse),
+        (status = 400, description = "Invalid credential payload", body = ErrorDetail),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn admin_update_credentials_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    Json(payload): Json<AdminCredentialUpdateRequest>,
+) -> Result<Json<AdminCredentialUpdateResponse>, AppError> {
+    let response = update_operational_credentials(&state.pool, payload).await?;
+    Ok(Json(response))
 }
 
 // ── Media ───────────────────────────────────────────────────────────────────

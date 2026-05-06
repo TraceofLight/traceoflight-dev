@@ -29,6 +29,9 @@ pub enum AppError {
     #[error("unauthorized")]
     Unauthorized,
 
+    #[error("unauthorized: {0}")]
+    UnauthorizedDetail(String),
+
     #[error("conflict: {0}")]
     Conflict(String),
 
@@ -48,6 +51,7 @@ impl IntoResponse for AppError {
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, (*msg).to_string()),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized".into()),
+            AppError::UnauthorizedDetail(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::BadGateway(msg) => (StatusCode::BAD_GATEWAY, msg.clone()),
             AppError::Database(err) => {

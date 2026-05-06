@@ -125,6 +125,125 @@ pub async fn register_media(pool: &PgPool, payload: MediaCreate, bucket: &str) -
     Ok(row)
 }
 
+fn build_bucket(settings: &MinioSettings) -> Result<(Bucket, Credentials), AppError> {
+    let scheme = if settings.secure { "https" } else { "http" };
+    let endpoint = format!("{scheme}://{}", settings.endpoint);
+    let endpoint_url = url::Url::parse(&endpoint)
+        .map_err(|err| AppError::Internal(anyhow::anyhow!("invalid MinIO endpoint: {err}")))?;
+    let bucket = Bucket::new(
+        endpoint_url,
+        UrlStyle::Path,
+        settings.bucket.clone(),
+        settings.region.clone(),
+    )
+    .map_err(|err| AppError::Internal(anyhow::anyhow!("bucket init failed: {err}")))?;
+    let credentials = Credentials::new(settings.access_key.clone(), settings.secret_key.clone());
+    Ok((bucket, credentials))
+}
+
+pub async fn fetch_object_bytes(
+    settings: &MinioSettings,
+    object_key: &str,
+) -> Result<Vec<u8>, AppError> {
+    let (bucket, credentials) = build_bucket(settings)?;
+    let action = bucket.get_object(Some(&credentials), object_key);
+    let url = action.sign(Duration::from_secs(120));
+
+    let response = reqwest::get(url.as_str()).await.map_err(|err| {
+        AppError::BadGateway(format!("object fetch failed: {err}"))
+    })?;
+    if !response.status().is_success() {
+        return Err(AppError::BadGateway(format!(
+            "object fetch failed with status {}",
+            response.status().as_u16()
+        )));
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|err| AppError::BadGateway(format!("object body read failed: {err}")))?;
+    Ok(bytes.to_vec())
+}
+
+pub async fn put_object_bytes(
+    settings: &MinioSettings,
+    object_key: &str,
+    content_type: &str,
+    payload: Vec<u8>,
+) -> Result<(), AppError> {
+    let (bucket, credentials) = build_bucket(settings)?;
+    let action = bucket.put_object(Some(&credentials), object_key);
+    let url = action.sign(Duration::from_secs(120));
+
+    let client = reqwest::Client::new();
+    let response = client
+        .put(url.as_str())
+        .header("content-type", content_type)
+        .body(payload)
+        .send()
+        .await
+        .map_err(|err| AppError::BadGateway(format!("object put failed: {err}")))?;
+    if !response.status().is_success() {
+        return Err(AppError::BadGateway(format!(
+            "object put failed with status {}",
+            response.status().as_u16()
+        )));
+    }
+    Ok(())
+}
+
+pub async fn delete_object(
+    settings: &MinioSettings,
+    object_key: &str,
+) -> Result<(), AppError> {
+    let (bucket, credentials) = build_bucket(settings)?;
+    let action = bucket.delete_object(Some(&credentials), object_key);
+    let url = action.sign(Duration::from_secs(60));
+
+    let client = reqwest::Client::new();
+    let response = client
+        .delete(url.as_str())
+        .send()
+        .await
+        .map_err(|err| AppError::BadGateway(format!("object delete failed: {err}")))?;
+    // S3 returns 204 on success, 404 is acceptable as a no-op.
+    let status = response.status();
+    if status.is_success() || status.as_u16() == 404 {
+        return Ok(());
+    }
+    Err(AppError::BadGateway(format!(
+        "object delete failed with status {}",
+        status.as_u16()
+    )))
+}
+
+pub async fn object_exists(
+    settings: &MinioSettings,
+    object_key: &str,
+) -> Result<bool, AppError> {
+    let (bucket, credentials) = build_bucket(settings)?;
+    let action = bucket.head_object(Some(&credentials), object_key);
+    let url = action.sign(Duration::from_secs(60));
+
+    let client = reqwest::Client::new();
+    let response = client
+        .head(url.as_str())
+        .send()
+        .await
+        .map_err(|err| AppError::BadGateway(format!("object head failed: {err}")))?;
+    let status = response.status();
+    if status.is_success() {
+        return Ok(true);
+    }
+    if status.as_u16() == 404 {
+        return Ok(false);
+    }
+    Err(AppError::BadGateway(format!(
+        "object head failed with status {}",
+        status.as_u16()
+    )))
+}
+
 /// Forward a raw byte body to a presigned PUT URL on the operator's behalf.
 /// Used as a fallback when the browser's CORS policy blocks direct uploads
 /// to MinIO. Times out after 30s to bound bad URLs / slow links.
