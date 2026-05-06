@@ -7,6 +7,8 @@ pub struct Settings {
     pub database_url: String,
     pub database_max_connections: u32,
     pub log_format: LogFormat,
+    pub cors_allow_origins: Vec<String>,
+    pub internal_api_secret: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,12 +39,23 @@ impl Settings {
             _ => LogFormat::Pretty,
         };
 
+        let cors_allow_origins = env::var("CORS_ALLOW_ORIGINS")
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        let internal_api_secret = env::var("INTERNAL_API_SECRET").unwrap_or_default();
+
         Ok(Settings {
             api_rs_port,
             api_prefix,
             database_url,
             database_max_connections,
             log_format,
+            cors_allow_origins,
+            internal_api_secret,
         })
     }
 }
