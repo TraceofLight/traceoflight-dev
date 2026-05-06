@@ -50,3 +50,4 @@ Thumbs.db
 
 # Local scratch / safety-net files
 .local/
+.local-backups/

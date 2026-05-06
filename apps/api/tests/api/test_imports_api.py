@@ -23,7 +23,7 @@ class _StubImportService:
         return {
             "restored_posts": 2,
             "restored_media": 3,
-            "restored_series_overrides": 1,
+            "restored_series_overrides": 0,
         }
 
 
@@ -33,7 +33,9 @@ def _client_with_service(service: _StubImportService) -> TestClient:
 
 
 def test_snapshot_endpoints_are_not_available(monkeypatch) -> None:
-    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(
+        security_module.settings, "internal_api_secret", "test-shared-secret"
+    )
     service = _StubImportService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
@@ -55,7 +57,9 @@ def test_snapshot_endpoints_are_not_available(monkeypatch) -> None:
 
 
 def test_backup_endpoints_require_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(
+        security_module.settings, "internal_api_secret", "test-shared-secret"
+    )
     service = _StubImportService()
     client = _client_with_service(service)
 
@@ -72,12 +76,16 @@ def test_backup_endpoints_require_internal_secret(monkeypatch) -> None:
 
 
 def test_download_and_load_backup_with_internal_secret(monkeypatch) -> None:
-    monkeypatch.setattr(security_module.settings, "internal_api_secret", "test-shared-secret")
+    monkeypatch.setattr(
+        security_module.settings, "internal_api_secret", "test-shared-secret"
+    )
     service = _StubImportService()
     client = _client_with_service(service)
     headers = {"x-internal-api-secret": "test-shared-secret"}
 
-    download_response = client.get("/api/v1/web-service/imports/backups/posts.zip", headers=headers)
+    download_response = client.get(
+        "/api/v1/web-service/imports/backups/posts.zip", headers=headers
+    )
     load_response = client.post(
         "/api/v1/web-service/imports/backups/load",
         headers=headers,
@@ -88,13 +96,16 @@ def test_download_and_load_backup_with_internal_secret(monkeypatch) -> None:
     assert download_response.status_code == 200
     assert download_response.content == b"fake-zip-binary"
     assert download_response.headers["content-type"] == "application/zip"
-    assert "traceoflight-posts-backup.zip" in download_response.headers["content-disposition"]
+    assert (
+        "traceoflight-posts-backup.zip"
+        in download_response.headers["content-disposition"]
+    )
 
     assert load_response.status_code == 200
     assert load_response.json() == {
         "restored_posts": 2,
         "restored_media": 3,
-        "restored_series_overrides": 1,
+        "restored_series_overrides": 0,
     }
     assert service.restored_filename == "backup.zip"
     assert service.restored_size == len(b"zip-data")

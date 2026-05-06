@@ -30,7 +30,9 @@ def download_posts_backup(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     headers = {"content-disposition": f'attachment; filename="{file_name}"'}
-    return Response(content=payload, status_code=200, headers=headers, media_type="application/zip")
+    return Response(
+        content=payload, status_code=200, headers=headers, media_type="application/zip"
+    )
 
 
 @router.post(
