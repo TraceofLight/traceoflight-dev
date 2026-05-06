@@ -11,11 +11,11 @@ use crate::error::AppError;
 /// Always render datetimes with 6-digit microsecond precision and `Z` suffix,
 /// independent of the stored value's fractional precision. Keeps the JSON
 /// representation stable byte-for-byte across rows.
-fn serialize_dt_us<S: serde::Serializer>(dt: &DateTime<Utc>, ser: S) -> Result<S::Ok, S::Error> {
+pub fn serialize_dt_us<S: serde::Serializer>(dt: &DateTime<Utc>, ser: S) -> Result<S::Ok, S::Error> {
     ser.serialize_str(&dt.format("%Y-%m-%dT%H:%M:%S%.6fZ").to_string())
 }
 
-fn serialize_dt_us_opt<S: serde::Serializer>(
+pub fn serialize_dt_us_opt<S: serde::Serializer>(
     opt: &Option<DateTime<Utc>>,
     ser: S,
 ) -> Result<S::Ok, S::Error> {
@@ -535,7 +535,7 @@ pub async fn delete_post_by_slug(
 /// Canonical tag-slug shape used by both filtering and storage:
 /// trim → lowercase → underscores and whitespace become dashes → drop non-
 /// alphanumerics → collapse multi-dash → strip surrounding dashes.
-fn normalize_tag_slug(value: &str) -> String {
+pub fn normalize_tag_slug(value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     let mut last_dash = false;
     for c in value.trim().to_lowercase().chars() {
