@@ -8,15 +8,15 @@ use thiserror::Error;
 use tracing::error;
 use utoipa::ToSchema;
 
-/// FastAPI-shaped error body. Single component reused by every error response
-/// in the OpenAPI spec.
+/// Single error body component reused by every non-2xx response in the
+/// OpenAPI spec. Wire shape: `{"detail": "..."}`.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ErrorDetail {
     pub detail: String,
 }
 
 /// Application error type. Variants map to HTTP status codes; the response
-/// body is shaped `{"detail": "..."}` to match the FastAPI error contract.
+/// body is rendered as [`ErrorDetail`] (`{"detail": "..."}`).
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("not found")]
@@ -28,6 +28,9 @@ pub enum AppError {
 
     #[error("unauthorized")]
     Unauthorized,
+
+    #[error("conflict: {0}")]
+    Conflict(String),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),
@@ -42,6 +45,7 @@ impl IntoResponse for AppError {
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, (*msg).to_string()),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized".into()),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::Database(err) => {
                 error!(error = %err, "database error");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal error".into())

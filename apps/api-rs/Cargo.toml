@@ -23,6 +23,7 @@ axum-extra = { version = "0.10", features = ["query"] }
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-axum = "0.2"
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
+regex = "1"
 
 [profile.release]
 lto = "thin"

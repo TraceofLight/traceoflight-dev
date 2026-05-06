@@ -13,14 +13,14 @@ use axum::{
     Router,
 };
 use axum_extra::extract::Query;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower_http::{
     cors::{AllowHeaders, AllowMethods, CorsLayer},
     request_id::{PropagateRequestIdLayer, SetRequestIdLayer},
 };
 use tracing::{error, info};
-use utoipa::{IntoParams, OpenApi};
+use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -30,8 +30,10 @@ use crate::{
     error::{AppError, ErrorDetail},
     observability::{http_trace_layer, init_tracing, UuidRequestId, REQUEST_ID_HEADER},
     posts::{
-        delete_post_by_slug, get_post_by_slug, list_posts, ListPostsParams, PostContentKind,
-        PostFilter, PostLocale, PostRead, PostStatus, PostVisibility, TagMatch,
+        create_post, delete_post_by_slug, get_post_by_slug, list_post_summaries, list_posts,
+        resolve_post_redirect, update_post_by_slug, ListPostsParams, ListSummariesParams,
+        PostContentKind, PostCreate, PostFilter, PostLocale, PostRead, PostSortMode, PostStatus,
+        PostSummaryListRead, PostVisibility, TagMatch,
     },
 };
 
@@ -39,6 +41,7 @@ use crate::{
 pub struct AppState {
     pool: PgPool,
     auth: AuthContext,
+    reading_words_per_minute: u32,
 }
 
 impl FromRef<AppState> for AuthContext {
@@ -52,7 +55,7 @@ impl FromRef<AppState> for AuthContext {
     info(
         title = "traceoflight-api-rs",
         version = "0.0.1",
-        description = "Parallel Rust/Axum implementation of the traceoflight web-service API. Mirrors the FastAPI contract for migration testing.",
+        description = "TraceofLight web-service API. Public read endpoints serve published+public content; trusted callers using the internal-secret header can request drafts and write operations.",
     ),
     tags(
         (name = "posts", description = "Public post detail and list endpoints."),
@@ -75,11 +78,18 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         pool,
         auth: AuthContext::new(settings.internal_api_secret.clone()),
+        reading_words_per_minute: settings.reading_words_per_minute,
     };
 
     let api_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
-        .routes(routes!(list_posts_handler))
-        .routes(routes!(get_post_by_slug_handler, delete_post_by_slug_handler));
+        .routes(routes!(list_posts_handler, create_post_handler))
+        .routes(routes!(list_post_summaries_handler))
+        .routes(routes!(resolve_post_redirect_handler))
+        .routes(routes!(
+            get_post_by_slug_handler,
+            update_post_by_slug_handler,
+            delete_post_by_slug_handler
+        ));
 
     let infra_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
         .routes(routes!(healthz))
@@ -269,6 +279,177 @@ async fn get_post_by_slug_handler(
 
 #[derive(Debug, Deserialize, IntoParams, Default)]
 #[into_params(parameter_in = Query)]
+struct ListSummariesQuery {
+    /// Page size (1..=100, default 20).
+    limit: Option<i64>,
+    /// Items skipped before this page (>= 0, default 0).
+    offset: Option<i64>,
+    status: Option<PostStatus>,
+    visibility: Option<PostVisibility>,
+    content_kind: Option<PostContentKind>,
+    locale: Option<PostLocale>,
+    /// Repeatable tag query parameter.
+    #[serde(default, rename = "tag")]
+    tag: Vec<String>,
+    /// "any" matches at least one of `tag`; "all" requires every requested tag.
+    tag_match: Option<TagMatch>,
+    /// Free-text fragment matched against title and excerpt.
+    query: Option<String>,
+    /// "latest" (default), "oldest", or "title".
+    sort: Option<PostSortMode>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/posts/summary",
+    tag = "posts",
+    operation_id = "list_post_summaries",
+    summary = "List post summaries",
+    description = "Card-shaped summaries (no markdown body) plus tag-bar facets and a public/private visibility tally. Public callers see only published+public counts; trusted callers see private counts as well.",
+    params(ListSummariesQuery),
+    responses(
+        (status = 200, description = "Summaries returned", body = PostSummaryListRead),
+        (status = 400, description = "Invalid query parameter", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn list_post_summaries_handler(
+    State(state): State<AppState>,
+    OptionalInternalSecret(trusted): OptionalInternalSecret,
+    Query(params): Query<ListSummariesQuery>,
+) -> Result<Json<PostSummaryListRead>, AppError> {
+    let limit = params.limit.unwrap_or(20);
+    let offset = params.offset.unwrap_or(0);
+    if !(1..=100).contains(&limit) {
+        return Err(AppError::BadRequest(
+            "limit must be between 1 and 100".into(),
+        ));
+    }
+    if offset < 0 {
+        return Err(AppError::BadRequest("offset must be >= 0".into()));
+    }
+
+    let (status, visibility) = effective_visibility(trusted, params.status, params.visibility);
+
+    let req = ListSummariesParams {
+        limit,
+        offset,
+        status,
+        visibility,
+        content_kind: params.content_kind,
+        locale: params.locale,
+        tags: params.tag,
+        tag_match: params.tag_match.unwrap_or_default(),
+        query: params.query,
+        sort: params.sort.unwrap_or_default(),
+        include_private_visibility_counts: trusted,
+    };
+
+    let summaries = list_post_summaries(&state.pool, &req, state.reading_words_per_minute).await?;
+    Ok(Json(summaries))
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+struct RedirectQuery {
+    /// Locale of the old slug; required because slugs are unique per locale.
+    locale: PostLocale,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+struct RedirectResolution {
+    target_slug: String,
+}
+
+#[utoipa::path(
+    get,
+    path = "/posts/redirects/{old_slug}",
+    tag = "posts",
+    operation_id = "resolve_post_redirect",
+    summary = "Resolve old blog slug to current slug",
+    description = "Look up the canonical current slug for a renamed blog post. Restricted to published+public blog posts; drafts/projects do not surface here.",
+    params(
+        ("old_slug" = String, Path, description = "Slug as it appeared before the rename"),
+        RedirectQuery,
+    ),
+    responses(
+        (status = 200, description = "Redirect resolved", body = RedirectResolution),
+        (status = 404, description = "No active redirect for this slug", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn resolve_post_redirect_handler(
+    State(state): State<AppState>,
+    Path(old_slug): Path<String>,
+    Query(params): Query<RedirectQuery>,
+) -> Result<Json<RedirectResolution>, AppError> {
+    let target = resolve_post_redirect(&state.pool, &old_slug, params.locale)
+        .await?
+        .ok_or(AppError::NotFound("no redirect for this slug"))?;
+    Ok(Json(RedirectResolution {
+        target_slug: target,
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/posts",
+    tag = "posts",
+    operation_id = "create_post",
+    summary = "Create post",
+    description = "Create a new post. Requires `x-internal-api-secret`. Tag slugs are normalized and any pre-existing slug-redirect that pointed at this slug is dropped.",
+    request_body = PostCreate,
+    responses(
+        (status = 200, description = "Post created", body = PostRead),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 409, description = "Slug already exists", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn create_post_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    Json(payload): Json<PostCreate>,
+) -> Result<Json<PostRead>, AppError> {
+    let post = create_post(&state.pool, payload).await?;
+    Ok(Json(post))
+}
+
+#[utoipa::path(
+    put,
+    path = "/posts/{slug}",
+    tag = "posts",
+    operation_id = "update_post_by_slug",
+    summary = "Update post",
+    description = "Replace post fields by slug. Requires `x-internal-api-secret`. A slug change records a redirect from the old slug. Tags are re-resolved against the payload list and the M2M is rebuilt.",
+    params(
+        ("slug" = String, Path, description = "Current URL-friendly post identifier", example = "unity-roadshow-2026"),
+    ),
+    request_body = PostCreate,
+    responses(
+        (status = 200, description = "Post updated", body = PostRead),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 404, description = "Post not found", body = ErrorDetail),
+        (status = 409, description = "Slug already exists", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn update_post_by_slug_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Json(payload): Json<PostCreate>,
+) -> Result<Json<PostRead>, AppError> {
+    let post = update_post_by_slug(&state.pool, &slug, payload)
+        .await?
+        .ok_or(AppError::NotFound("post not found"))?;
+    Ok(Json(post))
+}
+
+#[derive(Debug, Deserialize, IntoParams, Default)]
+#[into_params(parameter_in = Query)]
 struct DeletePostQuery {
     status: Option<PostStatus>,
     visibility: Option<PostVisibility>,
@@ -306,9 +487,10 @@ async fn delete_post_by_slug_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Mirror of FastAPI's `_public_visibility_filters`: when the caller is
-/// trusted (internal-secret), pass through whatever they asked for (incl.
-/// None = no filter). Anonymous callers are forced to published+public.
+/// Resolve status/visibility filters per caller trust:
+/// - trusted (valid internal-secret): pass through caller's choice, including
+///   `None` which means "no filter" (drafts, archived, private all visible).
+/// - anonymous: force published+public regardless of what was requested.
 fn effective_visibility(
     trusted: bool,
     status: Option<PostStatus>,
@@ -321,10 +503,11 @@ fn effective_visibility(
     }
 }
 
-/// Mirror FastAPI's CORSMiddleware shape: explicit origin list + credentials +
-/// mirror the requested method/headers (Pydantic uses `["*"]` which combined
-/// with `allow_credentials=True` is non-spec; tower-http rejects `Any` in that
-/// combination, so `mirror_request` is the closest exact equivalent).
+/// Build a CORS layer from the configured origin list. `allow_credentials =
+/// true` forces method/header checks to be specific (not `Any`); the
+/// `mirror_request` strategy reflects whatever the preflight asked for, which
+/// is the practical equivalent of "allow anything the browser tries" while
+/// still satisfying the credentials-mode CORS rules.
 fn build_cors_layer(origins: &[String]) -> CorsLayer {
     let parsed: Vec<HeaderValue> = origins
         .iter()

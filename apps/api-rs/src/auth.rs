@@ -49,8 +49,9 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     diff == 0
 }
 
-/// Non-rejecting extractor: returns whether the caller carries a valid
-/// internal-secret header. Mirrors FastAPI's `optional_internal_secret`.
+/// Non-rejecting extractor that exposes whether the caller carries a valid
+/// internal-secret header. Use this on read endpoints that change behaviour
+/// for trusted callers without rejecting anonymous ones.
 #[derive(Debug, Clone, Copy)]
 pub struct OptionalInternalSecret(pub bool);
 
@@ -71,8 +72,9 @@ where
     }
 }
 
-/// Rejecting extractor: 401 when the internal-secret header is missing or
-/// invalid. Mirrors FastAPI's `require_internal_secret` dependency.
+/// Rejecting extractor: produces 401 Unauthorized when the internal-secret
+/// header is missing or invalid. Apply on write/admin endpoints that must
+/// only accept trusted callers.
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)] // wired up when admin/write endpoints land
 pub struct RequireInternalSecret;

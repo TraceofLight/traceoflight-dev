@@ -9,6 +9,7 @@ pub struct Settings {
     pub log_format: LogFormat,
     pub cors_allow_origins: Vec<String>,
     pub internal_api_secret: String,
+    pub reading_words_per_minute: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +49,12 @@ impl Settings {
 
         let internal_api_secret = env::var("INTERNAL_API_SECRET").unwrap_or_default();
 
+        let reading_words_per_minute: u32 = env::var("READING_WORDS_PER_MINUTE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(200)
+            .max(1);
+
         Ok(Settings {
             api_rs_port,
             api_prefix,
@@ -56,6 +63,7 @@ impl Settings {
             log_format,
             cors_allow_origins,
             internal_api_secret,
+            reading_words_per_minute,
         })
     }
 }
