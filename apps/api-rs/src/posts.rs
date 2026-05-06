@@ -60,6 +60,17 @@ pub enum PostLocale {
     Zh,
 }
 
+impl PostLocale {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostLocale::Ko => "ko",
+            PostLocale::En => "en",
+            PostLocale::Ja => "ja",
+            PostLocale::Zh => "zh",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, ToSchema, PartialEq, Eq)]
 #[sqlx(type_name = "post_top_media_kind", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]

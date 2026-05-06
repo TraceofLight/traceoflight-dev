@@ -28,7 +28,7 @@ utoipa-swagger-ui = { version = "9", features = ["axum"] }
 regex = "1"
 argon2 = "0.5"
 rusty-s3 = "0.7"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
 url = "2"
 bytes = "1"
 hmac = "0.12"

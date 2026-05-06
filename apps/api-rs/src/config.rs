@@ -13,6 +13,21 @@ pub struct Settings {
     pub minio: MinioSettings,
     pub admin: AdminSettings,
     pub redis_url: Option<String>,
+    pub indexnow: IndexNowSettings,
+    pub series_projection_debounce_seconds: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct IndexNowSettings {
+    pub key: String,
+    pub host: String,
+    pub endpoint: String,
+}
+
+impl IndexNowSettings {
+    pub fn is_configured(&self) -> bool {
+        !self.key.trim().is_empty() && !self.host.trim().is_empty()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -117,6 +132,20 @@ impl Settings {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
 
+        let indexnow = IndexNowSettings {
+            key: env::var("INDEXNOW_KEY").unwrap_or_default(),
+            host: env::var("INDEXNOW_HOST").unwrap_or_default(),
+            endpoint: env::var("INDEXNOW_ENDPOINT")
+                .unwrap_or_else(|_| "https://api.indexnow.org/indexnow".into()),
+        };
+
+        let series_projection_debounce_seconds: f32 =
+            env::var("SERIES_PROJECTION_REBUILD_DEBOUNCE_SECONDS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0.5_f32)
+                .max(0.1_f32);
+
         Ok(Settings {
             api_rs_port,
             api_prefix,
@@ -129,6 +158,8 @@ impl Settings {
             minio,
             admin,
             redis_url,
+            indexnow,
+            series_projection_debounce_seconds,
         })
     }
 }

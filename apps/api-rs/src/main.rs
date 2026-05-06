@@ -4,11 +4,13 @@ mod comments;
 mod config;
 mod error;
 mod imports;
+mod indexnow;
 mod media;
 mod observability;
 mod posts;
 mod projects;
 mod series;
+mod series_projection;
 mod site_profile;
 mod tags;
 
@@ -53,6 +55,8 @@ use crate::{
     },
     config::{MinioSettings, Settings},
     imports::{download_posts_backup, load_posts_backup, BackupLoadRead},
+    indexnow::IndexNowClient,
+    series_projection::SeriesProjector,
     media::{
         build_object_key, presigned_put_url, proxy_upload, register_media, MediaCreate, MediaRead,
         MediaUploadRequest, MediaUploadResponse,
@@ -86,6 +90,8 @@ pub struct AppState {
     reading_words_per_minute: u32,
     minio: Arc<MinioSettings>,
     admin: AdminAuthContext,
+    indexnow: IndexNowClient,
+    series_projector: SeriesProjector,
 }
 
 impl FromRef<AppState> for AuthContext {
@@ -140,12 +146,18 @@ async fn main() -> anyhow::Result<()> {
     };
     let admin_ctx = AdminAuthContext::new(settings.admin.clone(), refresh_store);
 
+    let indexnow = IndexNowClient::new(settings.indexnow.clone());
+    let series_projector = SeriesProjector::new();
+    series_projector.spawn_loop(pool.clone(), settings.series_projection_debounce_seconds);
+
     let state = AppState {
         pool,
         auth: AuthContext::new(settings.internal_api_secret.clone()),
         reading_words_per_minute: settings.reading_words_per_minute,
         minio: Arc::new(settings.minio.clone()),
         admin: admin_ctx,
+        indexnow,
+        series_projector,
     };
 
     let api_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
@@ -515,7 +527,21 @@ async fn create_post_handler(
     Json(payload): Json<PostCreate>,
 ) -> Result<Json<PostRead>, AppError> {
     let post = create_post(&state.pool, payload).await?;
+    fire_post_write_effects(&state, &post);
     Ok(Json(post))
+}
+
+/// Side effects to run after every post write that succeeded:
+/// - IndexNow: notify search engines for published posts only
+/// - Series projection: notify the rebuild loop; the debounce coalesces
+///   bursts so back-to-back writes produce one rebuild.
+fn fire_post_write_effects(state: &AppState, post: &PostRead) {
+    if matches!(post.status, PostStatus::Published) {
+        if let Some(url) = state.indexnow.post_url(post.locale.as_str(), &post.slug) {
+            state.indexnow.submit_urls(vec![url]);
+        }
+    }
+    state.series_projector.request_refresh("post-write");
 }
 
 #[utoipa::path(
@@ -547,6 +573,7 @@ async fn update_post_by_slug_handler(
     let post = update_post_by_slug(&state.pool, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
+    fire_post_write_effects(&state, &post);
     Ok(Json(post))
 }
 
@@ -1675,6 +1702,7 @@ async fn delete_post_by_slug_handler(
     if !deleted {
         return Err(AppError::NotFound("post not found"));
     }
+    state.series_projector.request_refresh("post-deleted");
     Ok(StatusCode::NO_CONTENT)
 }
 
