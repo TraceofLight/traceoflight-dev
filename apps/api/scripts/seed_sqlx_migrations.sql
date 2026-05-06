@@ -1,5 +1,5 @@
 -- One-shot seed for the existing live database. Run this BEFORE deploying
--- the api-rs binary that wires `sqlx::migrate!()`. It pre-records the
+-- the api binary that wires `sqlx::migrate!()`. It pre-records the
 -- 20260507000000_initial_schema migration as already applied so the
 -- migrator treats the alembic-built schema as the seed line and skips
 -- re-running it. Future migrations apply normally on top.

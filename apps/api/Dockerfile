@@ -15,10 +15,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /build/target/release/traceoflight-api-rs /app/traceoflight-api-rs
+COPY --from=builder /build/target/release/traceoflight-api /app/traceoflight-api
 
 ENV RUST_LOG=info
-ENV API_RS_PORT=6101
+ENV API_PORT=6101
 EXPOSE 6101
 
-CMD ["/app/traceoflight-api-rs"]
+CMD ["/app/traceoflight-api"]

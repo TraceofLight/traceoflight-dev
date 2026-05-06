@@ -23,18 +23,18 @@ pipeline {
 
     stage('Prepare Infra Env') {
       steps {
-        withCredentials([file(credentialsId: 'traceoflight-api-rs-env', variable: 'API_RS_ENV_FILE')]) {
+        withCredentials([file(credentialsId: 'traceoflight-api-env', variable: 'API_ENV_FILE')]) {
           sh '''
-            cp "$API_RS_ENV_FILE" apps/api-rs/.env.api-rs
+            cp "$API_ENV_FILE" apps/api/.env.api
 
-            if grep -nE '^[A-Z0-9_]+=.*\\$' apps/api-rs/.env.api-rs >/dev/null; then
+            if grep -nE '^[A-Z0-9_]+=.*\\$' apps/api/.env.api >/dev/null; then
               echo "ERROR: .env values include '$'. Docker Compose interpolation can break secrets."
               echo "Use secrets without '$' for Jenkins env file (or escape safely before use)."
               exit 1
             fi
 
             for key in POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT REDIS_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY; do
-              if ! grep -Eq "^${key}=.+" apps/api-rs/.env.api-rs; then
+              if ! grep -Eq "^${key}=.+" apps/api/.env.api; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
@@ -46,15 +46,15 @@ pipeline {
 
     stage('Manage Infra') {
       steps {
-        dir('infra/docker/api') {
+        dir('infra/docker/infra') {
           script {
             if (params.ACTION == 'apply') {
-              sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs up -d --no-deps postgres minio redis minio-init'
+              sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-deps postgres minio redis minio-init'
             } else if (params.ACTION == 'restart') {
-              sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs restart postgres minio redis'
-              sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs up -d --no-deps minio-init'
+              sh 'docker compose --env-file ../../../apps/api/.env.api restart postgres minio redis'
+              sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-deps minio-init'
             } else if (params.ACTION == 'stop') {
-              sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs stop postgres minio redis'
+              sh 'docker compose --env-file ../../../apps/api/.env.api stop postgres minio redis'
             }
           }
         }
@@ -80,10 +80,10 @@ pipeline {
 
   post {
     always {
-      dir('infra/docker/api') {
-        sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs rm -f minio-init || true'
+      dir('infra/docker/infra') {
+        sh 'docker compose --env-file ../../../apps/api/.env.api rm -f minio-init || true'
       }
-      sh 'rm -f apps/api-rs/.env.api-rs || true'
+      sh 'rm -f apps/api/.env.api || true'
     }
   }
 }

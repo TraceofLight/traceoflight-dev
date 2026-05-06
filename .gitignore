@@ -20,9 +20,9 @@ node_modules/
 
 # Environment files
 # Convention:
-#   apps/api-rs/.env.api-rs         local runtime (cargo run / docker compose)
+#   apps/api/.env.api         local runtime (cargo run / docker compose)
 #   apps/web/.env.web               local runtime (bun run dev / docker compose)
-#   apps/api-rs/.env.api-rs.example, apps/web/.env.web.example
+#   apps/api/.env.api.example, apps/web/.env.web.example
 #                                   committed templates (the only env files under version control)
 #   *.env.*.jenkins                 local copy of Jenkins credential payload (gitignored)
 .env

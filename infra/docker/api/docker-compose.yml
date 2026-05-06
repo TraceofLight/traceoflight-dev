@@ -1,105 +1,32 @@
-name: traceoflight-api-stack
+name: traceoflight-backend-stack
 
-# Infrastructure-only stack: postgres, redis, minio. The application backend
-# (Axum/Rust) lives in `infra/docker/api-rs` and joins this stack's
-# `api_internal` network. Bring this stack up first.
+# Canonical backend (Axum/Rust). postgres/redis/minio are owned by the
+# `traceoflight-api-stack` infra compose; bring that up first.
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: traceoflight-postgres
+  api:
+    build:
+      context: ../../../apps/api
+      dockerfile: Dockerfile
+    image: traceoflight-api:latest
+    container_name: traceoflight-api
     restart: unless-stopped
     env_file:
-      - ../../../apps/api-rs/.env.api-rs
+      - ../../../apps/api/.env.api
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-traceoflight}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
-      POSTGRES_DB: ${POSTGRES_DB:-traceoflight}
+      POSTGRES_HOST: postgres
       POSTGRES_PORT: ${POSTGRES_PORT}
-    command: ["postgres", "-p", "${POSTGRES_PORT}"]
-    volumes:
-      - traceoflight-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p ${POSTGRES_PORT} -U ${POSTGRES_USER:-traceoflight} -d ${POSTGRES_DB:-traceoflight}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - api_internal
-
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    container_name: traceoflight-minio
-    restart: unless-stopped
-    command: server /data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
-    env_file:
-      - ../../../apps/api-rs/.env.api-rs
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-traceoflight}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-this-minio-password}
-    volumes:
-      - traceoflight-minio-data:/data
+      API_PORT: ${API_PORT}
     expose:
-      - "${MINIO_API_PORT}"
-      - "${MINIO_CONSOLE_PORT}"
+      - "${API_PORT}"
     networks:
-      api_internal:
-      edge:
-        aliases:
-          - traceoflight-minio
-          - minio
-
-  minio-init:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-    container_name: traceoflight-minio-init
-    restart: "no"
-    depends_on:
-      minio:
-        condition: service_started
-    env_file:
-      - ../../../apps/api-rs/.env.api-rs
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-traceoflight}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-this-minio-password}
-      MINIO_BUCKET: ${MINIO_BUCKET:-traceoflight-media}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        until mc alias set local http://minio:${MINIO_API_PORT} "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
-          echo "waiting for minio..."
-          sleep 2
-        done
-        mc mb -p "local/$$MINIO_BUCKET" || true
-        mc anonymous set download "local/$$MINIO_BUCKET"
-        exit 0
-    networks:
+      - edge
       - api_internal
-
-  redis:
-    image: redis:7-alpine
-    container_name: traceoflight-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--port", "${REDIS_PORT}"]
-    expose:
-      - "${REDIS_PORT}"
-    volumes:
-      - traceoflight-redis-data:/data
-    networks:
-      api_internal:
-      edge:
-        aliases:
-          - traceoflight-redis
-
-volumes:
-  traceoflight-postgres-data:
-  traceoflight-minio-data:
-  traceoflight-redis-data:
 
 networks:
   edge:
     external: true
     name: traceoflight-edge
   api_internal:
-    driver: bridge
+    external: true
+    name: traceoflight-api-stack_api_internal

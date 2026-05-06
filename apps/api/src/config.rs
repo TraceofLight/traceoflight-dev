@@ -2,7 +2,7 @@ use std::env;
 
 #[derive(Debug, Clone)]
 pub struct Settings {
-    pub api_rs_port: u16,
+    pub api_port: u16,
     pub api_prefix: String,
     pub database_url: String,
     pub database_max_connections: u32,
@@ -59,7 +59,7 @@ pub enum LogFormat {
 
 impl Settings {
     pub fn from_env() -> anyhow::Result<Self> {
-        let api_rs_port: u16 = env::var("API_RS_PORT")
+        let api_port: u16 = env::var("API_PORT")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(6655);
@@ -147,7 +147,7 @@ impl Settings {
                 .max(0.1_f32);
 
         Ok(Settings {
-            api_rs_port,
+            api_port,
             api_prefix,
             database_url,
             database_max_connections,

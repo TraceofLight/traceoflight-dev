@@ -19,25 +19,25 @@ pipeline {
 
     stage('Prepare Backend Env') {
       steps {
-        withCredentials([file(credentialsId: 'traceoflight-api-rs-env', variable: 'API_RS_ENV_FILE')]) {
+        withCredentials([file(credentialsId: 'traceoflight-api-env', variable: 'API_ENV_FILE')]) {
           sh '''
-            cp "$API_RS_ENV_FILE" apps/api-rs/.env.api-rs
+            cp "$API_ENV_FILE" apps/api/.env.api
             # Normalize Windows CRLF credentials to LF for safe shell parsing.
-            sed -i 's/\r$//' apps/api-rs/.env.api-rs
-            if grep -nE '^[A-Z0-9_]+=.*\\$' apps/api-rs/.env.api-rs >/dev/null; then
+            sed -i 's/\r$//' apps/api/.env.api
+            if grep -nE '^[A-Z0-9_]+=.*\\$' apps/api/.env.api >/dev/null; then
               echo "ERROR: .env values include '$'. Docker Compose interpolation can break secrets."
               echo "Use secrets without '$' for Jenkins env file (or escape safely before use)."
               exit 1
             fi
 
-            for key in API_RS_PORT POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ENDPOINT MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_BUCKET INTERNAL_API_SECRET ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS REDIS_URL; do
-              if ! grep -Eq "^${key}=.+" apps/api-rs/.env.api-rs; then
+            for key in API_PORT POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ENDPOINT MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_BUCKET INTERNAL_API_SECRET ADMIN_LOGIN_ID ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS REDIS_URL; do
+              if ! grep -Eq "^${key}=.+" apps/api/.env.api; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1
               fi
             done
 
-            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' apps/api-rs/.env.api-rs && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' apps/api-rs/.env.api-rs; then
+            if ! grep -Eq '^ADMIN_LOGIN_PASSWORD_HASH=.+' apps/api/.env.api && ! grep -Eq '^ADMIN_LOGIN_PASSWORD=.+' apps/api/.env.api; then
               echo "ERROR: at least one of ADMIN_LOGIN_PASSWORD_HASH or ADMIN_LOGIN_PASSWORD is required"
               exit 1
             fi
@@ -67,26 +67,25 @@ pipeline {
 
     stage('Build Backend Image') {
       steps {
-        dir('infra/docker/api-rs') {
-          sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs build api-rs'
+        dir('infra/docker/api') {
+          sh 'docker compose --env-file ../../../apps/api/.env.api build api'
         }
       }
     }
 
-    stage('Reclaim Container Name') {
-      // Defensive cleanup so a container left over from a previous compose project name
-      // (or any out-of-band tester) does not block the rename. Only runs after the build
-      // above succeeds, so a build failure leaves the old container in place — no outage
-      // window from a half-applied deploy.
+    stage('Reclaim Container Names') {
+      // Clear out the previous container slot, plus any pre-cutover legacy
+      // names (api-rs from the parallel period; translation-worker from the
+      // FastAPI rq stack) so a single deploy lands a clean state.
       steps {
-        sh 'docker rm -f traceoflight-api-rs || true'
+        sh 'docker rm -f traceoflight-api traceoflight-api-rs traceoflight-translation-worker || true'
       }
     }
 
     stage('Deploy Backend') {
       steps {
-        dir('infra/docker/api-rs') {
-          sh 'docker compose --env-file ../../../apps/api-rs/.env.api-rs up -d --no-build --no-deps api-rs'
+        dir('infra/docker/api') {
+          sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-build --no-deps api'
         }
       }
     }
@@ -94,14 +93,14 @@ pipeline {
     stage('Healthcheck') {
       steps {
         sh '''
-          API_RS_PORT="$(grep -E '^API_RS_PORT=' apps/api-rs/.env.api-rs | head -n1 | cut -d'=' -f2- | tr -d '\r')"
-          if [ -z "$API_RS_PORT" ]; then
-            echo "ERROR: API_RS_PORT is missing in apps/api-rs/.env.api-rs"
+          API_PORT="$(grep -E '^API_PORT=' apps/api/.env.api | head -n1 | cut -d'=' -f2- | tr -d '\r')"
+          if [ -z "$API_PORT" ]; then
+            echo "ERROR: API_PORT is missing in apps/api/.env.api"
             exit 1
           fi
 
           for i in $(seq 1 30); do
-            if docker exec traceoflight-api-rs sh -c "curl -fsS http://127.0.0.1:${API_RS_PORT}/api/v1/web-service/health" >/dev/null; then
+            if docker exec traceoflight-api sh -c "curl -fsS http://127.0.0.1:${API_PORT}/api/v1/web-service/health" >/dev/null; then
               echo "Backend healthcheck passed"
               exit 0
             fi
@@ -110,7 +109,7 @@ pipeline {
           done
 
           echo "Backend healthcheck failed. Recent container logs:"
-          docker logs --tail 200 traceoflight-api-rs || true
+          docker logs --tail 200 traceoflight-api || true
           exit 1
         '''
       }
@@ -125,7 +124,7 @@ pipeline {
 
   post {
     always {
-      sh 'rm -f apps/api-rs/.env.api-rs || true'
+      sh 'rm -f apps/api/.env.api || true'
       sh 'docker container prune -f || true'
       sh 'docker image prune -f || true'
     }

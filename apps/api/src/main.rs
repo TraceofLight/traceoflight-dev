@@ -111,7 +111,7 @@ impl FromRef<AppState> for AuthContext {
 #[derive(OpenApi)]
 #[openapi(
     info(
-        title = "traceoflight-api-rs",
+        title = "traceoflight-api",
         version = "0.0.1",
         description = "TraceofLight web-service API. Public read endpoints serve published+public content; trusted callers using the internal-secret header can request drafts and write operations.",
     ),
@@ -134,7 +134,7 @@ struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let _ = dotenvy::from_filename(".env.api-rs");
+    let _ = dotenvy::from_filename(".env.api");
 
     let settings = Settings::from_env()?;
     init_tracing(settings.log_format);
@@ -256,12 +256,12 @@ async fn main() -> anyhow::Result<()> {
         ))
         .layer(cors);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], settings.api_rs_port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], settings.api_port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
     info!(
-        port = settings.api_rs_port,
+        port = settings.api_port,
         api_prefix = %settings.api_prefix,
-        "api-rs listening on http://{addr}",
+        "api listening on http://{addr}",
     );
 
     axum::serve(listener, app)
