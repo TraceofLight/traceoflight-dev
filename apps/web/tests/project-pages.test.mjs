@@ -120,12 +120,12 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /project\.topMediaImageUrl/);
   assert.match(source, /project\.topMediaYoutubeUrl/);
   assert.match(source, /project\.topMediaVideoUrl/);
-  // Project meta sections (intro, highlights, resources, period) now read
-  // headings from the dictionary instead of hardcoded Korean copy.
+  // Project meta sections (role, intro, resources, description) read headings
+  // from the dictionary instead of hardcoded Korean copy.
   assert.match(source, /\{t\.projectDetail\.role\}/);
-  assert.match(source, /\{t\.projectDetail\.highlights\}/);
+  assert.match(source, /\{t\.projectDetail\.intro\}/);
   assert.match(source, /\{t\.projectDetail\.resources\}/);
-  assert.match(source, /\{t\.projectDetail\.period\}/);
+  assert.match(source, /\{t\.projectDetail\.description\}/);
   assert.match(source, /\{project\.intro\}/);
   assert.match(source, /<section class="grid gap-6 lg:grid-cols-\[minmax\(0,1\.7fr\)_minmax\(260px,0\.8fr\)\]">/);
   assert.match(source, /relatedSeriesPosts|related series/i);

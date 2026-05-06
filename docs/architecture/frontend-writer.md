@@ -196,8 +196,8 @@ This keeps browser clients from directly coupling to backend host/port.
 
 Run from `apps/web`:
 
-- `npm test`
-- `npm run build`
+- `bun run test`
+- `bun run build`
 
 ## Known Constraints
 

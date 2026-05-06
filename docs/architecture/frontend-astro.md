@@ -85,12 +85,12 @@ Provide a production-ready frontend baseline for a personal site covering landin
 
 Run from `apps/web`:
 
-- `npm test` (modularization guard tests)
-- `npm run build` (Astro production build)
+- `bun run test` (modularization guard tests)
+- `bun run build` (Astro production build)
 
 ## Next Recommended Steps
 
 1. Replace `DbBlogSourceFallback` with real DB queries wired to the backend API or local DB schema.
 2. Add route-level integration checks for `/blog/[...slug]` and `/rss.xml` parity.
-3. Add CI stage for `npm test` before image build/deploy to prevent modularization regressions.
+3. Add CI stage for `bun run test` before image build/deploy to prevent modularization regressions.
 4. Add explicit environment templates and runbook notes for frontend deployment variables.

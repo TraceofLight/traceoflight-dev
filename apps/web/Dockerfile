@@ -1,17 +1,17 @@
-FROM node:20-bookworm-slim
+FROM oven/bun:1-debian
 WORKDIR /app
 
 ENV HOST=0.0.0.0
 ENV PORT=6543
 ENV ASTRO_TELEMETRY_DISABLED=1
 
-COPY package*.json ./
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN bun run build
 ENV NODE_ENV=production
-RUN npm prune --omit=dev && npm cache clean --force
+RUN rm -rf node_modules && bun install --production --frozen-lockfile && rm -rf /root/.bun/install/cache
 
 EXPOSE 6543
 
-CMD ["node", "./dist/server/entry.mjs"]
+CMD ["bun", "./dist/server/entry.mjs"]

@@ -35,16 +35,16 @@ class JenkinsCleanupPipelineTests(unittest.TestCase):
 
         self.assertNotIn("COPY --from=deps /app/node_modules ./node_modules", source)
         self.assertNotIn("COPY --from=build /app/node_modules ./node_modules", source)
-        self.assertIn("RUN npm ci", source)
-        self.assertIn("RUN npm prune --omit=dev", source)
+        self.assertIn("RUN bun install --frozen-lockfile", source)
+        self.assertIn("bun install --production --frozen-lockfile", source)
 
     def test_frontend_dockerfile_installs_dev_dependencies_before_switching_to_production(self) -> None:
         source = self.read("apps/web/Dockerfile")
 
-        npm_ci_index = source.index("RUN npm ci")
+        full_install_index = source.index("RUN bun install --frozen-lockfile")
         node_env_index = source.index("ENV NODE_ENV=production")
         self.assertLess(
-            npm_ci_index,
+            full_install_index,
             node_env_index,
             "Dockerfile must install devDependencies before setting NODE_ENV=production.",
         )

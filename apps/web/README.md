@@ -46,9 +46,10 @@ The deployment compose stack at `infra/docker/web/docker-compose.yml` reads `app
 
 | Command | Action |
 | :-- | :-- |
-| `npm install` | Install dependencies |
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview build output |
-| `npm run format` | Format files with Prettier |
-| `npm run format:check` | Check formatting |
+| `bun install` | Install dependencies |
+| `bun run dev` | Start dev server |
+| `bun run build` | Build for production |
+| `bun run preview` | Preview build output |
+| `bun run test` | typecheck + guards + ui + auth |
+| `bun run format` | Format files with Prettier |
+| `bun run format:check` | Check formatting |

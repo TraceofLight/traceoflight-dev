@@ -152,8 +152,8 @@ manual or 자연 크롤링)에 위임.
 
 ## Verification (모든 task 완료 후)
 
-- `cd apps/web && npm run build` 성공
-- `npm run test` 전체 PASS
+- `cd apps/web && bun run build` 성공
+- `bun run test` 전체 PASS
 - 빌드된 dist에서 `dist/server/pages/sitemap.xml.astro.mjs` 출력 확인 (실제 hreflang 검증은 dev 서버 또는 staging 배포 필요)
 - Google Rich Results Test에 임의 URL 1개 → BlogPosting `inLanguage` 필드가 페이지 locale과 일치하는지 확인 (수동)
 

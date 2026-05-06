@@ -44,7 +44,10 @@ export default defineConfig({
 	},
 	integrations: [react(), mdx()],
 	vite: {
-		plugins: [tailwindcss()],
+		// @tailwindcss/vite 4.2.x ships Plugin types built against an older Vite. With
+		// Vite 8's stricter HotUpdatePluginContext, the assignment fails ts(2322). The
+		// runtime shape is fine — cast at this boundary instead of pinning Vite back.
+		plugins: [/** @type {import('vite').PluginOption} */ (/** @type {unknown} */ (tailwindcss()))],
 		build: {
 			rollupOptions: {
 				output: {

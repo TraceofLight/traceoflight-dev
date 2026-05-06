@@ -21,7 +21,7 @@ node_modules/
 # Environment files
 # Convention:
 #   apps/api/.env.api               local runtime (uvicorn / pytest / docker compose)
-#   apps/web/.env.web               local runtime (npm run dev / docker compose)
+#   apps/web/.env.web               local runtime (bun run dev / docker compose)
 #   apps/api/.env.api.example, apps/web/.env.web.example
 #                                   committed templates (the only env files under version control)
 #   apps/api/.env.api.jenkins, apps/web/.env.web.jenkins
