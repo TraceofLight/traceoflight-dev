@@ -1,23 +1,30 @@
 mod auth;
+mod comments;
 mod config;
 mod error;
+mod media;
 mod observability;
 mod posts;
 mod projects;
 mod series;
+mod site_profile;
 mod tags;
 
 use std::net::SocketAddr;
 
+use std::sync::Arc;
+
 use axum::{
+    body::Bytes,
     extract::{FromRef, Path, State},
-    http::{HeaderValue, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::Json,
     Router,
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use uuid::Uuid;
 use tower_http::{
     cors::{AllowHeaders, AllowMethods, CorsLayer},
     request_id::{PropagateRequestIdLayer, SetRequestIdLayer},
@@ -29,7 +36,16 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     auth::{AuthContext, OptionalInternalSecret, RequireInternalSecret},
-    config::Settings,
+    comments::{
+        create_comment, delete_comment, list_admin_comments, list_post_comments, update_comment,
+        AdminCommentFeed, PostCommentCreate, PostCommentDelete, PostCommentRead,
+        PostCommentThreadList, PostCommentUpdate,
+    },
+    config::{MinioSettings, Settings},
+    media::{
+        build_object_key, presigned_put_url, proxy_upload, register_media, MediaCreate, MediaRead,
+        MediaUploadRequest, MediaUploadResponse,
+    },
     error::{AppError, ErrorDetail},
     observability::{http_trace_layer, init_tracing, UuidRequestId, REQUEST_ID_HEADER},
     posts::{
@@ -48,6 +64,7 @@ use crate::{
         update_series_by_slug, ListSeriesParams, SeriesDetailRead, SeriesOrderReplace,
         SeriesPostsReplace, SeriesRead, SeriesUpsert,
     },
+    site_profile::{get_site_profile, update_site_profile, SiteProfileRead},
     tags::{create_tag, delete_tag, list_tags, update_tag, TagCreate, TagUpdate},
 };
 
@@ -56,6 +73,7 @@ pub struct AppState {
     pool: PgPool,
     auth: AuthContext,
     reading_words_per_minute: u32,
+    minio: Arc<MinioSettings>,
 }
 
 impl FromRef<AppState> for AuthContext {
@@ -76,6 +94,9 @@ impl FromRef<AppState> for AuthContext {
         (name = "projects", description = "Project content surface (subset of posts with `content_kind=project`)."),
         (name = "series", description = "Series collection and member-post linkage management."),
         (name = "tags", description = "Tag taxonomy management (admin-only)."),
+        (name = "site-profile", description = "Footer profile (email + GitHub URL) shown across the site."),
+        (name = "comments", description = "Threaded post comments, guest+admin authoring, soft-delete and admin feed."),
+        (name = "media", description = "Object-storage upload URL issue, metadata register, and server-side body proxy."),
         (name = "infra", description = "Liveness and readiness probes consumed by orchestrators and health monitors."),
     ),
 )]
@@ -96,6 +117,7 @@ async fn main() -> anyhow::Result<()> {
         pool,
         auth: AuthContext::new(settings.internal_api_secret.clone()),
         reading_words_per_minute: settings.reading_words_per_minute,
+        minio: Arc::new(settings.minio.clone()),
     };
 
     let api_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
@@ -121,7 +143,20 @@ async fn main() -> anyhow::Result<()> {
             update_series_by_slug_handler,
             delete_series_by_slug_handler
         ))
-        .routes(routes!(replace_series_posts_handler));
+        .routes(routes!(replace_series_posts_handler))
+        .routes(routes!(
+            get_site_profile_handler,
+            update_site_profile_handler
+        ))
+        .routes(routes!(
+            list_post_comments_handler,
+            create_post_comment_handler
+        ))
+        .routes(routes!(update_comment_handler, delete_comment_handler))
+        .routes(routes!(list_admin_comments_handler))
+        .routes(routes!(create_upload_url_handler))
+        .routes(routes!(register_media_handler))
+        .routes(routes!(upload_media_proxy_handler));
 
     let infra_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
         .routes(routes!(healthz))
@@ -912,6 +947,307 @@ async fn replace_series_posts_handler(
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
     Ok(Json(replaced))
+}
+
+// ── Media ───────────────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/media/upload-url",
+    tag = "media",
+    operation_id = "create_upload_url",
+    summary = "Create upload URL",
+    description = "Issue a presigned PUT URL for object storage. The browser uploads bytes directly to that URL, then calls `POST /media` to persist metadata.",
+    request_body = MediaUploadRequest,
+    responses(
+        (status = 200, description = "Upload URL issued", body = MediaUploadResponse),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn create_upload_url_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<MediaUploadRequest>,
+) -> Result<Json<MediaUploadResponse>, AppError> {
+    let object_key = build_object_key(payload.kind, &payload.filename);
+    let upload_url = presigned_put_url(&state.minio, &object_key, &payload.mime_type)?;
+    Ok(Json(MediaUploadResponse {
+        object_key,
+        bucket: state.minio.bucket.clone(),
+        upload_url,
+        expires_in_seconds: state.minio.presigned_expire_seconds,
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/media",
+    tag = "media",
+    operation_id = "register_media",
+    summary = "Register uploaded media",
+    description = "Persist metadata for a media object that has already been uploaded to storage.",
+    request_body = MediaCreate,
+    responses(
+        (status = 200, description = "Media metadata registered", body = MediaRead),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn register_media_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<MediaCreate>,
+) -> Result<Json<MediaRead>, AppError> {
+    let media = register_media(&state.pool, payload, &state.minio.bucket).await?;
+    Ok(Json(media))
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+struct UploadProxyAck {
+    ok: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/media/upload-proxy",
+    tag = "media",
+    operation_id = "upload_media_proxy",
+    summary = "Proxy upload to object storage",
+    description = "Forward the raw request body to the URL given in `x-upload-url`. The optional `x-upload-content-type` header overrides Content-Type forwarded to storage. Used as a CORS-blocked browser fallback.",
+    request_body(content = String, content_type = "application/octet-stream"),
+    responses(
+        (status = 200, description = "Body uploaded", body = UploadProxyAck),
+        (status = 400, description = "Missing header/body or unsupported protocol", body = ErrorDetail),
+        (status = 502, description = "Object storage rejected the upload", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn upload_media_proxy_handler(
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<UploadProxyAck>, AppError> {
+    let upload_url = headers
+        .get("x-upload-url")
+        .and_then(|v| v.to_str().ok())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| AppError::BadRequest("x-upload-url header is required".into()))?;
+    if body.is_empty() {
+        return Err(AppError::BadRequest("request body is empty".into()));
+    }
+    let content_type = headers
+        .get("x-upload-content-type")
+        .or_else(|| headers.get("content-type"))
+        .and_then(|v| v.to_str().ok())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("application/octet-stream");
+
+    proxy_upload(upload_url, content_type, body).await?;
+    Ok(Json(UploadProxyAck { ok: true }))
+}
+
+// ── Comments ────────────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/posts/{slug}/comments",
+    tag = "comments",
+    operation_id = "list_post_comments",
+    summary = "List post comments",
+    description = "Threaded comment list (root + replies) for a post. Anonymous callers see private bodies replaced by a placeholder; trusted callers see them in full.",
+    params(("slug" = String, Path, description = "Post slug")),
+    responses(
+        (status = 200, description = "Comments returned", body = PostCommentThreadList),
+        (status = 404, description = "Post not found", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn list_post_comments_handler(
+    State(state): State<AppState>,
+    OptionalInternalSecret(trusted): OptionalInternalSecret,
+    Path(slug): Path<String>,
+) -> Result<Json<PostCommentThreadList>, AppError> {
+    let thread = list_post_comments(&state.pool, &slug, trusted)
+        .await?
+        .ok_or(AppError::NotFound("post not found"))?;
+    Ok(Json(thread))
+}
+
+#[utoipa::path(
+    post,
+    path = "/posts/{slug}/comments",
+    tag = "comments",
+    operation_id = "create_post_comment",
+    summary = "Create post comment",
+    description = "Trusted callers (with `x-internal-api-secret`) create admin-authored comments. Anonymous callers must supply `author_name` and `password` and become guest authors. Reply chains are flattened: every reply is parented to its root.",
+    params(("slug" = String, Path, description = "Post slug")),
+    request_body = PostCommentCreate,
+    responses(
+        (status = 200, description = "Comment created", body = PostCommentRead),
+        (status = 400, description = "Invalid payload", body = ErrorDetail),
+        (status = 401, description = "Author/password validation failed", body = ErrorDetail),
+        (status = 404, description = "Post not found", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn create_post_comment_handler(
+    State(state): State<AppState>,
+    OptionalInternalSecret(trusted): OptionalInternalSecret,
+    Path(slug): Path<String>,
+    Json(payload): Json<PostCommentCreate>,
+) -> Result<Json<PostCommentRead>, AppError> {
+    let comment = create_comment(&state.pool, &slug, payload, trusted)
+        .await?
+        .ok_or(AppError::NotFound("post not found"))?;
+    Ok(Json(comment))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/comments/{comment_id}",
+    tag = "comments",
+    operation_id = "update_comment",
+    summary = "Update comment",
+    description = "Edit a comment's body and/or visibility. Trusted callers can edit any comment; guest authors must supply the original `password`.",
+    params(("comment_id" = Uuid, Path, description = "Comment id")),
+    request_body = PostCommentUpdate,
+    responses(
+        (status = 200, description = "Comment updated", body = PostCommentRead),
+        (status = 400, description = "Invalid payload or deleted comment", body = ErrorDetail),
+        (status = 401, description = "Authentication failed", body = ErrorDetail),
+        (status = 404, description = "Comment not found", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn update_comment_handler(
+    State(state): State<AppState>,
+    OptionalInternalSecret(trusted): OptionalInternalSecret,
+    Path(comment_id): Path<Uuid>,
+    Json(payload): Json<PostCommentUpdate>,
+) -> Result<Json<PostCommentRead>, AppError> {
+    let comment = update_comment(&state.pool, comment_id, payload, trusted)
+        .await?
+        .ok_or(AppError::NotFound("comment not found"))?;
+    Ok(Json(comment))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/comments/{comment_id}",
+    tag = "comments",
+    operation_id = "delete_comment",
+    summary = "Delete comment",
+    description = "Soft-delete a comment. The body is replaced by a placeholder; trusted callers bypass the password check.",
+    params(("comment_id" = Uuid, Path, description = "Comment id")),
+    request_body = PostCommentDelete,
+    responses(
+        (status = 200, description = "Comment deleted", body = PostCommentRead),
+        (status = 401, description = "Authentication failed", body = ErrorDetail),
+        (status = 404, description = "Comment not found", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn delete_comment_handler(
+    State(state): State<AppState>,
+    OptionalInternalSecret(trusted): OptionalInternalSecret,
+    Path(comment_id): Path<Uuid>,
+    Json(payload): Json<PostCommentDelete>,
+) -> Result<Json<PostCommentRead>, AppError> {
+    let comment = delete_comment(&state.pool, comment_id, payload, trusted)
+        .await?
+        .ok_or(AppError::NotFound("comment not found"))?;
+    Ok(Json(comment))
+}
+
+#[derive(Debug, Deserialize, IntoParams, Default)]
+#[into_params(parameter_in = Query)]
+struct AdminCommentsQuery {
+    /// Page size (1..=200, default 100).
+    limit: Option<i64>,
+    /// Items skipped before this page (>= 0, default 0).
+    offset: Option<i64>,
+    /// Optional filter: only return comments belonging to this post slug.
+    post_slug: Option<String>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/comments",
+    tag = "comments",
+    operation_id = "list_admin_comments",
+    summary = "List admin comments",
+    description = "Newest-first comment review feed. Requires `x-internal-api-secret`.",
+    params(AdminCommentsQuery),
+    responses(
+        (status = 200, description = "Feed returned", body = AdminCommentFeed),
+        (status = 400, description = "Invalid query parameter", body = ErrorDetail),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn list_admin_comments_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    Query(params): Query<AdminCommentsQuery>,
+) -> Result<Json<AdminCommentFeed>, AppError> {
+    let limit = params.limit.unwrap_or(100);
+    let offset = params.offset.unwrap_or(0);
+    if !(1..=200).contains(&limit) {
+        return Err(AppError::BadRequest(
+            "limit must be between 1 and 200".into(),
+        ));
+    }
+    if offset < 0 {
+        return Err(AppError::BadRequest("offset must be >= 0".into()));
+    }
+    let feed =
+        list_admin_comments(&state.pool, limit, offset, params.post_slug.as_deref()).await?;
+    Ok(Json(feed))
+}
+
+// ── Site profile ────────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/site-profile",
+    tag = "site-profile",
+    operation_id = "get_site_profile",
+    summary = "Get site profile",
+    description = "Footer email and GitHub address served by the site. Falls back to built-in defaults when the row is unset.",
+    responses(
+        (status = 200, description = "Profile returned", body = SiteProfileRead),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn get_site_profile_handler(
+    State(state): State<AppState>,
+) -> Result<Json<SiteProfileRead>, AppError> {
+    let profile = get_site_profile(&state.pool).await?;
+    Ok(Json(profile))
+}
+
+#[utoipa::path(
+    put,
+    path = "/site-profile",
+    tag = "site-profile",
+    operation_id = "update_site_profile",
+    summary = "Update site profile",
+    description = "Replace the footer email and GitHub URL. Whitespace-trimmed, validated, and upserted into the singleton row.",
+    request_body = SiteProfileRead,
+    responses(
+        (status = 200, description = "Profile updated", body = SiteProfileRead),
+        (status = 400, description = "Invalid email or GitHub URL", body = ErrorDetail),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn update_site_profile_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    Json(payload): Json<SiteProfileRead>,
+) -> Result<Json<SiteProfileRead>, AppError> {
+    let profile = update_site_profile(&state.pool, payload).await?;
+    Ok(Json(profile))
 }
 
 // ── Tags ────────────────────────────────────────────────────────────────────

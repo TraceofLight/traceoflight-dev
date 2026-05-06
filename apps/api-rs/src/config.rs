@@ -10,6 +10,18 @@ pub struct Settings {
     pub cors_allow_origins: Vec<String>,
     pub internal_api_secret: String,
     pub reading_words_per_minute: u32,
+    pub minio: MinioSettings,
+}
+
+#[derive(Debug, Clone)]
+pub struct MinioSettings {
+    pub endpoint: String,
+    pub access_key: String,
+    pub secret_key: String,
+    pub bucket: String,
+    pub secure: bool,
+    pub presigned_expire_seconds: u64,
+    pub region: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +67,22 @@ impl Settings {
             .unwrap_or(200)
             .max(1);
 
+        let minio = MinioSettings {
+            endpoint: env::var("MINIO_ENDPOINT").unwrap_or_default(),
+            access_key: env::var("MINIO_ACCESS_KEY").unwrap_or_default(),
+            secret_key: env::var("MINIO_SECRET_KEY").unwrap_or_default(),
+            bucket: env::var("MINIO_BUCKET").unwrap_or_default(),
+            secure: matches!(
+                env::var("MINIO_SECURE").unwrap_or_default().to_lowercase().as_str(),
+                "true" | "1" | "yes"
+            ),
+            presigned_expire_seconds: env::var("MINIO_PRESIGNED_EXPIRE_SECONDS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(900),
+            region: env::var("MINIO_REGION").unwrap_or_else(|_| "us-east-1".into()),
+        };
+
         Ok(Settings {
             api_rs_port,
             api_prefix,
@@ -64,6 +92,7 @@ impl Settings {
             cors_allow_origins,
             internal_api_secret,
             reading_words_per_minute,
+            minio,
         })
     }
 }

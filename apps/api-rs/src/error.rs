@@ -32,6 +32,9 @@ pub enum AppError {
     #[error("conflict: {0}")]
     Conflict(String),
 
+    #[error("upstream failure: {0}")]
+    BadGateway(String),
+
     #[error(transparent)]
     Database(#[from] sqlx::Error),
 
@@ -46,6 +49,7 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized".into()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
+            AppError::BadGateway(msg) => (StatusCode::BAD_GATEWAY, msg.clone()),
             AppError::Database(err) => {
                 error!(error = %err, "database error");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal error".into())
