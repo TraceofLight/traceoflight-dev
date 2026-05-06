@@ -1,59 +1,10 @@
 name: traceoflight-api-stack
 
+# Infrastructure-only stack: postgres, redis, minio. The application backend
+# (Axum/Rust) lives in `infra/docker/api-rs` and joins this stack's
+# `api_internal` network. Bring this stack up first.
+
 services:
-  api:
-    build:
-      context: ../../../apps/api
-      dockerfile: Dockerfile
-    image: traceoflight-api-stack-api:latest
-    container_name: traceoflight-api
-    restart: unless-stopped
-    env_file:
-      - ../../../apps/api/.env.api
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      MINIO_ENDPOINT: minio:${MINIO_API_PORT}
-      API_PORT: ${API_PORT}
-      REDIS_URL: redis://redis:${REDIS_PORT}/0
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_started
-      redis:
-        condition: service_started
-    expose:
-      - "${API_PORT}"
-    networks:
-      - edge
-      - api_internal
-
-  translation-worker:
-    image: traceoflight-api-stack-api:latest
-    container_name: traceoflight-translation-worker
-    restart: unless-stopped
-    env_file:
-      - ../../../apps/api/.env.api
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      REDIS_URL: redis://redis:${REDIS_PORT}/0
-    entrypoint: []
-    command:
-      - rq
-      - worker
-      - translations
-      - --url
-      - redis://redis:${REDIS_PORT}/0
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - api_internal
-
   postgres:
     image: postgres:16-alpine
     container_name: traceoflight-postgres

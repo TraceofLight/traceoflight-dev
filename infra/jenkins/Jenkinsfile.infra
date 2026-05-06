@@ -33,7 +33,7 @@ pipeline {
               exit 1
             fi
 
-            for key in API_PORT POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT REDIS_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY; do
+            for key in POSTGRES_PORT MINIO_API_PORT MINIO_CONSOLE_PORT REDIS_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ACCESS_KEY MINIO_SECRET_KEY; do
               if ! grep -Eq "^${key}=.+" apps/api/.env.api; then
                 echo "ERROR: required env key is missing or empty: ${key}"
                 exit 1

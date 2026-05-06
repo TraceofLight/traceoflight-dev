@@ -1,14 +1,7 @@
 name: traceoflight-api-rs-stack
 
-# Parallel BE for migration testing → eventual replacement of apps/api stack.
-# Joins the existing api stack's `api_internal` network so it shares
-# postgres/redis/minio without duplicating them. Bring up
-# `infra/docker/api/docker-compose.yml` first (it owns those services), then
-# this compose file.
-#
-# Port convention (610x): cutover means api-rs takes 6101 (FastAPI's slot).
-# While both stacks run side-by-side, set API_RS_PORT=6106 in
-# apps/api-rs/.env.api-rs to avoid conflict.
+# Canonical backend (Axum/Rust). postgres/redis/minio are owned by the
+# `traceoflight-api-stack` infra compose; bring that up first.
 
 services:
   api-rs:
@@ -26,11 +19,6 @@ services:
       API_RS_PORT: ${API_RS_PORT}
     expose:
       - "${API_RS_PORT}"
-    # Host-port mapping for direct testing (curl, contract diff). Remove or
-    # gate behind a profile when promoting api-rs from "parallel test stack"
-    # to the canonical BE.
-    ports:
-      - "${API_RS_PORT}:${API_RS_PORT}"
     networks:
       - edge
       - api_internal
