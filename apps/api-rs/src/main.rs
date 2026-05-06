@@ -1,12 +1,15 @@
 mod admin_auth;
 mod auth;
+mod cleanup;
 mod comments;
 mod config;
 mod error;
 mod imports;
 mod indexnow;
 mod media;
+mod media_refs;
 mod observability;
+mod pdf_assets;
 mod posts;
 mod projects;
 mod series;
@@ -55,11 +58,16 @@ use crate::{
     },
     config::{MinioSettings, Settings},
     imports::{download_posts_backup, load_posts_backup, BackupLoadRead},
+    cleanup::{spawn_draft_cleanup, spawn_slug_redirect_cleanup, CleanupSettings},
     indexnow::IndexNowClient,
     series_projection::SeriesProjector,
     media::{
         build_object_key, presigned_put_url, proxy_upload, register_media, MediaCreate, MediaRead,
         MediaUploadRequest, MediaUploadResponse,
+    },
+    pdf_assets::{
+        delete_pdf, download_pdf, get_status as pdf_status, upload_pdf, PdfAssetConfig, PdfStatus,
+        PORTFOLIO_PDF, RESUME_PDF,
     },
     error::{AppError, ErrorDetail},
     observability::{http_trace_layer, init_tracing, UuidRequestId, REQUEST_ID_HEADER},
@@ -117,6 +125,8 @@ impl FromRef<AppState> for AuthContext {
         (name = "media", description = "Object-storage upload URL issue, metadata register, and server-side body proxy."),
         (name = "admin-auth", description = "Admin login, refresh-token rotation (RTR), logout and credential management."),
         (name = "imports", description = "Backup ZIP download and restore (admin-only)."),
+        (name = "portfolio", description = "Public portfolio PDF retrieval and admin upload."),
+        (name = "resume", description = "Public resume PDF retrieval and admin upload."),
         (name = "infra", description = "Liveness and readiness probes consumed by orchestrators and health monitors."),
     ),
 )]
@@ -150,11 +160,16 @@ async fn main() -> anyhow::Result<()> {
     let series_projector = SeriesProjector::new();
     series_projector.spawn_loop(pool.clone(), settings.series_projection_debounce_seconds);
 
+    let cleanup_settings = Arc::new(CleanupSettings::from_env());
+    let minio_arc = Arc::new(settings.minio.clone());
+    spawn_draft_cleanup(pool.clone(), minio_arc.clone(), cleanup_settings.clone());
+    spawn_slug_redirect_cleanup(pool.clone(), cleanup_settings.clone());
+
     let state = AppState {
         pool,
         auth: AuthContext::new(settings.internal_api_secret.clone()),
         reading_words_per_minute: settings.reading_words_per_minute,
-        minio: Arc::new(settings.minio.clone()),
+        minio: minio_arc.clone(),
         admin: admin_ctx,
         indexnow,
         series_projector,
@@ -203,7 +218,19 @@ async fn main() -> anyhow::Result<()> {
         .routes(routes!(admin_get_revision_handler))
         .routes(routes!(admin_update_credentials_handler))
         .routes(routes!(download_posts_backup_handler))
-        .routes(routes!(load_posts_backup_handler));
+        .routes(routes!(load_posts_backup_handler))
+        .routes(routes!(get_portfolio_status_handler))
+        .routes(routes!(
+            get_portfolio_pdf_handler,
+            upload_portfolio_pdf_handler,
+            delete_portfolio_pdf_handler
+        ))
+        .routes(routes!(get_resume_status_handler))
+        .routes(routes!(
+            get_resume_pdf_handler,
+            upload_resume_pdf_handler,
+            delete_resume_pdf_handler
+        ));
 
     let infra_routes: OpenApiRouter<AppState> = OpenApiRouter::new()
         .routes(routes!(healthz))
@@ -1088,6 +1115,233 @@ async fn load_posts_backup_handler(
         .ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
     let result = load_posts_backup(&state.pool, &state.minio, &file_name, &file_bytes).await?;
     Ok(Json(result))
+}
+
+// ── PDF assets (portfolio + resume) ─────────────────────────────────────────
+
+async fn handle_pdf_status(
+    state: &AppState,
+    config: &PdfAssetConfig,
+) -> Result<Json<PdfStatus>, AppError> {
+    Ok(Json(pdf_status(&state.minio, config).await?))
+}
+
+async fn handle_pdf_download(
+    state: &AppState,
+    config: &PdfAssetConfig,
+) -> Result<Response, AppError> {
+    let download = download_pdf(&state.minio, config)
+        .await?
+        .ok_or_else(|| AppError::NotFound(missing_detail(config)))?;
+    let disposition = format!("inline; filename=\"{}\"", download.filename);
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, download.content_type)
+        .header(header::CONTENT_DISPOSITION, disposition)
+        .body(Body::from(download.body))
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("response build failed: {e}")))
+}
+
+fn missing_detail(config: &PdfAssetConfig) -> &'static str {
+    if config.object_key == PORTFOLIO_PDF.object_key {
+        "portfolio pdf is not registered"
+    } else {
+        "resume pdf is not registered"
+    }
+}
+
+async fn handle_pdf_upload(
+    state: &AppState,
+    config: &PdfAssetConfig,
+    mut multipart: Multipart,
+) -> Result<Json<PdfStatus>, AppError> {
+    let mut filename: Option<String> = None;
+    let mut content_type: Option<String> = None;
+    let mut data: Option<Vec<u8>> = None;
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("multipart parse failed: {e}")))?
+    {
+        if field.name() == Some("file") {
+            filename = field.file_name().map(str::to_string).or(Some(String::new()));
+            content_type = field.content_type().map(str::to_string);
+            let bytes = field
+                .bytes()
+                .await
+                .map_err(|e| AppError::BadRequest(format!("multipart body read: {e}")))?;
+            data = Some(bytes.to_vec());
+            break;
+        }
+    }
+    let filename = filename
+        .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
+    let data = data.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
+    let status = upload_pdf(
+        &state.minio,
+        config,
+        &filename,
+        data,
+        content_type.as_deref(),
+    )
+    .await?;
+    Ok(Json(status))
+}
+
+#[utoipa::path(
+    get,
+    path = "/portfolio/status",
+    tag = "portfolio",
+    operation_id = "get_portfolio_status",
+    summary = "Read portfolio PDF status",
+    responses(
+        (status = 200, description = "Status returned", body = PdfStatus),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn get_portfolio_status_handler(
+    State(state): State<AppState>,
+) -> Result<Json<PdfStatus>, AppError> {
+    handle_pdf_status(&state, &PORTFOLIO_PDF).await
+}
+
+#[utoipa::path(
+    get,
+    path = "/portfolio",
+    tag = "portfolio",
+    operation_id = "get_portfolio_pdf",
+    summary = "Download public portfolio PDF",
+    responses(
+        (status = 200, description = "PDF binary", content_type = "application/pdf"),
+        (status = 404, description = "Portfolio PDF not registered", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn get_portfolio_pdf_handler(
+    State(state): State<AppState>,
+) -> Result<Response, AppError> {
+    handle_pdf_download(&state, &PORTFOLIO_PDF).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/portfolio",
+    tag = "portfolio",
+    operation_id = "upload_portfolio_pdf",
+    summary = "Upload or replace portfolio PDF",
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Upload accepted", body = PdfStatus),
+        (status = 400, description = "Invalid filename / content-type / signature", body = ErrorDetail),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn upload_portfolio_pdf_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    multipart: Multipart,
+) -> Result<Json<PdfStatus>, AppError> {
+    handle_pdf_upload(&state, &PORTFOLIO_PDF, multipart).await
+}
+
+#[utoipa::path(
+    delete,
+    path = "/portfolio",
+    tag = "portfolio",
+    operation_id = "delete_portfolio_pdf",
+    summary = "Delete portfolio PDF",
+    responses(
+        (status = 200, description = "Deletion acknowledged", body = PdfStatus),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn delete_portfolio_pdf_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+) -> Result<Json<PdfStatus>, AppError> {
+    Ok(Json(delete_pdf(&state.minio, &PORTFOLIO_PDF).await?))
+}
+
+#[utoipa::path(
+    get,
+    path = "/resume/status",
+    tag = "resume",
+    operation_id = "get_resume_status",
+    summary = "Read resume PDF status",
+    responses(
+        (status = 200, description = "Status returned", body = PdfStatus),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn get_resume_status_handler(
+    State(state): State<AppState>,
+) -> Result<Json<PdfStatus>, AppError> {
+    handle_pdf_status(&state, &RESUME_PDF).await
+}
+
+#[utoipa::path(
+    get,
+    path = "/resume",
+    tag = "resume",
+    operation_id = "get_resume_pdf",
+    summary = "Download public resume PDF",
+    responses(
+        (status = 200, description = "PDF binary", content_type = "application/pdf"),
+        (status = 404, description = "Resume PDF not registered", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+)]
+async fn get_resume_pdf_handler(
+    State(state): State<AppState>,
+) -> Result<Response, AppError> {
+    handle_pdf_download(&state, &RESUME_PDF).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/resume",
+    tag = "resume",
+    operation_id = "upload_resume_pdf",
+    summary = "Upload or replace resume PDF",
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Upload accepted", body = PdfStatus),
+        (status = 400, description = "Invalid filename / content-type / signature", body = ErrorDetail),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn upload_resume_pdf_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    multipart: Multipart,
+) -> Result<Json<PdfStatus>, AppError> {
+    handle_pdf_upload(&state, &RESUME_PDF, multipart).await
+}
+
+#[utoipa::path(
+    delete,
+    path = "/resume",
+    tag = "resume",
+    operation_id = "delete_resume_pdf",
+    summary = "Delete resume PDF",
+    responses(
+        (status = 200, description = "Deletion acknowledged", body = PdfStatus),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+async fn delete_resume_pdf_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+) -> Result<Json<PdfStatus>, AppError> {
+    Ok(Json(delete_pdf(&state.minio, &RESUME_PDF).await?))
 }
 
 // ── Admin auth ──────────────────────────────────────────────────────────────

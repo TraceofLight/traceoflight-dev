@@ -12,6 +12,7 @@ use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
 use crate::config::MinioSettings;
 use crate::error::AppError;
 use crate::media as media_helpers;
+use crate::media_refs::{extract_markdown_keys, extract_object_key};
 
 const SCHEMA_VERSION: &str = "backup-v3";
 const MANIFEST_PATH: &str = "manifest.json";
@@ -191,72 +192,6 @@ fn json_str(s: &str) -> Vec<u8> {
 
 fn dump_pretty(value: &Value) -> Vec<u8> {
     serde_json::to_string_pretty(value).unwrap_or_default().into_bytes()
-}
-
-fn extract_object_key(raw: Option<&str>) -> Option<String> {
-    let trimmed = raw?.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-    let path = if let Some(scheme_end) = trimmed.find("://") {
-        let after_scheme = &trimmed[scheme_end + 3..];
-        let path_start = after_scheme.find('/').unwrap_or(after_scheme.len());
-        &after_scheme[path_start..]
-    } else {
-        trimmed
-    };
-    let idx = path.find("/media/")?;
-    let key_raw = path[idx + "/media/".len()..].trim_start_matches('/');
-    if key_raw.is_empty() {
-        return None;
-    }
-    Some(percent_decode(key_raw))
-}
-
-fn percent_decode(s: &str) -> String {
-    let bytes = s.as_bytes();
-    let mut out = Vec::with_capacity(bytes.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let (Some(h), Some(l)) = (hex_nibble(bytes[i + 1]), hex_nibble(bytes[i + 2])) {
-                out.push((h << 4) | l);
-                i += 3;
-                continue;
-            }
-        }
-        out.push(bytes[i]);
-        i += 1;
-    }
-    String::from_utf8_lossy(&out).into_owned()
-}
-
-fn hex_nibble(b: u8) -> Option<u8> {
-    match b {
-        b'0'..=b'9' => Some(b - b'0'),
-        b'a'..=b'f' => Some(b - b'a' + 10),
-        b'A'..=b'F' => Some(b - b'A' + 10),
-        _ => None,
-    }
-}
-
-fn extract_markdown_keys(markdown: &str) -> Vec<String> {
-    use regex::Regex;
-    use std::sync::OnceLock;
-    static RE: OnceLock<Regex> = OnceLock::new();
-    let pattern = RE.get_or_init(|| {
-        Regex::new(r#"(?:https?://[^\s"')>]+/media/[^\s"')>]+|/media/[^\s"')>]+)"#).unwrap()
-    });
-    let mut seen = HashSet::new();
-    let mut out = Vec::new();
-    for cap in pattern.find_iter(markdown) {
-        if let Some(key) = extract_object_key(Some(cap.as_str())) {
-            if seen.insert(key.clone()) {
-                out.push(key);
-            }
-        }
-    }
-    out
 }
 
 fn slugify_series_title(title: &str) -> String {

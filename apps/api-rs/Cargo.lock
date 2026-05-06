@@ -2582,6 +2582,7 @@ dependencies = [
  "dotenvy",
  "hmac",
  "mime_guess",
+ "rand 0.8.6",
  "redis",
  "regex",
  "reqwest",

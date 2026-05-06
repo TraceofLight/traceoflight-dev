@@ -35,6 +35,7 @@ hmac = "0.12"
 sha2 = "0.10"
 base64 = "0.22"
 redis = { version = "0.27", default-features = false, features = ["tokio-comp", "connection-manager"] }
+rand = "0.8"
 
 [profile.release]
 lto = "thin"
