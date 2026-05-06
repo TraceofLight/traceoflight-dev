@@ -143,3 +143,19 @@ export async function listFeaturedSeries(
     limit: limit,
   });
 }
+
+export async function resolveSeriesSlugRedirect(
+  slug: string,
+  locale: string,
+): Promise<string | null> {
+  const params = new URLSearchParams({ locale });
+  const response = await requestBackend(
+    `/series/redirects/${encodeURIComponent(slug)}?${params.toString()}`,
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`failed to resolve series redirect: ${response.status}`);
+  }
+  const body = (await response.json()) as { target_slug?: string };
+  return body.target_slug ?? null;
+}

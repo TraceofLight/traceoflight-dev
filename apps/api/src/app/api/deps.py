@@ -14,6 +14,7 @@ from app.repositories.media_repository import MediaRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.site_profile_repository import SiteProfileRepository
 from app.repositories.series_repository import SeriesRepository
+from app.repositories.slug_redirect_repository import SlugRedirectRepository
 from app.repositories.tag_repository import TagRepository
 from app.services.admin_auth_service import AdminAuthService
 from app.services.import_service import ImportService
@@ -89,6 +90,7 @@ def get_post_service(db: Session = Depends(get_db)) -> PostService:
         repo=PostRepository(db),
         translation_service=PostTranslationService(queue=_get_translation_queue()),
         indexnow_service=_get_indexnow_service(),
+        slug_redirect_repo=SlugRedirectRepository(db),
     )
 
 
@@ -113,10 +115,15 @@ def get_tag_service(db: Session = Depends(get_db)) -> TagService:
     return TagService(repo=TagRepository(db))
 
 
+def get_slug_redirect_repository(db: Session = Depends(get_db)) -> SlugRedirectRepository:
+    return SlugRedirectRepository(db)
+
+
 def get_series_service(db: Session = Depends(get_db)) -> SeriesService:
     return SeriesService(
         repo=SeriesRepository(db),
         translation_service=get_series_translation_service(),
+        slug_redirect_repo=SlugRedirectRepository(db),
     )
 
 

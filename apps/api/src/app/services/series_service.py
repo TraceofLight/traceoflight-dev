@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.models.post import PostLocale
 from app.repositories.series_repository import SeriesRepository
+from app.repositories.slug_redirect_repository import SlugRedirectRepository
 from app.schemas.series import SeriesUpsert
 from app.services.series_translation_service import SeriesTranslationService
 
@@ -11,9 +12,11 @@ class SeriesService:
         self,
         repo: SeriesRepository,
         translation_service: SeriesTranslationService | None = None,
+        slug_redirect_repo: SlugRedirectRepository | None = None,
     ) -> None:
         self.repo = repo
         self.translation_service = translation_service
+        self.slug_redirect_repo = slug_redirect_repo
 
     def _sync_translations(self, series) -> None:  # type: ignore[no-untyped-def]
         if self.translation_service is None:
@@ -60,15 +63,33 @@ class SeriesService:
         )
 
     def create_series(self, payload: SeriesUpsert):
+        if self.slug_redirect_repo is not None:
+            self.slug_redirect_repo.claim_series_slug(slug=payload.slug, locale=PostLocale.KO)
         result = self.repo.create(payload)
         self.repo.db.commit()
         self._sync_translations(result)
         return result
 
     def update_series_by_slug(self, slug: str, payload: SeriesUpsert):
+        before_row = self.repo.get_row_by_slug(slug)
+        if before_row is None:
+            return None
+        before_id = before_row.id
+        before_locale = before_row.locale
+        before_slug = before_row.slug
+
         result = self.repo.update_by_slug(current_slug=slug, payload=payload)
         if result is None:
             return None
+
+        new_slug = result["slug"]
+        if self.slug_redirect_repo is not None and new_slug != before_slug:
+            self.slug_redirect_repo.record_series_rename(
+                old_slug=before_slug,
+                new_slug=new_slug,
+                locale=before_locale,
+                target_series_id=before_id,
+            )
         self.repo.db.commit()
         self._sync_translations(result)
         return result

@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     deepl_api_key: str | None = Field(default=None, alias='DEEPL_API_KEY')
     draft_retention_days: int = Field(default=7, alias='DRAFT_RETENTION_DAYS')
     media_orphan_retention_days: int = Field(default=7, alias='MEDIA_ORPHAN_RETENTION_DAYS')
+    slug_redirect_min_age_days: int = Field(default=90, alias='SLUG_REDIRECT_MIN_AGE_DAYS')
+    slug_redirect_idle_days: int = Field(default=30, alias='SLUG_REDIRECT_IDLE_DAYS')
     draft_cleanup_start_hour: int = Field(default=0, alias='DRAFT_CLEANUP_START_HOUR')
     draft_cleanup_end_hour: int = Field(default=5, alias='DRAFT_CLEANUP_END_HOUR')
     series_projection_rebuild_debounce_seconds: float = Field(

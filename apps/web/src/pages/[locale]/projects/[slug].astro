@@ -9,7 +9,7 @@ import PostAdminActions from "../../../components/public/PostAdminActions";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import PostCard from "../../../components/PostCard.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
-import { getPublishedDbProjectBySlug } from "../../../lib/projects";
+import { getPublishedDbProjectBySlug, resolveProjectSlugRedirect } from "../../../lib/projects";
 import { normalizeCoverMedia } from "../../../lib/cover-media";
 import {
   PUBLIC_BADGE_STRONG_CLASS,
@@ -56,6 +56,10 @@ const youtubeEmbedUrl =
 const shouldRenderProjectTopVideo = project?.topMediaKind === "video" && project.topMediaVideoUrl;
 
 if (!project) {
+  const redirectTarget = await resolveProjectSlugRedirect(slug, locale);
+  if (redirectTarget) {
+    return Astro.redirect(`/${locale}/projects/${redirectTarget}/`, 301);
+  }
   Astro.response.status = 404;
 }
 
@@ -184,7 +188,7 @@ const alternates = project
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
           <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
-              {t.projectDetail.highlights}
+              {t.projectDetail.intro}
             </h2>
             <p class="mt-4 text-base leading-8 text-foreground/85">
               {project.intro}
@@ -233,7 +237,7 @@ const alternates = project
         <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
           <div class="space-y-2">
             <h2 class="text-2xl font-semibold tracking-tight text-foreground">
-              {t.projectDetail.period}
+              {t.projectDetail.description}
             </h2>
           </div>
           <div class="markdown-prose mt-5 text-base leading-8 text-foreground/85" set:html={project.description} />

@@ -3,7 +3,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import BlogPost from "../../../layouts/BlogPost.astro";
 import EmptyStateNotice from "../../../components/EmptyStateNotice.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
-import { getPublishedDbPostBySlug, renderDbMarkdown } from "../../../lib/blog-db";
+import { getPublishedDbPostBySlug, renderDbMarkdown, resolvePostSlugRedirect } from "../../../lib/blog-db";
 import {
   emptyPostCommentThreadList,
   fetchInitialPostComments,
@@ -37,6 +37,13 @@ try {
   });
 } catch {
   dbPost = null;
+}
+
+if (!dbPost) {
+  const redirectTarget = await resolvePostSlugRedirect(slug, locale);
+  if (redirectTarget) {
+    return Astro.redirect(`/${locale}/blog/${redirectTarget}/`, 301);
+  }
 }
 
 let dbPostHtml: string | null = null;

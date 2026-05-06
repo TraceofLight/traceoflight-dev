@@ -422,3 +422,19 @@ export async function getPublishedDbPostBySlug(
 export function renderDbMarkdown(markdownSource: string): string {
   return markdown.render(markdownSource);
 }
+
+export async function resolvePostSlugRedirect(
+  slug: string,
+  locale: string,
+): Promise<string | null> {
+  const params = new URLSearchParams({ locale });
+  const response = await requestBackend(
+    `/posts/redirects/${encodeURIComponent(slug)}?${params.toString()}`,
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`failed to resolve post redirect: ${response.status}`);
+  }
+  const body = (await response.json()) as { target_slug?: string };
+  return body.target_slug ?? null;
+}

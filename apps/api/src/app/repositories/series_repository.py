@@ -132,15 +132,24 @@ class SeriesRepository:
             return None
         return serialized
 
+    def get_row_by_slug(self, slug: str) -> Series | None:
+        """Return the raw ORM row regardless of post count. Used internally."""
+        stmt = (
+            select(Series)
+            .options(selectinload(Series.series_posts).selectinload(SeriesPost.post))
+            .where(Series.slug == slug)
+        )
+        return self.db.scalar(stmt)
+
     def create(self, payload: SeriesUpsert) -> dict[str, object]:
         series = Series(**payload.model_dump())
         self.db.add(series)
         # Transaction commit is owned by the calling service layer.
         self.db.flush()
-        created = self.get_by_slug(series.slug, include_private=True)
-        if created is None:
+        row = self.get_row_by_slug(series.slug)
+        if row is None:
             raise SeriesValidationError("series creation failed")
-        return created
+        return self._serialize_series(row, include_private=True, include_posts=True)
 
     def update_by_slug(self, current_slug: str, payload: SeriesUpsert) -> dict[str, object] | None:
         row = self.db.scalar(select(Series).where(Series.slug == current_slug))
@@ -152,10 +161,10 @@ class SeriesRepository:
         # Transaction commit is owned by the calling service layer.
         self.db.flush()
 
-        updated = self.get_by_slug(row.slug, include_private=True)
-        if updated is None:
+        updated_row = self.get_row_by_slug(row.slug)
+        if updated_row is None:
             raise SeriesValidationError("series update failed")
-        return updated
+        return self._serialize_series(updated_row, include_private=True, include_posts=True)
 
     def delete_by_slug(self, slug: str) -> bool:
         row = self.db.scalar(select(Series).where(Series.slug == slug))

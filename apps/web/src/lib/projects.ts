@@ -182,3 +182,19 @@ export async function getPublishedDbProjectBySlug(
   const payload = (await response.json()) as DbProjectPost;
   return toProjectItem(payload);
 }
+
+export async function resolveProjectSlugRedirect(
+  slug: string,
+  locale: string,
+): Promise<string | null> {
+  const params = new URLSearchParams({ locale });
+  const response = await requestBackend(
+    `/projects/redirects/${encodeURIComponent(slug)}?${params.toString()}`,
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`failed to resolve project redirect: ${response.status}`);
+  }
+  const body = (await response.json()) as { target_slug?: string };
+  return body.target_slug ?? null;
+}

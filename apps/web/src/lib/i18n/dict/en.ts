@@ -50,6 +50,7 @@ export const en: Dictionary = {
   },
   projectDetail: {
     role: "Role", period: "Period",
+    intro: "About", description: "Details",
     highlights: "Highlights", resources: "Resources",
   },
   seriesDetail: {

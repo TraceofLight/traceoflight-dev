@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.core.text import normalize_optional_text
 from app.models.post import PostContentKind, PostLocale, PostStatus, PostVisibility
 from app.repositories.post_repository import PostRepository
+from app.repositories.slug_redirect_repository import SlugRedirectRepository
 from app.schemas.post import PostCreate
 from app.services.indexnow_service import IndexNowService
 from app.services.post_translation_service import PostTranslationService
@@ -15,10 +16,12 @@ class PostService:
         repo: PostRepository,
         translation_service: PostTranslationService | None = None,
         indexnow_service: IndexNowService | None = None,
+        slug_redirect_repo: SlugRedirectRepository | None = None,
     ) -> None:
         self.repo = repo
         self.translation_service = translation_service
         self.indexnow_service = indexnow_service
+        self.slug_redirect_repo = slug_redirect_repo
 
     def _ping_indexnow(self, post) -> None:  # type: ignore[no-untyped-def]
         if self.indexnow_service is None or not self.indexnow_service.is_configured():
@@ -125,6 +128,8 @@ class PostService:
         )
 
     def create_post(self, payload: PostCreate):
+        if self.slug_redirect_repo is not None:
+            self.slug_redirect_repo.claim_post_slug(slug=payload.slug, locale=payload.locale)
         created = self.repo.create(payload)
         self.repo.db.commit()
         self._sync_translations(created)
@@ -140,10 +145,28 @@ class PostService:
 
         before_series = normalize_optional_text(getattr(before, "series_title", None))
         before_published_at = getattr(before, "published_at", None)
+        # Snapshot identity before update_by_slug mutates the row in place.
+        before_id = getattr(before, "id", None)
+        before_locale = getattr(before, "locale", None)
+        before_slug = getattr(before, "slug", None)
 
         updated = self.repo.update_by_slug(current_slug=slug, payload=payload)
         if updated is None:
             return None
+
+        if (
+            self.slug_redirect_repo is not None
+            and before_slug is not None
+            and before_id is not None
+            and before_locale is not None
+            and updated.slug != before_slug
+        ):
+            self.slug_redirect_repo.record_post_rename(
+                old_slug=before_slug,
+                new_slug=updated.slug,
+                locale=before_locale,
+                target_post_id=before_id,
+            )
         self.repo.db.commit()
         self._sync_translations(updated)
         self._ping_indexnow(updated)

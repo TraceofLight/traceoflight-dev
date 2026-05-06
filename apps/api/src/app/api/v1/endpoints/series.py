@@ -3,10 +3,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import get_series_service
+from app.api.deps import get_series_service, get_slug_redirect_repository
 from app.api.error_handlers import integrity_conflict_detail
 from app.api.security import optional_internal_secret, require_internal_secret
 from app.models.post import PostLocale
+from app.repositories.slug_redirect_repository import SlugRedirectRepository
 from app.repositories.series_repository import SeriesConflictError, SeriesValidationError
 from app.schemas.series import (
     SeriesDetailRead,
@@ -90,6 +91,27 @@ def replace_series_order(
         return service.replace_series_order(payload.series_slugs)
     except SeriesValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    '/redirects/{old_slug}',
+    summary='Resolve old series slug to current series slug',
+    description='Resolve a redirect from an old series slug to the canonical current slug. Returns 404 if no redirect exists.',
+    responses={
+        200: {'description': 'Redirect resolved'},
+        404: {'description': 'No active redirect for this slug'},
+    },
+)
+def resolve_series_redirect(
+    old_slug: str,
+    locale: PostLocale = Query(...),
+    redirect_repo: SlugRedirectRepository = Depends(get_slug_redirect_repository),
+) -> dict[str, str]:
+    resolution = redirect_repo.lookup_series_redirect(old_slug=old_slug, locale=locale)
+    if resolution is None:
+        raise HTTPException(status_code=404, detail='no redirect for this slug')
+    redirect_repo.record_series_hit(redirect_id=resolution.redirect_id)
+    return {'target_slug': resolution.target_slug}
 
 
 @router.get(

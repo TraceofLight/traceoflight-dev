@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import get_project_service
+from app.api.deps import get_project_service, get_slug_redirect_repository
 from app.api.security import optional_internal_secret, require_internal_secret
-from app.models.post import PostLocale
+from app.models.post import PostContentKind, PostLocale
+from app.repositories.slug_redirect_repository import SlugRedirectRepository
 from app.schemas.project import ProjectRead, ProjectsOrderReplace
 from app.services.project_service import ProjectService
 
@@ -32,6 +33,31 @@ def list_projects(
         include_private=_resolve_include_private(include_private, trusted_internal),
         locale=locale,
     )
+
+
+@router.get(
+    '/redirects/{old_slug}',
+    summary='Resolve old project slug to current project slug',
+    description='Resolve a redirect from an old project slug to the canonical current slug. Returns 404 if no redirect exists or the target is no longer a project post.',
+    responses={
+        200: {'description': 'Redirect resolved'},
+        404: {'description': 'No active redirect for this slug'},
+    },
+)
+def resolve_project_redirect(
+    old_slug: str,
+    locale: PostLocale = Query(...),
+    redirect_repo: SlugRedirectRepository = Depends(get_slug_redirect_repository),
+) -> dict[str, str]:
+    resolution = redirect_repo.lookup_post_redirect(
+        old_slug=old_slug,
+        locale=locale,
+        content_kind=PostContentKind.PROJECT,
+    )
+    if resolution is None:
+        raise HTTPException(status_code=404, detail='no redirect for this slug')
+    redirect_repo.record_post_hit(redirect_id=resolution.redirect_id)
+    return {'target_slug': resolution.target_slug}
 
 
 @router.get("/{slug}", response_model=ProjectRead, summary="Get project detail")

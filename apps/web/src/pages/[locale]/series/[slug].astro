@@ -14,7 +14,7 @@ import {
   buildImageFallbackOnError,
   toBrowserImageUrl,
 } from "../../../lib/cover-media";
-import { getSeriesBySlug } from "../../../lib/series-db";
+import { getSeriesBySlug, resolveSeriesSlugRedirect } from "../../../lib/series-db";
 import {
   PUBLIC_EMPTY_STATE_CLASS,
   PUBLIC_PANEL_SURFACE_CLASS,
@@ -65,6 +65,10 @@ try {
 }
 
 if (!series) {
+  const redirectTarget = await resolveSeriesSlugRedirect(slug, locale);
+  if (redirectTarget) {
+    return Astro.redirect(`/${locale}/series/${redirectTarget}/`, 301);
+  }
   Astro.response.status = 404;
 }
 

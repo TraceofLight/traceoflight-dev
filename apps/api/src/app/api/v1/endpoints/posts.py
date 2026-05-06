@@ -5,7 +5,8 @@ from typing import Literal
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from app.api.deps import get_post_service
+from app.api.deps import get_post_service, get_slug_redirect_repository
+from app.repositories.slug_redirect_repository import SlugRedirectRepository
 from app.api.error_handlers import integrity_conflict_detail
 from app.api.security import optional_internal_secret, require_internal_secret
 from app.core.config import settings
@@ -142,6 +143,31 @@ def list_posts(
         tag_match=tag_match,
         locale=locale,
     )
+
+
+@router.get(
+    '/redirects/{old_slug}',
+    summary='Resolve old blog slug to current blog slug',
+    description='Resolve a redirect from an old blog slug to the canonical current slug. Returns 404 if no redirect exists or the target is no longer a published, public blog post.',
+    responses={
+        200: {'description': 'Redirect resolved', 'content': {'application/json': {'example': {'target_slug': 'current-slug'}}}},
+        404: {'description': 'No active redirect for this slug'},
+    },
+)
+def resolve_post_redirect(
+    old_slug: str,
+    locale: PostLocale = Query(...),
+    redirect_repo: SlugRedirectRepository = Depends(get_slug_redirect_repository),
+) -> dict[str, str]:
+    resolution = redirect_repo.lookup_post_redirect(
+        old_slug=old_slug,
+        locale=locale,
+        content_kind=PostContentKind.BLOG,
+    )
+    if resolution is None:
+        raise HTTPException(status_code=404, detail='no redirect for this slug')
+    redirect_repo.record_post_hit(redirect_id=resolution.redirect_id)
+    return {'target_slug': resolution.target_slug}
 
 
 @router.get(
