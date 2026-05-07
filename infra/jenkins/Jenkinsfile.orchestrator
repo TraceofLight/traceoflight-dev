@@ -1,11 +1,17 @@
-// Single GitHub-push entrypoint. Test runs inline so Blue Ocean's orchestrator
-// view shows the full Test → Build → Deploy story; Build/Deploy are still
-// delegated to per-domain child jobs (`traceoflight-backend`,
-// `traceoflight-frontend`) via the `MODE` parameter so each domain keeps an
-// independent run history and can be re-deployed in isolation.
+// Single GitHub-push entrypoint with flat top-level stages so Blue Ocean
+// always renders Test and Build as distinct columns regardless of any
+// sub-stage failures (nested `stages { }` inside `parallel` collapses on
+// failure under the outer stage name in some BO views — that visual
+// inconsistency is the reason for the flat layout here).
 //
-// Children intentionally have no Test stage — orchestrator owns testing so
-// the high-level run is the single source of pass/fail truth.
+// Trade-off: a fast Frontend Test now waits for the slow Backend Test to
+// finish before any Build starts (one sync point at end of Test stage).
+// Real-world cost is ~10-20s of slack per run; visual consistency wins.
+//
+// Tests use `docker create + start + cp + rm` instead of `docker run --rm`
+// so the JUnit XML written inside the test container can be copied out for
+// the `junit` post-step. JUnit recovery runs even on test failure so partial
+// results still surface in Blue Ocean's Tests tab.
 
 pipeline {
   agent any
@@ -39,8 +45,10 @@ pipeline {
                 done
 
                 cd apps/api
+                mkdir -p test-results
 
-                # Build the test runner image (apt-get psql once; cached after).
+                # Build the test runner image (apt-get + cargo-nextest + psql
+                # cached after first build).
                 docker build -f Dockerfile.test -t traceoflight-api-test .
 
                 # Source .env.api so we can derive the postgres connection from
@@ -58,7 +66,9 @@ pipeline {
                 TEST_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/${TEST_DB_NAME}"
                 ADMIN_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/postgres"
 
-                docker run --rm \
+                # `docker create + start -a` instead of `docker run --rm` so
+                # `docker cp` can recover the JUnit XML even on test failure.
+                container_id=$(docker create \
                   --network traceoflight-api-stack_api_internal \
                   --env-file .env.api \
                   -e DATABASE_URL="$TEST_URL" \
@@ -66,7 +76,17 @@ pipeline {
                   -e DATABASE_URL_ADMIN="$ADMIN_URL" \
                   -e POSTGRES_HOST="$POSTGRES_HOST_INNER" \
                   traceoflight-api-test \
-                  bash -c "bash scripts/setup-test-db.sh && cargo test --locked"
+                  bash -c "bash scripts/setup-test-db.sh && cargo nextest run --locked --profile ci")
+
+                docker start -a "$container_id"
+                test_exit=$?
+
+                # Always recover the JUnit XML so failures surface in Tests tab.
+                docker cp "$container_id:/work/target/nextest/ci/junit.xml" \
+                  test-results/backend-junit.xml || true
+                docker rm "$container_id" >/dev/null
+
+                exit $test_exit
               '''
             }
           }
@@ -87,14 +107,26 @@ pipeline {
                 done
 
                 cd apps/web
+                mkdir -p test-results
 
                 # Source baked into the image (no bind mount) — required for
                 # Docker-in-Docker where Jenkins paths don't align with the host.
                 docker build -f Dockerfile.test -t traceoflight-web-test .
 
-                # CMD runs `bun run test` (typecheck + node:test guards + vitest
-                # + node:test admin-auth). No external services needed.
-                docker run --rm traceoflight-web-test
+                # CMD runs `bun run test`: typecheck + node:test guards +
+                # vitest + node:test admin-auth. The package.json scripts emit
+                # JUnit XMLs under /work/test-results/ inside the container.
+                container_id=$(docker create traceoflight-web-test)
+
+                docker start -a "$container_id"
+                test_exit=$?
+
+                # Pull the entire test-results dir back so all three runners'
+                # XMLs (guards, ui, auth) land alongside each other.
+                docker cp "$container_id:/work/test-results/." test-results/ || true
+                docker rm "$container_id" >/dev/null
+
+                exit $test_exit
               '''
             }
           }
@@ -144,6 +176,10 @@ pipeline {
 
   post {
     always {
+      // Publish JUnit XMLs to Blue Ocean's Tests tab. allowEmptyResults so a
+      // build that fails before any test starts doesn't error the post-step.
+      junit allowEmptyResults: true,
+            testResults: 'apps/api/test-results/*.xml, apps/web/test-results/*.xml'
       sh 'rm -f apps/api/.env.api apps/web/.env.web || true'
       sh 'docker container prune -f || true'
       sh 'docker image prune -f || true'

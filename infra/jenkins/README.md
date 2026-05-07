@@ -12,17 +12,44 @@ Use `Pipeline script from SCM` and set script paths per job:
 `Jenkinsfile.orchestrator` is the single GitHub-push entrypoint. On push it
 runs:
 
-1. **Test** — `Backend Test` and `Frontend Test` in parallel (cargo test in
-   the api_internal docker network; bun test in a self-contained image).
-2. **Build** — `Backend Build` and `Frontend Build` in parallel via
-   `build job: 'traceoflight-backend' MODE=build` and `traceoflight-frontend`.
+1. **Test** (parallel): `Backend Test` (`cargo nextest run --profile ci` in
+   the api_internal docker network) and `Frontend Test` (`bun run test` —
+   typecheck + node:test guards + vitest + node:test admin-auth, all
+   reporting JUnit). Build does not start until both tests pass.
+2. **Build** (parallel): `Backend Build` (`build job: 'traceoflight-backend'
+   MODE=build`) and `Frontend Build` (`build job: 'traceoflight-frontend'
+   MODE=build`).
 3. **Deploy Backend** — `traceoflight-backend MODE=deploy`.
 4. **Deploy Frontend** — `traceoflight-frontend MODE=deploy`. Always last so
    the frontend never deploys against an unupgraded API.
 
-Test runs inline in the orchestrator (not delegated to children) so Blue
+Test and Build are flat top-level stages (rather than per-domain nested
+parallel) so Blue Ocean renders them as distinct columns even when one
+sub-stage fails. The cost is one sync point at the end of the Test stage —
+the faster test branch waits ~10-20s for the slower one before any Build
+starts. Trade was made for visual consistency over micro-optimization.
+
+Tests run inline in the orchestrator (not delegated to children) so Blue
 Ocean's orchestrator view shows the full Test → Build → Deploy story on one
 screen. The children expose only `build`/`deploy`/`full` and do not test.
+
+### JUnit reporting
+
+Each test runner emits a JUnit XML so Blue Ocean's "Tests" tab populates with
+case-level pass/fail and trend graphs:
+
+| Runner | Output path inside container | Configured by |
+| :-- | :-- | :-- |
+| `cargo nextest run --profile ci` | `target/nextest/ci/junit.xml` | `apps/api/.config/nextest.toml` |
+| `vitest run` | `test-results/ui-junit.xml` | `apps/web/package.json` `test:ui` script |
+| `node --test` (guards) | `test-results/guards-junit.xml` | `apps/web/package.json` `test:guards` script |
+| `node --test` (admin-auth) | `test-results/auth-junit.xml` | `apps/web/package.json` `test:auth` script |
+
+Tests run in a `docker create + start + cp + rm` pattern so the orchestrator
+can pull the XML out even on test failure (a `docker run --rm` test would
+discard the container before recovery). The orchestrator's `post.always`
+block calls `junit testResults: 'apps/api/test-results/*.xml,
+apps/web/test-results/*.xml'`.
 
 The child Jenkinsfiles expose a `MODE` choice parameter (`full`, `build`,
 `deploy`). `full` runs build + deploy + healthcheck for manual single-domain

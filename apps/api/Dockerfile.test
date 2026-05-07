@@ -8,6 +8,17 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
+# cargo-nextest provides JUnit XML output for the orchestrator's `junit`
+# post-step. Compiles from source via `cargo install` (~3-5 min first build,
+# fully cached afterwards as long as this layer's inputs don't change). The
+# pre-built tarball at get.nexte.st was tried first but the extracted binary
+# failed with "Syntax error: ) unexpected" at runtime in this Docker-in-Docker
+# setup — root cause unclear; cargo-install is the reliable fallback.
+# `--version` runs at the end so a broken install fails the image build
+# instead of the test stage at runtime.
+RUN cargo install --locked cargo-nextest \
+ && cargo-nextest --version
+
 WORKDIR /work
 
 # Cache dependency download in its own layer so source-only changes

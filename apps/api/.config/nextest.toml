@@ -1,0 +1,8 @@
+# Nextest profile used in CI. The orchestrator runs
+# `cargo nextest run --profile ci` and copies the produced XML out of the
+# test container for Jenkins's `junit` post-step.
+#
+# Output lands at `target/nextest/ci/junit.xml` (path is relative to the
+# nextest output directory, which itself sits under target/).
+[profile.ci]
+junit = { path = "junit.xml" }

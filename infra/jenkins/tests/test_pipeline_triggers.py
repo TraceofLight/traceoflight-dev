@@ -31,33 +31,46 @@ class JenkinsTriggerPipelineTests(unittest.TestCase):
         self.assertNotIn("build job: 'traceoflight-frontend'", source)
 
     def test_orchestrator_runs_test_then_build_then_deploys_sequentially(self) -> None:
+        # Top-level stages, in this order, so Blue Ocean renders them as
+        # distinct columns regardless of any sub-stage failures.
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
 
-        test_stage_index = source.index("stage('Test')")
-        build_stage_index = source.index("stage('Build')")
+        test_index = source.index("stage('Test')")
+        build_index = source.index("stage('Build')")
         deploy_backend_index = source.index("stage('Deploy Backend')")
         deploy_frontend_index = source.index("stage('Deploy Frontend')")
 
-        self.assertLess(test_stage_index, build_stage_index)
-        self.assertLess(build_stage_index, deploy_backend_index)
+        self.assertLess(test_index, build_index)
+        self.assertLess(build_index, deploy_backend_index)
         self.assertLess(deploy_backend_index, deploy_frontend_index)
 
-    def test_orchestrator_test_stage_runs_backend_and_frontend_in_parallel(self) -> None:
+    def test_test_stage_runs_backend_and_frontend_in_parallel(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
 
-        test_stage_index = source.index("stage('Test')")
-        # The next `parallel` keyword after stage('Test') belongs to it.
-        parallel_after_test = source.index("parallel", test_stage_index)
-        backend_test_branch = source.index("stage('Backend Test')", parallel_after_test)
-        frontend_test_branch = source.index("stage('Frontend Test')", parallel_after_test)
-        # Both branch declarations must precede stage('Build') so they're
-        # genuinely inside the Test stage's parallel block.
-        build_stage_index = source.index("stage('Build')")
+        test_index = source.index("stage('Test')")
+        parallel_after_test = source.index("parallel", test_index)
+        backend_test = source.index("stage('Backend Test')", parallel_after_test)
+        frontend_test = source.index("stage('Frontend Test')", parallel_after_test)
+        build_index = source.index("stage('Build')")
 
-        self.assertLess(parallel_after_test, backend_test_branch)
-        self.assertLess(parallel_after_test, frontend_test_branch)
-        self.assertLess(backend_test_branch, build_stage_index)
-        self.assertLess(frontend_test_branch, build_stage_index)
+        self.assertLess(parallel_after_test, backend_test)
+        self.assertLess(parallel_after_test, frontend_test)
+        self.assertLess(backend_test, build_index)
+        self.assertLess(frontend_test, build_index)
+
+    def test_build_stage_runs_backend_and_frontend_in_parallel(self) -> None:
+        source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
+
+        build_index = source.index("stage('Build')")
+        parallel_after_build = source.index("parallel", build_index)
+        backend_build = source.index("stage('Backend Build')", parallel_after_build)
+        frontend_build = source.index("stage('Frontend Build')", parallel_after_build)
+        deploy_backend_index = source.index("stage('Deploy Backend')")
+
+        self.assertLess(parallel_after_build, backend_build)
+        self.assertLess(parallel_after_build, frontend_build)
+        self.assertLess(backend_build, deploy_backend_index)
+        self.assertLess(frontend_build, deploy_backend_index)
 
     def test_orchestrator_passes_mode_build_then_deploy(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
@@ -81,6 +94,7 @@ class JenkinsTriggerPipelineTests(unittest.TestCase):
 
         self.assertNotIn("stage('Test Backend')", backend)
         self.assertNotIn("cargo test", backend)
+        self.assertNotIn("cargo nextest", backend)
         self.assertNotIn("stage('Verify Infra Running')", backend)
 
         self.assertNotIn("stage('Test Frontend')", frontend)
@@ -90,8 +104,28 @@ class JenkinsTriggerPipelineTests(unittest.TestCase):
         # The actual test commands live in the orchestrator now.
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
 
-        self.assertIn("cargo test", source)
+        # Backend uses cargo-nextest for native JUnit output.
+        self.assertIn("cargo nextest run", source)
+        self.assertIn("--profile ci", source)
+        # Frontend test image is built and run by the orchestrator.
         self.assertIn("traceoflight-web-test", source)
+
+    def test_orchestrator_uses_docker_create_pattern_for_junit_extraction(self) -> None:
+        # `docker run --rm` would discard the container before we can `docker cp`
+        # the JUnit XML out. Each test stage must use create + start + cp + rm.
+        source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
+
+        self.assertIn("docker create", source)
+        self.assertIn("docker cp", source)
+        # `docker rm "$container_id"` is the cleanup that pairs with create.
+        self.assertIn('docker rm "$container_id"', source)
+
+    def test_orchestrator_publishes_junit_in_post_block(self) -> None:
+        source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
+
+        self.assertIn("junit", source)
+        self.assertIn("apps/api/test-results/", source)
+        self.assertIn("apps/web/test-results/", source)
 
     def test_child_pipelines_expose_mode_choice_parameter(self) -> None:
         for path in ("infra/jenkins/Jenkinsfile.backend", "infra/jenkins/Jenkinsfile.frontend"):
@@ -100,6 +134,33 @@ class JenkinsTriggerPipelineTests(unittest.TestCase):
             self.assertIn("'full'", source, f"'full' choice missing in {path}")
             self.assertIn("'build'", source, f"'build' choice missing in {path}")
             self.assertIn("'deploy'", source, f"'deploy' choice missing in {path}")
+
+    def test_backend_test_image_installs_cargo_nextest(self) -> None:
+        # cargo-nextest is required for JUnit XML output. Pin the install line
+        # to make sure a future Dockerfile rewrite doesn't silently drop it.
+        source = self.read("apps/api/Dockerfile.test")
+
+        self.assertIn("cargo install --locked cargo-nextest", source)
+        # Build-time sanity check: a broken install fails the image build
+        # rather than the test stage at runtime.
+        self.assertIn("cargo-nextest --version", source)
+
+    def test_backend_nextest_profile_writes_junit_xml(self) -> None:
+        source = self.read("apps/api/.config/nextest.toml")
+
+        self.assertIn("[profile.ci]", source)
+        self.assertIn("junit", source)
+
+    def test_frontend_test_scripts_emit_junit_xml(self) -> None:
+        source = self.read("apps/web/package.json")
+
+        # vitest junit
+        self.assertIn("--reporter=junit", source)
+        self.assertIn("ui-junit.xml", source)
+        # node:test guards junit
+        self.assertIn("guards-junit.xml", source)
+        # node:test auth junit
+        self.assertIn("auth-junit.xml", source)
 
 
 if __name__ == "__main__":

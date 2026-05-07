@@ -14,6 +14,11 @@ node_modules/
 **/.pytest_cache/
 **/.ruff_cache/
 
+# JUnit XML produced by the test runners (cargo-nextest, vitest, node:test).
+# Jenkins consumes them in-flight via `junit testResults: ...` and never
+# commits them. Local runs leave them under apps/{api,web}/test-results/.
+**/test-results/
+
 # Python caches
 **/__pycache__/
 *.pyc
