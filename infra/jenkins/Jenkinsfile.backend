@@ -1,10 +1,11 @@
 // Invoked by `Jenkinsfile.orchestrator` (githubPush owner) with MODE=build then
-// MODE=deploy. Manually triggering with no params runs everything end-to-end.
+// MODE=deploy. Test stage lives in the orchestrator, not here — manual runs
+// of this job do build + deploy only (no test).
 //
 // MODE values:
-//   build  — checkout, env prep, infra check, test, image build
+//   build  — checkout, env prep, image build
 //   deploy — checkout, env prep, reclaim container, deploy, healthcheck
-//   full   — all of the above (default for manual runs)
+//   full   — build + deploy (default for manual runs)
 
 pipeline {
   agent any
@@ -18,7 +19,7 @@ pipeline {
     choice(
       name: 'MODE',
       choices: ['full', 'build', 'deploy'],
-      description: 'full: end-to-end (manual). build: test + image build only. deploy: reclaim + deploy + healthcheck only. Orchestrator passes build/deploy.'
+      description: 'full: build + deploy (manual). build: image build only. deploy: reclaim + deploy + healthcheck only. Orchestrator passes build/deploy.'
     )
   }
 
@@ -55,68 +56,6 @@ pipeline {
             fi
           '''
         }
-      }
-    }
-
-    stage('Verify Infra Running') {
-      when { expression { params.MODE in ['full', 'build'] } }
-      steps {
-        sh '''
-          docker ps --filter "name=traceoflight-postgres" --filter "status=running" --format "{{.Names}}" | grep -q "^traceoflight-postgres$" || {
-            echo "ERROR: traceoflight-postgres is not running. Run infra pipeline first."
-            exit 1
-          }
-          docker ps --filter "name=traceoflight-minio" --filter "status=running" --format "{{.Names}}" | grep -q "^traceoflight-minio$" || {
-            echo "ERROR: traceoflight-minio is not running. Run infra pipeline first."
-            exit 1
-          }
-          docker ps --filter "name=traceoflight-redis" --filter "status=running" --format "{{.Names}}" | grep -q "^traceoflight-redis$" || {
-            echo "ERROR: traceoflight-redis is not running. Run infra pipeline first."
-            exit 1
-          }
-        '''
-      }
-    }
-
-    stage('Test Backend') {
-      when { expression { params.MODE in ['full', 'build'] } }
-      steps {
-        sh '''
-          cd apps/api
-
-          # Build the test runner image (apt-get psql once; cached in subsequent runs).
-          docker build -f Dockerfile.test -t traceoflight-api-test .
-
-          # Source .env.api so we can derive the postgres connection from the
-          # values production already uses. CRLF was stripped by the Prepare
-          # Backend Env stage upstream, so sourcing is safe.
-          set -a
-          . ./.env.api
-          set +a
-
-          # Inside the api_internal docker network the postgres container is
-          # reachable as `postgres` (its compose service name). The test DB
-          # name is fixed (`traceoflight_test`); admin connects to the
-          # `postgres` maintenance DB with the same credentials.
-          POSTGRES_HOST_INNER="postgres"
-          TEST_DB_NAME="traceoflight_test"
-          TEST_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/${TEST_DB_NAME}"
-          ADMIN_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/postgres"
-
-          # Run the suite inside a container joined to api_internal so the test
-          # process can resolve `postgres`, `redis`, `minio` by their service
-          # names. Source is baked into the image (no bind mount) — required
-          # for Docker-in-Docker where Jenkins paths don't align with the host.
-          docker run --rm \
-            --network traceoflight-api-stack_api_internal \
-            --env-file .env.api \
-            -e DATABASE_URL="$TEST_URL" \
-            -e TEST_DATABASE_URL="$TEST_URL" \
-            -e DATABASE_URL_ADMIN="$ADMIN_URL" \
-            -e POSTGRES_HOST="$POSTGRES_HOST_INNER" \
-            traceoflight-api-test \
-            bash -c "bash scripts/setup-test-db.sh && cargo test --locked"
-        '''
       }
     }
 

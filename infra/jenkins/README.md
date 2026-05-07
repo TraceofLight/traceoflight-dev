@@ -10,13 +10,23 @@ Use `Pipeline script from SCM` and set script paths per job:
 ## Orchestrator entrypoint
 
 `Jenkinsfile.orchestrator` is the single GitHub-push entrypoint. On push it
-fans out backend + frontend `MODE=build` (test + image build) in parallel,
-then runs `MODE=deploy` against backend first and frontend second so the
-frontend never deploys against an unupgraded API.
+runs:
+
+1. **Test** — `Backend Test` and `Frontend Test` in parallel (cargo test in
+   the api_internal docker network; bun test in a self-contained image).
+2. **Build** — `Backend Build` and `Frontend Build` in parallel via
+   `build job: 'traceoflight-backend' MODE=build` and `traceoflight-frontend`.
+3. **Deploy Backend** — `traceoflight-backend MODE=deploy`.
+4. **Deploy Frontend** — `traceoflight-frontend MODE=deploy`. Always last so
+   the frontend never deploys against an unupgraded API.
+
+Test runs inline in the orchestrator (not delegated to children) so Blue
+Ocean's orchestrator view shows the full Test → Build → Deploy story on one
+screen. The children expose only `build`/`deploy`/`full` and do not test.
 
 The child Jenkinsfiles expose a `MODE` choice parameter (`full`, `build`,
-`deploy`). `full` is the default for manual runs and reproduces the
-pre-orchestrator end-to-end behaviour.
+`deploy`). `full` runs build + deploy + healthcheck for manual single-domain
+re-deploys; **it does not run tests** — testing is the orchestrator's job.
 
 The orchestrator hard-codes the downstream Jenkins job names
 `traceoflight-backend` and `traceoflight-frontend`. Create those jobs (they

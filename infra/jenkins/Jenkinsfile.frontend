@@ -1,10 +1,11 @@
 // Invoked by `Jenkinsfile.orchestrator` (githubPush owner) with MODE=build then
-// MODE=deploy. Manually triggering with no params runs everything end-to-end.
+// MODE=deploy. Test stage lives in the orchestrator, not here — manual runs
+// of this job do build + deploy only (no test).
 //
 // MODE values:
-//   build  — checkout, env prep, test, image build
+//   build  — checkout, env prep, image build
 //   deploy — checkout, env prep, reclaim container, deploy
-//   full   — all of the above (default for manual runs)
+//   full   — build + deploy (default for manual runs)
 
 pipeline {
   agent any
@@ -19,7 +20,7 @@ pipeline {
     choice(
       name: 'MODE',
       choices: ['full', 'build', 'deploy'],
-      description: 'full: end-to-end (manual). build: test + image build only. deploy: reclaim + deploy only. Orchestrator passes build/deploy.'
+      description: 'full: build + deploy (manual). build: image build only. deploy: reclaim + deploy only. Orchestrator passes build/deploy.'
     )
   }
 
@@ -46,24 +47,6 @@ pipeline {
             done
           '''
         }
-      }
-    }
-
-    stage('Test Frontend') {
-      when { expression { params.MODE in ['full', 'build'] } }
-      steps {
-        sh '''
-          cd apps/web
-
-          # Build the test runner image with source baked in (cached layers).
-          # Required for Docker-in-Docker setups where the Jenkins workspace
-          # path is not addressable by the host docker daemon.
-          docker build -f Dockerfile.test -t traceoflight-web-test .
-
-          # The image's CMD runs `bun run test` (typecheck + node:test guards
-          # + vitest + node:test admin-auth). No external services needed.
-          docker run --rm traceoflight-web-test
-        '''
       }
     }
 
