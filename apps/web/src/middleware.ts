@@ -67,6 +67,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === "/internal-api/posts/summary") return true;
   if (/^\/internal-api\/posts\/.+\/comments(?:\/|$)/.test(pathname)) return true;
   if (/^\/internal-api\/comments\/.+$/.test(pathname)) return true;
+  if (pathname === "/internal-api/analytics/event") return true;
   return false;
 }
 
