@@ -1,3 +1,6 @@
+//! Project content surface — subset of posts with `content_kind=project`
+//! plus the `project_profile` sidecar (period, role, highlights, links).
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
@@ -8,8 +11,9 @@ use crate::error::AppError;
 use crate::posts::{
     ListPostsParams, PostContentKind, PostFilter, PostLocale, PostRead, PostSeriesContext,
     PostStatus, PostTopMediaKind, PostVisibility, ProjectProfileRead, TagRead, get_post_by_slug,
-    list_posts, serialize_dt_us, serialize_dt_us_opt,
+    list_posts, slugify_series_title,
 };
+use crate::serializers::{serialize_dt_us, serialize_dt_us_opt};
 use crate::series::SeriesPostRead;
 
 /// Same wire shape as `PostRead` plus a required `project_profile` and the
@@ -289,26 +293,6 @@ fn post_to_project(
 /// alphanumerics survive, every other character collapses to a single dash,
 /// surrounding dashes are stripped, and an empty result falls back to
 /// `"series"`. Note: case is preserved (no lowercase).
-fn slugify_series_title(title: &str) -> String {
-    let mut out = String::with_capacity(title.len());
-    let mut last_dash = false;
-    for ch in title.trim().chars() {
-        if ch.is_alphanumeric() {
-            out.push(ch);
-            last_dash = false;
-        } else if !last_dash {
-            out.push('-');
-            last_dash = true;
-        }
-    }
-    let trimmed = out.trim_matches('-').to_string();
-    if trimmed.is_empty() {
-        "series".into()
-    } else {
-        trimmed
-    }
-}
-
 fn normalize_slug_list(raw: &[String]) -> Vec<String> {
     let mut seen = std::collections::HashSet::new();
     let mut out = Vec::new();

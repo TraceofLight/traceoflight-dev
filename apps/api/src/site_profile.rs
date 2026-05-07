@@ -1,3 +1,6 @@
+//! Footer profile (email + GitHub URL) shown across the public site. A single
+//! row keyed by `default`; missing rows fall back to compile-time defaults.
+
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;

@@ -1,3 +1,6 @@
+//! Tag taxonomy CRUD (admin-only). Slugs are normalized via
+//! `posts::normalize_tag_slug` to keep URL keys consistent across surfaces.
+
 use serde::Deserialize;
 use sqlx::PgPool;
 use utoipa::ToSchema;

@@ -1,3 +1,7 @@
+//! Threaded post comments: guest+admin authoring, soft-delete, and the admin
+//! moderation feed. Guest comments use argon2-hashed passwords for self-edit;
+//! admin authoring relies on the internal-secret header.
+
 use std::collections::HashMap;
 
 use argon2::{
@@ -11,7 +15,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppError;
-use crate::posts::serialize_dt_us;
+use crate::serializers::serialize_dt_us;
 
 const ADMIN_AUTHOR_NAME: &str = "TraceofLight";
 const PRIVATE_PLACEHOLDER: &str = "비공개된 댓글입니다.";

@@ -1,3 +1,6 @@
+//! Background cleanup loops: draft/orphan-media retention and slug-redirect GC.
+//! Loops are gated to a configured local-time window to keep prod load off-peak.
+
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;

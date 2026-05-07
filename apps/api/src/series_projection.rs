@@ -1,3 +1,7 @@
+//! Background loop that rebuilds the materialised series ordering view.
+//! Coalesces concurrent refresh requests into a single rebuild per debounce
+//! window, set by `series_projection_debounce_seconds`.
+
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::time::Duration;
@@ -8,6 +12,8 @@ use tokio::sync::Notify;
 use tokio::time::sleep;
 use tracing::{info, warn};
 use uuid::Uuid;
+
+use crate::posts::slugify_series_title;
 
 #[derive(Clone)]
 pub struct SeriesProjector {
@@ -297,26 +303,6 @@ fn normalize_optional_text(value: Option<&str>) -> Option<String> {
         None
     } else {
         Some(trimmed.to_string())
-    }
-}
-
-fn slugify_series_title(title: &str) -> String {
-    let mut out = String::new();
-    let mut last_dash = false;
-    for ch in title.trim().chars() {
-        if ch.is_alphanumeric() {
-            out.push(ch);
-            last_dash = false;
-        } else if !last_dash {
-            out.push('-');
-            last_dash = true;
-        }
-    }
-    let trimmed = out.trim_matches('-').to_string();
-    if trimmed.is_empty() {
-        "series".into()
-    } else {
-        trimmed
     }
 }
 

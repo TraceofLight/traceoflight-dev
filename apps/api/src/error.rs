@@ -1,3 +1,6 @@
+//! Application error type. Variants map to HTTP status codes; the response
+//! body is rendered as `{"detail": "..."}` for every non-2xx response.
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
@@ -22,7 +25,6 @@ pub enum AppError {
     #[error("not found")]
     NotFound(&'static str),
 
-    #[allow(dead_code)] // wired up by upcoming endpoints
     #[error("bad request: {0}")]
     BadRequest(String),
 

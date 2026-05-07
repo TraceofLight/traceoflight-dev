@@ -1,3 +1,5 @@
+//! Process-wide settings loaded from environment variables at startup.
+
 use std::env;
 
 #[derive(Debug, Clone)]

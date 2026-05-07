@@ -1,3 +1,6 @@
+//! Parse `/media/{key}` references out of URLs and markdown bodies. Used by
+//! cleanup to keep media GC and post bodies in sync.
+
 use std::collections::HashSet;
 
 /// Extract the storage object key from a `…/media/{key}` URL or path. Returns

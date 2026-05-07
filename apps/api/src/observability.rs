@@ -1,3 +1,5 @@
+//! Tracing initialization and request-id propagation.
+
 use axum::http::{HeaderName, HeaderValue, Request};
 use tower_http::{
     request_id::{MakeRequestId, RequestId},

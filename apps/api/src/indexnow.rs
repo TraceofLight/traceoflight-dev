@@ -1,3 +1,6 @@
+//! Fire-and-forget IndexNow ping issued from write handlers when a public URL
+//! changes. Failures are logged at WARN; nothing surfaces to the response.
+
 use std::sync::Arc;
 use std::time::Duration;
 

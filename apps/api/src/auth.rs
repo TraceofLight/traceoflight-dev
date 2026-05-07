@@ -1,3 +1,9 @@
+//! Internal-secret header check for trusted callers.
+//!
+//! `OptionalInternalSecret` is non-rejecting and is used on read endpoints
+//! that change behaviour for trusted callers. `RequireInternalSecret` rejects
+//! with 401 and is used on write/admin endpoints.
+
 use std::sync::Arc;
 
 use axum::{
@@ -76,7 +82,6 @@ where
 /// header is missing or invalid. Apply on write/admin endpoints that must
 /// only accept trusted callers.
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)] // wired up when admin/write endpoints land
 pub struct RequireInternalSecret;
 
 impl<S> FromRequestParts<S> for RequireInternalSecret

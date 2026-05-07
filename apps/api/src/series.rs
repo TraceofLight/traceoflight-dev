@@ -1,3 +1,7 @@
+//! Series collection and member-post linkage. Each series owns an ordered
+//! list of posts; the order is materialised by the background series
+//! projector (`series_projection.rs`).
+
 use std::collections::HashSet;
 
 use chrono::{DateTime, Utc};
@@ -7,7 +11,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppError;
-use crate::posts::{PostLocale, PostVisibility, serialize_dt_us, serialize_dt_us_opt};
+use crate::posts::{PostLocale, PostVisibility};
+use crate::serializers::{serialize_dt_us, serialize_dt_us_opt};
 
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct SeriesPostRead {

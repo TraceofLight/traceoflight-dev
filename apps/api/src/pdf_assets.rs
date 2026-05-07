@@ -1,3 +1,7 @@
+//! Portfolio + resume PDF upload (admin) and public download. Validates the
+//! `%PDF-` magic-number signature on upload and stores the asset under a
+//! fixed object key per asset kind.
+
 use serde::Serialize;
 use utoipa::ToSchema;
 

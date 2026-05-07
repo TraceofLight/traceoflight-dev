@@ -1,3 +1,7 @@
+//! Object-storage media: presigned PUT URL issue, post-upload metadata
+//! register, and a server-side body proxy for clients that cannot reach MinIO
+//! directly.
+
 use std::time::Duration;
 
 use bytes::Bytes;
@@ -10,7 +14,7 @@ use uuid::Uuid;
 
 use crate::config::MinioSettings;
 use crate::error::AppError;
-use crate::posts::serialize_dt_us;
+use crate::serializers::serialize_dt_us;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, ToSchema, PartialEq, Eq)]
 #[sqlx(type_name = "asset_kind", rename_all = "lowercase")]
