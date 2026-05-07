@@ -83,7 +83,14 @@ test("project card and list page use the new public card shell", async () => {
     indexSource,
     /<header[\s\S]*rounded-\[2\.25rem\] border border-white\/80 bg-white\/92 p-6 shadow-\[0_24px_60px_rgba\(15,23,42,0\.08\)\]/,
   );
-  assert.match(indexSource, />\s*Projects\s*</);
+  // The H1 heading text reads from the dictionary now (per the i18n refactor),
+  // so the raw word "Projects" doesn't appear inside angle brackets. Verify
+  // the dictionary key drives the heading instead.
+  assert.match(indexSource, /\{t\.nav\.projects\}/);
+  // The Korean prose still appears as the BaseLayout `description` meta value
+  // (page meta description, intentionally kept fixed for SEO). The visible H1
+  // and subtitle copy moved to the dictionary, but this description literal
+  // remains in source.
   assert.match(indexSource, /게임 개발과 그래픽스, 웹 작업을 포함한 TraceofLight의 프로젝트 모음/);
   // The hero subtitle paragraph (under the H1) is the user-authored copy that
   // must not be silently dropped during i18n refactors. It reads from the

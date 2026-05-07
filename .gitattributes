@@ -1,0 +1,15 @@
+# Force LF line endings for shell-executed files. Windows checkouts otherwise
+# get CRLF, which breaks `bash` inside Linux docker containers (`pipefail:
+# invalid option name`, etc.) when scripts are COPY'd into the test image.
+*.sh         text eol=lf
+*.bash       text eol=lf
+Dockerfile*  text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+
+# Rust uses LF by convention; keep consistent.
+*.rs         text eol=lf
+*.toml       text eol=lf
+
+# PowerShell scripts are Windows-side; CRLF is fine.
+*.ps1        text eol=crlf

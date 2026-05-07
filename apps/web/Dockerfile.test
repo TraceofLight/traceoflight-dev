@@ -3,6 +3,17 @@
 # Jenkins agent's path is not visible to the host docker daemon.
 FROM oven/bun:1-debian
 
+# The bun image ships a `node` shim (/usr/local/bun-node-fallback-bin/node) that
+# routes everything through bun. Our `test:guards` and `test:auth` scripts use
+# `node --test` (Node's built-in test runner), which the bun shim refuses with
+# "Run bun test to run tests". Install real Node.js so `node` resolves to the
+# Node.js binary.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates gnupg \
+ && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /work
 
 # Install deps in a separate cached layer.
