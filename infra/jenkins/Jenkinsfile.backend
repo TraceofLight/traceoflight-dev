@@ -1,3 +1,11 @@
+// Invoked by `Jenkinsfile.orchestrator` (githubPush owner) with MODE=build then
+// MODE=deploy. Manually triggering with no params runs everything end-to-end.
+//
+// MODE values:
+//   build  — checkout, env prep, infra check, test, image build
+//   deploy — checkout, env prep, reclaim container, deploy, healthcheck
+//   full   — all of the above (default for manual runs)
+
 pipeline {
   agent any
 
@@ -6,8 +14,12 @@ pipeline {
     disableConcurrentBuilds()
   }
 
-  triggers {
-    githubPush()
+  parameters {
+    choice(
+      name: 'MODE',
+      choices: ['full', 'build', 'deploy'],
+      description: 'full: end-to-end (manual). build: test + image build only. deploy: reclaim + deploy + healthcheck only. Orchestrator passes build/deploy.'
+    )
   }
 
   stages {
@@ -47,6 +59,7 @@ pipeline {
     }
 
     stage('Verify Infra Running') {
+      when { expression { params.MODE in ['full', 'build'] } }
       steps {
         sh '''
           docker ps --filter "name=traceoflight-postgres" --filter "status=running" --format "{{.Names}}" | grep -q "^traceoflight-postgres$" || {
@@ -66,6 +79,7 @@ pipeline {
     }
 
     stage('Test Backend') {
+      when { expression { params.MODE in ['full', 'build'] } }
       steps {
         sh '''
           cd apps/api
@@ -107,6 +121,7 @@ pipeline {
     }
 
     stage('Build Backend Image') {
+      when { expression { params.MODE in ['full', 'build'] } }
       steps {
         dir('infra/docker/api') {
           sh 'docker compose --env-file ../../../apps/api/.env.api build api'
@@ -115,6 +130,7 @@ pipeline {
     }
 
     stage('Reclaim Container Names') {
+      when { expression { params.MODE in ['full', 'deploy'] } }
       // Clear out the previous container slot, plus any pre-cutover legacy
       // names (api-rs from the parallel period; translation-worker from the
       // FastAPI rq stack) so a single deploy lands a clean state.
@@ -124,6 +140,7 @@ pipeline {
     }
 
     stage('Deploy Backend') {
+      when { expression { params.MODE in ['full', 'deploy'] } }
       steps {
         dir('infra/docker/api') {
           sh 'docker compose --env-file ../../../apps/api/.env.api up -d --no-build --no-deps api'
@@ -132,6 +149,7 @@ pipeline {
     }
 
     stage('Healthcheck') {
+      when { expression { params.MODE in ['full', 'deploy'] } }
       steps {
         sh '''
           API_PORT="$(grep -E '^API_PORT=' apps/api/.env.api | head -n1 | cut -d'=' -f2- | tr -d '\r')"
@@ -153,12 +171,6 @@ pipeline {
           docker logs --tail 200 traceoflight-api || true
           exit 1
         '''
-      }
-    }
-
-    stage('Trigger Frontend') {
-      steps {
-        build job: 'traceoflight-frontend', wait: false
       }
     }
   }

@@ -1,0 +1,60 @@
+// Single GitHub-push entrypoint that fans out backend + frontend test/build in
+// parallel, then runs deploys in order (backend → frontend) once both builds
+// have produced fresh images. Each child Jenkinsfile is invoked twice via the
+// `MODE` parameter: once with `build` (test + image build) and once with
+// `deploy` (reclaim + run + healthcheck). The intermediate Docker images are
+// shared via the local Docker daemon, so no artifact passing is required.
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  triggers {
+    githubPush()
+  }
+
+  stages {
+    stage('Build') {
+      parallel {
+        stage('Backend Build') {
+          steps {
+            build job: 'traceoflight-backend',
+                  parameters: [string(name: 'MODE', value: 'build')],
+                  wait: true,
+                  propagate: true
+          }
+        }
+        stage('Frontend Build') {
+          steps {
+            build job: 'traceoflight-frontend',
+                  parameters: [string(name: 'MODE', value: 'build')],
+                  wait: true,
+                  propagate: true
+          }
+        }
+      }
+    }
+
+    stage('Deploy Backend') {
+      steps {
+        build job: 'traceoflight-backend',
+              parameters: [string(name: 'MODE', value: 'deploy')],
+              wait: true,
+              propagate: true
+      }
+    }
+
+    stage('Deploy Frontend') {
+      steps {
+        build job: 'traceoflight-frontend',
+              parameters: [string(name: 'MODE', value: 'deploy')],
+              wait: true,
+              propagate: true
+      }
+    }
+  }
+}

@@ -2,9 +2,27 @@
 
 Use `Pipeline script from SCM` and set script paths per job:
 
+- Orchestrator job script path: `infra/jenkins/Jenkinsfile.orchestrator`
 - Frontend job script path: `infra/jenkins/Jenkinsfile.frontend`
 - Backend job script path: `infra/jenkins/Jenkinsfile.backend`
 - Infra job script path: `infra/jenkins/Jenkinsfile.infra`
+
+## Orchestrator entrypoint
+
+`Jenkinsfile.orchestrator` is the single GitHub-push entrypoint. On push it
+fans out backend + frontend `MODE=build` (test + image build) in parallel,
+then runs `MODE=deploy` against backend first and frontend second so the
+frontend never deploys against an unupgraded API.
+
+The child Jenkinsfiles expose a `MODE` choice parameter (`full`, `build`,
+`deploy`). `full` is the default for manual runs and reproduces the
+pre-orchestrator end-to-end behaviour.
+
+The orchestrator hard-codes the downstream Jenkins job names
+`traceoflight-backend` and `traceoflight-frontend`. Create those jobs (they
+already exist per the existing convention) before pointing the orchestrator at
+its Jenkinsfile, and remove `githubPush` from the backend job once the
+orchestrator owns the webhook.
 
 ## Env file naming convention
 

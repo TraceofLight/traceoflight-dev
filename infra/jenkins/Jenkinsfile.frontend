@@ -1,3 +1,11 @@
+// Invoked by `Jenkinsfile.orchestrator` (githubPush owner) with MODE=build then
+// MODE=deploy. Manually triggering with no params runs everything end-to-end.
+//
+// MODE values:
+//   build  — checkout, env prep, test, image build
+//   deploy — checkout, env prep, reclaim container, deploy
+//   full   — all of the above (default for manual runs)
+
 pipeline {
   agent any
 
@@ -5,6 +13,14 @@ pipeline {
     timestamps()
     disableConcurrentBuilds()
     skipDefaultCheckout(true)
+  }
+
+  parameters {
+    choice(
+      name: 'MODE',
+      choices: ['full', 'build', 'deploy'],
+      description: 'full: end-to-end (manual). build: test + image build only. deploy: reclaim + deploy only. Orchestrator passes build/deploy.'
+    )
   }
 
   stages {
@@ -34,6 +50,7 @@ pipeline {
     }
 
     stage('Test Frontend') {
+      when { expression { params.MODE in ['full', 'build'] } }
       steps {
         sh '''
           cd apps/web
@@ -51,6 +68,7 @@ pipeline {
     }
 
     stage('Build Frontend Image') {
+      when { expression { params.MODE in ['full', 'build'] } }
       steps {
         dir('infra/docker/web') {
           sh 'docker compose --env-file ../../../apps/web/.env.web build'
@@ -59,6 +77,7 @@ pipeline {
     }
 
     stage('Reclaim Container Name') {
+      when { expression { params.MODE in ['full', 'deploy'] } }
       // Defensive cleanup so a container left over from a previous compose project name
       // (or any out-of-band tester) does not block the rename. Only runs after the build
       // above succeeds, so a build failure leaves the old container in place — no outage
@@ -69,6 +88,7 @@ pipeline {
     }
 
     stage('Deploy Frontend') {
+      when { expression { params.MODE in ['full', 'deploy'] } }
       steps {
         dir('infra/docker/web') {
           sh 'docker compose --env-file ../../../apps/web/.env.web up -d --no-build --remove-orphans'
