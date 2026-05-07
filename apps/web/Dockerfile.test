@@ -1,0 +1,15 @@
+# Test runner image for the frontend. Source is baked in via COPY (not
+# bind-mounted) so the image works under Docker-in-Docker where the
+# Jenkins agent's path is not visible to the host docker daemon.
+FROM oven/bun:1-debian
+
+WORKDIR /work
+
+# Install deps in a separate cached layer.
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# Bring in source. .dockerignore strips node_modules, dist, .astro, .git, ...
+COPY . .
+
+CMD ["bun", "run", "test"]

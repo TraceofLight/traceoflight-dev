@@ -1,7 +1,7 @@
 # Backup V3 Design
 
 **Date:** 2026-05-05
-**Supersedes:** `docs/archive/backup-v2-design.md`
+**Supersedes:** `docs/plans/archive/backup-v2-design.md`
 
 ## Goal
 

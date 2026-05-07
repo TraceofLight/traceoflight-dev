@@ -13,6 +13,7 @@ pub struct Settings {
     pub minio: MinioSettings,
     pub admin: AdminSettings,
     pub redis_url: Option<String>,
+    pub redis_key_prefix: String,
     pub indexnow: IndexNowSettings,
     pub series_projection_debounce_seconds: f32,
 }
@@ -134,6 +135,8 @@ impl Settings {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
 
+        let redis_key_prefix = env::var("REDIS_KEY_PREFIX").unwrap_or_default();
+
         let indexnow = IndexNowSettings {
             key: env::var("INDEXNOW_KEY").unwrap_or_default(),
             host: env::var("INDEXNOW_HOST").unwrap_or_default(),
@@ -160,6 +163,7 @@ impl Settings {
             minio,
             admin,
             redis_url,
+            redis_key_prefix,
             indexnow,
             series_projection_debounce_seconds,
         })

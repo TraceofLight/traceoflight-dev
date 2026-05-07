@@ -1786,3 +1786,29 @@ pub fn format_reading_label(markdown: &str, words_per_minute: u32) -> String {
     };
     format!("{minutes} min read")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_tag_slug_lowercases_and_dashes_whitespace() {
+        assert_eq!(normalize_tag_slug("Rust Lang"), "rust-lang");
+    }
+
+    #[test]
+    fn normalize_tag_slug_collapses_multi_dash_and_strips_edges() {
+        assert_eq!(normalize_tag_slug("--Rust__Lang  "), "rust-lang");
+    }
+
+    #[test]
+    fn normalize_tag_slug_drops_non_alphanumerics() {
+        assert_eq!(normalize_tag_slug("C# / .NET"), "c-net");
+    }
+
+    #[test]
+    fn normalize_tag_slug_handles_empty_and_only_punctuation() {
+        assert_eq!(normalize_tag_slug(""), "");
+        assert_eq!(normalize_tag_slug("---"), "");
+    }
+}

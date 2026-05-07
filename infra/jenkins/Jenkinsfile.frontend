@@ -33,6 +33,23 @@ pipeline {
       }
     }
 
+    stage('Test Frontend') {
+      steps {
+        sh '''
+          cd apps/web
+
+          # Build the test runner image with source baked in (cached layers).
+          # Required for Docker-in-Docker setups where the Jenkins workspace
+          # path is not addressable by the host docker daemon.
+          docker build -f Dockerfile.test -t traceoflight-web-test .
+
+          # The image's CMD runs `bun run test` (typecheck + node:test guards
+          # + vitest + node:test admin-auth). No external services needed.
+          docker run --rm traceoflight-web-test
+        '''
+      }
+    }
+
     stage('Build Frontend Image') {
       steps {
         dir('infra/docker/web') {

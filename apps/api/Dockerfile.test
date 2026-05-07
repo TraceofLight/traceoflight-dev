@@ -1,0 +1,20 @@
+# Test runner image: Rust toolchain + psql + source baked in.
+# Source is COPY'd at build time (not bind-mounted) so the image works
+# under Docker-in-Docker setups where the Jenkins agent's filesystem
+# does not align with the host docker daemon's filesystem.
+FROM rust:1-bookworm
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-client \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+
+# Cache dependency download in its own layer so source-only changes
+# don't re-fetch the registry.
+COPY Cargo.toml Cargo.lock ./
+RUN cargo fetch
+
+# Bring in source / migrations / tests / scripts. Excludes from
+# .dockerignore (target/, *.log, .env.api, .git, .gitignore) are honored.
+COPY . .
