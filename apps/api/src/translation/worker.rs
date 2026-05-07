@@ -13,6 +13,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use super::hash::{hash_post, hash_series};
+use super::markdown::{mask, unmask};
 use super::provider::{TranslationError, TranslationProvider};
 use super::queue::{EntityKind, TranslationJob, TranslationQueue};
 
@@ -156,10 +157,18 @@ async fn handle_post_job<P: TranslationProvider>(
         ),
         _ => None,
     };
-    let translated_body = provider
-        .translate_text(&source.body_markdown, "ko", &job.target_locale)
-        .await
-        .map_err(map_provider_err)?;
+    // body_markdown is masked: code fences/inline code/HTML/URLs become
+    // placeholder tokens before translation, then get spliced back in
+    // afterwards. Without this Google mangles fenced code (saw `rust` lose
+    // a backtick + get prose-translated in API smoke tests).
+    let translated_body = {
+        let masked = mask(&source.body_markdown);
+        let translated = provider
+            .translate_text(&masked.text, "ko", &job.target_locale)
+            .await
+            .map_err(map_provider_err)?;
+        unmask(&translated, &masked.segments)
+    };
     let translated_series_title = match source.series_title.as_deref() {
         Some(text) if !text.is_empty() => Some(
             provider
@@ -327,10 +336,16 @@ async fn handle_series_job<P: TranslationProvider>(
         .translate_text(&source.title, "ko", &job.target_locale)
         .await
         .map_err(map_provider_err)?;
-    let translated_description = provider
-        .translate_text(&source.description, "ko", &job.target_locale)
-        .await
-        .map_err(map_provider_err)?;
+    // Series description occasionally carries inline code or URLs —
+    // apply the same mask/unmask roundtrip as body.
+    let translated_description = {
+        let masked = mask(&source.description);
+        let translated = provider
+            .translate_text(&masked.text, "ko", &job.target_locale)
+            .await
+            .map_err(map_provider_err)?;
+        unmask(&translated, &masked.segments)
+    };
 
     let mut tx = pool.begin().await?;
     if sibling.is_none() {

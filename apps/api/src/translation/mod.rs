@@ -8,6 +8,7 @@
 //! with glossary support later, or to a fake for tests.
 
 mod hash;
+mod markdown;
 pub mod provider;
 mod queue;
 pub mod worker;
