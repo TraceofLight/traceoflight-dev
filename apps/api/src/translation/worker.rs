@@ -16,11 +16,16 @@ use super::hash::{hash_post, hash_series};
 use super::markdown::{mask, unmask};
 use super::provider::{TranslationError, TranslationProvider};
 use super::queue::{EntityKind, TranslationJob, TranslationQueue};
+use crate::indexnow::IndexNowClient;
 
 const POP_TIMEOUT_SECONDS: f64 = 5.0;
 
-pub fn spawn<P>(pool: PgPool, queue: TranslationQueue, provider: Arc<P>)
-where
+pub fn spawn<P>(
+    pool: PgPool,
+    queue: TranslationQueue,
+    provider: Arc<P>,
+    indexnow: IndexNowClient,
+) where
     P: TranslationProvider + 'static,
 {
     tokio::spawn(async move {
@@ -28,7 +33,7 @@ where
         loop {
             match queue.blocking_pop(POP_TIMEOUT_SECONDS).await {
                 Ok(Some(job)) => {
-                    if let Err(err) = handle_job(&pool, provider.as_ref(), &job).await {
+                    if let Err(err) = handle_job(&pool, provider.as_ref(), &indexnow, &job).await {
                         error!(
                             error = %err,
                             entity = ?job.entity,
@@ -51,11 +56,12 @@ where
 async fn handle_job<P: TranslationProvider>(
     pool: &PgPool,
     provider: &P,
+    indexnow: &IndexNowClient,
     job: &TranslationJob,
 ) -> anyhow::Result<()> {
     match job.entity {
-        EntityKind::Post => handle_post_job(pool, provider, job).await,
-        EntityKind::Series => handle_series_job(pool, provider, job).await,
+        EntityKind::Post => handle_post_job(pool, provider, indexnow, job).await,
+        EntityKind::Series => handle_series_job(pool, provider, indexnow, job).await,
     }
 }
 
@@ -89,6 +95,7 @@ struct PostSiblingRow {
 async fn handle_post_job<P: TranslationProvider>(
     pool: &PgPool,
     provider: &P,
+    indexnow: &IndexNowClient,
     job: &TranslationJob,
 ) -> anyhow::Result<()> {
     let source = sqlx::query_as::<_, PostSourceRow>(
@@ -263,6 +270,10 @@ async fn handle_post_job<P: TranslationProvider>(
     }
     tx.commit().await?;
 
+    if let Some(url) = indexnow.post_url(&job.target_locale, &source.content_kind, &source.slug) {
+        indexnow.submit_urls(vec![url]);
+    }
+
     Ok(())
 }
 
@@ -287,6 +298,7 @@ struct SeriesSiblingRow {
 async fn handle_series_job<P: TranslationProvider>(
     pool: &PgPool,
     provider: &P,
+    indexnow: &IndexNowClient,
     job: &TranslationJob,
 ) -> anyhow::Result<()> {
     let source = sqlx::query_as::<_, SeriesSourceRow>(
@@ -399,6 +411,10 @@ async fn handle_series_job<P: TranslationProvider>(
         .await?;
     }
     tx.commit().await?;
+
+    if let Some(url) = indexnow.series_url(&job.target_locale, &source.slug) {
+        indexnow.submit_urls(vec![url]);
+    }
 
     Ok(())
 }

@@ -50,9 +50,13 @@ async fn main() -> anyhow::Result<()> {
         .clone()
         .map(|conn| TranslationQueue::new(conn, &settings.redis_key_prefix));
 
+    let indexnow = IndexNowClient::new(settings.indexnow.clone());
+
     // Spawn the translation worker only when both Redis (for the queue)
     // AND a Google API key are configured. Either missing → skip and
     // log; auto-translation simply doesn't run, ko content still serves.
+    // Worker pings IndexNow after each sibling upsert so translated pages
+    // get crawled too, not just the ko source.
     if let (Some(queue), true) = (
         translation_queue.clone(),
         settings.translation.is_configured(),
@@ -60,14 +64,13 @@ async fn main() -> anyhow::Result<()> {
         let provider = Arc::new(GoogleTranslateProvider::new(
             settings.translation.google_api_key.clone(),
         ));
-        translation_worker::spawn(pool.clone(), queue, provider);
+        translation_worker::spawn(pool.clone(), queue, provider, indexnow.clone());
     } else if translation_queue.is_some() {
         warn!("translation worker not started: GOOGLE_TRANSLATE_API_KEY missing");
     } else {
         warn!("translation worker not started: REDIS_URL missing");
     }
 
-    let indexnow = IndexNowClient::new(settings.indexnow.clone());
     let series_projector = SeriesProjector::new();
     series_projector.spawn_loop(pool.clone(), settings.series_projection_debounce_seconds);
 

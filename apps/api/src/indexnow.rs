@@ -70,13 +70,24 @@ impl IndexNowClient {
         });
     }
 
-    /// Build the canonical post URL the FE serves for a given (locale, slug).
-    /// Mirrors `https://{host}/{locale}/blog/{slug}/`.
-    pub fn post_url(&self, locale: &str, slug: &str) -> Option<String> {
+    /// Build the canonical post URL the FE serves. `content_kind` decides
+    /// the path segment: `"project"` → `/projects/`, anything else (blog,
+    /// unknown) → `/blog/`. Stays untyped (`&str`) so this module doesn't
+    /// pull in the `posts::PostContentKind` enum.
+    pub fn post_url(&self, locale: &str, content_kind: &str, slug: &str) -> Option<String> {
         let host = self.settings.host.trim();
         if host.is_empty() || slug.is_empty() {
             return None;
         }
-        Some(format!("https://{host}/{locale}/blog/{slug}/"))
+        let segment = if content_kind == "project" { "projects" } else { "blog" };
+        Some(format!("https://{host}/{locale}/{segment}/{slug}/"))
+    }
+
+    pub fn series_url(&self, locale: &str, slug: &str) -> Option<String> {
+        let host = self.settings.host.trim();
+        if host.is_empty() || slug.is_empty() {
+            return None;
+        }
+        Some(format!("https://{host}/{locale}/series/{slug}/"))
     }
 }

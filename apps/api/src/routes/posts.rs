@@ -263,7 +263,11 @@ pub async fn create_post_handler(
 ///   Spawned so a Redis hiccup doesn't slow the user-facing response.
 fn fire_post_write_effects(state: &AppState, post: &PostRead) {
     if matches!(post.status, PostStatus::Published) {
-        if let Some(url) = state.indexnow.post_url(post.locale.as_str(), &post.slug) {
+        let content_kind = match post.content_kind {
+            PostContentKind::Project => "project",
+            PostContentKind::Blog => "blog",
+        };
+        if let Some(url) = state.indexnow.post_url(post.locale.as_str(), content_kind, &post.slug) {
             state.indexnow.submit_urls(vec![url]);
         }
     }
