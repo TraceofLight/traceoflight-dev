@@ -36,6 +36,14 @@ export default defineConfig({
 	security: {
 		checkOrigin: false,
 	},
+	// Hover-prefetch on every internal <a>. Pairs with the persisted header
+	// (`transition:persist` in Header.astro) so navigation feels SPA-like:
+	// link hover triggers HTML fetch, click swaps body, header DOM stays put.
+	// Per-link opt-out via `data-astro-prefetch="false"` if needed.
+	prefetch: {
+		prefetchAll: true,
+		defaultStrategy: 'hover',
+	},
 	build: {
 		// Inline page stylesheets to remove the LCP-blocking external <link rel="stylesheet">.
 		// All shared CSS is bundled into one chunk (~70KB minified), and the SSR HTML payload
