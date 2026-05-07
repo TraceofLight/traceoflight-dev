@@ -18,6 +18,21 @@ pub struct Settings {
     pub redis_key_prefix: String,
     pub indexnow: IndexNowSettings,
     pub series_projection_debounce_seconds: f32,
+    pub translation: TranslationSettings,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TranslationSettings {
+    /// Google Translate API key (Basic v2). Empty disables translation —
+    /// the worker still spawns but logs a warning and bails on each job
+    /// because the provider returns `NotConfigured`.
+    pub google_api_key: String,
+}
+
+impl TranslationSettings {
+    pub fn is_configured(&self) -> bool {
+        !self.google_api_key.trim().is_empty()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +168,10 @@ impl Settings {
                 .unwrap_or(0.5_f32)
                 .max(0.1_f32);
 
+        let translation = TranslationSettings {
+            google_api_key: env::var("GOOGLE_TRANSLATE_API_KEY").unwrap_or_default(),
+        };
+
         Ok(Settings {
             api_port,
             api_prefix,
@@ -168,6 +187,7 @@ impl Settings {
             redis_key_prefix,
             indexnow,
             series_projection_debounce_seconds,
+            translation,
         })
     }
 }

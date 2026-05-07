@@ -85,6 +85,9 @@ pub async fn spawn_test_app(pool: PgPool) -> TestApp {
     //   ordering invoke projection explicitly instead
     // - spawn_draft_cleanup and spawn_slug_redirect_cleanup are NOT spawned;
     //   tests that need cleanup behavior should drive it directly.
+    // - translation_queue is None and the worker is NOT spawned; tests that
+    //   need to verify translation enqueue should construct their own queue
+    //   against a unique redis_key_prefix (like the auth tests do).
     // If a future test passes for the wrong reason, check this list first.
 
     let state = AppState {
@@ -95,6 +98,7 @@ pub async fn spawn_test_app(pool: PgPool) -> TestApp {
         admin: admin_ctx,
         indexnow,
         series_projector,
+        translation_queue: None,
     };
 
     let router = build_router(state, &settings.api_prefix, &settings.cors_allow_origins);

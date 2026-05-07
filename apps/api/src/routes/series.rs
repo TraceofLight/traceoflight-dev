@@ -20,7 +20,21 @@ use crate::{
         replace_series_order, replace_series_posts_by_slug, resolve_series_redirect,
         update_series_by_slug,
     },
+    translation::{self, EntityKind},
 };
+
+/// Mirror of the post-side fire-and-forget enqueue. Only ko sources
+/// (`source_series_id IS NULL`) trigger translation; manually-edited
+/// non-ko siblings stay untouched.
+fn fire_series_write_effects(state: &AppState, series: &SeriesDetailRead) {
+    if matches!(series.locale, PostLocale::Ko) && series.source_series_id.is_none() {
+        let queue = state.translation_queue.clone();
+        let series_id = series.id;
+        tokio::spawn(async move {
+            translation::enqueue_for_locales(queue.as_ref(), EntityKind::Series, series_id).await;
+        });
+    }
+}
 
 #[derive(Debug, Deserialize, IntoParams, Default)]
 #[into_params(parameter_in = Query)]
@@ -181,6 +195,7 @@ pub async fn create_series_handler(
     Json(payload): Json<SeriesUpsert>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
     let series = create_series(&state.pool, payload).await?;
+    fire_series_write_effects(&state, &series);
     Ok(Json(series))
 }
 
@@ -213,6 +228,7 @@ pub async fn update_series_by_slug_handler(
     let series = update_series_by_slug(&state.pool, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
+    fire_series_write_effects(&state, &series);
     Ok(Json(series))
 }
 

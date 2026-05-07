@@ -10,11 +10,18 @@ portfolio, personal blog, misc
 ## Translations
 
 The site is multi-locale (ko/en/ja/zh). Korean posts are the source of truth;
-en/ja/zh siblings are auto-generated via DeepL by a background `rq` worker.
-Set `DEEPL_API_KEY` in `apps/api/.env.api` to enable translation; without a
-key, the API still serves Korean content unchanged.
+en/ja/zh siblings of `posts` and `series` are auto-generated via Google Cloud
+Translation API (Basic v2) by a background tokio task pulling jobs from
+Redis. Set `GOOGLE_TRANSLATE_API_KEY` in `apps/api/.env.api` to enable
+translation; without a key, the worker logs a warning at boot and ko-only
+content is served unchanged.
 
-Design: `docs/plans/site-translations-design.md`.
+Comments are unified across locale siblings — a comment posted on the ko row
+is visible on the /en, /ja, /zh views of the same post (kept in its
+original language).
+
+Design: `docs/plans/auto-translation-google.md`. Historical reference for
+the deprecated DeepL+rq pipeline lives in `docs/plans/archive/site-translations-*.md`.
 
 ## Infra
 

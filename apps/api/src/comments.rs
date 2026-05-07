@@ -283,11 +283,16 @@ pub async fn list_post_comments(
     post_slug: &str,
     include_private: bool,
 ) -> Result<Option<PostCommentThreadList>, sqlx::Error> {
-    let post_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM posts WHERE slug = $1")
-        .bind(post_slug)
-        .fetch_optional(pool)
-        .await?;
-    let Some(post_id) = post_id else {
+    // Comments are unified across all locale siblings: a comment written
+    // on the ko row is visible from /en, /ja, /zh too. Resolve slug →
+    // translation_group_id, fetch comments tied to any locale row in the
+    // group. Comments stay in their original language.
+    let translation_group_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT translation_group_id FROM posts WHERE slug = $1 LIMIT 1")
+            .bind(post_slug)
+            .fetch_optional(pool)
+            .await?;
+    let Some(translation_group_id) = translation_group_id else {
         return Ok(None);
     };
 
@@ -297,11 +302,13 @@ pub async fn list_post_comments(
                author_name, author_type, password_hash, visibility, status, body,
                created_at, updated_at
         FROM post_comments
-        WHERE post_id = $1
+        WHERE post_id IN (
+            SELECT id FROM posts WHERE translation_group_id = $1
+        )
         ORDER BY created_at ASC, id ASC
         "#,
     )
-    .bind(post_id)
+    .bind(translation_group_id)
     .fetch_all(pool)
     .await?;
 

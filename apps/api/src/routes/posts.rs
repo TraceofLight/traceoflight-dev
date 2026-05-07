@@ -18,6 +18,7 @@ use crate::{
         create_post, delete_post_by_slug, get_post_by_slug, list_post_summaries, list_posts,
         resolve_post_redirect, update_post_by_slug,
     },
+    translation::{self, EntityKind},
 };
 
 #[derive(Debug, Deserialize, IntoParams, Default)]
@@ -258,6 +259,8 @@ pub async fn create_post_handler(
 /// - IndexNow: notify search engines for published posts only
 /// - Series projection: notify the rebuild loop; the debounce coalesces
 ///   bursts so back-to-back writes produce one rebuild.
+/// - Translation enqueue: only for ko sources (`source_post_id IS NULL`).
+///   Spawned so a Redis hiccup doesn't slow the user-facing response.
 fn fire_post_write_effects(state: &AppState, post: &PostRead) {
     if matches!(post.status, PostStatus::Published) {
         if let Some(url) = state.indexnow.post_url(post.locale.as_str(), &post.slug) {
@@ -265,6 +268,14 @@ fn fire_post_write_effects(state: &AppState, post: &PostRead) {
         }
     }
     state.series_projector.request_refresh("post-write");
+
+    if matches!(post.locale, PostLocale::Ko) && post.source_post_id.is_none() {
+        let queue = state.translation_queue.clone();
+        let post_id = post.id;
+        tokio::spawn(async move {
+            translation::enqueue_for_locales(queue.as_ref(), EntityKind::Post, post_id).await;
+        });
+    }
 }
 
 #[utoipa::path(

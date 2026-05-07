@@ -23,6 +23,7 @@ pub mod series;
 pub mod series_projection;
 pub mod site_profile;
 pub mod tags;
+pub mod translation;
 
 pub use crate::admin_auth::{AdminAuthContext, RefreshStore};
 pub use crate::auth::AuthContext;
@@ -71,6 +72,10 @@ pub struct AppState {
     pub admin: AdminAuthContext,
     pub indexnow: IndexNowClient,
     pub series_projector: SeriesProjector,
+    /// `None` when `REDIS_URL` isn't configured. Producers (post/series
+    /// write paths) take an `Option<&TranslationQueue>` so they can no-op
+    /// instead of branching on this themselves.
+    pub translation_queue: Option<crate::translation::TranslationQueue>,
 }
 
 impl FromRef<AppState> for AuthContext {
