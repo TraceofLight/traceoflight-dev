@@ -22,16 +22,15 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
+    Router,
     body::{Body, Bytes},
     extract::{FromRef, Multipart, Path, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{Json, Response},
-    Router,
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool};
-use uuid::Uuid;
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use tower_http::{
     cors::{AllowHeaders, AllowMethods, CorsLayer},
     request_id::{PropagateRequestIdLayer, SetRequestIdLayer},
@@ -40,55 +39,56 @@ use tracing::{error, info};
 use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
+use uuid::Uuid;
 
 use crate::{
     admin_auth::{
+        AdminAuthContext, AdminAuthLoginRequest, AdminAuthLoginResponse,
+        AdminCredentialRevisionResponse, AdminCredentialUpdateRequest,
+        AdminCredentialUpdateResponse, AdminLogoutRequest, AdminLogoutResponse,
+        AdminRefreshRequest, AdminRefreshResponse, RefreshOutcome, RefreshStore,
         get_active_credential_revision, login as admin_login, revoke_refresh_token_family,
-        rotate_refresh_token, update_operational_credentials, AdminAuthContext,
-        AdminAuthLoginRequest, AdminAuthLoginResponse, AdminCredentialRevisionResponse,
-        AdminCredentialUpdateRequest, AdminCredentialUpdateResponse, AdminLogoutRequest,
-        AdminLogoutResponse, AdminRefreshRequest, AdminRefreshResponse, RefreshOutcome,
-        RefreshStore,
+        rotate_refresh_token, update_operational_credentials,
     },
     auth::{AuthContext, OptionalInternalSecret, RequireInternalSecret},
+    cleanup::{CleanupSettings, spawn_draft_cleanup, spawn_slug_redirect_cleanup},
     comments::{
-        create_comment, delete_comment, list_admin_comments, list_post_comments, update_comment,
         AdminCommentFeed, PostCommentCreate, PostCommentDelete, PostCommentRead,
-        PostCommentThreadList, PostCommentUpdate,
+        PostCommentThreadList, PostCommentUpdate, create_comment, delete_comment,
+        list_admin_comments, list_post_comments, update_comment,
     },
     config::{MinioSettings, Settings},
-    imports::{download_posts_backup, load_posts_backup, BackupLoadRead},
-    cleanup::{spawn_draft_cleanup, spawn_slug_redirect_cleanup, CleanupSettings},
-    indexnow::IndexNowClient,
-    series_projection::SeriesProjector,
-    media::{
-        build_object_key, presigned_put_url, proxy_upload, register_media, MediaCreate, MediaRead,
-        MediaUploadRequest, MediaUploadResponse,
-    },
-    pdf_assets::{
-        delete_pdf, download_pdf, get_status as pdf_status, upload_pdf, PdfAssetConfig, PdfStatus,
-        PORTFOLIO_PDF, RESUME_PDF,
-    },
     error::{AppError, ErrorDetail},
-    observability::{http_trace_layer, init_tracing, UuidRequestId, REQUEST_ID_HEADER},
+    imports::{BackupLoadRead, download_posts_backup, load_posts_backup},
+    indexnow::IndexNowClient,
+    media::{
+        MediaCreate, MediaRead, MediaUploadRequest, MediaUploadResponse, build_object_key,
+        presigned_put_url, proxy_upload, register_media,
+    },
+    observability::{REQUEST_ID_HEADER, UuidRequestId, http_trace_layer, init_tracing},
+    pdf_assets::{
+        PORTFOLIO_PDF, PdfAssetConfig, PdfStatus, RESUME_PDF, delete_pdf, download_pdf,
+        get_status as pdf_status, upload_pdf,
+    },
     posts::{
+        ListPostsParams, ListSummariesParams, PostContentKind, PostCreate, PostFilter, PostLocale,
+        PostRead, PostSortMode, PostStatus, PostSummaryListRead, PostVisibility, TagMatch, TagRead,
         create_post, delete_post_by_slug, get_post_by_slug, list_post_summaries, list_posts,
-        resolve_post_redirect, update_post_by_slug, ListPostsParams, ListSummariesParams,
-        PostContentKind, PostCreate, PostFilter, PostLocale, PostRead, PostSortMode, PostStatus,
-        PostSummaryListRead, PostVisibility, TagMatch, TagRead,
+        resolve_post_redirect, update_post_by_slug,
     },
     projects::{
-        get_project_by_slug, list_projects, replace_project_order, resolve_project_redirect,
-        ListProjectsParams, ProjectRead, ProjectsOrderReplace,
+        ListProjectsParams, ProjectRead, ProjectsOrderReplace, get_project_by_slug, list_projects,
+        replace_project_order, resolve_project_redirect,
     },
     series::{
-        create_series, delete_series_by_slug, get_series_by_slug, list_series,
+        ListSeriesParams, SeriesDetailRead, SeriesOrderReplace, SeriesPostsReplace, SeriesRead,
+        SeriesUpsert, create_series, delete_series_by_slug, get_series_by_slug, list_series,
         replace_series_order, replace_series_posts_by_slug, resolve_series_redirect,
-        update_series_by_slug, ListSeriesParams, SeriesDetailRead, SeriesOrderReplace,
-        SeriesPostsReplace, SeriesRead, SeriesUpsert,
+        update_series_by_slug,
     },
-    site_profile::{get_site_profile, update_site_profile, SiteProfileRead},
-    tags::{create_tag, delete_tag, list_tags, update_tag, TagCreate, TagUpdate},
+    series_projection::SeriesProjector,
+    site_profile::{SiteProfileRead, get_site_profile, update_site_profile},
+    tags::{TagCreate, TagUpdate, create_tag, delete_tag, list_tags, update_tag},
 };
 
 #[derive(Clone)]
@@ -234,9 +234,7 @@ async fn main() -> anyhow::Result<()> {
             delete_resume_pdf_handler
         ));
 
-    let api_routes = api_routes
-        .routes(routes!(health))
-        .routes(routes!(ready));
+    let api_routes = api_routes.routes(routes!(health)).routes(routes!(ready));
 
     let (axum_router, openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest(&settings.api_prefix, api_routes)
@@ -1100,7 +1098,10 @@ async fn load_posts_backup_handler(
         .map_err(|e| AppError::BadRequest(format!("multipart parse failed: {e}")))?
     {
         if field.name() == Some("file") {
-            file_name = field.file_name().map(str::to_string).or(Some(String::new()));
+            file_name = field
+                .file_name()
+                .map(str::to_string)
+                .or(Some(String::new()));
             let bytes = field
                 .bytes()
                 .await
@@ -1112,8 +1113,8 @@ async fn load_posts_backup_handler(
 
     let file_name = file_name
         .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
-    let file_bytes = file_bytes
-        .ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
+    let file_bytes =
+        file_bytes.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
     let result = load_posts_backup(&state.pool, &state.minio, &file_name, &file_bytes).await?;
     Ok(Json(result))
 }
@@ -1165,7 +1166,10 @@ async fn handle_pdf_upload(
         .map_err(|e| AppError::BadRequest(format!("multipart parse failed: {e}")))?
     {
         if field.name() == Some("file") {
-            filename = field.file_name().map(str::to_string).or(Some(String::new()));
+            filename = field
+                .file_name()
+                .map(str::to_string)
+                .or(Some(String::new()));
             content_type = field.content_type().map(str::to_string);
             let bytes = field
                 .bytes()
@@ -1177,7 +1181,8 @@ async fn handle_pdf_upload(
     }
     let filename = filename
         .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
-    let data = data.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
+    let data =
+        data.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
     let status = upload_pdf(
         &state.minio,
         config,
@@ -1218,9 +1223,7 @@ async fn get_portfolio_status_handler(
         (status = 500, description = "Internal error", body = ErrorDetail),
     ),
 )]
-async fn get_portfolio_pdf_handler(
-    State(state): State<AppState>,
-) -> Result<Response, AppError> {
+async fn get_portfolio_pdf_handler(State(state): State<AppState>) -> Result<Response, AppError> {
     handle_pdf_download(&state, &PORTFOLIO_PDF).await
 }
 
@@ -1296,9 +1299,7 @@ async fn get_resume_status_handler(
         (status = 500, description = "Internal error", body = ErrorDetail),
     ),
 )]
-async fn get_resume_pdf_handler(
-    State(state): State<AppState>,
-) -> Result<Response, AppError> {
+async fn get_resume_pdf_handler(State(state): State<AppState>) -> Result<Response, AppError> {
     handle_pdf_download(&state, &RESUME_PDF).await
 }
 
@@ -1728,8 +1729,7 @@ async fn list_admin_comments_handler(
     if offset < 0 {
         return Err(AppError::BadRequest("offset must be >= 0".into()));
     }
-    let feed =
-        list_admin_comments(&state.pool, limit, offset, params.post_slug.as_deref()).await?;
+    let feed = list_admin_comments(&state.pool, limit, offset, params.post_slug.as_deref()).await?;
     Ok(Json(feed))
 }
 

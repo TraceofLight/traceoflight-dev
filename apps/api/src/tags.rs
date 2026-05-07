@@ -4,7 +4,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppError;
-use crate::posts::{normalize_tag_slug, TagRead};
+use crate::posts::{TagRead, normalize_tag_slug};
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct TagCreate {
@@ -158,11 +158,10 @@ pub async fn delete_tag(pool: &PgPool, slug: &str, force: bool) -> Result<bool, 
         return Ok(false);
     };
 
-    let link_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM post_tags WHERE tag_id = $1")
-            .bind(tag_id)
-            .fetch_one(&mut *tx)
-            .await?;
+    let link_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM post_tags WHERE tag_id = $1")
+        .bind(tag_id)
+        .fetch_one(&mut *tx)
+        .await?;
 
     if link_count > 0 {
         if !force {

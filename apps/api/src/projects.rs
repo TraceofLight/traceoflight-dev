@@ -6,9 +6,9 @@ use uuid::Uuid;
 
 use crate::error::AppError;
 use crate::posts::{
-    get_post_by_slug, list_posts, serialize_dt_us, serialize_dt_us_opt, ListPostsParams,
-    PostContentKind, PostFilter, PostLocale, PostRead, PostSeriesContext, PostStatus,
-    PostTopMediaKind, PostVisibility, ProjectProfileRead, TagRead,
+    ListPostsParams, PostContentKind, PostFilter, PostLocale, PostRead, PostSeriesContext,
+    PostStatus, PostTopMediaKind, PostVisibility, ProjectProfileRead, TagRead, get_post_by_slug,
+    list_posts, serialize_dt_us, serialize_dt_us_opt,
 };
 use crate::series::SeriesPostRead;
 
@@ -113,14 +113,8 @@ pub async fn get_project_by_slug(
     let related = match post.series_title.as_deref() {
         Some(series_title) => {
             let series_slug = slugify_series_title(series_title);
-            fetch_related_series_posts(
-                pool,
-                &series_slug,
-                post.locale,
-                post.id,
-                include_private,
-            )
-            .await?
+            fetch_related_series_posts(pool, &series_slug, post.locale, post.id, include_private)
+                .await?
         }
         None => Vec::new(),
     };
@@ -196,8 +190,7 @@ pub async fn replace_project_order(
     .bind(&normalized)
     .fetch_all(&mut *tx)
     .await?;
-    let known: std::collections::HashSet<String> =
-        existing.into_iter().map(|r| r.slug).collect();
+    let known: std::collections::HashSet<String> = existing.into_iter().map(|r| r.slug).collect();
     let missing: Vec<String> = normalized
         .iter()
         .filter(|s| !known.contains(*s))

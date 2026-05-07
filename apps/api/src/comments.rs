@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, SaltString},
     Argon2, PasswordVerifier,
+    password_hash::{PasswordHash, PasswordHasher, SaltString, rand_core::OsRng},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppError;
-use crate::posts::{serialize_dt_us};
+use crate::posts::serialize_dt_us;
 
 const ADMIN_AUTHOR_NAME: &str = "TraceofLight";
 const PRIVATE_PLACEHOLDER: &str = "비공개된 댓글입니다.";
@@ -301,8 +301,7 @@ pub async fn list_post_comments(
     .fetch_all(pool)
     .await?;
 
-    let by_id: HashMap<Uuid, CommentRow> =
-        comments.iter().cloned().map(|c| (c.id, c)).collect();
+    let by_id: HashMap<Uuid, CommentRow> = comments.iter().cloned().map(|c| (c.id, c)).collect();
 
     let mut roots: Vec<&CommentRow> = comments
         .iter()
@@ -320,9 +319,7 @@ pub async fn list_post_comments(
     let items: Vec<PostCommentThreadItem> = roots
         .into_iter()
         .map(|root| {
-            let reply_to_root = root
-                .reply_to_comment_id
-                .and_then(|id| by_id.get(&id));
+            let reply_to_root = root.reply_to_comment_id.and_then(|id| by_id.get(&id));
             let root_read = to_read(root, reply_to_root, include_private);
             let mut replies = replies_by_root.remove(&root.id).unwrap_or_default();
             replies.sort_by(|a, b| a.created_at.cmp(&b.created_at).then(a.id.cmp(&b.id)));
@@ -587,10 +584,7 @@ pub async fn list_admin_comments(
 
     // Fetch reply targets for the items in this page so reply_to_author_name
     // can be filled without an N+1 round-trip.
-    let reply_target_ids: Vec<Uuid> = rows
-        .iter()
-        .filter_map(|r| r.reply_to_comment_id)
-        .collect();
+    let reply_target_ids: Vec<Uuid> = rows.iter().filter_map(|r| r.reply_to_comment_id).collect();
     let reply_targets: HashMap<Uuid, CommentRow> = if reply_target_ids.is_empty() {
         HashMap::new()
     } else {

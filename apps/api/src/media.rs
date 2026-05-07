@@ -101,7 +101,11 @@ pub fn presigned_put_url(
     Ok(signed.to_string())
 }
 
-pub async fn register_media(pool: &PgPool, payload: MediaCreate, bucket: &str) -> Result<MediaRead, sqlx::Error> {
+pub async fn register_media(
+    pool: &PgPool,
+    payload: MediaCreate,
+    bucket: &str,
+) -> Result<MediaRead, sqlx::Error> {
     let row = sqlx::query_as::<_, MediaRead>(
         r#"
         INSERT INTO media_assets (
@@ -149,9 +153,9 @@ pub async fn fetch_object_bytes(
     let action = bucket.get_object(Some(&credentials), object_key);
     let url = action.sign(Duration::from_secs(120));
 
-    let response = reqwest::get(url.as_str()).await.map_err(|err| {
-        AppError::BadGateway(format!("object fetch failed: {err}"))
-    })?;
+    let response = reqwest::get(url.as_str())
+        .await
+        .map_err(|err| AppError::BadGateway(format!("object fetch failed: {err}")))?;
     if !response.status().is_success() {
         return Err(AppError::BadGateway(format!(
             "object fetch failed with status {}",
@@ -192,10 +196,7 @@ pub async fn put_object_bytes(
     Ok(())
 }
 
-pub async fn delete_object(
-    settings: &MinioSettings,
-    object_key: &str,
-) -> Result<(), AppError> {
+pub async fn delete_object(settings: &MinioSettings, object_key: &str) -> Result<(), AppError> {
     let (bucket, credentials) = build_bucket(settings)?;
     let action = bucket.delete_object(Some(&credentials), object_key);
     let url = action.sign(Duration::from_secs(60));
@@ -217,10 +218,7 @@ pub async fn delete_object(
     )))
 }
 
-pub async fn object_exists(
-    settings: &MinioSettings,
-    object_key: &str,
-) -> Result<bool, AppError> {
+pub async fn object_exists(settings: &MinioSettings, object_key: &str) -> Result<bool, AppError> {
     let (bucket, credentials) = build_bucket(settings)?;
     let action = bucket.head_object(Some(&credentials), object_key);
     let url = action.sign(Duration::from_secs(60));
@@ -281,7 +279,10 @@ pub async fn proxy_upload(
             .unwrap_or_else(|_| String::from("(no response body)"));
         let trimmed = body_text.trim();
         let detail = if trimmed.is_empty() {
-            format!("object storage upload failed with status {}", status.as_u16())
+            format!(
+                "object storage upload failed with status {}",
+                status.as_u16()
+            )
         } else {
             trimmed.to_string()
         };

@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppError;
-use crate::posts::{serialize_dt_us, serialize_dt_us_opt, PostLocale, PostVisibility};
+use crate::posts::{PostLocale, PostVisibility, serialize_dt_us, serialize_dt_us_opt};
 
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct SeriesPostRead {
@@ -173,7 +173,9 @@ pub async fn get_series_by_slug(
     locale: Option<PostLocale>,
 ) -> Result<Option<SeriesDetailRead>, sqlx::Error> {
     let series = fetch_series_row(pool, slug, locale).await?;
-    let Some(series) = series else { return Ok(None) };
+    let Some(series) = series else {
+        return Ok(None);
+    };
     let posts = fetch_series_posts(pool, series.id, include_private).await?;
     if posts.is_empty() {
         return Ok(None);
@@ -212,10 +214,12 @@ pub async fn create_series(
     .await
     .map_err(map_series_conflict)?;
 
-    sqlx::query("DELETE FROM series_slug_redirects WHERE locale = 'ko'::post_locale AND old_slug = $1")
-        .bind(&payload.slug)
-        .execute(&mut *tx)
-        .await?;
+    sqlx::query(
+        "DELETE FROM series_slug_redirects WHERE locale = 'ko'::post_locale AND old_slug = $1",
+    )
+    .bind(&payload.slug)
+    .execute(&mut *tx)
+    .await?;
 
     tx.commit().await?;
 
@@ -310,12 +314,11 @@ pub async fn replace_series_posts_by_slug(
         id: Uuid,
         slug: String,
     }
-    let posts: Vec<PostLookup> = sqlx::query_as(
-        "SELECT id, slug FROM posts WHERE slug = ANY($1::text[])",
-    )
-    .bind(&post_slugs)
-    .fetch_all(&mut *tx)
-    .await?;
+    let posts: Vec<PostLookup> =
+        sqlx::query_as("SELECT id, slug FROM posts WHERE slug = ANY($1::text[])")
+            .bind(&post_slugs)
+            .fetch_all(&mut *tx)
+            .await?;
 
     let mut by_slug: std::collections::HashMap<String, Uuid> =
         posts.into_iter().map(|p| (p.slug, p.id)).collect();
@@ -414,13 +417,11 @@ pub async fn replace_series_order(
     }
 
     for (idx, slug) in normalized.iter().enumerate() {
-        sqlx::query(
-            "UPDATE series SET list_order_index = $1, updated_at = NOW() WHERE slug = $2",
-        )
-        .bind((idx as i64) + 1)
-        .bind(slug)
-        .execute(&mut *tx)
-        .await?;
+        sqlx::query("UPDATE series SET list_order_index = $1, updated_at = NOW() WHERE slug = $2")
+            .bind((idx as i64) + 1)
+            .bind(slug)
+            .execute(&mut *tx)
+            .await?;
     }
 
     tx.commit().await?;

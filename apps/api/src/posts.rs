@@ -11,7 +11,10 @@ use crate::error::AppError;
 /// Always render datetimes with 6-digit microsecond precision and `Z` suffix,
 /// independent of the stored value's fractional precision. Keeps the JSON
 /// representation stable byte-for-byte across rows.
-pub fn serialize_dt_us<S: serde::Serializer>(dt: &DateTime<Utc>, ser: S) -> Result<S::Ok, S::Error> {
+pub fn serialize_dt_us<S: serde::Serializer>(
+    dt: &DateTime<Utc>,
+    ser: S,
+) -> Result<S::Ok, S::Error> {
     ser.serialize_str(&dt.format("%Y-%m-%dT%H:%M:%S%.6fZ").to_string())
 }
 
@@ -398,7 +401,9 @@ async fn attach_series_context(
     .fetch_optional(pool)
     .await?;
 
-    let Some(mapping) = mapping else { return Ok(None) };
+    let Some(mapping) = mapping else {
+        return Ok(None);
+    };
 
     let listing = sqlx::query_as::<_, SeriesPostListingRow>(
         r#"
@@ -462,12 +467,10 @@ async fn fetch_tags_for_post(pool: &PgPool, post_id: Uuid) -> Result<Vec<TagRead
 }
 
 async fn count_comments(pool: &PgPool, post_id: Uuid) -> Result<i64, sqlx::Error> {
-    sqlx::query_scalar::<_, i64>(
-        r#"SELECT COUNT(*) FROM post_comments WHERE post_id = $1"#,
-    )
-    .bind(post_id)
-    .fetch_one(pool)
-    .await
+    sqlx::query_scalar::<_, i64>(r#"SELECT COUNT(*) FROM post_comments WHERE post_id = $1"#)
+        .bind(post_id)
+        .fetch_one(pool)
+        .await
 }
 
 #[derive(Debug, FromRow)]
@@ -685,8 +688,7 @@ async fn fetch_project_profiles_bulk(
 
     let mut map = HashMap::new();
     for r in rows {
-        let highlights: Vec<String> =
-            serde_json::from_value(r.highlights_json).unwrap_or_default();
+        let highlights: Vec<String> = serde_json::from_value(r.highlights_json).unwrap_or_default();
         let resource_links: Vec<ProjectResourceLink> =
             serde_json::from_value(r.resource_links_json).unwrap_or_default();
         map.insert(
@@ -783,8 +785,12 @@ async fn attach_series_context_bulk(
 
     let mut result = HashMap::new();
     for post in posts {
-        let Some(mapping) = by_post.get(&post.id) else { continue };
-        let Some(listing) = by_series.get(&mapping.series_id) else { continue };
+        let Some(mapping) = by_post.get(&post.id) else {
+            continue;
+        };
+        let Some(listing) = by_series.get(&mapping.series_id) else {
+            continue;
+        };
 
         let filtered: Vec<&SeriesListingBulkRow> = if public_only {
             listing
@@ -838,9 +844,7 @@ pub async fn list_posts(
     //   - otherwise (None / draft / archived) → created_at DESC, slug DESC
     // Project content kind always prepends `project_order_index ASC NULLS LAST`.
     let main_ordering = match params.status {
-        Some(PostStatus::Published) => {
-            "published_at DESC NULLS LAST, created_at DESC, slug DESC"
-        }
+        Some(PostStatus::Published) => "published_at DESC NULLS LAST, created_at DESC, slug DESC",
         _ => "created_at DESC, slug DESC",
     };
 
@@ -1294,7 +1298,8 @@ async fn upsert_project_profile(
         .as_deref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
-    let highlights_json = serde_json::to_value(&profile.highlights).unwrap_or(serde_json::json!([]));
+    let highlights_json =
+        serde_json::to_value(&profile.highlights).unwrap_or(serde_json::json!([]));
     let resource_links_json =
         serde_json::to_value(&profile.resource_links).unwrap_or(serde_json::json!([]));
 
@@ -1338,7 +1343,8 @@ async fn insert_project_profile(
         .as_deref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
-    let highlights_json = serde_json::to_value(&profile.highlights).unwrap_or(serde_json::json!([]));
+    let highlights_json =
+        serde_json::to_value(&profile.highlights).unwrap_or(serde_json::json!([]));
     let resource_links_json =
         serde_json::to_value(&profile.resource_links).unwrap_or(serde_json::json!([]));
 
@@ -1456,9 +1462,7 @@ struct SummaryRow {
 fn summary_ordering(sort: PostSortMode, status: Option<PostStatus>) -> &'static str {
     match sort {
         PostSortMode::Oldest => "published_at ASC NULLS LAST, created_at ASC, slug ASC",
-        PostSortMode::Title => {
-            "title ASC, published_at DESC NULLS LAST, created_at DESC, slug ASC"
-        }
+        PostSortMode::Title => "title ASC, published_at DESC NULLS LAST, created_at DESC, slug ASC",
         PostSortMode::Latest => match status {
             Some(PostStatus::Published) => {
                 "published_at DESC NULLS LAST, created_at DESC, slug DESC"

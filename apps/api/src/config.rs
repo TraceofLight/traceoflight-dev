@@ -64,8 +64,7 @@ impl Settings {
             .and_then(|s| s.parse().ok())
             .unwrap_or(6655);
 
-        let api_prefix =
-            env::var("API_PREFIX").unwrap_or_else(|_| "/api/v1/web-service".into());
+        let api_prefix = env::var("API_PREFIX").unwrap_or_else(|_| "/api/v1/web-service".into());
 
         let database_url = build_database_url()?;
 
@@ -100,7 +99,10 @@ impl Settings {
             secret_key: env::var("MINIO_SECRET_KEY").unwrap_or_default(),
             bucket: env::var("MINIO_BUCKET").unwrap_or_default(),
             secure: matches!(
-                env::var("MINIO_SECURE").unwrap_or_default().to_lowercase().as_str(),
+                env::var("MINIO_SECURE")
+                    .unwrap_or_default()
+                    .to_lowercase()
+                    .as_str(),
                 "true" | "1" | "yes"
             ),
             presigned_expire_seconds: env::var("MINIO_PRESIGNED_EXPIRE_SECONDS")
@@ -172,8 +174,7 @@ fn build_database_url() -> anyhow::Result<String> {
         .map_err(|_| anyhow::anyhow!("DATABASE_URL or POSTGRES_USER must be set"))?;
     let password = env::var("POSTGRES_PASSWORD")
         .map_err(|_| anyhow::anyhow!("POSTGRES_PASSWORD must be set"))?;
-    let db = env::var("POSTGRES_DB")
-        .map_err(|_| anyhow::anyhow!("POSTGRES_DB must be set"))?;
+    let db = env::var("POSTGRES_DB").map_err(|_| anyhow::anyhow!("POSTGRES_DB must be set"))?;
     let host = env::var("POSTGRES_HOST").unwrap_or_else(|_| "localhost".into());
     let port = env::var("POSTGRES_PORT").unwrap_or_else(|_| "5432".into());
     Ok(format!("postgres://{user}:{password}@{host}:{port}/{db}"))

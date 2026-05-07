@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use argon2::{password_hash::PasswordHash, Argon2, PasswordHasher, PasswordVerifier};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use argon2::{Argon2, PasswordHasher, PasswordVerifier, password_hash::PasswordHash};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, Mac};
-use redis::{aio::ConnectionManager, AsyncCommands};
+use redis::{AsyncCommands, aio::ConnectionManager};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{FromRow, PgPool};
@@ -119,7 +119,10 @@ impl TokenCodec {
 
     pub fn issue_pair(&self, credential_revision: i32) -> (TokenPair, String) {
         let family_id = Uuid::new_v4().to_string();
-        (self.issue_pair_with_family(credential_revision, &family_id), family_id)
+        (
+            self.issue_pair_with_family(credential_revision, &family_id),
+            family_id,
+        )
     }
 
     pub fn issue_pair_with_family(&self, credential_revision: i32, _family_id: &str) -> TokenPair {
@@ -242,10 +245,7 @@ impl RefreshStore {
 
     pub async fn get_state(&self, jti: &str) -> Result<Option<RefreshState>, AppError> {
         let mut conn = self.conn.clone();
-        let raw: Option<String> = conn
-            .get(Self::state_key(jti))
-            .await
-            .map_err(redis_to_app)?;
+        let raw: Option<String> = conn.get(Self::state_key(jti)).await.map_err(redis_to_app)?;
         let Some(raw) = raw else { return Ok(None) };
         let state: RefreshState = serde_json::from_str(&raw)
             .map_err(|err| AppError::Internal(anyhow::anyhow!("invalid refresh state: {err}")))?;
@@ -298,10 +298,7 @@ pub struct AdminAuthContext {
 }
 
 impl AdminAuthContext {
-    pub fn new(
-        settings: AdminSettings,
-        refresh_store: Option<RefreshStore>,
-    ) -> Self {
+    pub fn new(settings: AdminSettings, refresh_store: Option<RefreshStore>) -> Self {
         let codec = TokenCodec::new(
             &settings.session_secret,
             settings.access_max_age_seconds,
@@ -397,7 +394,10 @@ async fn verify_credentials(
         }
     }
 
-    let active_revision = operational.as_ref().map(|op| op.credential_revision).unwrap_or(0);
+    let active_revision = operational
+        .as_ref()
+        .map(|op| op.credential_revision)
+        .unwrap_or(0);
     if verify_master(settings, normalized_login, password) {
         return Ok(VerifyResult {
             credential_source: Some("master"),
@@ -456,9 +456,12 @@ pub async fn login(
     ctx: &AdminAuthContext,
     payload: AdminAuthLoginRequest,
 ) -> Result<AdminAuthLoginResponse, AppError> {
-    let verify = verify_credentials(pool, &ctx.settings, &payload.login_id, &payload.password).await?;
+    let verify =
+        verify_credentials(pool, &ctx.settings, &payload.login_id, &payload.password).await?;
     let Some(source) = verify.credential_source else {
-        return Err(AppError::UnauthorizedDetail("invalid admin credentials".into()));
+        return Err(AppError::UnauthorizedDetail(
+            "invalid admin credentials".into(),
+        ));
     };
 
     let store = ctx.require_store()?;
@@ -494,20 +497,10 @@ pub async fn login(
 
 #[allow(dead_code)] // `revision` reserved for future telemetry/logging
 pub enum RefreshOutcome {
-    Rotated {
-        revision: i32,
-        pair: TokenPair,
-    },
-    Stale {
-        revision: i32,
-    },
-    InvalidOrExpired {
-        kind: &'static str,
-        revision: i32,
-    },
-    ReuseDetected {
-        revision: i32,
-    },
+    Rotated { revision: i32, pair: TokenPair },
+    Stale { revision: i32 },
+    InvalidOrExpired { kind: &'static str, revision: i32 },
+    ReuseDetected { revision: i32 },
 }
 
 pub async fn rotate_refresh_token(
@@ -557,7 +550,7 @@ pub async fn rotate_refresh_token(
             return Ok(RefreshOutcome::InvalidOrExpired {
                 kind: "invalid",
                 revision: payload.credential_revision,
-            })
+            });
         }
     };
 
@@ -708,9 +701,13 @@ pub async fn update_operational_credentials(
     }
 
     let current = get_operational_credential(pool).await?;
-    let next_revision = current.as_ref().map(|c| c.credential_revision + 1).unwrap_or(1);
+    let next_revision = current
+        .as_ref()
+        .map(|c| c.credential_revision + 1)
+        .unwrap_or(1);
 
-    let salt = argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
+    let salt =
+        argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
     let password_hash = Argon2::default()
         .hash_password(payload.password.as_bytes(), &salt)
         .map_err(|err| AppError::Internal(anyhow::anyhow!("password hash failed: {err}")))?

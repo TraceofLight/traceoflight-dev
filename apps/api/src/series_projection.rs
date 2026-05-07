@@ -95,9 +95,7 @@ struct ExistingSeriesPostRow {
 /// Rebuild ko-source series + series_posts from posts.series_title content.
 /// Sibling-locale series (translations) are owned by the translation
 /// pipeline and are not touched here.
-pub async fn rebuild_series_projection_cache(
-    pool: &PgPool,
-) -> Result<RebuildSummary, sqlx::Error> {
+pub async fn rebuild_series_projection_cache(pool: &PgPool) -> Result<RebuildSummary, sqlx::Error> {
     let posts: Vec<PostRow> = sqlx::query_as(
         r#"
         SELECT id, slug, series_title, published_at, created_at, updated_at
@@ -110,11 +108,10 @@ pub async fn rebuild_series_projection_cache(
     .fetch_all(pool)
     .await?;
 
-    let existing_rows: Vec<ExistingSeriesRow> = sqlx::query_as(
-        "SELECT id, slug, description FROM series WHERE locale = 'ko'::post_locale",
-    )
-    .fetch_all(pool)
-    .await?;
+    let existing_rows: Vec<ExistingSeriesRow> =
+        sqlx::query_as("SELECT id, slug, description FROM series WHERE locale = 'ko'::post_locale")
+            .fetch_all(pool)
+            .await?;
     let series_ids: Vec<Uuid> = existing_rows.iter().map(|r| r.id).collect();
 
     let existing_mappings: Vec<ExistingSeriesPostRow> = if series_ids.is_empty() {
@@ -161,7 +158,9 @@ pub async fn rebuild_series_projection_cache(
             .or_default()
             .push(post.clone());
         let candidate_at = post.updated_at.max(post.created_at);
-        let entry = series_titles.entry(series_slug).or_insert((candidate_at, normalized_title.clone()));
+        let entry = series_titles
+            .entry(series_slug)
+            .or_insert((candidate_at, normalized_title.clone()));
         if candidate_at >= entry.0 {
             *entry = (candidate_at, normalized_title);
         }
@@ -322,7 +321,10 @@ fn slugify_series_title(title: &str) -> String {
 }
 
 fn projection_order_key(post: &PostRow) -> (DateTime<Utc>, DateTime<Utc>, String) {
-    let primary = post.published_at.unwrap_or(post.created_at).max(post.updated_at);
+    let primary = post
+        .published_at
+        .unwrap_or(post.created_at)
+        .max(post.updated_at);
     let secondary = post.created_at.max(post.updated_at);
     (primary, secondary, post.slug.clone())
 }

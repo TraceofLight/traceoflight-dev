@@ -69,10 +69,7 @@ pub async fn upload_pdf(
     content_type: Option<&str>,
 ) -> Result<PdfStatus, AppError> {
     let normalized_filename = filename.trim();
-    let normalized_content_type = content_type
-        .unwrap_or("")
-        .trim()
-        .to_lowercase();
+    let normalized_content_type = content_type.unwrap_or("").trim().to_lowercase();
 
     if normalized_filename.is_empty() {
         return Err(AppError::BadRequest(format!(

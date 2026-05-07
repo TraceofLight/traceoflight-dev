@@ -3,11 +3,11 @@ use std::io::{Cursor, Read, Write};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
+use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::config::MinioSettings;
 use crate::error::AppError;
@@ -191,7 +191,9 @@ fn json_str(s: &str) -> Vec<u8> {
 }
 
 fn dump_pretty(value: &Value) -> Vec<u8> {
-    serde_json::to_string_pretty(value).unwrap_or_default().into_bytes()
+    serde_json::to_string_pretty(value)
+        .unwrap_or_default()
+        .into_bytes()
 }
 
 fn slugify_series_title(title: &str) -> String {
@@ -372,10 +374,7 @@ fn serialize_post(row: &PostBackupRow, profile: Option<&ProjectProfileRow>) -> (
 
 // ── Collect bundle from DB + MinIO ─────────────────────────────────────────
 
-async fn collect_bundle(
-    pool: &PgPool,
-    minio: &MinioSettings,
-) -> Result<Bundle, AppError> {
+async fn collect_bundle(pool: &PgPool, minio: &MinioSettings) -> Result<Bundle, AppError> {
     let posts: Vec<PostBackupRow> = sqlx::query_as(
         r#"
         SELECT
@@ -441,10 +440,9 @@ async fn collect_bundle(
     .fetch_all(pool)
     .await?;
 
-    let tags: Vec<TagBackupRow> =
-        sqlx::query_as("SELECT id, slug, label FROM tags ORDER BY slug")
-            .fetch_all(pool)
-            .await?;
+    let tags: Vec<TagBackupRow> = sqlx::query_as("SELECT id, slug, label FROM tags ORDER BY slug")
+        .fetch_all(pool)
+        .await?;
     let post_tag_links: Vec<PostTagBackupRow> =
         sqlx::query_as("SELECT post_id, tag_id FROM post_tags")
             .fetch_all(pool)
@@ -467,11 +465,10 @@ async fn collect_bundle(
     .fetch_all(pool)
     .await?;
 
-    let site_profile: Option<SiteProfileBackupRow> = sqlx::query_as(
-        "SELECT key, email, github_url FROM site_profiles LIMIT 1",
-    )
-    .fetch_optional(pool)
-    .await?;
+    let site_profile: Option<SiteProfileBackupRow> =
+        sqlx::query_as("SELECT key, email, github_url FROM site_profiles LIMIT 1")
+            .fetch_optional(pool)
+            .await?;
 
     // Collect referenced media keys from post fields, markdown, and series cover
     let mut referenced: HashSet<String> = HashSet::new();
@@ -604,7 +601,10 @@ fn build_backup_zip(bundle: &Bundle) -> Result<Vec<u8>, AppError> {
             DB_SITE_PROFILE_PATH,
             &dump_pretty(bundle.site_profile.as_ref().unwrap_or(&Value::Null)),
         )?;
-        write_text(DB_TAGS_PATH, &dump_pretty(&Value::Array(bundle.tags.clone())))?;
+        write_text(
+            DB_TAGS_PATH,
+            &dump_pretty(&Value::Array(bundle.tags.clone())),
+        )?;
         write_text(
             DB_POST_TAGS_PATH,
             &dump_pretty(&Value::Array(bundle.post_tags.clone())),
@@ -666,7 +666,11 @@ fn parse_backup_zip(data: &[u8]) -> Result<Bundle, AppError> {
         .map_err(|_| AppError::BadRequest("backup zip is invalid".into()))?;
 
     let manifest_value: Value = read_json(&mut archive, MANIFEST_PATH)?;
-    if manifest_value.get("schema_version").and_then(|v| v.as_str()) != Some(SCHEMA_VERSION) {
+    if manifest_value
+        .get("schema_version")
+        .and_then(|v| v.as_str())
+        != Some(SCHEMA_VERSION)
+    {
         return Err(AppError::BadRequest(
             "backup manifest schema is invalid".into(),
         ));
@@ -705,7 +709,9 @@ fn parse_backup_zip(data: &[u8]) -> Result<Bundle, AppError> {
         if name.starts_with(&format!("{POSTS_DIR}/")) && name.ends_with("/meta.json") {
             let meta: Value = read_json(&mut archive, &name)?;
             if !meta.is_object() {
-                return Err(AppError::BadRequest(format!("backup {name} must be an object")));
+                return Err(AppError::BadRequest(format!(
+                    "backup {name} must be an object"
+                )));
             }
             let content_path = format!("{}content.md", &name[..name.len() - "meta.json".len()]);
             let body = read_text(&mut archive, &content_path)?;
@@ -713,7 +719,9 @@ fn parse_backup_zip(data: &[u8]) -> Result<Bundle, AppError> {
         } else if name.starts_with(&format!("{SERIES_DIR}/")) && name.ends_with(".json") {
             let v: Value = read_json(&mut archive, &name)?;
             if !v.is_object() {
-                return Err(AppError::BadRequest(format!("backup {name} must be an object")));
+                return Err(AppError::BadRequest(format!(
+                    "backup {name} must be an object"
+                )));
             }
             series.push(v);
         } else if name.starts_with(&format!("{MEDIA_DIR}/")) {
@@ -755,10 +763,7 @@ fn read_json<T: for<'a> Deserialize<'a>>(
         .map_err(|_| AppError::BadRequest(format!("backup archive {path} is not valid JSON")))
 }
 
-fn read_array(
-    archive: &mut ZipArchive<Cursor<&[u8]>>,
-    path: &str,
-) -> Result<Vec<Value>, AppError> {
+fn read_array(archive: &mut ZipArchive<Cursor<&[u8]>>, path: &str) -> Result<Vec<Value>, AppError> {
     let value: Value = read_json(archive, path)?;
     match value {
         Value::Array(arr) => Ok(arr),
@@ -873,7 +878,10 @@ fn validate_bundle(bundle: &Bundle, manifest_counts: Option<&Value>) -> Result<(
         }
     }
     for comment in &bundle.post_comments {
-        let pid = comment.get("post_id").and_then(|v| v.as_str()).unwrap_or("");
+        let pid = comment
+            .get("post_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         if !post_ids.contains(pid) {
             return Err(AppError::BadRequest(
                 "post_comments references unknown post_id".into(),
@@ -944,7 +952,10 @@ pub async fn load_posts_backup(
         .iter()
         .filter_map(|m| {
             let object_key = m.get("object_key").and_then(|v| v.as_str())?;
-            let mime = m.get("mime_type").and_then(|v| v.as_str()).unwrap_or("application/octet-stream");
+            let mime = m
+                .get("mime_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("application/octet-stream");
             Some((object_key, mime))
         })
         .collect();
@@ -956,7 +967,9 @@ pub async fn load_posts_backup(
             .get(object_key.as_str())
             .copied()
             .unwrap_or("application/octet-stream");
-        if let Err(err) = media_helpers::put_object_bytes(minio, &staged_key, mime, payload.clone()).await {
+        if let Err(err) =
+            media_helpers::put_object_bytes(minio, &staged_key, mime, payload.clone()).await
+        {
             for (_, staged) in &staged_keys {
                 let _ = media_helpers::delete_object(minio, staged).await;
             }
@@ -999,7 +1012,8 @@ pub async fn load_posts_backup(
                         .get(object_key.as_str())
                         .copied()
                         .unwrap_or("application/octet-stream");
-                    let _ = media_helpers::put_object_bytes(minio, object_key, mime, bytes.clone()).await;
+                    let _ = media_helpers::put_object_bytes(minio, object_key, mime, bytes.clone())
+                        .await;
                 }
                 None => {
                     let _ = media_helpers::delete_object(minio, object_key).await;
@@ -1033,19 +1047,34 @@ async fn run_restore_transaction(pool: &PgPool, bundle: &Bundle) -> Result<(), A
 }
 
 async fn wipe_tables(tx: &mut Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM post_comments").execute(&mut **tx).await?;
-    sqlx::query("DELETE FROM series_posts").execute(&mut **tx).await?;
-    sqlx::query("DELETE FROM post_tags").execute(&mut **tx).await?;
-    sqlx::query("DELETE FROM project_profiles").execute(&mut **tx).await?;
+    sqlx::query("DELETE FROM post_comments")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("DELETE FROM series_posts")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("DELETE FROM post_tags")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("DELETE FROM project_profiles")
+        .execute(&mut **tx)
+        .await?;
     sqlx::query("DELETE FROM posts").execute(&mut **tx).await?;
     sqlx::query("DELETE FROM series").execute(&mut **tx).await?;
     sqlx::query("DELETE FROM tags").execute(&mut **tx).await?;
-    sqlx::query("DELETE FROM media_assets").execute(&mut **tx).await?;
-    sqlx::query("DELETE FROM site_profiles").execute(&mut **tx).await?;
+    sqlx::query("DELETE FROM media_assets")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("DELETE FROM site_profiles")
+        .execute(&mut **tx)
+        .await?;
     Ok(())
 }
 
-async fn insert_bundle(tx: &mut Transaction<'_, Postgres>, bundle: &Bundle) -> Result<(), AppError> {
+async fn insert_bundle(
+    tx: &mut Transaction<'_, Postgres>,
+    bundle: &Bundle,
+) -> Result<(), AppError> {
     for tag in &bundle.tags {
         let id = uuid_field(tag, "id")?;
         let slug = str_field(tag, "slug")?;
@@ -1145,14 +1174,12 @@ async fn insert_bundle(tx: &mut Transaction<'_, Postgres>, bundle: &Bundle) -> R
         let key = str_field(profile, "key")?;
         let email = str_field(profile, "email")?;
         let github_url = str_field(profile, "github_url")?;
-        sqlx::query(
-            "INSERT INTO site_profiles (key, email, github_url) VALUES ($1, $2, $3)",
-        )
-        .bind(key)
-        .bind(email)
-        .bind(github_url)
-        .execute(&mut **tx)
-        .await?;
+        sqlx::query("INSERT INTO site_profiles (key, email, github_url) VALUES ($1, $2, $3)")
+            .bind(key)
+            .bind(email)
+            .bind(github_url)
+            .execute(&mut **tx)
+            .await?;
     }
 
     Ok(())
@@ -1232,10 +1259,25 @@ async fn insert_post(
         )
         .bind(profile_id)
         .bind(id)
-        .bind(profile.get("period_label").and_then(|v| v.as_str()).unwrap_or(""))
-        .bind(profile.get("role_summary").and_then(|v| v.as_str()).unwrap_or(""))
+        .bind(
+            profile
+                .get("period_label")
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        )
+        .bind(
+            profile
+                .get("role_summary")
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        )
         .bind(profile.get("project_intro").and_then(|v| v.as_str()))
-        .bind(profile.get("card_image_url").and_then(|v| v.as_str()).unwrap_or(""))
+        .bind(
+            profile
+                .get("card_image_url")
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        )
         .bind(highlights)
         .bind(resource_links)
         .execute(&mut **tx)
@@ -1269,7 +1311,12 @@ async fn insert_media_asset(
     .bind(str_field(media, "object_key")?)
     .bind(str_field(media, "original_filename")?)
     .bind(str_field(media, "mime_type")?)
-    .bind(media.get("size_bytes").and_then(|v| v.as_i64()).unwrap_or(0))
+    .bind(
+        media
+            .get("size_bytes")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0),
+    )
     .bind(opt_i32(media, "width"))
     .bind(opt_i32(media, "height"))
     .bind(opt_i32(media, "duration_seconds"))
@@ -1279,10 +1326,7 @@ async fn insert_media_asset(
     Ok(())
 }
 
-async fn insert_series(
-    tx: &mut Transaction<'_, Postgres>,
-    s: &Value,
-) -> Result<(), AppError> {
+async fn insert_series(tx: &mut Transaction<'_, Postgres>, s: &Value) -> Result<(), AppError> {
     sqlx::query(
         r#"
         INSERT INTO series (
@@ -1312,10 +1356,7 @@ async fn insert_series(
     Ok(())
 }
 
-async fn insert_comment(
-    tx: &mut Transaction<'_, Postgres>,
-    c: &Value,
-) -> Result<(), AppError> {
+async fn insert_comment(tx: &mut Transaction<'_, Postgres>, c: &Value) -> Result<(), AppError> {
     sqlx::query(
         r#"
         INSERT INTO post_comments (

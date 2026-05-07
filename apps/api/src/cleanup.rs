@@ -155,10 +155,7 @@ async fn purge_maintenance(
     Ok((drafts, media))
 }
 
-pub async fn purge_expired_drafts(
-    pool: &PgPool,
-    retention_days: i64,
-) -> Result<i64, sqlx::Error> {
+pub async fn purge_expired_drafts(pool: &PgPool, retention_days: i64) -> Result<i64, sqlx::Error> {
     let cutoff = Utc::now() - chrono::Duration::days(retention_days.max(1));
     let result = sqlx::query(
         r#"
@@ -204,12 +201,11 @@ pub async fn purge_orphan_media(
 ) -> Result<i64, AppError> {
     let referenced = collect_referenced_keys(pool).await?;
     let cutoff = Utc::now() - chrono::Duration::days(retention_days.max(1));
-    let stale: Vec<StaleMediaRow> = sqlx::query_as(
-        "SELECT id, object_key FROM media_assets WHERE updated_at < $1",
-    )
-    .bind(cutoff)
-    .fetch_all(pool)
-    .await?;
+    let stale: Vec<StaleMediaRow> =
+        sqlx::query_as("SELECT id, object_key FROM media_assets WHERE updated_at < $1")
+            .bind(cutoff)
+            .fetch_all(pool)
+            .await?;
 
     let mut deleted = 0i64;
     for row in stale {
@@ -261,10 +257,9 @@ async fn collect_referenced_keys(pool: &PgPool) -> Result<HashSet<String>, sqlx:
         }
     }
 
-    let series_rows: Vec<SeriesCoverRow> =
-        sqlx::query_as("SELECT cover_image_url FROM series")
-            .fetch_all(pool)
-            .await?;
+    let series_rows: Vec<SeriesCoverRow> = sqlx::query_as("SELECT cover_image_url FROM series")
+        .fetch_all(pool)
+        .await?;
     for s in &series_rows {
         if let Some(key) = extract_object_key(s.cover_image_url.as_deref()) {
             keys.insert(key);

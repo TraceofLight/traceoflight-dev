@@ -14,9 +14,7 @@ pub fn init_tracing(format: LogFormat) {
 
     match format {
         LogFormat::Pretty => {
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter)
-                .init();
+            tracing_subscriber::fmt().with_env_filter(env_filter).init();
         }
         LogFormat::Json => {
             tracing_subscriber::fmt()
