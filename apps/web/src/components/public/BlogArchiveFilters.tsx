@@ -52,6 +52,7 @@ type BlogArchiveSummaryResponse = {
 };
 
 export type BlogArchiveLabels = {
+  archiveTitle: string;
   archiveDescription: string;
   searchLabel: string;
   searchPlaceholder: string;
@@ -222,6 +223,7 @@ const filterChipActiveClass =
   "border-sky-300/90 bg-sky-200/85 text-sky-950 shadow-[0_18px_36px_rgba(56,189,248,0.16)] ring-1 ring-sky-300/80";
 
 const DEFAULT_LABELS: BlogArchiveLabels = {
+  archiveTitle: "Blog",
   archiveDescription: "TraceofLight의 개발과 다양한 이야기 Archive",
   searchLabel: "포스트 검색",
   searchPlaceholder: "포스트 검색...",
@@ -451,7 +453,7 @@ export function BlogArchiveFilters({
     <section className="space-y-8">
       <header className="space-y-3 text-center">
         <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-          Blog
+          {labels.archiveTitle}
         </h1>
         <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
           {labels.archiveDescription}

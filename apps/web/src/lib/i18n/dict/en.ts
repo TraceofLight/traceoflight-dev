@@ -69,6 +69,8 @@ export const en: Dictionary = {
     introBottom:
       "Growing through curiosity for new technologies up top and steady exploration of foundational knowledge underneath.",
     recentPosts: "Recent posts", seeAllPosts: "See all posts",
+    featuredSeries: "Featured Series",
+    latestPosts: "Latest Posts",
     viewProjects: "View Projects",
     viewBlog: "View Blog",
     viewAllProjects: "View All Projects",

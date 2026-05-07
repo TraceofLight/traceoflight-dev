@@ -70,6 +70,8 @@ export const ja: Dictionary = {
     introBottom:
       "上には新しい技術への好奇心、下には基礎知識への着実な探求を糧に成長しています。",
     recentPosts: "最近の記事", seeAllPosts: "すべての記事を見る",
+    featuredSeries: "注目のシリーズ",
+    latestPosts: "最新の記事",
     viewProjects: "プロジェクトを見る",
     viewBlog: "ブログを見る",
     viewAllProjects: "View All Projects",

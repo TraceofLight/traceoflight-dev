@@ -98,6 +98,8 @@ export const ko = {
       "위로는 새로운 기술에 대한 호기심, 아래로는 기반 지식에 대한 꾸준한 탐구를 바탕으로 성장 중입니다.",
     recentPosts: "최근 글",
     seeAllPosts: "모든 글 보기",
+    featuredSeries: "추천 시리즈",
+    latestPosts: "최근 글",
     viewProjects: "프로젝트 보기",
     viewBlog: "블로그 보기",
     viewAllProjects: "View All Projects",

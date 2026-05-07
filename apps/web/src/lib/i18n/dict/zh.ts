@@ -69,6 +69,8 @@ export const zh: Dictionary = {
     introBottom:
       "向上以对新技术的好奇心探索，向下以对基础知识的持续钻研扎根，不断成长。",
     recentPosts: "最近文章", seeAllPosts: "查看所有文章",
+    featuredSeries: "精选系列",
+    latestPosts: "最新文章",
     viewProjects: "查看项目",
     viewBlog: "查看博客",
     viewAllProjects: "View All Projects",

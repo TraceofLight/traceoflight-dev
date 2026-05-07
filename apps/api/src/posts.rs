@@ -515,10 +515,12 @@ async fn fetch_project_profile(
 
 // ── Delete endpoint ─────────────────────────────────────────────────────────
 
-/// Delete a post by slug. The related rows in `post_tags`, `project_profiles`,
-/// `series_posts`, and `post_comments` are removed by their `ON DELETE CASCADE`
-/// foreign-key constraints. Cache-invalidation side effects (series projection
-/// rebuild) are not wired yet — TODO when the cache layer lands.
+/// Delete a post and all of its translations (every row in the same
+/// `translation_group_id`). Status/visibility filters apply only to the
+/// initial slug lookup — once a logical post is targeted, all locale rows
+/// in its group are removed atomically. Related rows in `post_tags`,
+/// `project_profiles`, `series_posts`, and `post_comments` are cleaned up
+/// by `ON DELETE CASCADE` FKs.
 pub async fn delete_post_by_slug(
     pool: &PgPool,
     slug: &str,
@@ -528,9 +530,13 @@ pub async fn delete_post_by_slug(
     let result = sqlx::query(
         r#"
         DELETE FROM posts
-        WHERE slug = $1
-          AND ($2::post_status     IS NULL OR status     = $2)
-          AND ($3::post_visibility IS NULL OR visibility = $3)
+        WHERE translation_group_id = (
+            SELECT translation_group_id FROM posts
+             WHERE slug = $1
+               AND ($2::post_status     IS NULL OR status     = $2)
+               AND ($3::post_visibility IS NULL OR visibility = $3)
+             LIMIT 1
+        )
         "#,
     )
     .bind(slug)

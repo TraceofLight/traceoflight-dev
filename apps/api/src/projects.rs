@@ -211,11 +211,24 @@ pub async fn replace_project_order(
     }
 
     for (index, slug) in normalized.iter().enumerate() {
-        sqlx::query("UPDATE posts SET project_order_index = $1, updated_at = NOW() WHERE slug = $2 AND content_kind = 'project'::post_content_kind")
-            .bind((index as i64) + 1)
-            .bind(slug)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            r#"
+            UPDATE posts
+               SET project_order_index = $1,
+                   updated_at = NOW()
+             WHERE content_kind = 'project'::post_content_kind
+               AND translation_group_id = (
+                   SELECT translation_group_id FROM posts
+                    WHERE slug = $2
+                      AND content_kind = 'project'::post_content_kind
+                    LIMIT 1
+               )
+            "#,
+        )
+        .bind((index as i64) + 1)
+        .bind(slug)
+        .execute(&mut *tx)
+        .await?;
     }
 
     tx.commit().await?;
