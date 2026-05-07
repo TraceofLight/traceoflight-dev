@@ -74,3 +74,110 @@ pub fn extract_markdown_keys(markdown: &str) -> Vec<String> {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── extract_object_key ───────────────────────────────────────────────────
+
+    #[test]
+    fn extract_object_key_returns_none_for_missing_or_blank_input() {
+        assert_eq!(extract_object_key(None), None);
+        assert_eq!(extract_object_key(Some("")), None);
+        assert_eq!(extract_object_key(Some("   ")), None);
+    }
+
+    #[test]
+    fn extract_object_key_returns_none_for_non_media_url() {
+        assert_eq!(extract_object_key(Some("https://example.com/foo.jpg")), None);
+        assert_eq!(extract_object_key(Some("/posts/abc")), None);
+    }
+
+    #[test]
+    fn extract_object_key_handles_plain_path() {
+        assert_eq!(
+            extract_object_key(Some("/media/cover.jpg")),
+            Some("cover.jpg".into())
+        );
+    }
+
+    #[test]
+    fn extract_object_key_handles_full_url_with_scheme() {
+        assert_eq!(
+            extract_object_key(Some("https://cdn.example.com/media/cover.jpg")),
+            Some("cover.jpg".into())
+        );
+    }
+
+    #[test]
+    fn extract_object_key_keeps_subpath_after_media_prefix() {
+        assert_eq!(
+            extract_object_key(Some("/media/image/2026/cover.jpg")),
+            Some("image/2026/cover.jpg".into())
+        );
+    }
+
+    #[test]
+    fn extract_object_key_returns_none_when_key_segment_is_empty() {
+        assert_eq!(extract_object_key(Some("/media/")), None);
+        assert_eq!(extract_object_key(Some("/media//")), None);
+    }
+
+    #[test]
+    fn extract_object_key_percent_decodes_typical_keys() {
+        assert_eq!(
+            extract_object_key(Some("/media/hello%20world.jpg")),
+            Some("hello world.jpg".into())
+        );
+    }
+
+    #[test]
+    fn extract_object_key_strips_leading_slashes_after_prefix() {
+        // Defensive: doubled slash from a careless template still resolves.
+        assert_eq!(
+            extract_object_key(Some("https://x/media//foo.jpg")),
+            Some("foo.jpg".into())
+        );
+    }
+
+    // ── extract_markdown_keys ────────────────────────────────────────────────
+
+    #[test]
+    fn extract_markdown_keys_returns_empty_for_no_references() {
+        assert!(extract_markdown_keys("plain text with [link](https://example.com)").is_empty());
+    }
+
+    #[test]
+    fn extract_markdown_keys_pulls_image_link() {
+        let md = "![cover](https://cdn.x/media/cover.jpg)";
+        assert_eq!(extract_markdown_keys(md), vec!["cover.jpg"]);
+    }
+
+    #[test]
+    fn extract_markdown_keys_pulls_relative_path_reference() {
+        let md = "see /media/raw/foo.png inline";
+        assert_eq!(extract_markdown_keys(md), vec!["raw/foo.png"]);
+    }
+
+    #[test]
+    fn extract_markdown_keys_dedupes_and_preserves_first_seen_order() {
+        let md = "\
+            ![a](https://x/media/a.jpg)\n\
+            ![b](https://x/media/b.jpg)\n\
+            ![a-again](https://x/media/a.jpg)";
+        assert_eq!(extract_markdown_keys(md), vec!["a.jpg", "b.jpg"]);
+    }
+
+    #[test]
+    fn extract_markdown_keys_finds_html_src_attributes() {
+        let md = r#"<img src="/media/foo.png" alt="x" />"#;
+        assert_eq!(extract_markdown_keys(md), vec!["foo.png"]);
+    }
+
+    #[test]
+    fn extract_markdown_keys_ignores_non_media_links() {
+        let md = "![x](https://example.com/img.png) and ![y](/media/keep.png)";
+        assert_eq!(extract_markdown_keys(md), vec!["keep.png"]);
+    }
+}

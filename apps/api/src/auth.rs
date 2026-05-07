@@ -102,3 +102,65 @@ where
         Ok(Self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ctx(secret: &str) -> AuthContext {
+        AuthContext::new(secret.to_string())
+    }
+
+    #[test]
+    fn empty_configured_secret_rejects_everything() {
+        // "no internal callers allowed" — even if the header magically matches
+        // an empty string we must still refuse.
+        let auth = ctx("");
+        assert!(!auth.is_trusted(None));
+        assert!(!auth.is_trusted(Some("")));
+        assert!(!auth.is_trusted(Some("anything")));
+    }
+
+    #[test]
+    fn missing_or_empty_header_is_rejected() {
+        let auth = ctx("secret");
+        assert!(!auth.is_trusted(None));
+        assert!(!auth.is_trusted(Some("")));
+        assert!(!auth.is_trusted(Some("   ")));
+    }
+
+    #[test]
+    fn exact_match_is_trusted() {
+        let auth = ctx("secret");
+        assert!(auth.is_trusted(Some("secret")));
+    }
+
+    #[test]
+    fn whitespace_around_header_is_trimmed() {
+        let auth = ctx("secret");
+        assert!(auth.is_trusted(Some("  secret  ")));
+    }
+
+    #[test]
+    fn whitespace_around_configured_secret_is_trimmed() {
+        // Loading a secret from a CRLF-tainted .env should still match a clean
+        // header — the trim() on both sides absorbs it.
+        let auth = ctx("  secret  ");
+        assert!(auth.is_trusted(Some("secret")));
+    }
+
+    #[test]
+    fn mismatched_value_is_rejected() {
+        let auth = ctx("secret");
+        assert!(!auth.is_trusted(Some("not-secret")));
+    }
+
+    #[test]
+    fn mismatched_length_is_rejected() {
+        // constant_time_eq's only intentional information leak: it short-
+        // circuits on length, so we make sure the two-length path is wired up.
+        let auth = ctx("secret");
+        assert!(!auth.is_trusted(Some("secret-with-extra")));
+        assert!(!auth.is_trusted(Some("sec")));
+    }
+}

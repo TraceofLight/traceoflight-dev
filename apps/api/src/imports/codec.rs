@@ -880,3 +880,147 @@ fn validate_bundle(bundle: &Bundle, manifest_counts: Option<&Value>) -> Result<(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn empty_bundle() -> Bundle {
+        Bundle {
+            site_profile: None,
+            tags: Vec::new(),
+            post_tags: Vec::new(),
+            media_assets: Vec::new(),
+            media_bytes: HashMap::new(),
+            posts: Vec::new(),
+            series: Vec::new(),
+            series_posts: Vec::new(),
+            post_comments: Vec::new(),
+            generated_at: Utc::now(),
+        }
+    }
+
+    fn bundle_with_tag(slug: &str, label: &str) -> Bundle {
+        let mut b = empty_bundle();
+        b.tags.push(json!({
+            "id": Uuid::new_v4().to_string(),
+            "slug": slug,
+            "label": label,
+        }));
+        b
+    }
+
+    #[test]
+    fn empty_bundle_round_trips() {
+        let bytes = build_backup_zip(&empty_bundle()).expect("build empty zip");
+        let parsed = parse_backup_zip(&bytes).expect("parse empty zip");
+        assert!(parsed.tags.is_empty());
+        assert!(parsed.posts.is_empty());
+        assert!(parsed.series.is_empty());
+        assert!(parsed.media_bytes.is_empty());
+        assert!(parsed.site_profile.is_none());
+    }
+
+    #[test]
+    fn round_trip_preserves_single_tag() {
+        let bytes = build_backup_zip(&bundle_with_tag("rust", "Rust")).expect("build zip");
+        let parsed = parse_backup_zip(&bytes).expect("parse zip");
+        assert_eq!(parsed.tags.len(), 1);
+        assert_eq!(parsed.tags[0].get("slug").unwrap(), "rust");
+        assert_eq!(parsed.tags[0].get("label").unwrap(), "Rust");
+    }
+
+    #[test]
+    fn parse_rejects_non_zip_payload() {
+        // Avoid `unwrap_err` because `Bundle` doesn't impl Debug and changing
+        // the production type just to print an unexpected Ok branch isn't
+        // worth it.
+        match parse_backup_zip(b"this is not a zip archive") {
+            Ok(_) => panic!("expected parse failure on non-zip input"),
+            Err(AppError::BadRequest(msg)) => assert!(msg.contains("backup zip is invalid")),
+            Err(other) => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_bundle_rejects_post_tag_pointing_at_unknown_post() {
+        let mut b = bundle_with_tag("rust", "Rust");
+        let tag_id = b.tags[0].get("id").unwrap().as_str().unwrap().to_string();
+        b.post_tags.push(json!({
+            "post_id": Uuid::new_v4().to_string(), // not present in posts
+            "tag_id": tag_id,
+        }));
+        let err = validate_bundle(&b, None).unwrap_err();
+        match err {
+            AppError::BadRequest(msg) => {
+                assert!(msg.contains("post_tags references unknown post_id"))
+            }
+            other => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_bundle_rejects_post_tag_pointing_at_unknown_tag() {
+        let mut b = empty_bundle();
+        let post_id = Uuid::new_v4();
+        b.posts.push((
+            json!({
+                "id": post_id.to_string(),
+                "translation_group_id": Uuid::new_v4().to_string(),
+                "locale": "ko",
+            }),
+            String::new(),
+        ));
+        b.post_tags.push(json!({
+            "post_id": post_id.to_string(),
+            "tag_id": Uuid::new_v4().to_string(),
+        }));
+        let err = validate_bundle(&b, None).unwrap_err();
+        match err {
+            AppError::BadRequest(msg) => {
+                assert!(msg.contains("post_tags references unknown tag_id"))
+            }
+            other => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_bundle_rejects_series_post_with_unknown_series() {
+        let mut b = empty_bundle();
+        let post_id = Uuid::new_v4();
+        b.posts.push((
+            json!({
+                "id": post_id.to_string(),
+                "translation_group_id": Uuid::new_v4().to_string(),
+                "locale": "ko",
+            }),
+            String::new(),
+        ));
+        b.series_posts.push(json!({
+            "id": Uuid::new_v4().to_string(),
+            "series_id": Uuid::new_v4().to_string(),
+            "post_id": post_id.to_string(),
+            "order_index": 0,
+        }));
+        let err = validate_bundle(&b, None).unwrap_err();
+        match err {
+            AppError::BadRequest(msg) => {
+                assert!(msg.contains("series_posts references unknown series_id"))
+            }
+            other => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_bundle_rejects_count_mismatch_against_manifest() {
+        let b = bundle_with_tag("rust", "Rust");
+        // Manifest claims 5 tags but bundle has 1 — should fail before any
+        // FK checks even get a chance to disagree.
+        let manifest_counts = json!({"tags": 5});
+        let err = validate_bundle(&b, Some(&manifest_counts)).unwrap_err();
+        match err {
+            AppError::BadRequest(msg) => assert!(msg.contains("count mismatch for tags")),
+            other => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+}
