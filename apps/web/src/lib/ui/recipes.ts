@@ -56,7 +56,7 @@ export const action = cva(actionBase, {
       link: "text-primary underline-offset-4 hover:underline",
       surface: "rounded-full border border-surface-border bg-surface-soft text-muted-foreground shadow-pill hover:-translate-y-0.5 hover:bg-surface-strong hover:text-foreground",
       primaryOutline: "rounded-full border border-info-soft bg-surface-strong text-primary shadow-pill hover:-translate-y-0.5 hover:border-info hover:bg-info-soft",
-      dangerOutline: "rounded-full border border-destructive/30 bg-surface text-destructive shadow-pill hover:-translate-y-0.5 hover:border-destructive/60 hover:bg-warning-soft",
+      dangerOutline: "rounded-full border border-destructive/50 bg-surface font-semibold text-destructive shadow-pill hover:-translate-y-0.5 hover:border-destructive hover:bg-destructive-soft",
       danger: "rounded-full bg-destructive text-destructive-foreground shadow-pill hover:opacity-92",
     },
     size: {
@@ -108,6 +108,20 @@ export const overlay = cva("", {
     },
   },
 });
+
+export const chip = cva(
+  "inline-flex select-none items-center gap-2 rounded-full border border-surface-border bg-muted/88 font-medium text-muted-foreground",
+  {
+    variants: {
+      size: {
+        sm: "px-2.5 py-0.5 text-[0.72rem]",
+        md: "px-2.5 py-1 text-xs",
+        lg: "px-3 py-1.5 text-xs",
+      },
+    },
+    defaultVariants: { size: "md" },
+  },
+);
 
 export const statusBadge = cva(
   "inline-flex select-none items-center gap-2 rounded-full border",

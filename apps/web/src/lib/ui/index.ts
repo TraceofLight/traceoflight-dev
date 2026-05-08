@@ -1,2 +1,2 @@
-export { action, field, mediaFrame, overlay, pill, statusBadge, surface } from "./recipes";
+export { action, chip, field, mediaFrame, overlay, pill, statusBadge, surface } from "./recipes";
 export type { ActionProps, SurfaceProps } from "./recipes";

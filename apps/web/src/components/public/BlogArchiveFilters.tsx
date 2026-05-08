@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DEFAULT_ARTICLE_IMAGE, IMAGE_SIZES } from "@/consts";
 import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
-import { field, mediaFrame, surface } from "@/lib/ui";
+import { chip, field, mediaFrame, surface } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
 export type BlogArchivePost = {
@@ -654,13 +654,12 @@ export function BlogArchiveFilters({
                     {post.tags.length > 0 ? (
                       <div className="mt-auto flex flex-wrap gap-2">
                         {post.tags.map((tag) => (
-                          <Badge
+                          <span
                             key={`${post.slug}-${tag}`}
-                            className="rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground"
-                            variant="outline"
+                            className={chip({ size: "sm" })}
                           >
                             {tag}
-                          </Badge>
+                          </span>
                         ))}
                       </div>
                     ) : null}

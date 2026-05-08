@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   action,
+  chip,
   field,
   mediaFrame,
   overlay,
@@ -43,6 +44,10 @@ const ALL_OUTPUTS = [
   statusBadge({ tone: "warning" }),
   statusBadge({ tone: "danger" }),
   statusBadge({ tone: "info" }),
+  chip(),
+  chip({ size: "sm" }),
+  chip({ size: "md" }),
+  chip({ size: "lg" }),
 ];
 
 describe("recipes", () => {
@@ -64,5 +69,12 @@ describe("recipes", () => {
     const out = action({ variant: "surface", size: "icon" });
     expect(out).toMatch(/h-10/);
     expect(out).toMatch(/w-10/);
+  });
+
+  it("chip is button-like (font-medium, muted bg)", () => {
+    const out = chip();
+    expect(out).toMatch(/font-medium/);
+    expect(out).toMatch(/bg-muted/);
+    expect(out).toMatch(/rounded-full/);
   });
 });

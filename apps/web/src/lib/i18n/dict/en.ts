@@ -51,7 +51,7 @@ export const en: Dictionary = {
   projectDetail: {
     role: "Role", period: "Period",
     intro: "About", description: "Details",
-    highlights: "Highlights", resources: "Resources",
+    highlights: "Highlights", resources: "Related Links",
   },
   seriesDetail: {
     postCount: "Posts", empty: "This series has no posts yet.",

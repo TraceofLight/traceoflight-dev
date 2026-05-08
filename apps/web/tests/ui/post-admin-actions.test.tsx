@@ -17,7 +17,7 @@ describe("PostAdminActions", () => {
     expect(editLink.className).toContain("text-primary");
     expect(editLink.className).toContain("px-5");
     expect(editLink.className).toContain("text-sm");
-    expect(deleteTrigger.className).toContain("border-destructive/30");
+    expect(deleteTrigger.className).toContain("border-destructive/50");
     expect(deleteTrigger.className).toContain("text-destructive");
     expect(deleteTrigger.className).toContain("px-5");
     expect(deleteTrigger.className).toContain("text-sm");
@@ -31,11 +31,11 @@ describe("PostAdminActions", () => {
     expect(cancelButton.className).toContain("bg-surface-soft");
     expect(cancelButton.className).toContain("hover:bg-surface-strong");
     expect(cancelButton.className).toContain("hover:text-foreground");
-    expect(confirmButton.className).toContain("border-destructive/30");
+    expect(confirmButton.className).toContain("border-destructive/50");
     expect(confirmButton.className).toContain("bg-surface");
     expect(confirmButton.className).toContain("text-destructive");
-    expect(confirmButton.className).toContain("hover:bg-warning-soft");
-    expect(confirmButton.className).toContain("hover:border-destructive/60");
+    expect(confirmButton.className).toContain("hover:bg-destructive-soft");
+    expect(confirmButton.className).toContain("hover:border-destructive");
 
     fireEvent.click(cancelButton);
 

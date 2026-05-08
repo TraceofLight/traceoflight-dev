@@ -118,10 +118,10 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /verifyAccessToken/);
   assert.match(
     source,
-    /import \{[\s\S]*(?:action|statusBadge|surface)[\s\S]*\} from "\.\.\/\.\.\/\.\.\/lib\/ui";/,
+    /import \{[\s\S]*(?:action|chip|statusBadge|surface)[\s\S]*\} from "\.\.\/\.\.\/\.\.\/lib\/ui";/,
     "project [slug].astro should import recipes from ../../../lib/ui",
   );
-  assert.match(source, /statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']md["']/);
+  assert.match(source, /chip\(\{[^}]*size:\s*["']lg["']/);
   assert.match(source, /surface\(\{[^}]*kind:\s*["']section["']/);
   assert.match(source, /action\(\{[^}]*variant:\s*["']surface["']/);
   assert.match(source, /surface\(\{[^}]*kind:\s*["']empty["']/);

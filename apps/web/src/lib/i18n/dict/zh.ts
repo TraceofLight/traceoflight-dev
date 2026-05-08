@@ -51,7 +51,7 @@ export const zh: Dictionary = {
   projectDetail: {
     role: "角色", period: "时间",
     intro: "项目简介", description: "详细内容",
-    highlights: "亮点", resources: "资源",
+    highlights: "亮点", resources: "相关链接",
   },
   seriesDetail: {
     postCount: "文章数", empty: "本系列还没有文章。",

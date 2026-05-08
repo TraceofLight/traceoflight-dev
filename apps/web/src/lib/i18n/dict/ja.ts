@@ -52,7 +52,7 @@ export const ja: Dictionary = {
   projectDetail: {
     role: "役割", period: "期間",
     intro: "プロジェクト紹介", description: "詳細内容",
-    highlights: "ハイライト", resources: "リソース",
+    highlights: "ハイライト", resources: "関連リンク",
   },
   seriesDetail: {
     postCount: "記事数", empty: "このシリーズにはまだ記事がありません。",

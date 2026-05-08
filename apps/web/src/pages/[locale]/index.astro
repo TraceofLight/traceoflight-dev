@@ -19,7 +19,7 @@ import {
 } from "../../lib/i18n/locales";
 import { pickDictionary } from "../../lib/i18n/dictionary";
 import { buildLocalizedAlternates } from "../../lib/seo/localized-urls";
-import { action, pill, statusBadge, surface } from "../../lib/ui";
+import { action, chip, pill, statusBadge, surface } from "../../lib/ui";
 
 // ── Locale validation ──────────────────────────────────────────────────────
 const rawLocale = Astro.params.locale;
@@ -552,7 +552,7 @@ const alternates = buildLocalizedAlternates(
               </h3>
               <ul class="mt-4 flex flex-wrap gap-2">
                 {group.items.map((item) => (
-                    <li class={statusBadge({ tone: "neutral", size: "md" })}>
+                    <li class={chip({ size: "lg" })}>
                       {item.icon ? (
                         <img
                           src={item.icon}

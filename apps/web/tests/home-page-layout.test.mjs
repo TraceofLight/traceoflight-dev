@@ -112,7 +112,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /\{t\.home\.viewAllSeries\}/);
   assert.match(source, /\{t\.home\.viewAllPosts\}/);
   assert.match(source, /<li class=\{statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']sm["']/);
-  assert.match(source, /<li class=\{statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']md["']/);
+  assert.match(source, /<li class=\{chip\(\{[^}]*size:\s*["']lg["']/);
   assert.match(source, /const dbPosts = await listPublishedDbPostSummaries\(3,\s*\{/);
   assert.match(source, /locale,/);
   assert.match(source, /const featuredSeriesCards: FeaturedSeriesCard\[] =[\s\S]*listFeaturedSeries\(/);

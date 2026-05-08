@@ -6,7 +6,7 @@ import {
   buildImageFallbackOnError,
   toBrowserImageUrl,
 } from "../lib/cover-media";
-import { mediaFrame, statusBadge, surface } from "../lib/ui";
+import { chip, mediaFrame, surface } from "../lib/ui";
 
 interface Props {
   project: ProjectItem;
@@ -48,7 +48,7 @@ const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
 const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
 const mediaFrameClass = mediaFrame();
 const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
-const stackPillClass = statusBadge({ tone: "neutral", size: "sm" });
+const stackPillClass = chip({ size: "sm" });
 const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
 ---
 

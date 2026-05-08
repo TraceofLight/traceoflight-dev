@@ -10,7 +10,7 @@ import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
 import { pickDictionary } from "../lib/i18n/dictionary";
 import type { PublicLocale } from "../lib/i18n/locales";
-import { mediaFrame, statusBadge, surface } from "../lib/ui";
+import { chip, mediaFrame, statusBadge, surface } from "../lib/ui";
 
 interface Props {
   post: PostCardData;
@@ -51,7 +51,7 @@ const commentCount = post.commentCount ?? 0;
 const readingLabel = post.readingLabel ?? formatReadingTimeLabel(post.body ?? "");
 const mediaFrameClass = mediaFrame();
 const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
-const tagPillClass = statusBadge({ tone: "neutral", size: "sm" });
+const tagPillClass = chip({ size: "sm" });
 const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[0.72rem] font-medium`;
 ---
 

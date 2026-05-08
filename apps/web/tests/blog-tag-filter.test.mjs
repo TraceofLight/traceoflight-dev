@@ -36,7 +36,7 @@ test("post card exports normalized tag data and chips for the new card layout", 
   const source = await readFile(postCardPath, "utf8");
 
   assert.match(source, /data-tags=/);
-  assert.match(source, /statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']sm["']/);
+  assert.match(source, /chip\(\{[^}]*size:\s*["']sm["']/);
   assert.match(source, /(empty-article-image\.png|DEFAULT_ARTICLE_IMAGE)/);
   assert.match(source, /postTags =/);
 });

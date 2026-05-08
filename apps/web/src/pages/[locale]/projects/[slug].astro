@@ -11,7 +11,7 @@ import PostCard from "../../../components/PostCard.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { getPublishedDbProjectBySlug, resolveProjectSlugRedirect } from "../../../lib/projects";
 import { normalizeCoverMedia } from "../../../lib/cover-media";
-import { action, statusBadge, surface } from "../../../lib/ui";
+import { action, chip, statusBadge, surface } from "../../../lib/ui";
 import { toYoutubeEmbedUrl } from "../../../lib/youtube";
 import { buildProjectCreativeWorkSchema } from "../../../lib/seo/structured-data";
 import {
@@ -127,7 +127,7 @@ const alternates = project
 
             <div class="flex flex-wrap items-center gap-2">
               {project.stack.map((skill) => (
-                <span class={statusBadge({ tone: "neutral", size: "md" })}>
+                <span class={chip({ size: "lg" })}>
                   {skill}
                 </span>
               ))}

@@ -76,7 +76,7 @@ export const ko = {
     intro: "프로젝트 소개",
     description: "상세 내용",
     highlights: "하이라이트",
-    resources: "리소스",
+    resources: "관련 링크",
   },
   seriesDetail: {
     postCount: "글 개수",
