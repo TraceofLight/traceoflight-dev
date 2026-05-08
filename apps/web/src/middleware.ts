@@ -134,9 +134,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Refresh the locale-preference cookie whenever the visitor is on a
   // localized public page so that root-level redirects and cross-page
   // navigation can honor it across sessions.
+  const secureCookie =
+    process.env.NODE_ENV === "production" ||
+    context.url.protocol === "https:";
+
   const pathLocale = extractLocaleFromPathname(pathname);
   if (pathLocale && readLocaleCookie(context.cookies) !== pathLocale) {
-    writeLocaleCookie(context.cookies, pathLocale);
+    writeLocaleCookie(context.cookies, pathLocale, secureCookie);
   }
 
   if (
@@ -151,36 +155,42 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }));
   }
 
+  // Soft-refresh: if access is missing/expired but refresh is valid, rotate
+  // tokens for ANY path. Public pages (Header, Footer) read access cookie to
+  // decide isAdminViewer; without this, the admin UI silently disappears
+  // ~15 min after login even though the refresh cookie is still good for days.
+  const accessToken = context.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
+  let isAuthenticated = accessToken
+    ? await verifyAccessToken(accessToken)
+    : false;
+
+  if (!isAuthenticated) {
+    const refreshToken = context.cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? "";
+    if (refreshToken) {
+      const rotation = await rotateRefreshToken(refreshToken);
+      if (rotation.kind === "rotated" && rotation.pair) {
+        setAdminAuthCookies(context.cookies, rotation.pair, secureCookie);
+        isAuthenticated = true;
+      } else if (
+        rotation.kind === "reuse_detected" ||
+        rotation.kind === "invalid" ||
+        rotation.kind === "expired"
+      ) {
+        clearAdminAuthCookies(context.cookies);
+      }
+      // "stale" → leave cookies; the still-valid sibling token will rotate
+      // on the next request.
+    }
+  }
+
   if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
     const response = await next();
     return applySecurityHeaders(response);
   }
 
-  const accessToken = context.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-  if (accessToken && (await verifyAccessToken(accessToken))) {
+  if (isAuthenticated) {
     const response = await next();
     return applySecurityHeaders(response);
-  }
-
-  const refreshToken = context.cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? "";
-  if (refreshToken) {
-    const rotation = await rotateRefreshToken(refreshToken);
-    if (rotation.kind === "rotated" && rotation.pair) {
-      const secure =
-        process.env.NODE_ENV === "production" ||
-        context.url.protocol === "https:";
-      setAdminAuthCookies(context.cookies, rotation.pair, secure);
-      const response = await next();
-      return applySecurityHeaders(response);
-    }
-
-    if (
-      rotation.kind === "reuse_detected" ||
-      rotation.kind === "invalid" ||
-      rotation.kind === "expired"
-    ) {
-      clearAdminAuthCookies(context.cookies);
-    }
   }
 
   if (pathname.startsWith("/internal-api")) {

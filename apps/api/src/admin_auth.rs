@@ -251,17 +251,55 @@ fn verify_hash(stored: &str, password: &str) -> bool {
 pub async fn login(
     pool: &PgPool,
     ctx: &AdminAuthContext,
+    client_ip: Option<&str>,
     payload: AdminAuthLoginRequest,
 ) -> Result<AdminAuthLoginResponse, AppError> {
+    let store = ctx.require_store()?;
+
+    let max_failures = ctx.settings.login_rate_limit_max_failures;
+    let window_seconds = ctx.settings.login_rate_limit_window_seconds;
+    let rate_limit_key = client_ip
+        .map(str::trim)
+        .filter(|ip| !ip.is_empty())
+        .unwrap_or("unknown");
+
+    if max_failures > 0 {
+        let current = store.get_login_failures(rate_limit_key).await?;
+        if current >= max_failures {
+            let ttl = store.login_failure_ttl(rate_limit_key).await?;
+            let retry_after = if ttl > 0 { ttl as u64 } else { window_seconds };
+            return Err(AppError::Throttled {
+                retry_after,
+                detail: "too many login attempts".into(),
+            });
+        }
+    }
+
     let verify =
         verify_credentials(pool, &ctx.settings, &payload.login_id, &payload.password).await?;
     let Some(source) = verify.credential_source else {
+        if max_failures > 0 {
+            let count = store
+                .incr_login_failure(rate_limit_key, window_seconds)
+                .await?;
+            if count >= max_failures {
+                let ttl = store.login_failure_ttl(rate_limit_key).await?;
+                let retry_after = if ttl > 0 { ttl as u64 } else { window_seconds };
+                return Err(AppError::Throttled {
+                    retry_after,
+                    detail: "too many login attempts".into(),
+                });
+            }
+        }
         return Err(AppError::UnauthorizedDetail(
             "invalid admin credentials".into(),
         ));
     };
 
-    let store = ctx.require_store()?;
+    if max_failures > 0 {
+        store.clear_login_failures(rate_limit_key).await?;
+    }
+
     let (pair, family_id) = ctx.codec.issue_pair(verify.revision);
     let refresh_payload = ctx
         .codec

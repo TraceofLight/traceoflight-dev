@@ -34,8 +34,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const username = payload.username?.trim() ?? '';
   const password = payload.password ?? '';
-  const verification = await verifyOperationalAdminCredentials(username, password);
+  const xff = request.headers.get('x-forwarded-for') ?? '';
+  const clientIp =
+    (xff.split(',')[0] ?? '').trim() ||
+    (request.headers.get('x-real-ip') ?? '').trim();
+  const verification = await verifyOperationalAdminCredentials(
+    username,
+    password,
+    clientIp,
+  );
   if (!verification.ok || !verification.tokenPair) {
+    if (verification.throttled) {
+      const headers: Record<string, string> = {
+        'content-type': 'application/json',
+      };
+      if (verification.retryAfterSeconds) {
+        headers['retry-after'] = String(verification.retryAfterSeconds);
+      }
+      return new Response(
+        JSON.stringify({ detail: 'Too many failed attempts. Try again later.' }),
+        { status: 429, headers },
+      );
+    }
     return new Response(JSON.stringify({ detail: 'Invalid username or password' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },

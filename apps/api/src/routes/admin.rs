@@ -1,4 +1,4 @@
-use axum::{extract::State, response::Json};
+use axum::{extract::State, http::HeaderMap, response::Json};
 
 use crate::{
     AppState,
@@ -13,6 +13,28 @@ use crate::{
     error::{AppError, ErrorDetail},
 };
 
+/// Extract the originating client IP from forwarding headers. Trusts the
+/// reverse proxy (NPM) and the Astro SSR frontend that sit in front of this
+/// service; both run inside the Docker network and the API container is not
+/// externally exposed (`expose:` only).
+fn extract_client_ip(headers: &HeaderMap) -> Option<String> {
+    if let Some(value) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
+        if let Some(first) = value.split(',').next() {
+            let trimmed = first.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+    if let Some(value) = headers.get("x-real-ip").and_then(|v| v.to_str().ok()) {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
+        }
+    }
+    None
+}
+
 #[utoipa::path(
     post,
     path = "/admin/auth/login",
@@ -24,14 +46,17 @@ use crate::{
     responses(
         (status = 200, description = "Login succeeded", body = AdminAuthLoginResponse),
         (status = 401, description = "Invalid admin credentials", body = ErrorDetail),
+        (status = 429, description = "Too many failed attempts; see Retry-After", body = ErrorDetail),
         (status = 500, description = "Internal error", body = ErrorDetail),
     ),
 )]
 pub async fn admin_login_handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<AdminAuthLoginRequest>,
 ) -> Result<Json<AdminAuthLoginResponse>, AppError> {
-    let response = admin_login(&state.pool, &state.admin, payload).await?;
+    let client_ip = extract_client_ip(&headers);
+    let response = admin_login(&state.pool, &state.admin, client_ip.as_deref(), payload).await?;
     Ok(Json(response))
 }
 

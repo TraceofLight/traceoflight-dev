@@ -51,6 +51,8 @@ interface OperationalCredentialVerifyResult {
   credentialSource?: 'operational' | 'master';
   credentialRevision: number;
   tokenPair?: TokenPair;
+  throttled?: boolean;
+  retryAfterSeconds?: number;
 }
 
 interface ActiveCredentialRevisionCache {
@@ -221,17 +223,35 @@ export async function getActiveAdminCredentialRevision(forceRefresh = false): Pr
 export async function verifyOperationalAdminCredentials(
   loginId: string,
   password: string,
+  clientIp?: string,
 ): Promise<OperationalCredentialVerifyResult> {
   try {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (clientIp) headers['x-forwarded-for'] = clientIp;
     const response = await requestBackendPublic('/admin/auth/login', {
       method: 'POST',
       cache: 'no-store',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: JSON.stringify({
         login_id: loginId.trim(),
         password,
       }),
     });
+    if (response.status === 429) {
+      const retryAfterHeader = response.headers.get('retry-after');
+      const retryAfterSeconds = retryAfterHeader
+        ? Number.parseInt(retryAfterHeader, 10)
+        : undefined;
+      return {
+        ok: false,
+        credentialRevision: 0,
+        throttled: true,
+        retryAfterSeconds:
+          Number.isFinite(retryAfterSeconds) && (retryAfterSeconds as number) > 0
+            ? (retryAfterSeconds as number)
+            : undefined,
+      };
+    }
     if (!response.ok) {
       return { ok: false, credentialRevision: 0 };
     }

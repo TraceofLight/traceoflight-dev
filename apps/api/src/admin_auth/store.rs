@@ -79,6 +79,57 @@ impl RefreshStore {
             .map_err(redis_to_app)?;
         Ok(exists > 0)
     }
+
+    fn login_failure_key(&self, ip: &str) -> String {
+        format!("{}admin:login:fail:{ip}", self.key_prefix)
+    }
+
+    pub async fn get_login_failures(&self, ip: &str) -> Result<u64, AppError> {
+        let mut conn = self.conn.clone();
+        let count: Option<u64> = conn
+            .get(self.login_failure_key(ip))
+            .await
+            .map_err(redis_to_app)?;
+        Ok(count.unwrap_or(0))
+    }
+
+    pub async fn login_failure_ttl(&self, ip: &str) -> Result<i64, AppError> {
+        let mut conn = self.conn.clone();
+        let ttl: i64 = conn
+            .ttl(self.login_failure_key(ip))
+            .await
+            .map_err(redis_to_app)?;
+        Ok(ttl)
+    }
+
+    /// Atomic INCR; on first increment, sets the window TTL. Subsequent
+    /// increments preserve the existing TTL so a burst shares one window and
+    /// slides out together rather than each attempt extending the lockout.
+    pub async fn incr_login_failure(
+        &self,
+        ip: &str,
+        window_seconds: u64,
+    ) -> Result<u64, AppError> {
+        let mut conn = self.conn.clone();
+        let key = self.login_failure_key(ip);
+        let count: u64 = conn.incr(&key, 1u64).await.map_err(redis_to_app)?;
+        if count == 1 {
+            let _: () = conn
+                .expire(&key, window_seconds as i64)
+                .await
+                .map_err(redis_to_app)?;
+        }
+        Ok(count)
+    }
+
+    pub async fn clear_login_failures(&self, ip: &str) -> Result<(), AppError> {
+        let mut conn = self.conn.clone();
+        let _: () = conn
+            .del(self.login_failure_key(ip))
+            .await
+            .map_err(redis_to_app)?;
+        Ok(())
+    }
 }
 
 fn redis_to_app(err: redis::RedisError) -> AppError {

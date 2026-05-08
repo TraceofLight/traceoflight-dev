@@ -56,6 +56,10 @@ pub struct AdminSettings {
     pub session_secret: String,
     pub access_max_age_seconds: i64,
     pub refresh_max_age_seconds: i64,
+    /// Per-IP login failure threshold within `login_rate_limit_window_seconds`.
+    /// Zero disables throttling.
+    pub login_rate_limit_max_failures: u64,
+    pub login_rate_limit_window_seconds: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -145,6 +149,15 @@ impl Settings {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1_209_600)
                 .max(60),
+            login_rate_limit_max_failures: env::var("ADMIN_LOGIN_RATE_LIMIT_MAX_FAILURES")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10),
+            login_rate_limit_window_seconds: env::var("ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(60)
+                .max(1),
         };
 
         let redis_url = env::var("REDIS_URL")

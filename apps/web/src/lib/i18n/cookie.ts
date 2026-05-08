@@ -18,12 +18,17 @@ export function readLocaleCookie(cookies: AstroCookies): PublicLocale | null {
   return isSupportedPublicLocale(trimmed) ? trimmed : null;
 }
 
-export function writeLocaleCookie(cookies: AstroCookies, locale: PublicLocale): void {
+export function writeLocaleCookie(
+  cookies: AstroCookies,
+  locale: PublicLocale,
+  secure: boolean,
+): void {
   cookies.set(LOCALE_COOKIE, locale, {
     path: "/",
     maxAge: ONE_YEAR_SECONDS,
     sameSite: "lax",
     httpOnly: false,
+    secure,
   });
 }
 
