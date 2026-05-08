@@ -324,13 +324,13 @@ test("browser image route accepts absolute same-origin /media urls by normalizin
 test("post card uses a toss-team-like wide media block and fully filled imagery", async () => {
   const source = await readFile(postCardPath, "utf8");
 
-  assert.match(source, /PUBLIC_HOVER_CARD_CLASS/);
-  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/);
+  assert.match(source, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(source, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(source, /sizes="\(max-width: 768px\) 100vw, \(max-width: 1280px\) 50vw, 33vw"/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
-  assert.match(source, /PUBLIC_MEDIA_FRAME_CLASS/);
+  assert.match(source, /mediaFrame\(\)/);
   assert.doesNotMatch(source, /const imagePosition = "top";/);
   assert.doesNotMatch(source, /const imageZoom = 1\.2;/);
   assert.doesNotMatch(source, /position=\{imagePosition\}/);

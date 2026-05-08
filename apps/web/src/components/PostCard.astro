@@ -10,10 +10,7 @@ import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import { formatReadingTimeLabel } from "../lib/reading-time.ts";
 import { pickDictionary } from "../lib/i18n/dictionary";
 import type { PublicLocale } from "../lib/i18n/locales";
-import {
-  PUBLIC_HOVER_CARD_CLASS,
-  PUBLIC_MEDIA_FRAME_CLASS,
-} from "../lib/ui-effects";
+import { mediaFrame, statusBadge, surface } from "../lib/ui";
 
 interface Props {
   post: PostCardData;
@@ -52,8 +49,10 @@ const formattedPubDate = formatDateLabel(post.pubDate);
 const pubDateIso = toIsoDateTime(post.pubDate);
 const commentCount = post.commentCount ?? 0;
 const readingLabel = post.readingLabel ?? formatReadingTimeLabel(post.body ?? "");
-const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
-const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
+const mediaFrameClass = mediaFrame();
+const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
+const tagPillClass = statusBadge({ tone: "neutral", size: "sm" });
+const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[0.72rem] font-medium`;
 ---
 
 <article
@@ -65,131 +64,81 @@ const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
   data-published-at={String(post.pubDate.valueOf())}
   data-sort-title={post.title.toLowerCase()}
 >
-  {
-    variant === "archive" ? (
-      <>
-        <a class={anchorClass} href={localizedPostHref} aria-label={post.title}>
-          <div class={mediaFrameClass}>
-            {
-              post.coverMedia ? (
-                <CoverMediaImage
-                  className="absolute inset-0 !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
-                  media={post.coverMedia}
-                  alt={post.title}
-                  width={imageWidth}
-                  height={imageHeight}
-                  fit="inside"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                  fallbackSrc={fallbackCoverImageSrc}
-                />
-              ) : (
-                <img
-                  class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
-                  src={fallbackCoverImageSrc}
-                  alt={post.title}
-                  loading="lazy"
-                  onerror={coverImageFallbackOnError}
-                />
-              )
-            }
+  <a class={anchorClass} href={localizedPostHref} aria-label={post.title}>
+    <div class={mediaFrameClass}>
+      {
+        post.coverMedia ? (
+          <CoverMediaImage
+            className="absolute inset-0 !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
+            media={post.coverMedia}
+            alt={post.title}
+            width={imageWidth}
+            height={imageHeight}
+            fit="inside"
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            fallbackSrc={fallbackCoverImageSrc}
+          />
+        ) : (
+          <img
+            class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
+            src={fallbackCoverImageSrc}
+            alt={post.title}
+            loading="lazy"
+            onerror={coverImageFallbackOnError}
+          />
+        )
+      }
+    </div>
+    <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
+      {
+        variant === "archive" && showVisibility && (
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{normalizedVisibility === "private" ? t.archiveFilters.privatePost : t.archiveFilters.publicPost}</span>
           </div>
-          <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
+        )
+      }
+      {
+        variant !== "archive" && (
+          <p class="flex items-center gap-2 text-xs text-muted-foreground">
+            <time datetime={pubDateIso}>{formattedPubDate}</time>
+            <span aria-hidden="true">•</span>
+            <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
+            <span aria-hidden="true">•</span>
+            <span>{readingLabel}</span>
             {
-              showVisibility && (
-                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{normalizedVisibility === "private" ? t.archiveFilters.privatePost : t.archiveFilters.publicPost}</span>
-                </div>
+              showVisibility && post.visibility === 'private' && (
+                <span class={privatePillClass}>Private</span>
               )
             }
-            <div class="space-y-2">
-              <h3 class="text-xl font-semibold tracking-tight">{post.title}</h3>
-              <p class="line-clamp-2 text-sm text-muted-foreground">
-                {hasDescription ? descriptionText : " "}
-              </p>
-            </div>
-            {
-              hasTags && (
-                <div class="flex flex-wrap gap-2">
-                  {postTags.map((tag) => (
-                    <span class="rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )
-            }
-            <p class="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
-              <time datetime={pubDateIso}>{formattedPubDate}</time>
-              <span aria-hidden="true">•</span>
-              <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
-              <span aria-hidden="true">•</span>
-              <span>{readingLabel}</span>
-            </p>
+          </p>
+        )
+      }
+      <div class="space-y-2">
+        <h3 class="text-xl font-semibold tracking-tight">{post.title}</h3>
+        <p class="line-clamp-2 text-sm text-muted-foreground">
+          {hasDescription ? descriptionText : " "}
+        </p>
+      </div>
+      {
+        hasTags && (
+          <div class={variant === "archive" ? "flex flex-wrap gap-2" : "mt-auto flex flex-wrap gap-2"}>
+            {postTags.map((tag) => (
+              <span class={tagPillClass}>{tag}</span>
+            ))}
           </div>
-        </a>
-      </>
-    ) : (
-      <>
-        <a class={anchorClass} href={localizedPostHref} aria-label={post.title}>
-          <div class={mediaFrameClass}>
-            {
-              post.coverMedia ? (
-                <CoverMediaImage
-                  className="absolute inset-0 !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
-                  media={post.coverMedia}
-                  alt={post.title}
-                  width={imageWidth}
-                  height={imageHeight}
-                  fit="inside"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                  fallbackSrc={fallbackCoverImageSrc}
-                />
-              ) : (
-                <img
-                  class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
-                  src={fallbackCoverImageSrc}
-                  alt={post.title}
-                  loading="lazy"
-                  onerror={coverImageFallbackOnError}
-                />
-              )
-            }
-          </div>
-          <div class="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
-            <p class="flex items-center gap-2 text-xs text-muted-foreground">
-              <time datetime={pubDateIso}>{formattedPubDate}</time>
-              <span aria-hidden="true">•</span>
-              <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
-              <span aria-hidden="true">•</span>
-              <span>{readingLabel}</span>
-              {
-                showVisibility && post.visibility === 'private' && (
-                  <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[0.72rem] font-medium text-amber-700">
-                    Private
-                  </span>
-                )
-              }
-            </p>
-            <div class="space-y-2">
-              <h3 class="text-xl font-semibold tracking-tight">{post.title}</h3>
-              <p class="line-clamp-2 text-sm text-muted-foreground">
-                {hasDescription ? descriptionText : " "}
-              </p>
-            </div>
-            {
-              hasTags && (
-                <div class="mt-auto flex flex-wrap gap-2">
-                  {postTags.map((tag) => (
-                    <span class="rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )
-            }
-          </div>
-        </a>
-      </>
-    )
-  }
+        )
+      }
+      {
+        variant === "archive" && (
+          <p class="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
+            <time datetime={pubDateIso}>{formattedPubDate}</time>
+            <span aria-hidden="true">•</span>
+            <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
+            <span aria-hidden="true">•</span>
+            <span>{readingLabel}</span>
+          </p>
+        )
+      }
+    </div>
+  </a>
 </article>

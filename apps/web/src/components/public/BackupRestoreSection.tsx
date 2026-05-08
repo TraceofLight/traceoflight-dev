@@ -11,16 +11,10 @@ import {
   type StatusMessage,
 } from "@/lib/admin/imports-panel-feedback";
 import { resolveErrorMessage } from "@/lib/http";
-import {
-  PUBLIC_FIELD_DISPLAY_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, field, surface } from "@/lib/ui";
 
 const adminActionButtonClass =
-  `${PUBLIC_SURFACE_ACTION_CLASS} min-h-11 justify-center self-start hover:border-sky-300/90 hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]`;
+  `${action({ variant: "surface", size: "md" })} min-h-11 justify-center self-start hover:border-info/90 hover:text-primary hover:shadow-card`;
 const adminPrimaryActionButtonClass = `${adminActionButtonClass} w-full px-6`;
 
 interface BackupRestoreSectionProps {
@@ -147,15 +141,15 @@ export default function BackupRestoreSection({
   }
 
   return (
-    <section className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}>
+    <section className={`grid gap-5 p-5 sm:p-6 ${surface({ kind: "section", tone: "strong" })}`}>
       <div
-        className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}
+        className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${surface({ kind: "panel", tone: "soft" })}`}
       >
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200/80 bg-sky-100/90 text-sky-800 shadow-[0_12px_30px_rgba(56,189,248,0.16)]">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-info/80 bg-info-soft text-primary shadow-pill">
           <ShieldIcon className="h-5 w-5" />
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Backup Utility
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -168,9 +162,9 @@ export default function BackupRestoreSection({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
-        <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+        <section className={`grid gap-4 p-5 ${surface({ kind: "panel" })}`}>
           <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">Save</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Save</p>
             <h3 className="text-xl font-semibold tracking-tight text-foreground">현재 상태 저장</h3>
             <p className="text-sm text-muted-foreground">
               게시글, 내부 미디어, 시리즈 커버 override를 ZIP 한 번으로 내려받습니다.
@@ -189,9 +183,9 @@ export default function BackupRestoreSection({
           </Button>
         </section>
 
-        <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+        <section className={`grid gap-4 p-5 ${surface({ kind: "panel" })}`}>
           <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">Restore</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Restore</p>
             <h3 className="text-xl font-semibold tracking-tight text-foreground">백업 ZIP으로 복원</h3>
             <p className="text-sm text-muted-foreground">
               업로드한 ZIP 기준으로 현재 게시글/미디어 상태를 전체 교체합니다.
@@ -218,7 +212,7 @@ export default function BackupRestoreSection({
               >
                 ZIP 파일 선택
               </Button>
-              <div className={`min-w-0 flex-1 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
+              <div className={`min-w-0 flex-1 ${field({ kind: "display" })}`}>
                 <span className="block truncate">
                   {selectedFile ? selectedFile.name : "선택된 파일이 없습니다."}
                 </span>
@@ -239,8 +233,8 @@ export default function BackupRestoreSection({
         </section>
       </div>
 
-      <section className={`grid gap-3 p-4 sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">복원 전 체크</p>
+      <section className={`grid gap-3 p-4 sm:p-5 ${surface({ kind: "panel", tone: "soft" })}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">복원 전 체크</p>
         <ul className="grid gap-1.5 text-sm text-muted-foreground">
           <li>현재 운영 상태를 먼저 ZIP으로 저장해 두세요.</li>
           <li>복원은 merge가 아니라 전체 replacement입니다.</li>

@@ -11,12 +11,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  PUBLIC_DANGER_OUTLINE_ACTION_EFFECT_CLASS,
-  PUBLIC_DANGER_OUTLINE_ACTION_CLASS,
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-  PUBLIC_SURFACE_ACTION_EFFECT_CLASS,
-} from "@/lib/ui-effects";
+import { action } from "@/lib/ui";
 
 type PostAdminActionsProps = {
   adminPostSlug: string;
@@ -112,7 +107,7 @@ export function PostAdminActions({
     <div id="post-admin-actions" className="flex flex-wrap items-center gap-2">
       <Button
         asChild
-        className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+        className={action({ variant: "primaryOutline", size: "md" })}
         variant="outline"
       >
         <a href={`/admin/posts/${encodeURIComponent(adminPostSlug)}/edit`}>
@@ -122,7 +117,7 @@ export function PostAdminActions({
 
       <AlertDialog onOpenChange={setOpen} open={open}>
         <AlertDialogTrigger asChild>
-          <Button className={PUBLIC_DANGER_OUTLINE_ACTION_CLASS} variant="outline">
+          <Button className={action({ variant: "dangerOutline", size: "md" })} variant="outline">
             삭제
           </Button>
         </AlertDialogTrigger>
@@ -142,13 +137,13 @@ export function PostAdminActions({
           </p>
           <AlertDialogFooter>
             <AlertDialogCancel
-              className={PUBLIC_SURFACE_ACTION_EFFECT_CLASS}
+              className={action({ variant: "surface", size: "md" })}
               disabled={busy}
             >
               취소
             </AlertDialogCancel>
             <Button
-              className={PUBLIC_DANGER_OUTLINE_ACTION_EFFECT_CLASS}
+              className={action({ variant: "dangerOutline", size: "md" })}
               disabled={busy}
               onClick={handleDelete}
               variant="outline"

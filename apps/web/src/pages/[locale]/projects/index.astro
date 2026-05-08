@@ -13,9 +13,7 @@ import {
 } from "../../../lib/i18n/locales";
 import { pickDictionary } from "../../../lib/i18n/dictionary";
 import { buildLocalizedAlternates } from "../../../lib/seo/localized-urls";
-import {
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-} from "../../../lib/ui-effects";
+import { action } from "../../../lib/ui";
 
 // ── Locale validation ──────────────────────────────────────────────────────
 const rawLocale = Astro.params.locale;
@@ -69,7 +67,7 @@ const alternates = buildLocalizedAlternates(
       {isAdminViewer && (
         <div class="flex w-full justify-center gap-3 sm:justify-end">
           <ProjectOrderPanel client:load projects={projects} />
-          <a class={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS} href={projectWriteHref}>
+          <a class={action({ variant: "primaryOutline", size: "md" })} href={projectWriteHref}>
             {t.archiveFilters.writePost}
           </a>
         </div>

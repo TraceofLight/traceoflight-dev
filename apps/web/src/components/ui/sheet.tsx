@@ -3,11 +3,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { XIcon } from "lucide-react";
 
-import {
-  PUBLIC_MODAL_CLOSE_CLASS,
-  PUBLIC_MODAL_OVERLAY_CLASS,
-  PUBLIC_MODAL_SURFACE_CLASS,
-} from "@/lib/ui-effects";
+import { overlay } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
 const Sheet = SheetPrimitive.Root;
@@ -21,14 +17,14 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
-    className={cn(PUBLIC_MODAL_OVERLAY_CLASS, className)}
+    className={cn(overlay({ kind: "modal-overlay" }), className)}
     {...props}
   />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  `fixed z-50 gap-4 p-6 transition ease-in-out ${PUBLIC_MODAL_SURFACE_CLASS}`,
+  `fixed z-50 gap-4 p-6 transition ease-in-out ${overlay({ kind: "modal-surface" })}`,
   {
     variants: {
       side: {
@@ -56,7 +52,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
       {children}
-      <SheetClose className={PUBLIC_MODAL_CLOSE_CLASS}>
+      <SheetClose className={overlay({ kind: "modal-close" })}>
         <XIcon className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </SheetClose>

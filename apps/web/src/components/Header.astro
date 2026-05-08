@@ -2,7 +2,7 @@
 import { NAV_LINKS, SITE_TITLE } from "../consts";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../lib/admin-auth";
 import { ADMIN_IMPORTS_PATH } from "../lib/admin/imports-page";
-import { DANGER_PILL_ACTION_CLASS } from "../lib/ui-effects";
+import { action } from "../lib/ui";
 import HeaderLink from "./HeaderLink.astro";
 import MobileNavSheet from "./public/MobileNavSheet.astro";
 import LanguageToggle from "./public/LanguageToggle.astro";
@@ -37,7 +37,7 @@ const homeHref = `/${locale}/`;
             <form class="flex" method="GET" action={ADMIN_IMPORTS_PATH}>
               <button
                 id="header-admin-link"
-                class={DANGER_PILL_ACTION_CLASS}
+                class={action({ variant: "dangerOutline", size: "pill" })}
                 type="submit"
               >
                 Admin
@@ -46,7 +46,7 @@ const homeHref = `/${locale}/`;
             <form class="flex" method="POST" action="/logout?next=/">
               <button
                 id="header-admin-logout"
-                class={DANGER_PILL_ACTION_CLASS}
+                class={action({ variant: "dangerOutline", size: "pill" })}
                 type="submit"
               >
                 Logout

@@ -84,7 +84,7 @@ test("home intro section uses separate copy and profile panels with centered pro
   assert.doesNotMatch(source, /flex h-full w-full items-center justify-center rounded-\[2\.1rem\] border border-white\/80 bg-white\/90 p-6/);
   assert.match(source, /class="h-full w-full object-contain"/);
   assert.match(source, /src=\{profileImage\}/);
-  assert.match(source, /const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;/);
+  assert.match(source, /const primaryOutlineActionClass = action\(\{[^}]*variant:\s*["']primaryOutline["']/);
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/projects\/`\}>/);
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/blog\/`\}>/);
   assert.doesNotMatch(source, /h\u0065roRoleTokens/);
@@ -120,7 +120,7 @@ test("series cards and sidebars route db cover images through browser-sized urls
 
   assert.match(seriesCardSource, /const resolvedCoverImageSrc = series\.coverImageUrl[\s\S]*\?/);
   assert.match(seriesCardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{/);
-  assert.match(seriesCardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  assert.match(seriesCardSource, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(seriesCardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(seriesCardSource, /onerror=\{coverImageFallbackOnError\}/);
   assert.match(seriesCardSource, /src=\{resolvedCoverImageSrc\}/);

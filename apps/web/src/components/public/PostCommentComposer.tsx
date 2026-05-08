@@ -1,10 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  PUBLIC_FIELD_DISPLAY_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, field, surface } from "@/lib/ui";
 
 type CommentVisibility = "public" | "private";
 type ComposerMode = "create" | "reply" | "edit";
@@ -50,7 +46,7 @@ export function PostCommentComposer({
   const cancelLabel = isEditing ? "수정 취소" : "답글 취소";
 
   return (
-    <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+    <section className={`grid gap-4 p-5 ${surface({ kind: "panel" })}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
@@ -66,7 +62,7 @@ export function PostCommentComposer({
         </div>
         {helperLabel ? (
           <Button
-            className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+            className={action({ variant: "primaryOutline", size: "md" })}
             onClick={onCancelAction}
             type="button"
             variant="outline"
@@ -77,7 +73,7 @@ export function PostCommentComposer({
       </div>
 
       {isAdminViewer ? (
-        <div className={PUBLIC_FIELD_DISPLAY_CLASS}>TraceofLight로 작성</div>
+        <div className={field({ kind: "display" })}>TraceofLight로 작성</div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
@@ -112,7 +108,7 @@ export function PostCommentComposer({
           공개 범위
         </label>
         <select
-          className="h-11 rounded-2xl border border-white/80 bg-white/92 px-4 py-2 text-sm shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+          className={`${field({ kind: "input" })} text-sm`}
           id="comment-visibility"
           onChange={(event) => onVisibilityChange(event.target.value as CommentVisibility)}
           value={visibility}
@@ -127,7 +123,7 @@ export function PostCommentComposer({
           댓글 내용
         </label>
         <textarea
-          className="min-h-28 rounded-[1.5rem] border border-white/80 bg-white/92 px-4 py-3 text-sm shadow-[0_16px_40px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="min-h-28 rounded-[1.5rem] border border-surface-border bg-surface px-4 py-3 text-sm shadow-pill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           id="comment-body"
           onChange={(event) => onBodyChange(event.target.value)}
           value={body}
@@ -136,7 +132,7 @@ export function PostCommentComposer({
 
       <div className="flex justify-end">
         <Button
-          className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+          className={action({ variant: "primaryOutline", size: "md" })}
           disabled={busy}
           onClick={onSubmit}
           type="button"

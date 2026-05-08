@@ -3,12 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { deleteAdminComment, fetchAdminComments } from "@/lib/admin/comments-client";
 import type { AdminCommentFeed } from "@/lib/post-comments";
-import {
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, surface } from "@/lib/ui";
 
 type FeedbackState = "info" | "error";
 
@@ -43,10 +38,10 @@ export function AdminCommentsPanel() {
   }, []);
 
   return (
-    <section className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`} id="admin-comments-panel">
-      <div className={`grid gap-3 p-4 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
+    <section className={`grid gap-5 p-5 sm:p-6 ${surface({ kind: "section", tone: "strong" })}`} id="admin-comments-panel">
+      <div className={`grid gap-3 p-4 ${surface({ kind: "panel", tone: "soft" })}`}>
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Comment Review
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -61,19 +56,19 @@ export function AdminCommentsPanel() {
       {message ? (
         <div
           className={state === "error"
-            ? "rounded-[1.25rem] border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-700"
-            : "rounded-[1.25rem] border border-white/80 bg-slate-100/88 px-4 py-3 text-sm text-muted-foreground"}
+            ? "rounded-[1.25rem] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            : "rounded-[1.25rem] border border-surface-border bg-surface-soft px-4 py-3 text-sm text-muted-foreground"}
         >
           {message}
         </div>
       ) : null}
 
       <div
-        className={`grid max-h-[28rem] gap-3 overflow-y-auto p-1 ${PUBLIC_PANEL_SURFACE_CLASS}`}
+        className={`grid max-h-[28rem] gap-3 overflow-y-auto p-1 ${surface({ kind: "panel" })}`}
         data-testid="admin-comments-list"
       >
         {feed.items.map((item) => (
-          <article className={`grid gap-3 p-4 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`} key={item.id}>
+          <article className={`grid gap-3 p-4 ${surface({ kind: "panel", tone: "soft" })}`} key={item.id}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <strong className="text-sm font-semibold text-foreground">{item.author_name}</strong>
@@ -83,7 +78,7 @@ export function AdminCommentsPanel() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  className={PUBLIC_SURFACE_ACTION_CLASS}
+                  className={action({ variant: "surface", size: "md" })}
                   onClick={() => {
                     void deleteAdminComment(item.id).then(loadFeed);
                   }}
@@ -92,7 +87,7 @@ export function AdminCommentsPanel() {
                 >
                   삭제
                 </Button>
-                <Button asChild className={PUBLIC_SURFACE_ACTION_CLASS} variant="outline">
+                <Button asChild className={action({ variant: "surface", size: "md" })} variant="outline">
                   <a href={`/blog/${item.post_slug}`} target="_blank">
                     게시글로 이동
                   </a>

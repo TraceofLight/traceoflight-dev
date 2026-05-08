@@ -18,7 +18,7 @@ const writerCssPath = new URL(
   "../src/styles/components/writer.css",
   import.meta.url,
 );
-const uiEffectsPath = new URL("../src/lib/ui-effects.ts", import.meta.url);
+const uiLibPath = new URL("../src/lib/ui/recipes.ts", import.meta.url);
 const headerPath = new URL("../src/components/Header.astro", import.meta.url);
 const baseHeadPath = new URL("../src/components/BaseHead.astro", import.meta.url);
 const baseLayoutPath = new URL("../src/layouts/BaseLayout.astro", import.meta.url);
@@ -56,39 +56,42 @@ test("public theme tokens move the site to a bright toss-like blue-gray palette"
 });
 
 test("dialog, alert dialog, and sheet use solid light surfaces instead of dark translucent chrome", async () => {
-  const [dialogSource, alertSource, sheetSource, uiEffectsSource] = await Promise.all([
+  const [dialogSource, alertSource, sheetSource, uiLibSource] = await Promise.all([
     readFile(dialogPath, "utf8"),
     readFile(alertDialogPath, "utf8"),
     readFile(sheetPath, "utf8"),
-    readFile(uiEffectsPath, "utf8"),
+    readFile(uiLibPath, "utf8"),
   ]);
 
-  assert.match(uiEffectsSource, /export const PUBLIC_MODAL_OVERLAY_CLASS =[\s\S]*backdrop-blur-sm/);
-  assert.match(uiEffectsSource, /export const PUBLIC_MODAL_SURFACE_CLASS =[\s\S]*border-white\/70[\s\S]*bg-white\/95[\s\S]*shadow-\[0_32px_80px_rgba\(15,23,42,0\.18\)\][\s\S]*backdrop-blur-xl/);
+  // The overlay recipe in ui/recipes.ts defines modal-overlay and modal-surface.
+  assert.match(uiLibSource, /["']modal-overlay["']/);
+  assert.match(uiLibSource, /["']modal-surface["']/);
 
   for (const source of [dialogSource, alertSource, sheetSource]) {
     assert.doesNotMatch(source, /bg-black\/80/);
-    assert.match(source, /PUBLIC_MODAL_OVERLAY_CLASS|PUBLIC_MODAL_SURFACE_CLASS/);
+    assert.match(source, /overlay\(\{[^}]*kind:\s*["']modal-overlay["']|overlay\(\{[^}]*kind:\s*["']modal-surface["']/);
   }
 });
 
 test("button, input, and select primitives adopt the brighter toss-like shell", async () => {
-  const [buttonSource, inputSource, selectSource, uiEffectsSource] = await Promise.all([
+  const [buttonSource, inputSource, selectSource, uiLibSource] = await Promise.all([
     readFile(buttonPath, "utf8"),
     readFile(inputPath, "utf8"),
     readFile(selectPath, "utf8"),
-    readFile(uiEffectsPath, "utf8"),
+    readFile(uiLibPath, "utf8"),
   ]);
 
-  assert.match(buttonSource, /rounded-full/);
-  assert.match(buttonSource, /shadow-\[0_10px_30px_rgba\(49,130,246,0\.22\)\]/);
-  assert.match(buttonSource, /bg-white\/88/);
+  // button.tsx now delegates to the action() recipe; the actual rounded-full
+  // is defined in ui/recipes.ts. Assert the shim uses action().
+  assert.match(buttonSource, /import \{[\s\S]*action[\s\S]*\} from "@\/lib\/ui\/recipes"/);
+  assert.match(buttonSource, /action\(\{[^}]*variant:\s*recipeVariant/);
   assert.doesNotMatch(buttonSource, /rounded-md/);
 
-  assert.match(uiEffectsSource, /export const PUBLIC_FIELD_SURFACE_CLASS =[\s\S]*rounded-2xl[\s\S]*bg-white\/92[\s\S]*border-white\/80/);
-  assert.match(inputSource, /PUBLIC_FIELD_SURFACE_CLASS/);
+  // The field recipe (not a static constant) drives input and select styling now.
+  assert.match(uiLibSource, /["']input["'][\s\S]*rounded-2xl|rounded-2xl[\s\S]*["']input["']/);
+  assert.match(inputSource, /field\(\{[^}]*kind:\s*["']input["']/);
 
-  assert.match(selectSource, /PUBLIC_FIELD_SURFACE_CLASS|PUBLIC_FIELD_FRAME_CLASS|PUBLIC_POPOVER_SURFACE_CLASS/);
+  assert.match(selectSource, /field\(\{[^}]*kind:\s*["']input["']|overlay\(\{[^}]*kind:\s*["']popover["']/);
 });
 
 test("writer styles reuse the shared light theme language instead of a separate green accent palette", async () => {

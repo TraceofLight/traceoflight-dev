@@ -1,8 +1,10 @@
 ---
 import type { HTMLAttributes } from 'astro/types';
-import { PUBLIC_NAV_ACTIVE_PILL_CLASS } from "../lib/ui-effects";
 
 type Props = HTMLAttributes<'a'>;
+
+const NAV_ACTIVE_HIGHLIGHT_CLASS =
+  "border border-surface-border bg-surface text-foreground shadow-pill";
 
 const { href, class: className, ...props } = Astro.props;
 const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
@@ -24,10 +26,10 @@ const isActive =
   href={href}
   aria-current={isActive ? 'page' : undefined}
   class:list={[
-    "inline-flex select-none items-center rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-white/84 hover:text-foreground hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]",
+    "inline-flex select-none items-center rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-surface-strong hover:text-foreground hover:shadow-pill",
     className,
     {
-      [PUBLIC_NAV_ACTIVE_PILL_CLASS]: isActive,
+      [NAV_ACTIVE_HIGHLIGHT_CLASS]: isActive,
     },
   ]}
   {...props}

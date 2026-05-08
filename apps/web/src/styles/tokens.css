@@ -35,6 +35,23 @@
   --writer-primary: #3182f6;
   --writer-primary-strong: #1d4ed8;
   --writer-primary-soft: rgba(49, 130, 246, 0.14);
+  --success: 142 71% 38%;
+  --success-foreground: 0 0% 100%;
+  --success-soft: 142 76% 92%;
+  --warning: 38 92% 48%;
+  --warning-foreground: 0 0% 100%;
+  --warning-soft: 48 96% 89%;
+  --info: 212 100% 59%;
+  --info-foreground: 210 40% 99%;
+  --info-soft: 208 100% 96%;
+  --surface: 0 0% 100% / 0.92;
+  --surface-strong: 0 0% 100% / 0.96;
+  --surface-soft: 0 0% 100% / 0.88;
+  --surface-border: 0 0% 100% / 0.80;
+  --shadow-pill: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 24px 60px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 38px 90px rgba(15, 23, 42, 0.14);
+  --shadow-modal: 0 32px 80px rgba(15, 23, 42, 0.18);
 }
 
 :root[data-theme='dark'] {
@@ -68,6 +85,23 @@
   --writer-primary: #60a5fa;
   --writer-primary-strong: #93c5fd;
   --writer-primary-soft: rgba(96, 165, 250, 0.16);
+  --success: 142 60% 50%;
+  --success-foreground: 222 47% 7%;
+  --success-soft: 142 50% 18%;
+  --warning: 38 92% 60%;
+  --warning-foreground: 222 47% 7%;
+  --warning-soft: 38 60% 22%;
+  --info: 205 100% 66%;
+  --info-foreground: 222 47% 7%;
+  --info-soft: 208 50% 22%;
+  --surface: 222 38% 11% / 0.90;
+  --surface-strong: 222 38% 11% / 0.96;
+  --surface-soft: 222 38% 11% / 0.78;
+  --surface-border: 215 20% 32% / 0.40;
+  --shadow-pill: 0 10px 30px rgba(2, 6, 23, 0.40);
+  --shadow-card: 0 24px 60px rgba(2, 6, 23, 0.38);
+  --shadow-card-hover: 0 38px 90px rgba(2, 6, 23, 0.50);
+  --shadow-modal: 0 32px 80px rgba(2, 6, 23, 0.55);
 }
 
 /* Pretendard Variable @font-face declarations live in

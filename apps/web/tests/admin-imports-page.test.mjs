@@ -129,7 +129,7 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   assert.doesNotMatch(combinedSource, /복원 테스트 전에는 항상 최신 ZIP을 먼저 받아 두는 편이 안전합니다/);
   assert.match(combinedPanelSource, /from ["']@\/lib\/admin\/imports-client["']/);
   assert.match(siteProfileSectionSource, /from ["']@\/lib\/site-profile["']/);
-  assert.match(combinedPanelSource, /from ["']@\/lib\/ui-effects["']/);
+  assert.match(combinedPanelSource, /from ["']@\/lib\/ui["']/);
   // Backup helpers are now imported (and used) from BackupRestoreSection.
   assert.match(combinedPanelSource, /downloadPostsBackupZip/);
   assert.match(combinedPanelSource, /restorePostsBackupZip/);
@@ -137,11 +137,11 @@ test("admin imports page mounts dedicated backup management panel", async () => 
   // Tailwind layout primitives are split between the panel shell and the
   // section/card subcomponents.
   assert.match(combinedPanelSource, /self-start/);
-  assert.match(combinedPanelSource, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
-  assert.match(combinedPanelSource, /PUBLIC_PANEL_SURFACE_CLASS/);
-  assert.match(combinedPanelSource, /PUBLIC_PANEL_SURFACE_SOFT_CLASS/);
-  assert.match(combinedPanelSource, /PUBLIC_FIELD_DISPLAY_CLASS/);
-  assert.match(combinedPanelSource, /PUBLIC_SURFACE_ACTION_CLASS/);
+  assert.match(combinedPanelSource, /surface\(\{[^}]*kind:\s*["']section["'][^}]*tone:\s*["']strong["']/);
+  assert.match(combinedPanelSource, /surface\(\{[^}]*kind:\s*["']panel["']/);
+  assert.match(combinedPanelSource, /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']soft["']/);
+  assert.match(combinedPanelSource, /field\(\{[^}]*kind:\s*["']display["']/);
+  assert.match(combinedPanelSource, /action\(\{[^}]*variant:\s*["']surface["']/);
   assert.match(combinedPanelSource, /xl:grid-cols-2/);
   assert.match(combinedPanelSource, /xl:items-start/);
   assert.match(combinedPanelSource, /xl:grid-cols-\[minmax\(0,1fr\)_minmax\(0,0\.92fr\)\]/);

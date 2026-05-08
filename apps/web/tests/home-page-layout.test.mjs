@@ -70,27 +70,28 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /"Database Engineering"/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_BADGE_CLASS[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_PILL_CLASS[\s\S]*PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_TOP_MEDIA_SURFACE_CLASS[\s\S]*\} from "\.\.\/\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:action|pill|statusBadge|surface)[\s\S]*\} from "\.\.\/\.\.\/lib\/ui";/,
+    "home page should import recipes from ../../lib/ui",
   );
   assert.match(
     source,
-    /const topMediaShellClass =[\s\S]*`\$\{PUBLIC_TOP_MEDIA_SURFACE_CLASS\} p-5 lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\] lg:p-6`;/,
+    /const topMediaShellClass =[\s\S]*`\$\{surface\(\{[^}]*kind:\s*["']media["'][^}]*\}\)\} p-5 lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,0\.65fr\)\] lg:p-6`;/,
   );
   assert.match(
     source,
-    /const topMediaCopyPanelClass =[\s\S]*`\$\{PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS\} px-6 py-7 sm:px-8 sm:py-8`;/,
+    /const topMediaCopyPanelClass =[\s\S]*`\$\{surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']soft["'][^}]*\}\)\} px-6 py-7 sm:px-8 sm:py-8`;/,
   );
-  assert.match(source, /const sectionShellClass = `\$\{PUBLIC_SECTION_SURFACE_CLASS\} p-6`;/);
-  assert.match(source, /const panelSurfaceClass = `\$\{PUBLIC_PANEL_SURFACE_CLASS\} p-5`;/);
+  assert.match(source, /const sectionShellClass = `\$\{surface\(\{[^}]*kind:\s*["']section["'][^}]*\}\)\} p-6`;/);
+  assert.match(source, /const panelSurfaceClass = `\$\{surface\(\{[^}]*kind:\s*["']panel["'][^}]*\}\)\} p-5`;/);
   assert.match(source, /<article class=\{panelSurfaceClass\}>|<article[\s\S]*class=\{panelSurfaceClass\}/);
-  assert.match(source, /const pillClass = PUBLIC_PILL_CLASS;/);
+  assert.match(source, /const pillClass = pill\(\);/);
   assert.match(
     source,
-    /const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;/,
+    /const primaryOutlineActionClass = action\(\{[^}]*variant:\s*["']primaryOutline["']/,
   );
   assert.match(
     source,
-    /const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;/,
+    /const surfaceActionClass = action\(\{[^}]*variant:\s*["']surface["']/,
   );
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/projects\/`\}>/);
   assert.match(source, /<a class=\{primaryOutlineActionClass\} href=\{`\/\$\{locale\}\/blog\/`\}>/);
@@ -110,8 +111,8 @@ test("home page uses tailwind sections while keeping the curated resume content"
   assert.match(source, /\{t\.home\.viewAllProjects\}/);
   assert.match(source, /\{t\.home\.viewAllSeries\}/);
   assert.match(source, /\{t\.home\.viewAllPosts\}/);
-  assert.match(source, /<li class=\{PUBLIC_BADGE_CLASS\}>/);
-  assert.match(source, /<li class=\{PUBLIC_BADGE_STRONG_CLASS\}>/);
+  assert.match(source, /<li class=\{statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']sm["']/);
+  assert.match(source, /<li class=\{statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']md["']/);
   assert.match(source, /const dbPosts = await listPublishedDbPostSummaries\(3,\s*\{/);
   assert.match(source, /locale,/);
   assert.match(source, /const featuredSeriesCards: FeaturedSeriesCard\[] =[\s\S]*listFeaturedSeries\(/);
@@ -127,7 +128,7 @@ test("home page uses tailwind sections while keeping the curated resume content"
     source,
     /<img[\s\S]*class=\{item\.iconClass\}[\s\S]*width=(?:"18"|\{(?:18|item\.iconWidth\s*\?\?\s*18)\})/,
   );
-  assert.match(source, /<div class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
+  assert.match(source, /<div class=\{`\$\{surface\(\{[^}]*kind:\s*["']empty["'][^}]*\}\)\} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`\}>/);
   assert.doesNotMatch(source, /PUBLIC_HERO_/);
   assert.doesNotMatch(source, /"Cloud-Native Database"/);
   assert.doesNotMatch(source, /"Backend API"/);
@@ -224,14 +225,14 @@ test("site header brand uses text-only mark without avatar image", async () => {
   assert.match(source, /<form class="flex" method="GET" action=\{ADMIN_IMPORTS_PATH\}>/);
   assert.match(source, /<button[\s\S]*id="header-admin-link"[\s\S]*type="submit"/);
   assert.match(source, /\/logout\?next=\//);
-  assert.match(source, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
+  assert.match(source, /import \{[\s\S]*action[\s\S]*\} from "\.\.\/lib\/ui";/);
   assert.match(
     source,
-    /id="header-admin-link"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
+    /id="header-admin-link"[\s\S]*class=\{action\(\{[^}]*variant:\s*["']dangerOutline["']/,
   );
   assert.match(
     source,
-    /id="header-admin-logout"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
+    /id="header-admin-logout"[\s\S]*class=\{action\(\{[^}]*variant:\s*["']dangerOutline["']/,
   );
   assert.match(source, /MobileNavSheet/);
   assert.doesNotMatch(source, /brand-avatar/);

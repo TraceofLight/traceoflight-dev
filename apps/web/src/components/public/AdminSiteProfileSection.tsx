@@ -17,20 +17,14 @@ import {
   resolveSiteProfile,
   type SiteProfile,
 } from "@/lib/site-profile";
-import {
-  PUBLIC_FIELD_DISPLAY_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, field, surface } from "@/lib/ui";
 
 type FormSubmitEvent = Parameters<
   NonNullable<ComponentProps<"form">["onSubmit"]>
 >[0];
 
 const adminActionButtonClass =
-  `${PUBLIC_SURFACE_ACTION_CLASS} min-h-11 justify-center self-start hover:border-sky-300/90 hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]`;
+  `${action({ variant: "surface", size: "md" })} min-h-11 justify-center self-start hover:border-info/90 hover:text-primary hover:shadow-card`;
 
 const INITIAL_STATUS: StatusMessage = {
   message: "footer 메일 버튼은 mailto:, GitHub 버튼은 입력한 URL로 연결됩니다.",
@@ -106,15 +100,15 @@ export function AdminSiteProfileSection({
   return (
     <section
       aria-label="User Info 사용자 정보"
-      className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}
+      className={`grid gap-5 p-5 sm:p-6 ${surface({ kind: "section", tone: "strong" })}`}
       id="admin-site-profile-panel"
     >
-      <div className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200/80 bg-sky-100/90 text-sky-800 shadow-[0_12px_30px_rgba(56,189,248,0.16)]">
+      <div className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${surface({ kind: "panel", tone: "soft" })}`}>
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-info/80 bg-info-soft text-primary shadow-pill">
           <MailIcon className="h-5 w-5" />
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             User Info
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -128,10 +122,10 @@ export function AdminSiteProfileSection({
 
       <form className="grid gap-4" onSubmit={handleSiteProfileSubmit}>
         <div className="grid gap-4 xl:grid-cols-2">
-          <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+          <section className={`grid gap-4 p-5 ${surface({ kind: "panel" })}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
                   Email
                 </p>
                 <h3 className="text-xl font-semibold tracking-tight text-foreground">
@@ -157,8 +151,8 @@ export function AdminSiteProfileSection({
                 value={emailInput}
               />
             </div>
-            <div className={`grid gap-2 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+            <div className={`grid gap-2 ${field({ kind: "display" })}`}>
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                 Current
               </span>
               <span className="block truncate">{siteProfile.email}</span>
@@ -168,10 +162,10 @@ export function AdminSiteProfileSection({
             </div>
           </section>
 
-          <section className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+          <section className={`grid gap-4 p-5 ${surface({ kind: "panel" })}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
                   GitHub
                 </p>
                 <h3 className="text-xl font-semibold tracking-tight text-foreground">
@@ -205,8 +199,8 @@ export function AdminSiteProfileSection({
                 value={githubUrlInput}
               />
             </div>
-            <div className={`grid gap-2 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+            <div className={`grid gap-2 ${field({ kind: "display" })}`}>
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                 Current
               </span>
               <span className="block truncate">{siteProfile.githubUrl}</span>

@@ -79,17 +79,17 @@ describe("AdminImportsPanel", () => {
     expect(
       screen.queryByText("현재 DB의 게시글/미디어를 ZIP으로 저장하거나 ZIP 파일로 복원하세요."),
     ).not.toBeInTheDocument();
-    expect(downloadButton).toHaveClass("border-white/80");
-    expect(downloadButton).toHaveClass("hover:border-sky-300/90");
-    expect(chooseFileButton).toHaveClass("border-white/80");
-    expect(chooseFileButton).toHaveClass("hover:border-sky-300/90");
-    expect(restoreButton).toHaveClass("border-white/80");
-    expect(restoreButton).toHaveClass("hover:border-sky-300/90");
-    expect(restoreButton).toHaveClass("hover:text-sky-700");
-    expect(choosePortfolioButton).toHaveClass("border-white/80");
-    expect(uploadPortfolioButton).toHaveClass("border-white/80");
-    expect(chooseResumeButton).toHaveClass("border-white/80");
-    expect(uploadResumeButton).toHaveClass("border-white/80");
+    expect(downloadButton).toHaveClass("border-surface-border");
+    expect(downloadButton).toHaveClass("hover:border-info/90");
+    expect(chooseFileButton).toHaveClass("border-surface-border");
+    expect(chooseFileButton).toHaveClass("hover:border-info/90");
+    expect(restoreButton).toHaveClass("border-surface-border");
+    expect(restoreButton).toHaveClass("hover:border-info/90");
+    expect(restoreButton).toHaveClass("hover:text-primary");
+    expect(choosePortfolioButton).toHaveClass("border-surface-border");
+    expect(uploadPortfolioButton).toHaveClass("border-surface-border");
+    expect(chooseResumeButton).toHaveClass("border-surface-border");
+    expect(uploadResumeButton).toHaveClass("border-surface-border");
     expect(screen.queryByRole("button", { name: "포트폴리오 PDF 삭제" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "이력서 PDF 삭제" })).not.toBeInTheDocument();
   });

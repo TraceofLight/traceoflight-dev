@@ -1,10 +1,7 @@
 ---
 import logInIcon from "../../assets/icons/utility/log-in.svg?raw";
 import shieldIcon from "../../assets/icons/utility/shield.svg?raw";
-import {
-  PUBLIC_ICON_ACTION_CLASS,
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-} from "../../lib/ui-effects";
+import { action } from "../../lib/ui";
 
 interface Props {
   adminNextPath: string;
@@ -13,7 +10,7 @@ interface Props {
 
 const { adminNextPath, shouldOpenOnLoad } = Astro.props;
 
-const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`;
+const triggerClass = action({ variant: "surface", size: "icon" });
 ---
 
 <button
@@ -41,7 +38,7 @@ const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none foc
         aria-label="닫기"
         type="submit"
         value="cancel"
-        class="footer-admin-dialog-close rounded-full border border-white/80 bg-white/90 px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+        class="footer-admin-dialog-close rounded-full border border-surface-border bg-surface px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
       >
         ×
       </button>
@@ -74,7 +71,7 @@ const triggerClass = `${PUBLIC_ICON_ACTION_CLASS} focus-visible:outline-none foc
       />
     </div>
     <button
-      class={`w-full ${PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}`}
+      class={`w-full ${action({ variant: "primaryOutline", size: "md" })}`}
       type="submit"
     >
       <span class="mr-1 h-4 w-4 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true" set:html={logInIcon}></span>

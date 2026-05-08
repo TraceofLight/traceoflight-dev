@@ -19,18 +19,7 @@ import {
 } from "../../lib/i18n/locales";
 import { pickDictionary } from "../../lib/i18n/dictionary";
 import { buildLocalizedAlternates } from "../../lib/seo/localized-urls";
-import {
-  PUBLIC_BADGE_CLASS,
-  PUBLIC_BADGE_STRONG_CLASS,
-  PUBLIC_EMPTY_STATE_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PILL_CLASS,
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-  PUBLIC_SECTION_SURFACE_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-  PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS,
-  PUBLIC_TOP_MEDIA_SURFACE_CLASS,
-} from "../../lib/ui-effects";
+import { action, pill, statusBadge, surface } from "../../lib/ui";
 
 // ── Locale validation ──────────────────────────────────────────────────────
 const rawLocale = Astro.params.locale;
@@ -75,14 +64,14 @@ try {
 
 // ── CSS helpers ────────────────────────────────────────────────────────────
 const topMediaShellClass =
-  `${PUBLIC_TOP_MEDIA_SURFACE_CLASS} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
+  `${surface({ kind: "media" })} p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:p-6`;
 const topMediaCopyPanelClass =
-  `${PUBLIC_TOP_MEDIA_PANEL_SURFACE_CLASS} px-6 py-7 sm:px-8 sm:py-8`;
-const sectionShellClass = `${PUBLIC_SECTION_SURFACE_CLASS} p-6`;
-const panelSurfaceClass = `${PUBLIC_PANEL_SURFACE_CLASS} p-5`;
-const pillClass = PUBLIC_PILL_CLASS;
-const primaryOutlineActionClass = PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS;
-const surfaceActionClass = PUBLIC_SURFACE_ACTION_CLASS;
+  `${surface({ kind: "panel", tone: "soft" })} px-6 py-7 sm:px-8 sm:py-8`;
+const sectionShellClass = `${surface({ kind: "section" })} p-6`;
+const panelSurfaceClass = `${surface({ kind: "panel" })} p-5`;
+const pillClass = pill();
+const primaryOutlineActionClass = action({ variant: "primaryOutline", size: "md" });
+const surfaceActionClass = action({ variant: "surface", size: "md" });
 const resumeRowClass =
   "grid gap-1 sm:grid-cols-[136px_minmax(0,1fr)] sm:items-start sm:gap-3";
 const resumePeriodClass = "text-sm leading-7 font-medium text-foreground";
@@ -448,7 +437,7 @@ const alternates = buildLocalizedAlternates(
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li class={PUBLIC_BADGE_CLASS}>
+                              <li class={statusBadge({ tone: "neutral", size: "sm" })}>
                                 <img
                                   src={badge.icon}
                                   alt=""
@@ -516,7 +505,7 @@ const alternates = buildLocalizedAlternates(
                             aria-label="Experience stack"
                           >
                             {item.badges.map((badge) => (
-                              <li class={PUBLIC_BADGE_CLASS}>
+                              <li class={statusBadge({ tone: "neutral", size: "sm" })}>
                                 <img
                                   src={badge.icon}
                                   alt=""
@@ -563,7 +552,7 @@ const alternates = buildLocalizedAlternates(
               </h3>
               <ul class="mt-4 flex flex-wrap gap-2">
                 {group.items.map((item) => (
-                    <li class={PUBLIC_BADGE_STRONG_CLASS}>
+                    <li class={statusBadge({ tone: "neutral", size: "md" })}>
                       {item.icon ? (
                         <img
                           src={item.icon}
@@ -637,7 +626,7 @@ const alternates = buildLocalizedAlternates(
             ))}
           </div>
         ) : (
-          <div class={`${PUBLIC_EMPTY_STATE_CLASS} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
+          <div class={`${surface({ kind: "empty" })} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
             {t.home.noSeriesYet}
           </div>
         )
@@ -669,7 +658,7 @@ const alternates = buildLocalizedAlternates(
             ))}
           </div>
         ) : (
-          <div class={`${PUBLIC_EMPTY_STATE_CLASS} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
+          <div class={`${surface({ kind: "empty" })} mt-6 px-6 py-10 text-center text-sm text-muted-foreground`}>
             {t.home.noPostsYet}
           </div>
         )

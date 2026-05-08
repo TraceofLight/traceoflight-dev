@@ -13,12 +13,12 @@ describe("PostAdminActions", () => {
 
     const editLink = screen.getByRole("link", { name: "수정" });
     const deleteTrigger = screen.getByRole("button", { name: "삭제" });
-    expect(editLink.className).toContain("border-sky-200/70");
-    expect(editLink.className).toContain("text-sky-700");
+    expect(editLink.className).toContain("border-info-soft");
+    expect(editLink.className).toContain("text-primary");
     expect(editLink.className).toContain("px-5");
     expect(editLink.className).toContain("text-sm");
-    expect(deleteTrigger.className).toContain("border-red-200/80");
-    expect(deleteTrigger.className).toContain("text-red-700");
+    expect(deleteTrigger.className).toContain("border-destructive/30");
+    expect(deleteTrigger.className).toContain("text-destructive");
     expect(deleteTrigger.className).toContain("px-5");
     expect(deleteTrigger.className).toContain("text-sm");
 
@@ -27,15 +27,15 @@ describe("PostAdminActions", () => {
     expect(await screen.findByText("게시글 삭제")).toBeInTheDocument();
     const cancelButton = screen.getByRole("button", { name: "취소" });
     const confirmButton = screen.getByRole("button", { name: "삭제 확인" });
-    expect(cancelButton.className).toContain("border-white/80");
-    expect(cancelButton.className).toContain("bg-white/88");
-    expect(cancelButton.className).toContain("hover:bg-white");
+    expect(cancelButton.className).toContain("border-surface-border");
+    expect(cancelButton.className).toContain("bg-surface-soft");
+    expect(cancelButton.className).toContain("hover:bg-surface-strong");
     expect(cancelButton.className).toContain("hover:text-foreground");
-    expect(confirmButton.className).toContain("border-red-200/80");
-    expect(confirmButton.className).toContain("bg-white/92");
-    expect(confirmButton.className).toContain("text-red-700");
-    expect(confirmButton.className).toContain("hover:bg-red-50");
-    expect(confirmButton.className).toContain("hover:text-red-800");
+    expect(confirmButton.className).toContain("border-destructive/30");
+    expect(confirmButton.className).toContain("bg-surface");
+    expect(confirmButton.className).toContain("text-destructive");
+    expect(confirmButton.className).toContain("hover:bg-warning-soft");
+    expect(confirmButton.className).toContain("hover:border-destructive/60");
 
     fireEvent.click(cancelButton);
 

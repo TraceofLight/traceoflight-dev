@@ -1,12 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PostCommentItem, PostCommentThreadItem } from "@/lib/post-comments";
-import {
-  PUBLIC_DANGER_OUTLINE_ACTION_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, surface } from "@/lib/ui";
 
 type PostCommentThreadProps = {
   items: PostCommentThreadItem[];
@@ -43,7 +38,7 @@ function CommentActions({
     <div className="flex flex-wrap gap-2">
       {comment.can_reply ? (
         <Button
-          className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+          className={action({ variant: "primaryOutline", size: "md" })}
           disabled={disabled}
           onClick={() => onReply(comment)}
           type="button"
@@ -54,7 +49,7 @@ function CommentActions({
       ) : (
         <Button
           aria-label="삭제된 댓글에는 답글을 달 수 없습니다."
-          className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+          className={action({ variant: "primaryOutline", size: "md" })}
           disabled
           type="button"
           variant="outline"
@@ -64,7 +59,7 @@ function CommentActions({
       )}
       {comment.status === "active" ? (
         <Button
-          className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+          className={action({ variant: "primaryOutline", size: "md" })}
           disabled={disabled}
           onClick={() => onEdit(comment)}
           type="button"
@@ -74,7 +69,7 @@ function CommentActions({
         </Button>
       ) : null}
       <Button
-        className={PUBLIC_DANGER_OUTLINE_ACTION_CLASS}
+        className={action({ variant: "dangerOutline", size: "md" })}
         disabled={disabled}
         onClick={() => onDelete(comment)}
         type="button"
@@ -115,7 +110,7 @@ function InlineEditCard({
 }) {
   return (
     <article
-      className={`grid gap-3 p-4 ${compact ? PUBLIC_PANEL_SURFACE_SOFT_CLASS : PUBLIC_PANEL_SURFACE_CLASS}`}
+      className={`grid gap-3 p-4 ${compact ? surface({ kind: "panel", tone: "soft" }) : surface({ kind: "panel" })}`}
       data-testid={`comment-card-${comment.id}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -127,7 +122,7 @@ function InlineEditCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+            className={action({ variant: "primaryOutline", size: "md" })}
             onClick={onSave}
             type="button"
             variant="outline"
@@ -135,7 +130,7 @@ function InlineEditCard({
             저장
           </Button>
           <Button
-            className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+            className={action({ variant: "primaryOutline", size: "md" })}
             onClick={onCancel}
             type="button"
             variant="outline"
@@ -149,7 +144,7 @@ function InlineEditCard({
           공개 범위
         </label>
         <select
-          className="h-11 rounded-2xl border border-white/80 bg-white/92 px-4 py-2 text-sm shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+          className="h-11 rounded-2xl border border-surface-border bg-surface px-4 py-2 text-sm shadow-pill"
           id={`comment-edit-visibility-${comment.id}`}
           onChange={(event) => onVisibilityChange(event.target.value as "public" | "private")}
           value={visibility}
@@ -177,7 +172,7 @@ function InlineEditCard({
           댓글 내용
         </label>
         <textarea
-          className="min-h-28 rounded-[1.5rem] border border-white/80 bg-white/92 px-4 py-3 text-sm shadow-[0_16px_40px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="min-h-28 rounded-[1.5rem] border border-surface-border bg-surface px-4 py-3 text-sm shadow-pill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           id={`comment-edit-body-${comment.id}`}
           onChange={(event) => onBodyChange(event.target.value)}
           value={body}
@@ -209,7 +204,7 @@ function CommentCard({
 }) {
   return (
     <article
-      className={`grid gap-3 p-4 ${compact ? PUBLIC_PANEL_SURFACE_SOFT_CLASS : PUBLIC_PANEL_SURFACE_CLASS}`}
+      className={`grid gap-3 p-4 ${compact ? surface({ kind: "panel", tone: "soft" }) : surface({ kind: "panel" })}`}
       data-testid={`comment-card-${comment.id}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">

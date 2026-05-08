@@ -25,17 +25,17 @@ const currentLabel = NATIVE_LABELS[locale] ?? locale;
 
 {visible.length > 0 && (
   <details class="relative inline-block text-xs">
-    <summary class="cursor-pointer select-none list-none rounded-md px-2 py-1 text-slate-500 transition hover:bg-white/60 hover:text-slate-700">
+    <summary class="cursor-pointer select-none list-none rounded-md px-2 py-1 text-muted-foreground transition hover:bg-surface hover:text-foreground">
       {currentLabel}
       <span aria-hidden="true" class="ml-1 inline-block">▾</span>
     </summary>
     <nav
       aria-label="Language"
-      class="absolute right-0 top-full z-10 mt-1 min-w-[7rem] rounded-md border border-white/60 bg-white/95 p-1 shadow-md backdrop-blur"
+      class="absolute right-0 top-full z-10 mt-1 min-w-[7rem] rounded-md border border-surface-border bg-surface-strong p-1 shadow-modal backdrop-blur"
     >
       {visible.map((alt) => (
         <a
-          class="block rounded-sm px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          class="block rounded-sm px-3 py-1.5 text-muted-foreground hover:bg-surface-soft hover:text-foreground"
           hreflang={alt.hrefLang}
           href={typeof alt.href === "string" ? alt.href : alt.href.toString()}
           lang={alt.hrefLang}

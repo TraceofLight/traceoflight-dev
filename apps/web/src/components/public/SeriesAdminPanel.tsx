@@ -10,9 +10,7 @@ import { ImagePlusIcon, LoaderCircleIcon, SaveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { FeedbackState } from "@/lib/feedback-state";
 import { readJsonSafe, resolveErrorMessage } from "@/lib/http";
-import {
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action } from "@/lib/ui";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -347,7 +345,7 @@ export function SeriesAdminPanel({ series }: SeriesAdminPanelProps) {
             </h2>
           </div>
           <Button
-            className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+            className={action({ variant: "primaryOutline", size: "md" })}
             id="series-admin-save-meta"
             disabled={savingMeta}
             onClick={handleMetaSave}
@@ -397,7 +395,7 @@ export function SeriesAdminPanel({ series }: SeriesAdminPanelProps) {
               />
               <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  className={PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS}
+                  className={action({ variant: "primaryOutline", size: "md" })}
                   id="series-admin-cover-upload-trigger"
                   disabled={uploadingCover}
                   onClick={openCoverFilePicker}

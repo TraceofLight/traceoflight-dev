@@ -22,7 +22,7 @@ test("series detail page mounts a React admin panel while keeping the public ser
   assert.match(source, /ADMIN_ACCESS_COOKIE/);
   assert.match(source, /verifyAccessToken/);
   assert.match(source, /getSeriesBySlug/);
-  assert.match(source, /PUBLIC_SECTION_SURFACE_CLASS/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']section["']/);
   assert.match(source, /series\.posts/);
   assert.match(source, /id="series-start-link"/);
   assert.match(source, /<header class=\{`grid gap-8 p-6/);

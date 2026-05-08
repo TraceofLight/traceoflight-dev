@@ -7,12 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DEFAULT_ARTICLE_IMAGE, IMAGE_SIZES } from "@/consts";
 import { toBrowserImageUrl } from "@/lib/cover-media";
 import { formatDateLabel } from "@/lib/format-date";
-import {
-  PUBLIC_FIELD_FRAME_CLASS,
-  PUBLIC_HOVER_CARD_CLASS,
-  PUBLIC_MEDIA_FRAME_CLASS,
-  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
-} from "@/lib/ui-effects";
+import { field, mediaFrame, surface } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
 export type BlogArchivePost = {
@@ -213,14 +208,14 @@ const fallbackCoverImageSrc = toBrowserImageUrl(DEFAULT_ARTICLE_IMAGE, {
   height: IMAGE_SIZES.postCard.height,
   fit: "inside",
 });
-const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
-const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
+const mediaFrameClass = mediaFrame();
+const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
 const filterChipClass =
   "blog-filter-chip inline-flex h-10 select-none items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200";
 const filterChipInactiveClass =
-  "border-white/80 bg-slate-100/92 text-foreground/80 shadow-[0_10px_24px_rgba(15,23,42,0.06)] hover:bg-white hover:text-foreground";
+  "border-surface-border bg-surface-soft text-foreground/80 shadow-pill hover:bg-surface-strong hover:text-foreground";
 const filterChipActiveClass =
-  "border-sky-300/90 bg-sky-200/85 text-sky-950 shadow-[0_18px_36px_rgba(56,189,248,0.16)] ring-1 ring-sky-300/80";
+  "border-info/90 bg-info-soft text-foreground shadow-card ring-1 ring-info/80";
 
 const DEFAULT_LABELS: BlogArchiveLabels = {
   archiveTitle: "Blog",
@@ -462,12 +457,12 @@ export function BlogArchiveFilters({
 
       <section
         aria-label="Blog archive controls"
-        className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}
+        className={`grid gap-5 p-5 sm:p-6 ${surface({ kind: "section", tone: "strong" })}`}
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <label className="grid flex-1 gap-2" htmlFor="blog-search">
             <span className="sr-only">{labels.searchLabel}</span>
-            <div className={PUBLIC_FIELD_FRAME_CLASS}>
+            <div className={field({ kind: "frame" })}>
               <Input
                 autoComplete="off"
                 className="border-transparent bg-transparent shadow-none focus-visible:ring-0"
@@ -483,7 +478,7 @@ export function BlogArchiveFilters({
             {isAdminViewer ? (
               <Button
                 asChild
-                className="border-white/80 bg-white/94 shadow-[0_14px_36px_rgba(15,23,42,0.08)] hover:border-sky-200/70 hover:text-sky-700"
+                className="border-surface-border bg-surface shadow-pill hover:border-info/70 hover:text-primary"
                 variant="outline"
               >
                 <a href={writeHref}>{labels.writePost}</a>
@@ -492,7 +487,7 @@ export function BlogArchiveFilters({
 
             <label className="grid gap-2 text-sm text-muted-foreground">
               <span className="sr-only">{labels.sortLabel}</span>
-              <div className={PUBLIC_FIELD_FRAME_CLASS}>
+              <div className={field({ kind: "frame" })}>
                 <select
                   aria-label={labels.sortLabel}
                   className="h-10 min-w-36 rounded-xl border border-transparent bg-transparent px-3 text-sm text-foreground outline-none transition focus:border-sky-200 focus:bg-sky-50/70"
@@ -641,7 +636,7 @@ export function BlogArchiveFilters({
                       <span aria-hidden="true">•</span>
                       <span>{post.readingLabel}</span>
                       {isAdminViewer && post.visibility === "private" ? (
-                        <Badge className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700">
+                        <Badge className="ml-auto rounded-full border border-warning/30 bg-warning-soft text-warning">
                           Private
                         </Badge>
                       ) : null}

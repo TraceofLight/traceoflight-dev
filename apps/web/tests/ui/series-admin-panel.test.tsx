@@ -2,10 +2,16 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SeriesAdminPanel } from "@/components/public/SeriesAdminPanel";
-import {
-  PUBLIC_ICON_ACTION_CLASS,
-  PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action } from "@/lib/ui";
+
+const PRIMARY_OUTLINE_BASE_CLASS = action({
+  variant: "primaryOutline",
+  size: "md",
+}).split(" ")[0];
+const ICON_ACTION_BASE_CLASS = action({
+  variant: "surface",
+  size: "icon",
+}).split(" ")[0];
 
 const series = {
   coverImageUrl: "",
@@ -108,16 +114,16 @@ describe("SeriesAdminPanel", () => {
     render(<SeriesAdminPanel series={series} />);
 
     expect(screen.getByRole("button", { name: "저장" }).className).toContain(
-      PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS.split(" ")[0],
+      PRIMARY_OUTLINE_BASE_CLASS,
     );
     expect(screen.getByRole("button", { name: "글 순서 저장" }).className).toContain(
-      PUBLIC_PRIMARY_OUTLINE_ACTION_CLASS.split(" ")[0],
+      PRIMARY_OUTLINE_BASE_CLASS,
     );
     expect(screen.getByRole("button", { name: "Intro 위로 이동" }).className).toContain(
-      PUBLIC_ICON_ACTION_CLASS.split(" ")[0],
+      ICON_ACTION_BASE_CLASS,
     );
     expect(screen.getByRole("button", { name: "Intro 아래로 이동" }).className).toContain(
-      PUBLIC_ICON_ACTION_CLASS.split(" ")[0],
+      ICON_ACTION_BASE_CLASS,
     );
   });
 });

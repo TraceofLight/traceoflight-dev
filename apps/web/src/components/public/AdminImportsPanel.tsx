@@ -8,10 +8,7 @@ import {
   uploadResumePdf,
 } from "@/lib/admin/imports-client";
 import { DEFAULT_SITE_PROFILE, type SiteProfile } from "@/lib/site-profile";
-import {
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
-} from "@/lib/ui-effects";
+import { surface } from "@/lib/ui";
 import AdminCommentsPanel from "./AdminCommentsPanel";
 import AdminCredentialDialogs from "./AdminCredentialDialogs";
 import AdminSiteProfileSection from "./AdminSiteProfileSection";
@@ -96,15 +93,15 @@ export function AdminImportsPanel({
 
       <BackupRestoreSection busy={busy} onBusyChange={setBusy} />
 
-      <section className={`grid gap-5 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}>
+      <section className={`grid gap-5 p-5 sm:p-6 ${surface({ kind: "section", tone: "strong" })}`}>
         <div
-          className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}
+          className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-5 ${surface({ kind: "panel", tone: "soft" })}`}
         >
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200/80 bg-sky-100/90 text-sky-800 shadow-[0_12px_30px_rgba(56,189,248,0.16)]">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-info/80 bg-info-soft text-primary shadow-pill">
             <FileTextIcon className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
               PDF Utility
             </p>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">

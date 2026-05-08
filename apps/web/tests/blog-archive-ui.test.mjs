@@ -56,7 +56,8 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /import \{ cn \} from ["']@\/lib\/utils["'];/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_FIELD_FRAME_CLASS[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_STRONG_CLASS[\s\S]*\} from ["']@\/lib\/ui-effects["'];/,
+    /import \{[\s\S]*(?:field|mediaFrame|surface)[\s\S]*\} from ["']@\/lib\/ui["'];/,
+    "BlogArchiveFilters.tsx should import recipes from @/lib/ui",
   );
   assert.match(source, /placeholder=\{labels\.searchPlaceholder\}/);
   assert.match(source, /aria-label=\{labels\.sortLabel\}/);
@@ -65,7 +66,7 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /labels\.totalCountPrefix[\s\S]*\{totalCount\}[\s\S]*labels\.totalCountSuffix/);
   assert.doesNotMatch(source, /const archiveIntroClass =/);
   assert.match(source, /<header className="space-y-3 text-center">/);
-  assert.match(source, /PUBLIC_SECTION_SURFACE_STRONG_CLASS/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']section["'][^}]*tone:\s*["']strong["']/);
   assert.match(source, /const filterChipClass =/);
   assert.match(source, /const filterChipInactiveClass =/);
   assert.match(source, /const filterChipActiveClass =/);
@@ -75,28 +76,24 @@ test("blog archive filter island provides search, sort, and admin visibility con
     /className=\{cn\([\s\S]*filterChipClass,[\s\S]*isAllChipActive \? filterChipActiveClass : filterChipInactiveClass[\s\S]*\)\}/,
   );
   assert.match(source, /blog-filter-chip/);
-  assert.match(
-    source,
-    /border-sky-300\/90 bg-sky-200\/85 text-sky-950 shadow-\[0_18px_36px_rgba\(56,189,248,0\.16\)\] ring-1 ring-sky-300\/80/,
-  );
+  assert.match(source, /border-info\/90 bg-info-soft text-foreground shadow-card ring-1 ring-info\/80/);
   assert.doesNotMatch(source, /dark:border-sky-300\/55/);
   assert.doesNotMatch(source, /dark:bg-sky-400\/24/);
   assert.doesNotMatch(source, /dark:text-sky-50/);
-  assert.match(
-    baseCssSource,
-    /html\[data-theme='dark'\] \.blog-filter-chip\[data-active='true'\] \{/,
-  );
-  assert.match(source, /bg-slate-100\/92[\s\S]*text-foreground\/80[\s\S]*hover:bg-white/);
-  assert.match(source, /PUBLIC_FIELD_FRAME_CLASS/);
-  assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
-  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  // Dark-mode chip styles are now handled via semantic CSS tokens (bg-info-soft,
+  // border-info) that adapt automatically — no explicit dark override needed.
+  assert.doesNotMatch(source, /dark:border-sky-300\/55/);
+  assert.match(source, /border-surface-border bg-surface-soft text-foreground\/80 shadow-pill hover:bg-surface-strong hover:text-foreground/);
+  assert.match(source, /field\(\{[^}]*kind:\s*["']frame["']/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/);
+  assert.match(source, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
   assert.match(source, /const fallbackCoverImageSrc = toBrowserImageUrl\([\s\S]*fit:\s*"inside"/);
   assert.match(source, /onError=\{\(event\) => \{/);
   assert.match(source, /event\.currentTarget\.src !== fallbackCoverImageSrc/);
   assert.match(source, /event\.currentTarget\.src = fallbackCoverImageSrc/);
-  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  assert.match(source, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(source, /commentCount: number;/);
   assert.match(source, /labels\.commentTitle[\s\S]*\{post\.commentCount\}/);
   assert.match(source, /labels\.commentTitle[\s\S]*\{post\.commentCount\}[\s\S]*<span aria-hidden="true">•<\/span>[\s\S]*<span>\{post\.readingLabel\}<\/span>/);
@@ -119,11 +116,16 @@ test("post card uses a wide image-led public card structure", async () => {
 
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:mediaFrame|surface)[\s\S]*(?:mediaFrame|surface)[\s\S]*\} from "\.\.\/lib\/ui";/,
+    "PostCard.astro should import surface and mediaFrame recipes",
   );
   assert.match(source, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
-  assert.match(source, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
-  assert.match(source, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
+  assert.match(
+    source,
+    /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/,
+    "PostCard.astro should use interactive card surface",
+  );
+  assert.match(source, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(source, /object-cover object-center/);
   assert.match(source, /line-clamp-2 text-sm text-muted-foreground/);

@@ -2,11 +2,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
-import {
-  PUBLIC_MODAL_CLOSE_CLASS,
-  PUBLIC_MODAL_OVERLAY_CLASS,
-  PUBLIC_MODAL_SURFACE_CLASS,
-} from "@/lib/ui-effects";
+import { overlay } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -20,7 +16,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn(PUBLIC_MODAL_OVERLAY_CLASS, className)}
+    className={cn(overlay({ kind: "modal-overlay" }), className)}
     {...props}
   />
 ));
@@ -35,13 +31,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 p-6 duration-200 sm:rounded-[2rem] ${PUBLIC_MODAL_SURFACE_CLASS}`,
+        `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 p-6 duration-200 sm:rounded-[2rem] ${overlay({ kind: "modal-surface" })}`,
         className,
       )}
       {...props}
     >
       {children}
-      <DialogClose className={PUBLIC_MODAL_CLOSE_CLASS}>
+      <DialogClose className={overlay({ kind: "modal-close" })}>
         <XIcon className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogClose>

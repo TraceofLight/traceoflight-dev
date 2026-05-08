@@ -14,18 +14,14 @@ import { Label } from "@/components/ui/label";
 import { updateOperationalAdminCredentials } from "@/lib/admin/imports-client";
 import type { StatusMessage } from "@/lib/admin/imports-panel-feedback";
 import { resolveErrorMessage } from "@/lib/http";
-import {
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_SECTION_SURFACE_STRONG_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, surface } from "@/lib/ui";
 
 type FormSubmitEvent = Parameters<
   NonNullable<ComponentProps<"form">["onSubmit"]>
 >[0];
 
 const adminActionButtonClass =
-  `${PUBLIC_SURFACE_ACTION_CLASS} min-h-11 justify-center self-start hover:border-sky-300/90 hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]`;
+  `${action({ variant: "surface", size: "md" })} min-h-11 justify-center self-start hover:border-info/90 hover:text-primary hover:shadow-card`;
 
 const LOGIN_INFO_MESSAGE: StatusMessage = {
   message: "현재 관리자 로그인으로 다시 확인해 주세요.",
@@ -185,13 +181,13 @@ export function AdminCredentialDialogs() {
 
   return (
     <>
-      <section className={`grid gap-4 p-5 sm:p-6 ${PUBLIC_SECTION_SURFACE_STRONG_CLASS}`}>
-        <div className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-5 ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}>
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200/80 bg-sky-100/90 text-sky-800 shadow-[0_12px_30px_rgba(56,189,248,0.16)]">
+      <section className={`grid gap-4 p-5 sm:p-6 ${surface({ kind: "section", tone: "strong" })}`}>
+        <div className={`grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-5 ${surface({ kind: "panel", tone: "soft" })}`}>
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-info/80 bg-info-soft text-primary shadow-pill">
             <ShieldIcon className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
               Admin Credential
             </p>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">

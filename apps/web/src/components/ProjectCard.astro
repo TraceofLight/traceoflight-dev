@@ -6,10 +6,7 @@ import {
   buildImageFallbackOnError,
   toBrowserImageUrl,
 } from "../lib/cover-media";
-import {
-  PUBLIC_HOVER_CARD_CLASS,
-  PUBLIC_MEDIA_FRAME_CLASS,
-} from "../lib/ui-effects";
+import { mediaFrame, statusBadge, surface } from "../lib/ui";
 
 interface Props {
   project: ProjectItem;
@@ -49,8 +46,9 @@ const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   fit: "inside",
 });
 const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
-const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;
-const anchorClass = `flex h-full flex-col p-3 ${PUBLIC_HOVER_CARD_CLASS}`;
+const mediaFrameClass = mediaFrame();
+const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
+const stackPillClass = statusBadge({ tone: "neutral", size: "sm" });
 const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
 ---
 
@@ -91,9 +89,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
       <div class="mt-auto flex flex-wrap gap-2">
         {
           visibleStack.map((skill) => (
-            <span class="rounded-full border border-white/80 bg-slate-100/88 px-2.5 py-0.5 text-[0.72rem] font-medium text-muted-foreground">
-              {skill}
-            </span>
+            <span class={stackPillClass}>{skill}</span>
           ))
         }
       </div>

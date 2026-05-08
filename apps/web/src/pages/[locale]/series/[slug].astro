@@ -15,12 +15,7 @@ import {
   toBrowserImageUrl,
 } from "../../../lib/cover-media";
 import { getSeriesBySlug, resolveSeriesSlugRedirect } from "../../../lib/series-db";
-import {
-  PUBLIC_EMPTY_STATE_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_SECTION_SURFACE_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "../../../lib/ui-effects";
+import { action, surface } from "../../../lib/ui";
 import { buildSeriesCollectionSchema } from "../../../lib/seo/structured-data";
 import {
   isSupportedPublicLocale,
@@ -134,7 +129,7 @@ const alternates = series
       structuredData={seriesStructuredData}
     >
       <section class="mx-auto flex max-w-[1398px] flex-col gap-8 py-10 sm:py-12">
-        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${surface({ kind: "section" })}`}>
           <div class="space-y-6">
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
@@ -169,7 +164,7 @@ const alternates = series
             )}
           </div>
 
-          <div class="overflow-hidden rounded-3xl border border-white/80 bg-slate-100/92 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <div class="overflow-hidden rounded-3xl border border-surface-border bg-surface-soft shadow-card">
             <img
               id="series-cover-image"
               alt={series.title}
@@ -201,7 +196,7 @@ const alternates = series
 
                     return (
                       <li
-                        class={`p-3 ${PUBLIC_PANEL_SURFACE_CLASS}`}
+                        class={`p-3 ${surface({ kind: "panel" })}`}
                         data-post-slug={post.slug}
                         data-series-order={post.orderIndex}
                       >
@@ -209,7 +204,7 @@ const alternates = series
                           class="group grid gap-3 sm:grid-cols-[40px_minmax(0,1fr)_112px] sm:items-center"
                           href={`/${locale}/blog/${post.slug}`}
                         >
-                          <span class="flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white text-sm font-semibold text-foreground shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+                          <span class="flex h-10 w-10 items-center justify-center rounded-full border border-surface-border bg-surface-strong text-sm font-semibold text-foreground shadow-pill">
                             {index + 1}
                           </span>
                           <span class="min-w-0 space-y-1">
@@ -224,7 +219,7 @@ const alternates = series
                           </span>
                           <img
                             alt={post.title}
-                            class="aspect-[16/9] w-full rounded-xl border border-white/80 bg-slate-100/90 object-cover"
+                            class="aspect-[16/9] w-full rounded-xl border border-surface-border bg-surface-soft object-cover"
                             decoding="async"
                             loading="lazy"
                             onerror={seriesPostCoverImageFallbackOnError}
@@ -237,14 +232,14 @@ const alternates = series
               ))}
             </ol>
           ) : (
-            <section class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-10 text-center text-sm text-muted-foreground`}>
+            <section class={`${surface({ kind: "empty" })} px-6 py-10 text-center text-sm text-muted-foreground`}>
               {t.seriesDetail.empty}
             </section>
           ))}
 
         <nav class="flex justify-center" aria-label="Series archive">
           <a
-            class={PUBLIC_SURFACE_ACTION_CLASS}
+            class={action({ variant: "surface", size: "md" })}
             href={`/${locale}/series`}
           >
             <span aria-hidden="true">☰</span>
@@ -261,12 +256,12 @@ const alternates = series
       locale={locale}
     >
       <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
-        <div class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-12 text-center`}>
+        <div class={`${surface({ kind: "empty" })} px-6 py-12 text-center`}>
           <p class="text-base text-muted-foreground">
             {t.notFound.description}
           </p>
           <a
-            class={`${PUBLIC_SURFACE_ACTION_CLASS} mt-5`}
+            class={`${action({ variant: "surface", size: "md" })} mt-5`}
             href={`/${locale}/series`}
           >
             {t.buttons.backToList}

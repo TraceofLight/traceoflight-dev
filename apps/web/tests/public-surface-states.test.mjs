@@ -46,23 +46,20 @@ test("header navigation keeps active and hover states without a heavy shared rai
   assert.match(headerSource, /class="hidden items-center gap-1 md:flex"/);
   assert.match(headerSource, /<form class="flex" method="GET" action=\{ADMIN_IMPORTS_PATH\}>/);
   assert.match(headerSource, /<form class="flex" method="POST" action="\/logout\?next=\/">/);
-  assert.match(headerSource, /import \{ DANGER_PILL_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
+  assert.match(headerSource, /import \{[\s\S]*action[\s\S]*\} from "\.\.\/lib\/ui";/);
   assert.match(
     headerSource,
-    /id="header-admin-link"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
+    /id="header-admin-link"[\s\S]*class=\{action\(\{[^}]*variant:\s*["']dangerOutline["']/,
   );
   assert.match(
     headerSource,
-    /id="header-admin-logout"[\s\S]*class=\{DANGER_PILL_ACTION_CLASS\}/,
+    /id="header-admin-logout"[\s\S]*class=\{action\(\{[^}]*variant:\s*["']dangerOutline["']/,
   );
   assert.doesNotMatch(headerSource, /rounded-full border border-white\/70 bg-white\/72 p-1\.5/);
   assert.match(headerLinkSource, /select-none/);
-  assert.match(
-    headerLinkSource,
-    /import \{ PUBLIC_NAV_ACTIVE_PILL_CLASS \} from "\.\.\/lib\/ui-effects";/,
-  );
-  assert.match(headerLinkSource, /hover:bg-white\/84/);
-  assert.match(headerLinkSource, /PUBLIC_NAV_ACTIVE_PILL_CLASS/);
+  // HeaderLink now inlines the active highlight class directly (no import from ui-effects).
+  assert.match(headerLinkSource, /border border-surface-border bg-surface text-foreground shadow-pill/);
+  assert.match(headerLinkSource, /hover:bg-surface-strong/);
 });
 
 test("footer icons use the same filled pill treatment as the admin entry button", async () => {
@@ -74,21 +71,17 @@ test("footer icons use the same filled pill treatment as the admin entry button"
 
   assert.match(
     footerSource,
-    /class="site-footer-dock flex items-center gap-3 rounded-full border border-white\/70 bg-white\/72 px-3 py-2 shadow-\[0_20px_50px_rgba\(15,23,42,0\.08\)\]"/,
+    /class="site-footer-dock flex items-center gap-3 rounded-full border border-surface-border bg-surface px-3 py-2 shadow-card"/,
   );
   assert.match(
     footerSource,
     /<div class="space-y-1">[\s\S]*Today \{visitorSummary\.todayVisitors\} \/ Total \{visitorSummary\.totalVisitors\}[\s\S]*<\/div>/,
   );
-  assert.match(footerIconSource, /import \{ PUBLIC_ICON_ACTION_CLASS \} from "\.\.\/lib\/ui-effects";/);
-  assert.match(footerIconSource, /class=\{PUBLIC_ICON_ACTION_CLASS\}/);
-  // FooterAdminModal is now an Astro component using `class=` (not `className`)
-  // and imports from a relative path.
-  assert.match(
-    footerAdminModalSource,
-    /import \{[\s\S]*PUBLIC_ICON_ACTION_CLASS[\s\S]*\} from "\.\.\/\.\.\/lib\/ui-effects";/,
-  );
-  assert.match(footerAdminModalSource, /\$\{PUBLIC_ICON_ACTION_CLASS\} focus-visible:outline-none/);
+  assert.match(footerIconSource, /import \{[\s\S]*action[\s\S]*\} from "\.\.\/lib\/ui";/);
+  assert.match(footerIconSource, /class=\{action\(\{[^}]*variant:\s*["']surface["'][^}]*size:\s*["']icon["']/);
+  // FooterAdminModal is now an Astro component using class= and imports action from ../../lib/ui.
+  assert.match(footerAdminModalSource, /import \{[\s\S]*action[\s\S]*\} from "\.\.\/\.\.\/lib\/ui";/);
+  assert.match(footerAdminModalSource, /action\(\{[^}]*variant:\s*["']surface["'][^}]*size:\s*["']icon["']/);
   assert.match(footerAdminModalSource, /type="button"/);
   assert.match(footerSource, /class="site-footer-surface border-t border-white\/60 bg-white\/72 backdrop-blur-xl"/);
 });
@@ -120,25 +113,31 @@ test("home sections and content cards use solid white surfaces with stronger hov
 
   assert.match(
     homeSource,
-    /const sectionShellClass = `\$\{PUBLIC_SECTION_SURFACE_CLASS\} p-6`;/,
+    /const sectionShellClass = `\$\{surface\(\{[^}]*kind:\s*["']section["'][^}]*\}\)\} p-6`;/,
   );
   assert.match(
     projectCardSource,
-    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:mediaFrame|surface)[\s\S]*(?:mediaFrame|surface)[\s\S]*\} from "\.\.\/lib\/ui";/,
   );
-  assert.match(projectCardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(
     projectCardSource,
-    /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/,
+    /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/,
+  );
+  assert.match(
+    projectCardSource,
+    /const mediaFrameClass = mediaFrame\(\)/,
   );
   assert.match(
     postCardSource,
-    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:mediaFrame|surface)[\s\S]*(?:mediaFrame|surface)[\s\S]*\} from "\.\.\/lib\/ui";/,
   );
-  assert.match(postCardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
   assert.match(
     postCardSource,
-    /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/,
+    /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/,
+  );
+  assert.match(
+    postCardSource,
+    /const mediaFrameClass = mediaFrame\(\)/,
   );
   assert.match(postCardSource, /object-cover object-center/);
 });
@@ -153,35 +152,20 @@ test("shared field and modal surfaces are reused across form and overlay primiti
       readFile(alertDialogPath, "utf8"),
     ]);
 
-  assert.match(
-    inputSource,
-    /import \{ PUBLIC_FIELD_SURFACE_CLASS \} from "@\/lib\/ui-effects";/,
-  );
-  assert.match(inputSource, /PUBLIC_FIELD_SURFACE_CLASS/);
-  assert.match(
-    selectSource,
-    /import \{[\s\S]*PUBLIC_FIELD_SURFACE_CLASS[\s\S]*PUBLIC_POPOVER_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
-  );
-  assert.match(selectSource, /PUBLIC_FIELD_SURFACE_CLASS/);
-  assert.match(selectSource, /PUBLIC_POPOVER_SURFACE_CLASS/);
-  assert.match(
-    dialogSource,
-    /import \{[\s\S]*PUBLIC_MODAL_CLOSE_CLASS[\s\S]*PUBLIC_MODAL_OVERLAY_CLASS[\s\S]*PUBLIC_MODAL_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
-  );
-  assert.match(dialogSource, /PUBLIC_MODAL_OVERLAY_CLASS/);
-  assert.match(dialogSource, /PUBLIC_MODAL_SURFACE_CLASS/);
-  assert.match(dialogSource, /PUBLIC_MODAL_CLOSE_CLASS/);
-  assert.match(
-    sheetSource,
-    /import \{[\s\S]*PUBLIC_MODAL_CLOSE_CLASS[\s\S]*PUBLIC_MODAL_OVERLAY_CLASS[\s\S]*PUBLIC_MODAL_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
-  );
-  assert.match(sheetSource, /PUBLIC_MODAL_OVERLAY_CLASS/);
-  assert.match(sheetSource, /PUBLIC_MODAL_SURFACE_CLASS/);
-  assert.match(sheetSource, /PUBLIC_MODAL_CLOSE_CLASS/);
-  assert.match(
-    alertDialogSource,
-    /import \{[\s\S]*PUBLIC_MODAL_OVERLAY_CLASS[\s\S]*PUBLIC_MODAL_SURFACE_CLASS[\s\S]*\} from "@\/lib\/ui-effects";/,
-  );
-  assert.match(alertDialogSource, /PUBLIC_MODAL_OVERLAY_CLASS/);
-  assert.match(alertDialogSource, /PUBLIC_MODAL_SURFACE_CLASS/);
+  assert.match(inputSource, /import \{[\s\S]*field[\s\S]*\} from "@\/lib\/ui";/);
+  assert.match(inputSource, /field\(\{[^}]*kind:\s*["']input["']/);
+  assert.match(selectSource, /import \{[\s\S]*(?:field|overlay)[\s\S]*(?:field|overlay)[\s\S]*\} from "@\/lib\/ui";/);
+  assert.match(selectSource, /field\(\{[^}]*kind:\s*["']input["']/);
+  assert.match(selectSource, /overlay\(\{[^}]*kind:\s*["']popover["']/);
+  assert.match(dialogSource, /import \{[\s\S]*overlay[\s\S]*\} from "@\/lib\/ui";/);
+  assert.match(dialogSource, /overlay\(\{[^}]*kind:\s*["']modal-overlay["']/);
+  assert.match(dialogSource, /overlay\(\{[^}]*kind:\s*["']modal-surface["']/);
+  assert.match(dialogSource, /overlay\(\{[^}]*kind:\s*["']modal-close["']/);
+  assert.match(sheetSource, /import \{[\s\S]*overlay[\s\S]*\} from "@\/lib\/ui";/);
+  assert.match(sheetSource, /overlay\(\{[^}]*kind:\s*["']modal-overlay["']/);
+  assert.match(sheetSource, /overlay\(\{[^}]*kind:\s*["']modal-surface["']/);
+  assert.match(sheetSource, /overlay\(\{[^}]*kind:\s*["']modal-close["']/);
+  assert.match(alertDialogSource, /import \{[\s\S]*overlay[\s\S]*\} from "@\/lib\/ui";/);
+  assert.match(alertDialogSource, /overlay\(\{[^}]*kind:\s*["']modal-overlay["']/);
+  assert.match(alertDialogSource, /overlay\(\{[^}]*kind:\s*["']modal-surface["']/);
 });

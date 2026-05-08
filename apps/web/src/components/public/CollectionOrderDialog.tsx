@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { FeedbackState } from "@/lib/feedback-state";
-import { PUBLIC_SURFACE_ACTION_CLASS } from "@/lib/ui-effects";
+import { action } from "@/lib/ui";
 import CollectionOrderList, { type OrderableCollectionItem } from "./CollectionOrderList";
 
 function moveItem(
@@ -105,7 +105,7 @@ export function CollectionOrderDialog({
   return (
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
-        <Button className={PUBLIC_SURFACE_ACTION_CLASS} type="button" variant="outline">
+        <Button className={action({ variant: "surface", size: "md" })} type="button" variant="outline">
           순서 조정
         </Button>
       </DialogTrigger>
@@ -114,10 +114,10 @@ export function CollectionOrderDialog({
           <p
             className={`fixed right-6 top-6 z-[80] max-w-sm rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg ${
               feedback.state === "error"
-                ? "border-red-200/80 bg-white/95 text-red-700"
+                ? "border-destructive/30 bg-surface-strong text-destructive"
                 : feedback.state === "ok"
-                  ? "border-sky-200/80 bg-white/95 text-sky-700"
-                  : "border-white/80 bg-white/95 text-foreground/80"
+                  ? "border-info/80 bg-surface-strong text-primary"
+                  : "border-surface-border bg-surface-strong text-foreground/80"
             }`}
           >
             {feedback.message}

@@ -75,16 +75,16 @@ test("blog post layout reuses shared cover media helpers for top media rendering
     source,
     /toBrowserImageUrl\((?:"\/images\/empty-article-image\.png"|DEFAULT_ARTICLE_IMAGE),\s*\{[\s\S]*width:\s*detailCoverWidth,[\s\S]*height:\s*detailCoverHeight,[\s\S]*fit:\s*"inside"/,
   );
-  assert.match(source, /className="mt-8 h-auto w-full rounded-3xl shadow-\[0_30px_80px_rgba\(15,23,42,0\.12\)\]"/);
+  assert.match(source, /className="mt-8 h-auto w-full rounded-3xl shadow-card"/);
   assert.match(source, /fit="inside"/);
   assert.doesNotMatch(source, /className="mt-8 aspect-\[16\/9\] w-full rounded-3xl border/);
   assert.match(source, /width=\{detailCoverWidth\}/);
   assert.match(source, /height=\{detailCoverHeight\}/);
-  assert.match(source, /rounded-3xl bg-white\/96 p-5 \$\{PUBLIC_PANEL_SURFACE_CLASS\}/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']strong["']/);
   // The order indicator is sourced from the dictionary template so each
   // locale can express the count naturally.
   assert.match(source, /t\.blogPost\.seriesProgress[\s\S]*?\.replace\(\s*"\{order\}"/);
-  assert.match(source, /group grid grid-cols-\[124px_minmax\(0,1fr\)\] items-center gap-4 rounded-2xl p-3\.5 transition duration-200 hover:-translate-y-0\.5 hover:border-sky-200\/70 hover:bg-white \$\{PUBLIC_PANEL_SURFACE_SOFT_CLASS\}/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']soft["']/);
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });
 

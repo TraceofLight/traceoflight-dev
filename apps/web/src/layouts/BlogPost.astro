@@ -18,11 +18,7 @@ import {
   type CoverMediaSource,
 } from "../lib/cover-media";
 import { toYoutubeEmbedUrl } from "../lib/youtube";
-import {
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_PANEL_SURFACE_SOFT_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "../lib/ui-effects";
+import { action, surface } from "../lib/ui";
 import type { PostCommentThreadList } from "../lib/post-comments";
 import { buildBlogPostingSchema } from "../lib/seo/structured-data";
 import { pickDictionary } from "../lib/i18n/dictionary";
@@ -169,7 +165,7 @@ const articleStructuredData = postSlug
         aria-label="Post navigation"
       >
         <a
-          class={PUBLIC_SURFACE_ACTION_CLASS}
+          class={action({ variant: "surface", size: "md" })}
           href={localizedBlogIndexPath}
         >
           <span aria-hidden="true">‹</span>
@@ -184,14 +180,14 @@ const articleStructuredData = postSlug
       {
         topMediaKind === "video" && topMediaVideoUrl ? (
           <video
-            class="mt-8 aspect-[16/9] h-auto w-full rounded-3xl object-cover shadow-[0_30px_80px_rgba(15,23,42,0.12)]"
+            class="mt-8 aspect-[16/9] h-auto w-full rounded-3xl object-cover shadow-card"
             controls
             preload="metadata"
             src={topMediaVideoUrl}
           >
           </video>
         ) : topMediaEmbedUrl ? (
-          <div class="mt-8 overflow-hidden rounded-3xl shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
+          <div class="mt-8 overflow-hidden rounded-3xl shadow-card">
             <iframe
               class="aspect-[16/9] h-full w-full"
               src={topMediaEmbedUrl}
@@ -203,7 +199,7 @@ const articleStructuredData = postSlug
           </div>
         ) : topMediaImage && (
           <CoverMediaImage
-            className="mt-8 h-auto w-full rounded-3xl shadow-[0_30px_80px_rgba(15,23,42,0.12)]"
+            className="mt-8 h-auto w-full rounded-3xl shadow-card"
             media={topMediaImage}
             alt={title}
             width={detailCoverWidth}
@@ -236,7 +232,7 @@ const articleStructuredData = postSlug
 
       <nav class="mt-12 flex justify-center" aria-label="Blog archive">
         <a
-          class={PUBLIC_SURFACE_ACTION_CLASS}
+          class={action({ variant: "surface", size: "md" })}
           href={localizedBlogIndexPath}
         >
           <span aria-hidden="true">☰</span>
@@ -264,7 +260,7 @@ const articleStructuredData = postSlug
           class="xl:sticky xl:top-24 xl:self-start"
           aria-label={t.blogPost.seriesNavLabel}
         >
-          <section class={`rounded-3xl bg-white/96 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+          <section class={`${surface({ kind: "panel", tone: "strong" })} p-5`}>
             <div class="space-y-1">
               <a
                 class="block font-medium text-foreground transition-colors hover:text-primary"
@@ -293,11 +289,11 @@ const articleStructuredData = postSlug
                 return (
                   <li>
                     <a
-                      class={`group grid grid-cols-[124px_minmax(0,1fr)] items-center gap-4 rounded-2xl p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200/70 hover:bg-white ${PUBLIC_PANEL_SURFACE_SOFT_CLASS}`}
+                      class={`${surface({ kind: "panel", tone: "soft" })} group grid grid-cols-[124px_minmax(0,1fr)] items-center gap-4 p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-info hover:bg-surface-strong`}
                       href={`/${locale}/blog/${seriesPost.slug}`}
                     >
                       <img
-                        class="aspect-[16/9] w-full rounded-xl border border-white/70 bg-slate-100 object-cover object-center"
+                        class="aspect-[16/9] w-full rounded-xl border border-surface-border bg-surface-soft object-cover object-center"
                         src={resolvedSeriesPostCoverImageSrc}
                         alt={seriesPost.title}
                         decoding="async"

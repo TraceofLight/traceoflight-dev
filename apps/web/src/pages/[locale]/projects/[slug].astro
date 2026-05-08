@@ -11,13 +11,7 @@ import PostCard from "../../../components/PostCard.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { getPublishedDbProjectBySlug, resolveProjectSlugRedirect } from "../../../lib/projects";
 import { normalizeCoverMedia } from "../../../lib/cover-media";
-import {
-  PUBLIC_BADGE_STRONG_CLASS,
-  PUBLIC_EMPTY_STATE_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_SECTION_SURFACE_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "../../../lib/ui-effects";
+import { action, statusBadge, surface } from "../../../lib/ui";
 import { toYoutubeEmbedUrl } from "../../../lib/youtube";
 import { buildProjectCreativeWorkSchema } from "../../../lib/seo/structured-data";
 import {
@@ -100,7 +94,7 @@ const alternates = project
       <section class="mx-auto flex max-w-[1398px] flex-col gap-8 py-10 sm:py-12">
         <nav class="flex flex-wrap items-center justify-between gap-3" aria-label="Project navigation">
           <a
-            class={PUBLIC_SURFACE_ACTION_CLASS}
+            class={action({ variant: "surface", size: "md" })}
             href={`/${locale}/projects`}
           >
             <span aria-hidden="true">‹</span>
@@ -113,7 +107,7 @@ const alternates = project
           }
         </nav>
 
-        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${surface({ kind: "section" })}`}>
           <div class="space-y-5">
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
@@ -133,14 +127,14 @@ const alternates = project
 
             <div class="flex flex-wrap items-center gap-2">
               {project.stack.map((skill) => (
-                <span class={PUBLIC_BADGE_STRONG_CLASS}>
+                <span class={statusBadge({ tone: "neutral", size: "md" })}>
                   {skill}
                 </span>
               ))}
             </div>
           </div>
 
-          <div class={`rounded-3xl bg-white/88 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}>
+          <div class={`rounded-3xl p-5 ${surface({ kind: "panel" })}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               {t.projectDetail.role}
             </h2>
@@ -151,7 +145,7 @@ const alternates = project
           </div>
         </header>
 
-        <div class={`overflow-hidden ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+        <div class={`overflow-hidden ${surface({ kind: "section" })}`}>
           {
             shouldRenderProjectTopVideo ? (
               <video
@@ -186,7 +180,7 @@ const alternates = project
         </div>
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
-          <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+          <article class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               {t.projectDetail.intro}
             </h2>
@@ -204,7 +198,7 @@ const alternates = project
             }
           </article>
 
-          <article class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+          <article class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               {t.projectDetail.resources}
             </h2>
@@ -215,7 +209,7 @@ const alternates = project
                     const isExternal = /^https?:\/\//.test(link.href);
                     return (
                       <a
-                        class={`w-full justify-start ${PUBLIC_SURFACE_ACTION_CLASS}`}
+                        class={`w-full justify-start ${action({ variant: "surface", size: "md" })}`}
                         href={link.href}
                         rel={isExternal ? "noreferrer" : undefined}
                         target={isExternal ? "_blank" : undefined}
@@ -234,7 +228,7 @@ const alternates = project
           </article>
         </section>
 
-        <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+        <section class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
           <div class="space-y-2">
             <h2 class="text-2xl font-semibold tracking-tight text-foreground">
               {t.projectDetail.description}
@@ -245,7 +239,7 @@ const alternates = project
 
         {
           project.relatedSeriesPosts.length > 0 && (
-            <section class={`rounded-3xl p-6 ${PUBLIC_SECTION_SURFACE_CLASS}`}>
+            <section class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
               <div class="space-y-2">
                 <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
                   RELATED SERIES
@@ -276,7 +270,7 @@ const alternates = project
         }
         <nav class="flex justify-center" aria-label="Projects archive">
           <a
-            class={PUBLIC_SURFACE_ACTION_CLASS}
+            class={action({ variant: "surface", size: "md" })}
             href={`/${locale}/projects`}
           >
             <span aria-hidden="true">☰</span>
@@ -320,12 +314,12 @@ const alternates = project
       locale={locale}
     >
       <section class="mx-auto flex max-w-3xl flex-col gap-6 py-16">
-        <div class={`${PUBLIC_EMPTY_STATE_CLASS} px-6 py-12 text-center`}>
+        <div class={`${surface({ kind: "empty" })} px-6 py-12 text-center`}>
           <p class="text-base text-muted-foreground">
             {t.notFound.description}
           </p>
           <a
-            class={`${PUBLIC_SURFACE_ACTION_CLASS} mt-5`}
+            class={`${action({ variant: "surface", size: "md" })} mt-5`}
             href={`/${locale}/projects`}
           >
             {t.buttons.backToList}

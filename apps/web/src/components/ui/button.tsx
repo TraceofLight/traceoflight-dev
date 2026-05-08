@@ -1,47 +1,61 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import { action } from "@/lib/ui/recipes";
 
-export const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground shadow-[0_10px_30px_rgba(49,130,246,0.22)] hover:bg-primary/92",
-        destructive: "bg-destructive text-destructive-foreground shadow-[0_10px_30px_rgba(239,68,68,0.18)] hover:opacity-92",
-        outline: "border border-white/80 bg-white/88 text-foreground shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:bg-white",
-        secondary: "bg-white/88 text-secondary-foreground shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:bg-white",
-        ghost: "text-muted-foreground hover:bg-white/72 hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-5 py-2.5",
-        sm: "h-9 px-4 text-xs",
-        lg: "h-11 px-8",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
+// Maps legacy shadcn variant names → recipe variant names.
+const VARIANT_MAP = {
+  default: "primary",
+  destructive: "danger",
+  outline: "outline",
+  secondary: "secondary",
+  ghost: "ghost",
+  link: "link",
+} as const;
 
+// Maps legacy shadcn size names → recipe size names.
+const SIZE_MAP = {
+  default: "md",
+  sm: "sm",
+  lg: "lg",
+  icon: "icon",
+} as const;
+
+type LegacyVariant = keyof typeof VARIANT_MAP;
+type LegacySize = keyof typeof SIZE_MAP;
+
+// buttonVariants shim: maintains the same call interface as the old shadcn cva export.
+// alert-dialog.tsx calls buttonVariants() and buttonVariants({ variant: "outline" })
+// to get real class strings for composition — so we forward to action() here.
+export function buttonVariants(opts?: {
+  variant?: LegacyVariant | null;
+  size?: LegacySize | null;
+  className?: string | null;
+}): string {
+  const recipeVariant = VARIANT_MAP[(opts?.variant ?? "default") as LegacyVariant] ?? "primary";
+  const recipeSize = SIZE_MAP[(opts?.size ?? "default") as LegacySize] ?? "md";
+  return cn(action({ variant: recipeVariant, size: recipeSize }), opts?.className ?? undefined);
+}
+
+// VariantProps shim — kept so callers that spread VariantProps<typeof buttonVariants>
+// still compile. The function type satisfies the interface with explicit types below.
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: LegacyVariant | null;
+  size?: LegacySize | null;
   asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    const recipeVariant = VARIANT_MAP[(variant ?? "default") as LegacyVariant] ?? "primary";
+    const recipeSize = SIZE_MAP[(size ?? "default") as LegacySize] ?? "md";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(action({ variant: recipeVariant, size: recipeSize }), className)}
         ref={ref}
         {...props}
       />

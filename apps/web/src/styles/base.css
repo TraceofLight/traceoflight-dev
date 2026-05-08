@@ -268,34 +268,3 @@ html[data-theme='dark'] .site-footer-dock {
   box-shadow: 0 24px 60px rgba(2, 6, 23, 0.34);
 }
 
-html[data-theme='dark'] [class*='bg-white/96'],
-html[data-theme='dark'] [class*='bg-white/95'],
-html[data-theme='dark'] [class*='bg-white/94'],
-html[data-theme='dark'] [class*='bg-white/92'],
-html[data-theme='dark'] [class*='bg-white/90'],
-html[data-theme='dark'] [class*='bg-white/88'],
-html[data-theme='dark'] [class*='bg-white/72'] {
-  background-color: rgba(15, 23, 42, 0.9) !important;
-  border-color: rgba(148, 163, 184, 0.18) !important;
-  color: hsl(var(--foreground));
-}
-
-html[data-theme='dark'] [class*='bg-slate-100'] {
-  background-color: rgba(30, 41, 59, 0.92) !important;
-}
-
-html[data-theme='dark'] .blog-filter-chip[data-active='true'] {
-  border-color: rgba(119, 212, 255, 0.55) !important;
-  background-color: rgba(0, 188, 254, 0.24) !important;
-  color: #f0f9ff !important;
-  box-shadow: 0 18px 36px rgba(14, 165, 233, 0.16) !important;
-}
-
-html[data-theme='dark'] [class*='shadow-[0_28px_80px'],
-html[data-theme='dark'] [class*='shadow-[0_28px_70px'],
-html[data-theme='dark'] [class*='shadow-[0_20px_50px'],
-html[data-theme='dark'] [class*='shadow-[0_18px_40px'],
-html[data-theme='dark'] [class*='shadow-[0_12px_34px'],
-html[data-theme='dark'] [class*='shadow-[0_10px_30px'] {
-  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.38) !important;
-}

@@ -4,3 +4,23 @@
 @import "./base.css";
 @import "./layout.css";
 @import "./components.css";
+
+@theme inline {
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+  --color-info-soft: hsl(var(--info-soft));
+  --color-surface: hsl(var(--surface));
+  --color-surface-strong: hsl(var(--surface-strong));
+  --color-surface-soft: hsl(var(--surface-soft));
+  --color-surface-border: hsl(var(--surface-border));
+  --shadow-pill: var(--shadow-pill);
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-modal: var(--shadow-modal);
+}

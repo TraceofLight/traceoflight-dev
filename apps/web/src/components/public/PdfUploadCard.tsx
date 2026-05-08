@@ -7,14 +7,10 @@ import {
   type StatusMessage,
 } from "@/lib/admin/imports-panel-feedback";
 import { resolveErrorMessage } from "@/lib/http";
-import {
-  PUBLIC_FIELD_DISPLAY_CLASS,
-  PUBLIC_PANEL_SURFACE_CLASS,
-  PUBLIC_SURFACE_ACTION_CLASS,
-} from "@/lib/ui-effects";
+import { action, field, surface } from "@/lib/ui";
 
 const adminActionButtonClass =
-  `${PUBLIC_SURFACE_ACTION_CLASS} min-h-11 justify-center self-start hover:border-sky-300/90 hover:text-sky-700 hover:shadow-[0_18px_40px_rgba(49,130,246,0.14)]`;
+  `${action({ variant: "surface", size: "md" })} min-h-11 justify-center self-start hover:border-info/90 hover:text-primary hover:shadow-card`;
 
 export interface PdfUploadCardLabels {
   badge: string;
@@ -133,12 +129,12 @@ export default function PdfUploadCard({
 
   return (
     <section
-      className={`grid gap-4 p-5 ${PUBLIC_PANEL_SURFACE_CLASS}`}
+      className={`grid gap-4 p-5 ${surface({ kind: "panel" })}`}
       id={labels.containerId}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
             {labels.badge}
           </p>
           <h3 className="text-xl font-semibold tracking-tight text-foreground">
@@ -147,7 +143,7 @@ export default function PdfUploadCard({
         </div>
         {available ? (
           <Button
-            className="border-red-200/80 bg-white/88 px-4 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+            className="border-destructive/30 bg-surface-soft px-4 text-destructive hover:border-destructive/60 hover:bg-warning-soft hover:text-destructive"
             disabled={busy}
             id={labels.deleteButtonId}
             onClick={handleDelete}
@@ -181,7 +177,7 @@ export default function PdfUploadCard({
           >
             {labels.selectButton}
           </Button>
-          <div className={`min-w-0 flex-1 ${PUBLIC_FIELD_DISPLAY_CLASS}`}>
+          <div className={`min-w-0 flex-1 ${field({ kind: "display" })}`}>
             <span className="block truncate">
               {selectedFile ? selectedFile.name : labels.selectedEmpty}
             </span>

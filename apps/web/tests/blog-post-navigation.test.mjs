@@ -16,8 +16,8 @@ test("blog post layout keeps top and bottom archive navigation in the new shell"
   assert.match(source, /href=\{localizedBlogIndexPath\}/);
   assert.match(source, /t\.blogPost\.backToBlog/);
   assert.match(source, /t\.blogPost\.viewAllPosts/);
-  assert.match(source, /PUBLIC_SURFACE_ACTION_CLASS/);
-  assert.match(source, /class=\{PUBLIC_SURFACE_ACTION_CLASS\}/);
+  assert.match(source, /action\(\{[^}]*variant:\s*["']surface["']/);
+  assert.match(source, /class=\{action\(\{[^}]*variant:\s*["']surface["']/);
   assert.doesNotMatch(source, /button button-ghost/);
 });
 

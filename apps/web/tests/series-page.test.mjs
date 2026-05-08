@@ -41,10 +41,14 @@ test("series index page renders archive list and links to detail route", async (
   );
   assert.match(
     cardSource,
-    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:mediaFrame|surface)[\s\S]*(?:mediaFrame|surface)[\s\S]*\} from "\.\.\/lib\/ui";/,
+    "SeriesCard.astro should import surface and mediaFrame recipes",
   );
-  assert.match(cardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
-  assert.match(cardSource, /class=\{`flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`\}/);
+  assert.match(
+    cardSource,
+    /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/,
+    "SeriesCard.astro should use interactive card surface",
+  );
   assert.match(cardSource, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
   assert.match(cardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(cardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{[\s\S]*fit:\s*"inside"/);

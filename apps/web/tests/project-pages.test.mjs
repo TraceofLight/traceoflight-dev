@@ -32,10 +32,15 @@ test("project card and list page use the new public card shell", async () => {
   );
   assert.match(
     cardSource,
-    /import \{[\s\S]*PUBLIC_HOVER_CARD_CLASS[\s\S]*PUBLIC_MEDIA_FRAME_CLASS[\s\S]*\} from "\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:mediaFrame|surface)[\s\S]*(?:mediaFrame|surface)[\s\S]*\} from "\.\.\/lib\/ui";/,
+    "ProjectCard.astro should import surface and mediaFrame recipes",
   );
-  assert.match(cardSource, /const mediaFrameClass = PUBLIC_MEDIA_FRAME_CLASS;/);
-  assert.match(cardSource, /const anchorClass = `flex h-full flex-col p-3 \$\{PUBLIC_HOVER_CARD_CLASS\}`;/);
+  assert.match(cardSource, /const mediaFrameClass = mediaFrame\(\)/);
+  assert.match(
+    cardSource,
+    /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/,
+    "ProjectCard.astro should use interactive card surface",
+  );
   assert.match(cardSource, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
   assert.match(cardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   // The card may pass project.coverImageUrl directly or via a coverImageSource
@@ -113,12 +118,13 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /verifyAccessToken/);
   assert.match(
     source,
-    /import \{[\s\S]*PUBLIC_BADGE_STRONG_CLASS[\s\S]*PUBLIC_EMPTY_STATE_CLASS[\s\S]*PUBLIC_PANEL_SURFACE_CLASS[\s\S]*PUBLIC_SECTION_SURFACE_CLASS[\s\S]*PUBLIC_SURFACE_ACTION_CLASS[\s\S]*\} from "\.\.\/\.\.\/\.\.\/lib\/ui-effects";/,
+    /import \{[\s\S]*(?:action|statusBadge|surface)[\s\S]*\} from "\.\.\/\.\.\/\.\.\/lib\/ui";/,
+    "project [slug].astro should import recipes from ../../../lib/ui",
   );
-  assert.match(source, /class=\{PUBLIC_BADGE_STRONG_CLASS\}/);
-  assert.match(source, /PUBLIC_SECTION_SURFACE_CLASS/);
-  assert.match(source, /class=\{PUBLIC_SURFACE_ACTION_CLASS\}/);
-  assert.match(source, /class=\{`\$\{PUBLIC_EMPTY_STATE_CLASS\} px-6 py-12 text-center`\}/);
+  assert.match(source, /statusBadge\(\{[^}]*tone:\s*["']neutral["'][^}]*size:\s*["']md["']/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']section["']/);
+  assert.match(source, /action\(\{[^}]*variant:\s*["']surface["']/);
+  assert.match(source, /surface\(\{[^}]*kind:\s*["']empty["']/);
   assert.match(source, /ABOUT PROJECT/);
   assert.match(source, /project\.projectProfile|projectProfile/);
   assert.match(source, /project\.summary/);
@@ -150,7 +156,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /<source/);
   assert.match(source, /type="video\/mp4"/);
   assert.match(source, /class="mt-4 flex flex-col items-start gap-3"/);
-  assert.match(source, /class=\{`w-full justify-start \$\{PUBLIC_SURFACE_ACTION_CLASS\}`\}/);
+  assert.match(source, /`w-full justify-start \$\{action\(\{[^}]*variant:\s*["']surface["']/);
   assert.match(source, /topMediaKind === "youtube"/);
   assert.match(source, /topMediaYoutubeUrl/);
   assert.match(source, /astro:page-load/);

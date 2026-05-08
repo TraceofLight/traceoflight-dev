@@ -143,8 +143,8 @@ describe("BlogArchiveFilters", () => {
     expect(astroTagButton).toHaveAttribute("aria-pressed", "true");
     expect(astroTagButton.className).toContain("blog-filter-chip");
     expect(astroTagButton.className).toContain("select-none");
-    expect(astroTagButton.className).toContain("bg-sky-200/85");
-    expect(astroTagButton.className).toContain("text-sky-950");
+    expect(astroTagButton.className).toContain("bg-info-soft");
+    expect(astroTagButton.className).toContain("text-foreground");
     expect(astroTagButton.className).not.toContain("dark:bg-sky-400/24");
     expect(astroTagButton.className).not.toContain("dark:border-sky-300/55");
     expect(astroTagButton.className).not.toContain("dark:text-sky-50");

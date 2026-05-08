@@ -10,10 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  PUBLIC_DANGER_OUTLINE_ACTION_EFFECT_CLASS,
-  PUBLIC_SURFACE_ACTION_EFFECT_CLASS,
-} from "@/lib/ui-effects";
+import { action } from "@/lib/ui";
 
 type PostCommentPasswordDialogProps = {
   actionLabel: string;
@@ -58,7 +55,7 @@ export function PostCommentPasswordDialog({
         </div>
         <DialogFooter>
           <Button
-            className={PUBLIC_SURFACE_ACTION_EFFECT_CLASS}
+            className={action({ variant: "surface", size: "md" })}
             onClick={onClose}
             type="button"
             variant="outline"
@@ -66,7 +63,7 @@ export function PostCommentPasswordDialog({
             취소
           </Button>
           <Button
-            className={PUBLIC_DANGER_OUTLINE_ACTION_EFFECT_CLASS}
+            className={action({ variant: "dangerOutline", size: "md" })}
             onClick={() => {
               void handleConfirm();
             }}
