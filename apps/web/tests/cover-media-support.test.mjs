@@ -27,13 +27,13 @@ test("cover media support is centralized in a shared model and renderer", async 
   assert.match(libSource, /export type CoverMedia/);
   assert.match(libSource, /export function normalizeCoverMedia/);
   assert.match(libSource, /export function getCoverMediaMetadata/);
-  assert.match(libSource, /export function buildImageFallbackOnError\(/);
+  assert.match(libSource, /export function normalizeImageFallbackSrc\(/);
   assert.match(componentSource, /import \{ Image \} from "astro:assets";/);
   assert.match(componentSource, /media:\s*CoverMedia/);
   assert.match(componentSource, /fallbackSrc\?: string;/);
   assert.match(componentSource, /fit\?: "cover" \| "contain" \| "inside";/);
-  assert.match(componentSource, /const nativeFallbackOnError =/);
-  assert.match(componentSource, /onerror=\{nativeFallbackOnError\}/);
+  assert.match(componentSource, /const normalizedFallbackSrc =/);
+  assert.match(componentSource, /data-fallback-src=\{normalizedFallbackSrc\}/);
   assert.match(componentSource, /toBrowserImageUrl\(media\.src,\s*\{[\s\S]*fit[\s\S]*\}\)/);
 });
 

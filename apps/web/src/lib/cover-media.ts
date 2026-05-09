@@ -52,14 +52,12 @@ export function getCoverMediaMetadata(media: CoverMedia | undefined): ImageMetad
   return media.src;
 }
 
-export function buildImageFallbackOnError(fallbackSrc: string | undefined): string | undefined {
-  const normalizedFallbackSrc = fallbackSrc?.trim();
-  if (!normalizedFallbackSrc) {
-    return undefined;
-  }
-
-  const escapedFallbackSrc = JSON.stringify(normalizedFallbackSrc);
-  return `if (this.src !== ${escapedFallbackSrc}) { this.onerror = null; this.src = ${escapedFallbackSrc}; }`;
+/** Trim+validate a fallback URL for use as a `data-fallback-src` attribute.
+ * The image-fallback runtime script (src/scripts/image-fallback.ts) reads
+ * the attribute and swaps src on the first error event. */
+export function normalizeImageFallbackSrc(fallbackSrc: string | undefined): string | undefined {
+  const trimmed = fallbackSrc?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
 }
 
 interface BrowserImageOptions {

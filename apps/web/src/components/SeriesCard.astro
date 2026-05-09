@@ -3,7 +3,7 @@ import FormattedDate from "./FormattedDate.astro";
 import { DEFAULT_SERIES_IMAGE, IMAGE_SIZES } from "../consts";
 import {
   buildBrowserImageSrcSet,
-  buildImageFallbackOnError,
+  normalizeImageFallbackSrc,
   toBrowserImageUrl,
 } from "../lib/cover-media";
 import { mediaFrame, surface } from "../lib/ui";
@@ -39,7 +39,7 @@ const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl
   height: imageHeight,
   fit: "inside",
 });
-const coverImageFallbackOnError = buildImageFallbackOnError(resolvedFallbackCoverImageSrc);
+const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(resolvedFallbackCoverImageSrc);
 const coverImageSource = series.coverImageUrl ?? fallbackCoverImage;
 const resolvedCoverImageSrc = series.coverImageUrl
   ? toBrowserImageUrl(series.coverImageUrl, {
@@ -67,7 +67,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
         decoding="async"
         height={imageHeight}
         loading="lazy"
-        onerror={coverImageFallbackOnError}
+        data-fallback-src={normalizedFallbackCoverImageSrc}
         sizes={cardImageSizes}
         src={resolvedCoverImageSrc}
         srcset={resolvedCoverImageSrcSet}

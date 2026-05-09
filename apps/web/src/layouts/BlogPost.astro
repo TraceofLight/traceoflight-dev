@@ -11,9 +11,9 @@ import {
 import BaseLayout from "./BaseLayout.astro";
 import { formatDateLabel, toIsoDateTime } from "../lib/format-date";
 import {
-  buildImageFallbackOnError,
   getCoverMediaMetadata,
   normalizeCoverMedia,
+  normalizeImageFallbackSrc,
   toBrowserImageUrl,
   type CoverMediaSource,
 } from "../lib/cover-media";
@@ -109,7 +109,7 @@ const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 const coverMedia = normalizeCoverMedia(coverImage);
 const pubDateLabel = formatDateLabel(pubDate);
 const pubDateIso = toIsoDateTime(pubDate);
-const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSeriesPostCoverImageSrc);
+const seriesPostFallbackSrc = normalizeImageFallbackSrc(defaultSeriesPostCoverImageSrc);
 const topMediaEmbedUrl =
   topMediaKind === "youtube" ? toYoutubeEmbedUrl(topMediaYoutubeUrl) : null;
 const topMediaImage = normalizeCoverMedia(topMediaImageUrl ?? coverImage);
@@ -298,7 +298,7 @@ const articleStructuredData = postSlug
                         alt={seriesPost.title}
                         decoding="async"
                         loading="lazy"
-                        onerror={seriesPostCoverImageFallbackOnError}
+                        data-fallback-src={seriesPostFallbackSrc}
                       />
                       <span class="grid min-w-0 content-center gap-1.5">
                         <small class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">

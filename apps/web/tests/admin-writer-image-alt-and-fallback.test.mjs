@@ -23,7 +23,7 @@ test("markdown renderer suppresses placeholder alt text and adds image fallback 
 
   assert.match(source, /token\.content/);
   assert.match(source, /const alt = isPlaceholderImageAlt\(rawAlt\) \? "" : rawAlt;/);
-  assert.match(source, /onerror=/);
+  assert.match(source, /data-md-fallback/);
   assert.match(source, /이미지를 불러올 수 없습니다\./);
   assert.doesNotMatch(source, /alt="1\.00"/);
 });

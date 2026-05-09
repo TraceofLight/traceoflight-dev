@@ -147,7 +147,7 @@ impl Settings {
             refresh_max_age_seconds: env::var("ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS")
                 .ok()
                 .and_then(|s| s.parse().ok())
-                .unwrap_or(1_209_600)
+                .unwrap_or(259_200)
                 .max(60),
             login_rate_limit_max_failures: env::var("ADMIN_LOGIN_RATE_LIMIT_MAX_FAILURES")
                 .ok()

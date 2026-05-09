@@ -81,15 +81,15 @@ test("cover media component routes native images through the browser cache endpo
 
   assert.match(
     source,
-    /import \{[\s\S]*buildImageFallbackOnError[\s\S]*toBrowserImageUrl[\s\S]*type CoverMedia[\s\S]*\} from "\.\.\/lib\/cover-media";/,
+    /import \{[\s\S]*normalizeImageFallbackSrc[\s\S]*toBrowserImageUrl[\s\S]*type CoverMedia[\s\S]*\} from "\.\.\/lib\/cover-media";/,
   );
   assert.match(source, /const browserSizedSrc =/);
-  assert.match(source, /const nativeFallbackOnError =/);
+  assert.match(source, /const normalizedFallbackSrc =/);
   assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{/);
   assert.doesNotMatch(source, /position\?: "top" \| "centre";/);
   assert.doesNotMatch(source, /zoom\?: number;/);
   assert.match(source, /toBrowserImageUrl\(media\.src,\s*\{\s*width,\s*height,\s*fit\s*\}\)/);
-  assert.match(source, /onerror=\{nativeFallbackOnError\}/);
+  assert.match(source, /data-fallback-src=\{normalizedFallbackSrc\}/);
   assert.match(source, /decoding="async"/);
   assert.match(source, /width=\{width\}/);
   assert.match(source, /height=\{height\}/);

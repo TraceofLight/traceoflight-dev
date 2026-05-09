@@ -3,7 +3,7 @@ import { Image } from "astro:assets";
 
 import {
   buildBrowserImageSrcSet,
-  buildImageFallbackOnError,
+  normalizeImageFallbackSrc,
   toBrowserImageUrl,
   type CoverMedia,
 } from "../lib/cover-media";
@@ -22,7 +22,7 @@ interface Props {
 
 const { media, alt, className, width, height, loading = "lazy", sizes, fallbackSrc, fit = "cover" } = Astro.props;
 const normalizedClassName = className?.trim() || undefined;
-const nativeFallbackOnError = buildImageFallbackOnError(fallbackSrc);
+const normalizedFallbackSrc = normalizeImageFallbackSrc(fallbackSrc);
 
 const browserSizedSrc =
   media.kind === "native" ? toBrowserImageUrl(media.src, { width, height, fit }) : undefined;
@@ -52,7 +52,7 @@ const nativeSrcSet =
       loading={loading}
       decoding="async"
       sizes={sizes}
-      onerror={nativeFallbackOnError}
+      data-fallback-src={normalizedFallbackSrc}
     />
   )
 }

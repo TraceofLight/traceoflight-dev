@@ -136,7 +136,7 @@ export function configureMarkdownRenderer(
     const escapedFallbackText = markdown.utils.escapeHtml(IMAGE_FALLBACK_TEXT);
     const titleAttribute = caption ? ` title="${escapedTitle}"` : "";
     const fallbackHtml = `<span class="md-image-fallback" hidden>${escapedFallbackText}</span>`;
-    const imageHtml = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttribute} loading="lazy" onerror="this.onerror=null; this.style.display='none'; var fallback=this.nextElementSibling; if (fallback) { fallback.hidden=false; }">`;
+    const imageHtml = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttribute} loading="lazy" data-md-fallback>`;
 
     if (!caption) return `${imageHtml}${fallbackHtml}`;
     return `<figure class="md-figure">${imageHtml}${fallbackHtml}<figcaption>${escapedTitle}</figcaption></figure>`;

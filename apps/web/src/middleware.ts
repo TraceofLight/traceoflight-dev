@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { defineMiddleware } from "astro:middleware";
 
 import { INTERNAL_API_ORIGIN_HOSTS } from "./consts";
@@ -17,38 +19,78 @@ import {
 } from "./lib/i18n/cookie";
 import { buildPublicCanonicalUrl } from "./lib/public-url";
 
-const SECURITY_HEADERS = {
+const STATIC_SECURITY_HEADERS = {
   "X-Frame-Options": "DENY",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Content-Security-Policy": [
+} as const;
+
+function buildCspHeader(scriptNonce: string): string {
+  // script-src uses a per-request nonce instead of 'unsafe-inline' so reflected
+  // XSS payloads can't execute even if injection slips past sanitization. The
+  // response HTML rewrite below stamps `nonce="..."` onto every <script> tag
+  // (own + Astro-generated runtime) so all legitimate scripts are allowed.
+  // style-src keeps 'unsafe-inline' for now — Tailwind utilities rely on it
+  // and removing requires a separate audit.
+  return [
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'nonce-${scriptNonce}'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self'",
     "media-src 'self' blob: data: https:",
     "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
-  ].join("; "),
-} as const;
+  ].join("; ");
+}
 
-function applySecurityHeaders(response: Response): Response {
+function applySecurityHeaders(response: Response, scriptNonce: string): Response {
   const headers = new Headers(response.headers);
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+  for (const [key, value] of Object.entries(STATIC_SECURITY_HEADERS)) {
     headers.set(key, value);
   }
+  headers.set("Content-Security-Policy", buildCspHeader(scriptNonce));
 
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers,
   });
+}
+
+const SCRIPT_OPEN_TAG_RE = /<script\b(?![^>]*\bnonce=)/g;
+
+async function injectScriptNonceIntoHtml(
+  response: Response,
+  scriptNonce: string,
+): Promise<Response> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("text/html")) {
+    return response;
+  }
+  const body = await response.text();
+  const stamped = body.replace(
+    SCRIPT_OPEN_TAG_RE,
+    `<script nonce="${scriptNonce}"`,
+  );
+  return new Response(stamped, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
+async function finalizeResponse(
+  response: Response,
+  scriptNonce: string,
+): Promise<Response> {
+  const stamped = await injectScriptNonceIntoHtml(response, scriptNonce);
+  return applySecurityHeaders(stamped, scriptNonce);
 }
 
 function isProtectedPath(pathname: string): boolean {
@@ -131,6 +173,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(redirectUrl.toString(), 301);
   }
 
+  // One nonce per request, used both in the CSP header and stamped onto every
+  // <script> tag in the response HTML by `finalizeResponse`. 16 bytes of
+  // randomness is more than enough — attackers can't predict it without
+  // observing the response, and we never reuse it across requests.
+  const scriptNonce = randomBytes(16).toString("base64");
+
   // Refresh the locale-preference cookie whenever the visitor is on a
   // localized public page so that root-level redirects and cross-page
   // navigation can honor it across sessions.
@@ -149,10 +197,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     isFormLikeRequest(context.request.headers.get("content-type")) &&
     !isAllowedInternalApiOrigin(context.request.headers.get("origin"))
   ) {
-    return applySecurityHeaders(new Response("Cross-site form submissions are forbidden", {
-      status: 403,
-      headers: { "content-type": "text/plain;charset=UTF-8" },
-    }));
+    return finalizeResponse(
+      new Response("Cross-site form submissions are forbidden", {
+        status: 403,
+        headers: { "content-type": "text/plain;charset=UTF-8" },
+      }),
+      scriptNonce,
+    );
   }
 
   // Soft-refresh: if access is missing/expired but refresh is valid, rotate
@@ -185,20 +236,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
     const response = await next();
-    return applySecurityHeaders(response);
+    return finalizeResponse(response, scriptNonce);
   }
 
   if (isAuthenticated) {
     const response = await next();
-    return applySecurityHeaders(response);
+    return finalizeResponse(response, scriptNonce);
   }
 
   if (pathname.startsWith("/internal-api")) {
-    return applySecurityHeaders(new Response(JSON.stringify({ detail: "Unauthorized" }), {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    }));
+    return finalizeResponse(
+      new Response(JSON.stringify({ detail: "Unauthorized" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      }),
+      scriptNonce,
+    );
   }
 
-  return applySecurityHeaders(context.redirect(buildLoginRedirect(pathname, search)));
+  return finalizeResponse(
+    context.redirect(buildLoginRedirect(pathname, search)),
+    scriptNonce,
+  );
 });

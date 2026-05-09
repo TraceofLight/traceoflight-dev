@@ -3,7 +3,7 @@ import { DEFAULT_SERIES_IMAGE, IMAGE_SIZES } from "../consts";
 import type { ProjectItem } from "../lib/projects";
 import {
   buildBrowserImageSrcSet,
-  buildImageFallbackOnError,
+  normalizeImageFallbackSrc,
   toBrowserImageUrl,
 } from "../lib/cover-media";
 import { chip, mediaFrame, surface } from "../lib/ui";
@@ -45,7 +45,7 @@ const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   height: imageHeight,
   fit: "inside",
 });
-const coverImageFallbackOnError = buildImageFallbackOnError(fallbackCoverImageSrc);
+const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(fallbackCoverImageSrc);
 const mediaFrameClass = mediaFrame();
 const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
 const stackPillClass = chip({ size: "sm" });
@@ -65,7 +65,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
         decoding="async"
         height={imageHeight}
         loading="lazy"
-        onerror={coverImageFallbackOnError}
+        data-fallback-src={normalizedFallbackCoverImageSrc}
         sizes={cardImageSizes}
         src={resolvedCoverImageSrc}
         srcset={resolvedCoverImageSrcSet}

@@ -80,11 +80,29 @@ const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(ga4MeasurementIdRaw) ? ga4Measure
   href="/fonts/pretendard/pretendardvariable-dynamic-subset.css"
 />
 <link
+  id="tof-font-css"
   rel="stylesheet"
   href="/fonts/pretendard/pretendardvariable-dynamic-subset.css"
   media="print"
-  onload="this.media='all'"
 />
+<script is:inline>
+  // Promote the print-only font sheet to media="all" once it loads — keeps
+  // the request non-render-blocking. Equivalent to the classic
+  // `onload="this.media='all'"` pattern but driven by JS so CSP doesn't
+  // need `script-src 'unsafe-inline'` for inline event handlers.
+  (function () {
+    var link = document.getElementById("tof-font-css");
+    if (link) {
+      link.addEventListener(
+        "load",
+        function () {
+          link.setAttribute("media", "all");
+        },
+        { once: true },
+      );
+    }
+  })();
+</script>
 <noscript>
   <link rel="stylesheet" href="/fonts/pretendard/pretendardvariable-dynamic-subset.css" />
 </noscript>

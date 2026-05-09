@@ -11,7 +11,7 @@ import FormattedDate from "../../../components/FormattedDate.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import {
-  buildImageFallbackOnError,
+  normalizeImageFallbackSrc,
   toBrowserImageUrl,
 } from "../../../lib/cover-media";
 import { getSeriesBySlug, resolveSeriesSlugRedirect } from "../../../lib/series-db";
@@ -49,8 +49,8 @@ const defaultSeriesPostCoverImageSrc = toBrowserImageUrl(defaultSeriesPostCoverI
   height: IMAGE_SIZES.seriesSidebarThumb.height,
   fit: "cover",
 });
-const seriesCoverImageFallbackOnError = buildImageFallbackOnError(defaultSeriesCoverImageSrc);
-const seriesPostCoverImageFallbackOnError = buildImageFallbackOnError(defaultSeriesPostCoverImageSrc);
+const seriesCoverFallbackSrc = normalizeImageFallbackSrc(defaultSeriesCoverImageSrc);
+const seriesPostCoverFallbackSrc = normalizeImageFallbackSrc(defaultSeriesPostCoverImageSrc);
 
 let series = null;
 try {
@@ -172,7 +172,7 @@ const alternates = series
               data-default-cover={defaultSeriesCoverImage}
               decoding="async"
               loading="lazy"
-              onerror={seriesCoverImageFallbackOnError}
+              data-fallback-src={seriesCoverFallbackSrc}
               src={resolvedSeriesCoverImageSrc}
             />
           </div>
@@ -222,7 +222,7 @@ const alternates = series
                             class="aspect-[16/9] w-full rounded-xl border border-surface-border bg-surface-soft object-cover"
                             decoding="async"
                             loading="lazy"
-                            onerror={seriesPostCoverImageFallbackOnError}
+                            data-fallback-src={seriesPostCoverFallbackSrc}
                             src={resolvedSeriesPostCoverImageSrc}
                           />
                         </a>

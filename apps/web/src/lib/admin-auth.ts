@@ -12,7 +12,7 @@ export const ADMIN_ACCESS_COOKIE = 'traceoflight_admin_access';
 export const ADMIN_REFRESH_COOKIE = 'traceoflight_admin_refresh';
 
 const DEFAULT_ACCESS_MAX_AGE_SECONDS = 60 * 15;
-const DEFAULT_REFRESH_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
+const DEFAULT_REFRESH_MAX_AGE_SECONDS = 60 * 60 * 24 * 3;
 
 interface AdminAuthConfig {
   sessionSecret: string;

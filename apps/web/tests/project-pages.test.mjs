@@ -28,7 +28,7 @@ test("project card and list page use the new public card shell", async () => {
 
   assert.match(
     cardSource,
-    /import \{[\s\S]*buildImageFallbackOnError[\s\S]*toBrowserImageUrl[\s\S]*\} from "\.\.\/lib\/cover-media";/,
+    /import \{[\s\S]*normalizeImageFallbackSrc[\s\S]*toBrowserImageUrl[\s\S]*\} from "\.\.\/lib\/cover-media";/,
   );
   assert.match(
     cardSource,
@@ -54,7 +54,7 @@ test("project card and list page use the new public card shell", async () => {
     /(?:project\.coverImageUrl \?\? fallbackCoverImage|const coverImageSource = project\.coverImageUrl \?\? fallbackCoverImage)/,
   );
   assert.match(cardSource, /fit:\s*"inside"/);
-  assert.match(cardSource, /onerror=\{coverImageFallbackOnError\}/);
+  assert.match(cardSource, /data-fallback-src=\{normalizedFallbackCoverImageSrc\}/);
   assert.match(cardSource, /!h-full !w-full !max-w-none object-cover object-center/);
   assert.match(cardSource, /object-cover object-center/);
   // The card builds the href from an optional `locale` prop, with `/projects/<slug>`
