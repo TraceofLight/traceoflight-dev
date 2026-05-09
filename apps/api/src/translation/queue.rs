@@ -25,14 +25,23 @@ pub struct TranslationJob {
 
 #[derive(Clone)]
 pub struct TranslationQueue {
+    /// Multiplexed connection for non-blocking commands (RPUSH).
     conn: ConnectionManager,
+    /// Reserved for BLPOP. Sharing with `conn` would head-of-line block
+    /// every other Redis op for up to the BLPOP timeout.
+    blocking_conn: ConnectionManager,
     queue_key: String,
 }
 
 impl TranslationQueue {
-    pub fn new(conn: ConnectionManager, key_prefix: &str) -> Self {
+    pub fn new(
+        conn: ConnectionManager,
+        blocking_conn: ConnectionManager,
+        key_prefix: &str,
+    ) -> Self {
         Self {
             conn,
+            blocking_conn,
             queue_key: format!("{key_prefix}{QUEUE_SUFFIX}"),
         }
     }
@@ -58,7 +67,7 @@ impl TranslationQueue {
         &self,
         timeout_seconds: f64,
     ) -> Result<Option<TranslationJob>, redis::RedisError> {
-        let mut conn = self.conn.clone();
+        let mut conn = self.blocking_conn.clone();
         let result: Option<(String, String)> =
             conn.blpop(&self.queue_key, timeout_seconds).await?;
         let Some((_key, payload)) = result else {

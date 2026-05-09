@@ -24,21 +24,25 @@ async fn main() -> anyhow::Result<()> {
 
     sqlx::migrate!("./migrations").run(&pool).await?;
 
-    // Build a single Redis ConnectionManager once and clone it into every
-    // consumer (RefreshStore, TranslationQueue, translation worker). The
-    // manager is internally Arc-based so each clone shares the underlying
-    // connection pool.
-    let redis_conn = if let Some(url) = settings.redis_url.as_deref() {
+    // Two ConnectionManagers from the same client: a shared one for
+    // non-blocking commands and a dedicated one for blocking commands
+    // (BLPOP). A multiplexed ConnectionManager serializes commands behind
+    // any in-flight blocking call, so sharing would stall every co-tenant
+    // op for the duration of the block.
+    let (redis_conn, worker_blocking_conn) = if let Some(url) = settings.redis_url.as_deref() {
         let client = redis::Client::open(url)
             .map_err(|err| anyhow::anyhow!("redis client init failed: {err}"))?;
-        Some(
-            client
-                .get_connection_manager()
-                .await
-                .map_err(|err| anyhow::anyhow!("redis connect failed: {err}"))?,
-        )
+        let shared = client
+            .get_connection_manager()
+            .await
+            .map_err(|err| anyhow::anyhow!("redis connect failed: {err}"))?;
+        let blocking = client
+            .get_connection_manager()
+            .await
+            .map_err(|err| anyhow::anyhow!("redis connect (worker) failed: {err}"))?;
+        (Some(shared), Some(blocking))
     } else {
-        None
+        (None, None)
     };
 
     let refresh_store = redis_conn
@@ -46,9 +50,14 @@ async fn main() -> anyhow::Result<()> {
         .map(|conn| RefreshStore::new(conn, settings.redis_key_prefix.clone()));
     let admin_ctx = AdminAuthContext::new(settings.admin.clone(), refresh_store);
 
-    let translation_queue = redis_conn
-        .clone()
-        .map(|conn| TranslationQueue::new(conn, &settings.redis_key_prefix));
+    let translation_queue = match (redis_conn.clone(), worker_blocking_conn) {
+        (Some(shared), Some(blocking)) => Some(TranslationQueue::new(
+            shared,
+            blocking,
+            &settings.redis_key_prefix,
+        )),
+        _ => None,
+    };
 
     let indexnow = IndexNowClient::new(settings.indexnow.clone());
 
