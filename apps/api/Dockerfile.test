@@ -1,7 +1,10 @@
-# Test runner image: Rust toolchain + psql + source baked in.
-# Source is COPY'd at build time (not bind-mounted) so the image works
-# under Docker-in-Docker setups where the Jenkins agent's filesystem
-# does not align with the host docker daemon's filesystem.
+# syntax=docker/dockerfile:1.4
+# Test runner image. The cargo registry/git stays in BuildKit cache mounts
+# instead of image layers — a layer carrying thousands of small registry
+# files races with the containerd snapshotter's tmpmount GC during export
+# ("failed to export layer / lstat ... no such file"). Test binaries are
+# packed into a self-contained nextest archive at build time, so the test
+# stage runs from the archive without needing the registry at run time.
 FROM rust:1-bookworm
 
 RUN apt-get update \
@@ -9,23 +12,21 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # cargo-nextest provides JUnit XML output for the orchestrator's `junit`
-# post-step. Compiles from source via `cargo install` (~3-5 min first build,
-# fully cached afterwards as long as this layer's inputs don't change). The
-# pre-built tarball at get.nexte.st was tried first but the extracted binary
-# failed with "Syntax error: ) unexpected" at runtime in this Docker-in-Docker
-# setup — root cause unclear; cargo-install is the reliable fallback.
-# `--version` runs at the end so a broken install fails the image build
-# instead of the test stage at runtime.
-RUN cargo install --locked cargo-nextest \
+# post-step. The bin lands in /usr/local/cargo/bin (image layer); the
+# downloaded crates that compile it stay in the cache mount.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo install --locked cargo-nextest \
  && cargo-nextest --version
 
 WORKDIR /work
-
-# Cache dependency download in its own layer so source-only changes
-# don't re-fetch the registry.
-COPY Cargo.toml Cargo.lock ./
-RUN cargo fetch
-
-# Bring in source / migrations / tests / scripts. Excludes from
-# .dockerignore (target/, *.log, .env.api, .git, .gitignore) are honored.
 COPY . .
+
+# Pre-compile every test target and pack them into one archive. The archive
+# carries the binaries plus the metadata nextest needs to dispatch them, so
+# the test stage invokes `cargo nextest run --archive-file` and never has to
+# touch the cargo registry. sqlx migrations are baked into the test binaries
+# by the `#[sqlx::test(migrations = ...)]` macro at this compile step.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo nextest archive --locked --archive-file /work/tests.tar.zst

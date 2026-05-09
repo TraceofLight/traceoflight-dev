@@ -74,6 +74,7 @@ export const ja: Dictionary = {
     latestPosts: "最新の記事",
     viewProjects: "プロジェクトを見る",
     viewBlog: "ブログを見る",
+    viewGithub: "Githubを見る",
     viewAllProjects: "View All Projects",
     viewAllSeries: "View All Series",
     viewAllPosts: "View All Posts",

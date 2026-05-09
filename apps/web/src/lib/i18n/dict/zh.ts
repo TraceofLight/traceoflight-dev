@@ -73,6 +73,7 @@ export const zh: Dictionary = {
     latestPosts: "最新文章",
     viewProjects: "查看项目",
     viewBlog: "查看博客",
+    viewGithub: "查看 Github",
     viewAllProjects: "View All Projects",
     viewAllSeries: "View All Series",
     viewAllPosts: "View All Posts",

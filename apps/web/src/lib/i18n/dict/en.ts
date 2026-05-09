@@ -73,6 +73,7 @@ export const en: Dictionary = {
     latestPosts: "Latest Posts",
     viewProjects: "View Projects",
     viewBlog: "View Blog",
+    viewGithub: "View Github",
     viewAllProjects: "View All Projects",
     viewAllSeries: "View All Series",
     viewAllPosts: "View All Posts",

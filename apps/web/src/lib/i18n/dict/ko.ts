@@ -102,6 +102,7 @@ export const ko = {
     latestPosts: "최근 글",
     viewProjects: "프로젝트 보기",
     viewBlog: "블로그 보기",
+    viewGithub: "Github 보기",
     viewAllProjects: "View All Projects",
     viewAllSeries: "View All Series",
     viewAllPosts: "View All Posts",

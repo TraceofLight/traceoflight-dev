@@ -46,9 +46,14 @@ pipeline {
                     cd apps/api
                     mkdir -p test-results
 
-                    # Build the test runner image (apt-get + cargo-nextest + psql
-                    # cached after first build).
-                    docker build -f Dockerfile.test -t traceoflight-api-test .
+                    # Build the test runner image. Dockerfile.test pre-compiles
+                    # tests into /work/tests.tar.zst with the cargo registry on
+                    # a BuildKit cache mount (not in any image layer), which
+                    # avoids the containerd snapshotter race during layer
+                    # export. DOCKER_BUILDKIT=1 is the default in Docker 23+
+                    # but we set it explicitly so the cache-mount syntax is
+                    # honored regardless of daemon config.
+                    DOCKER_BUILDKIT=1 docker build -f Dockerfile.test -t traceoflight-api-test .
 
                     # Source .env.api so we can derive the postgres connection from
                     # production values. CRLF was stripped above, so sourcing is safe.
@@ -67,6 +72,9 @@ pipeline {
 
                     # `docker create + start -a` instead of `docker run --rm` so
                     # `docker cp` can recover the JUnit XML even on test failure.
+                    # `--archive-file` runs the pre-compiled tests packed by
+                    # Dockerfile.test, so this stage doesn't need cargo
+                    # registry access at all.
                     container_id=$(docker create \
                       --network traceoflight-api-stack_api_internal \
                       --env-file .env.api \
@@ -75,7 +83,7 @@ pipeline {
                       -e DATABASE_URL_ADMIN="$ADMIN_URL" \
                       -e POSTGRES_HOST="$POSTGRES_HOST_INNER" \
                       traceoflight-api-test \
-                      bash -c "bash scripts/setup-test-db.sh && cargo nextest run --locked --profile ci")
+                      bash -c "bash scripts/setup-test-db.sh && cargo nextest run --archive-file /work/tests.tar.zst --profile ci")
 
                     docker start -a "$container_id"
                     test_exit=$?
