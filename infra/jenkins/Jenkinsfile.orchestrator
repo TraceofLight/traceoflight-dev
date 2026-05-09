@@ -1,12 +1,9 @@
-// Single GitHub-push entrypoint with flat top-level stages so Blue Ocean
-// always renders Test and Build as distinct columns regardless of any
-// sub-stage failures (nested `stages { }` inside `parallel` collapses on
-// failure under the outer stage name in some BO views — that visual
-// inconsistency is the reason for the flat layout here).
-//
-// Trade-off: a fast Frontend Test now waits for the slow Backend Test to
-// finish before any Build starts (one sync point at end of Test stage).
-// Real-world cost is ~10-20s of slack per run; visual consistency wins.
+// Single GitHub-push entrypoint. BE and FE share one parallel block where
+// each lane runs Test → Build back-to-back, so a fast Test side starts its
+// own Build immediately instead of waiting on the slower side. The two
+// lanes rejoin once both Builds finish, then Deploy Backend → Deploy
+// Frontend run sequentially (FE can call BE on every request, so BE goes
+// first to keep the API contract live before FE swaps).
 //
 // Tests use `docker create + start + cp + rm` instead of `docker run --rm`
 // so the JUnit XML written inside the test container can be copied out for
@@ -26,130 +23,135 @@ pipeline {
   }
 
   stages {
-    stage('Test') {
+    stage('Test → Build') {
       parallel {
-        stage('Backend Test') {
-          steps {
-            withCredentials([file(credentialsId: 'traceoflight-api-env', variable: 'API_ENV_FILE')]) {
-              sh '''
-                cp "$API_ENV_FILE" apps/api/.env.api
-                # Normalize Windows CRLF credentials to LF for safe shell parsing.
-                sed -i 's/\r$//' apps/api/.env.api
+        stage('Backend') {
+          stages {
+            stage('Backend Test') {
+              steps {
+                withCredentials([file(credentialsId: 'traceoflight-api-env', variable: 'API_ENV_FILE')]) {
+                  sh '''
+                    cp "$API_ENV_FILE" apps/api/.env.api
+                    # Normalize Windows CRLF credentials to LF for safe shell parsing.
+                    sed -i 's/\r$//' apps/api/.env.api
 
-                # Required infra services for cargo integration tests.
-                for svc in traceoflight-postgres traceoflight-minio traceoflight-redis; do
-                  docker ps --filter "name=$svc" --filter "status=running" --format "{{.Names}}" | grep -q "^$svc$" || {
-                    echo "ERROR: $svc is not running. Run infra pipeline first."
-                    exit 1
-                  }
-                done
+                    # Required infra services for cargo integration tests.
+                    for svc in traceoflight-postgres traceoflight-minio traceoflight-redis; do
+                      docker ps --filter "name=$svc" --filter "status=running" --format "{{.Names}}" | grep -q "^$svc$" || {
+                        echo "ERROR: $svc is not running. Run infra pipeline first."
+                        exit 1
+                      }
+                    done
 
-                cd apps/api
-                mkdir -p test-results
+                    cd apps/api
+                    mkdir -p test-results
 
-                # Build the test runner image (apt-get + cargo-nextest + psql
-                # cached after first build).
-                docker build -f Dockerfile.test -t traceoflight-api-test .
+                    # Build the test runner image (apt-get + cargo-nextest + psql
+                    # cached after first build).
+                    docker build -f Dockerfile.test -t traceoflight-api-test .
 
-                # Source .env.api so we can derive the postgres connection from
-                # production values. CRLF was stripped above, so sourcing is safe.
-                set -a
-                . ./.env.api
-                set +a
+                    # Source .env.api so we can derive the postgres connection from
+                    # production values. CRLF was stripped above, so sourcing is safe.
+                    set -a
+                    . ./.env.api
+                    set +a
 
-                # Inside api_internal docker network the postgres container is
-                # reachable as `postgres` (its compose service name). The test DB
-                # name is fixed (`traceoflight_test`); admin connects to the
-                # `postgres` maintenance DB with the same credentials.
-                POSTGRES_HOST_INNER="postgres"
-                TEST_DB_NAME="traceoflight_test"
-                TEST_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/${TEST_DB_NAME}"
-                ADMIN_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/postgres"
+                    # Inside api_internal docker network the postgres container is
+                    # reachable as `postgres` (its compose service name). The test DB
+                    # name is fixed (`traceoflight_test`); admin connects to the
+                    # `postgres` maintenance DB with the same credentials.
+                    POSTGRES_HOST_INNER="postgres"
+                    TEST_DB_NAME="traceoflight_test"
+                    TEST_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/${TEST_DB_NAME}"
+                    ADMIN_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_INNER}:${POSTGRES_PORT}/postgres"
 
-                # `docker create + start -a` instead of `docker run --rm` so
-                # `docker cp` can recover the JUnit XML even on test failure.
-                container_id=$(docker create \
-                  --network traceoflight-api-stack_api_internal \
-                  --env-file .env.api \
-                  -e DATABASE_URL="$TEST_URL" \
-                  -e TEST_DATABASE_URL="$TEST_URL" \
-                  -e DATABASE_URL_ADMIN="$ADMIN_URL" \
-                  -e POSTGRES_HOST="$POSTGRES_HOST_INNER" \
-                  traceoflight-api-test \
-                  bash -c "bash scripts/setup-test-db.sh && cargo nextest run --locked --profile ci")
+                    # `docker create + start -a` instead of `docker run --rm` so
+                    # `docker cp` can recover the JUnit XML even on test failure.
+                    container_id=$(docker create \
+                      --network traceoflight-api-stack_api_internal \
+                      --env-file .env.api \
+                      -e DATABASE_URL="$TEST_URL" \
+                      -e TEST_DATABASE_URL="$TEST_URL" \
+                      -e DATABASE_URL_ADMIN="$ADMIN_URL" \
+                      -e POSTGRES_HOST="$POSTGRES_HOST_INNER" \
+                      traceoflight-api-test \
+                      bash -c "bash scripts/setup-test-db.sh && cargo nextest run --locked --profile ci")
 
-                docker start -a "$container_id"
-                test_exit=$?
+                    docker start -a "$container_id"
+                    test_exit=$?
 
-                # Always recover the JUnit XML so failures surface in Tests tab.
-                docker cp "$container_id:/work/target/nextest/ci/junit.xml" \
-                  test-results/backend-junit.xml || true
-                docker rm "$container_id" >/dev/null
+                    # Always recover the JUnit XML so failures surface in Tests tab.
+                    docker cp "$container_id:/work/target/nextest/ci/junit.xml" \
+                      test-results/backend-junit.xml || true
+                    docker rm "$container_id" >/dev/null
 
-                exit $test_exit
-              '''
+                    exit $test_exit
+                  '''
+                }
+              }
+            }
+
+            stage('Backend Build') {
+              steps {
+                build job: 'traceoflight-backend',
+                      parameters: [string(name: 'MODE', value: 'build')],
+                      wait: true,
+                      propagate: true
+              }
             }
           }
         }
 
-        stage('Frontend Test') {
-          steps {
-            withCredentials([file(credentialsId: 'traceoflight-web-env', variable: 'WEB_ENV_FILE')]) {
-              sh '''
-                cp "$WEB_ENV_FILE" apps/web/.env.web
-                sed -i 's/\r$//' apps/web/.env.web
+        stage('Frontend') {
+          stages {
+            stage('Frontend Test') {
+              steps {
+                withCredentials([file(credentialsId: 'traceoflight-web-env', variable: 'WEB_ENV_FILE')]) {
+                  sh '''
+                    cp "$WEB_ENV_FILE" apps/web/.env.web
+                    sed -i 's/\r$//' apps/web/.env.web
 
-                for key in SITE_URL PORT API_BASE_URL ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
-                  if ! grep -Eq "^${key}=.+" apps/web/.env.web; then
-                    echo "ERROR: required env key is missing or empty: ${key}"
-                    exit 1
-                  fi
-                done
+                    for key in SITE_URL PORT API_BASE_URL ADMIN_SESSION_SECRET ADMIN_ACCESS_TOKEN_MAX_AGE_SECONDS ADMIN_REFRESH_TOKEN_MAX_AGE_SECONDS INTERNAL_API_SECRET; do
+                      if ! grep -Eq "^${key}=.+" apps/web/.env.web; then
+                        echo "ERROR: required env key is missing or empty: ${key}"
+                        exit 1
+                      fi
+                    done
 
-                cd apps/web
-                mkdir -p test-results
+                    cd apps/web
+                    mkdir -p test-results
 
-                # Source baked into the image (no bind mount) — required for
-                # Docker-in-Docker where Jenkins paths don't align with the host.
-                docker build -f Dockerfile.test -t traceoflight-web-test .
+                    # Source baked into the image (no bind mount) — required for
+                    # Docker-in-Docker where Jenkins paths don't align with the host.
+                    docker build -f Dockerfile.test -t traceoflight-web-test .
 
-                # CMD runs `bun run test`: typecheck + node:test guards +
-                # vitest + node:test admin-auth. The package.json scripts emit
-                # JUnit XMLs under /work/test-results/ inside the container.
-                container_id=$(docker create traceoflight-web-test)
+                    # CMD runs `bun run test`: typecheck + node:test guards +
+                    # vitest + node:test admin-auth. The package.json scripts emit
+                    # JUnit XMLs under /work/test-results/ inside the container.
+                    container_id=$(docker create traceoflight-web-test)
 
-                docker start -a "$container_id"
-                test_exit=$?
+                    docker start -a "$container_id"
+                    test_exit=$?
 
-                # Pull the entire test-results dir back so all three runners'
-                # XMLs (guards, ui, auth) land alongside each other.
-                docker cp "$container_id:/work/test-results/." test-results/ || true
-                docker rm "$container_id" >/dev/null
+                    # Pull the entire test-results dir back so all three runners'
+                    # XMLs (guards, ui, auth) land alongside each other.
+                    docker cp "$container_id:/work/test-results/." test-results/ || true
+                    docker rm "$container_id" >/dev/null
 
-                exit $test_exit
-              '''
+                    exit $test_exit
+                  '''
+                }
+              }
             }
-          }
-        }
-      }
-    }
 
-    stage('Build') {
-      parallel {
-        stage('Backend Build') {
-          steps {
-            build job: 'traceoflight-backend',
-                  parameters: [string(name: 'MODE', value: 'build')],
-                  wait: true,
-                  propagate: true
-          }
-        }
-        stage('Frontend Build') {
-          steps {
-            build job: 'traceoflight-frontend',
-                  parameters: [string(name: 'MODE', value: 'build')],
-                  wait: true,
-                  propagate: true
+            stage('Frontend Build') {
+              steps {
+                build job: 'traceoflight-frontend',
+                      parameters: [string(name: 'MODE', value: 'build')],
+                      wait: true,
+                      propagate: true
+              }
+            }
           }
         }
       }
