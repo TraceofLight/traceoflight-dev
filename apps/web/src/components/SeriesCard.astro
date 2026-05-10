@@ -32,14 +32,20 @@ const {
   fallbackCoverImageSrc,
   locale,
 } = Astro.props;
-const seriesHref = locale ? `/${locale}/series/${series.slug}` : `/series/${series.slug}`;
+const seriesHref = locale
+  ? `/${locale}/series/${series.slug}`
+  : `/series/${series.slug}`;
 const fallbackCoverImage = DEFAULT_SERIES_IMAGE;
-const resolvedFallbackCoverImageSrc = fallbackCoverImageSrc ?? toBrowserImageUrl(fallbackCoverImage, {
-  width: imageWidth,
-  height: imageHeight,
-  fit: "inside",
-});
-const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(resolvedFallbackCoverImageSrc);
+const resolvedFallbackCoverImageSrc =
+  fallbackCoverImageSrc ??
+  toBrowserImageUrl(fallbackCoverImage, {
+    width: imageWidth,
+    height: imageHeight,
+    fit: "inside",
+  });
+const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(
+  resolvedFallbackCoverImageSrc,
+);
 const coverImageSource = series.coverImageUrl ?? fallbackCoverImage;
 const resolvedCoverImageSrc = series.coverImageUrl
   ? toBrowserImageUrl(series.coverImageUrl, {
@@ -55,7 +61,8 @@ const resolvedCoverImageSrcSet = buildBrowserImageSrcSet(coverImageSource, {
 });
 const mediaFrameClass = mediaFrame();
 const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
-const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
+const cardImageSizes =
+  "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
 ---
 
 <article class="group h-full">
@@ -68,6 +75,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
         height={imageHeight}
         loading="lazy"
         data-fallback-src={normalizedFallbackCoverImageSrc}
+        data-media-load
         sizes={cardImageSizes}
         src={resolvedCoverImageSrc}
         srcset={resolvedCoverImageSrcSet}
@@ -83,7 +91,9 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
           {series.description.trim().length > 0 ? series.description : " "}
         </p>
       </div>
-      <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <p
+        class="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+      >
         <span>{series.postCount} posts</span>
         <span aria-hidden="true">•</span>
         <FormattedDate date={series.updatedAt} />

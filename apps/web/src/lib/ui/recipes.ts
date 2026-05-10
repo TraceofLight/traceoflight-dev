@@ -30,7 +30,7 @@ export const surface = cva(
 );
 
 export const mediaFrame = cva(
-  "relative overflow-hidden rounded-[1.5rem] bg-surface-soft",
+  "media-load-frame relative overflow-hidden rounded-[1.5rem] bg-surface-soft",
   {
     variants: {
       aspect: {
@@ -49,15 +49,23 @@ const actionBase =
 export const action = cva(actionBase, {
   variants: {
     variant: {
-      primary: "rounded-full bg-primary text-primary-foreground shadow-pill hover:bg-primary/92",
-      secondary: "rounded-full bg-surface text-secondary-foreground shadow-pill hover:bg-surface-strong",
-      outline: "rounded-full border border-surface-border bg-surface text-foreground shadow-pill hover:bg-surface-strong",
-      ghost: "rounded-full text-muted-foreground hover:bg-surface hover:text-foreground",
+      primary:
+        "rounded-full bg-primary text-primary-foreground shadow-pill hover:bg-primary/92",
+      secondary:
+        "rounded-full bg-surface text-secondary-foreground shadow-pill hover:bg-surface-strong",
+      outline:
+        "rounded-full border border-surface-border bg-surface text-foreground shadow-pill hover:bg-surface-strong",
+      ghost:
+        "rounded-full text-muted-foreground hover:bg-surface hover:text-foreground",
       link: "text-primary underline-offset-4 hover:underline",
-      surface: "rounded-full border border-surface-border bg-surface-soft text-muted-foreground shadow-pill hover:-translate-y-0.5 hover:bg-surface-strong hover:text-foreground",
-      primaryOutline: "rounded-full border border-info-soft bg-surface-strong text-primary shadow-pill hover:-translate-y-0.5 hover:border-info hover:bg-info-soft",
-      dangerOutline: "rounded-full border border-destructive/50 bg-surface font-semibold text-destructive shadow-pill hover:-translate-y-0.5 hover:border-destructive hover:bg-destructive-soft",
-      danger: "rounded-full bg-destructive text-destructive-foreground shadow-pill hover:opacity-92",
+      surface:
+        "rounded-full border border-surface-border bg-surface-soft text-muted-foreground shadow-pill hover:-translate-y-0.5 hover:bg-surface-strong hover:text-foreground",
+      primaryOutline:
+        "rounded-full border border-info-soft bg-surface-strong text-primary shadow-pill hover:-translate-y-0.5 hover:border-info hover:bg-info-soft",
+      dangerOutline:
+        "rounded-full border border-destructive/50 bg-surface font-semibold text-destructive shadow-pill hover:-translate-y-0.5 hover:border-destructive hover:bg-destructive-soft",
+      danger:
+        "rounded-full bg-destructive text-destructive-foreground shadow-pill hover:opacity-92",
     },
     size: {
       sm: "h-9 px-4 text-xs",
@@ -76,7 +84,8 @@ export const pill = cva(
     variants: {
       active: {
         true: "border-surface-border bg-surface text-foreground shadow-pill",
-        false: "border-surface-border bg-surface-soft text-muted-foreground shadow-pill",
+        false:
+          "border-surface-border bg-surface-soft text-muted-foreground shadow-pill",
       },
     },
     defaultVariants: { active: false },
@@ -143,5 +152,7 @@ export const statusBadge = cva(
   },
 );
 
-export type SurfaceProps = Parameters<typeof surface>[0] & { className?: string };
+export type SurfaceProps = Parameters<typeof surface>[0] & {
+  className?: string;
+};
 export type ActionProps = Parameters<typeof action>[0] & { className?: string };

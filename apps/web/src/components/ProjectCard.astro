@@ -23,7 +23,9 @@ const {
   stackLimit,
   locale,
 } = Astro.props;
-const projectHref = locale ? `/${locale}/projects/${project.slug}` : `/projects/${project.slug}`;
+const projectHref = locale
+  ? `/${locale}/projects/${project.slug}`
+  : `/projects/${project.slug}`;
 const visibleStack =
   typeof stackLimit === "number"
     ? project.stack.slice(0, stackLimit)
@@ -45,19 +47,18 @@ const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   height: imageHeight,
   fit: "inside",
 });
-const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(fallbackCoverImageSrc);
+const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(
+  fallbackCoverImageSrc,
+);
 const mediaFrameClass = mediaFrame();
 const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
 const stackPillClass = chip({ size: "sm" });
-const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
+const cardImageSizes =
+  "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
 ---
 
 <article class="group h-full">
-  <a
-    class={anchorClass}
-    data-astro-reload
-    href={projectHref}
-  >
+  <a class={anchorClass} data-astro-reload href={projectHref}>
     <div class={mediaFrameClass}>
       <img
         alt={project.title}
@@ -66,6 +67,7 @@ const cardImageSizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw
         height={imageHeight}
         loading="lazy"
         data-fallback-src={normalizedFallbackCoverImageSrc}
+        data-media-load
         sizes={cardImageSizes}
         src={resolvedCoverImageSrc}
         srcset={resolvedCoverImageSrcSet}

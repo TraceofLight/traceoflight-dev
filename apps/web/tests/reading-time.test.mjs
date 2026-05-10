@@ -22,7 +22,7 @@ test("post card uses reading-time helper instead of title-and-excerpt minute tex
   // `t.archiveFilters.commentCount`) so it can be translated per locale.
   assert.match(
     source,
-    /\{t\.comments\.title\} \{commentCount\}\{t\.archiveFilters\.commentCount\}/,
+    /\{t\.comments\.title\}\s*\{commentCount\}\s*\{t\.archiveFilters\.commentCount\}/,
   );
   assert.match(source, /\{readingLabel\}/);
   assert.match(source, /text-xs text-muted-foreground/);

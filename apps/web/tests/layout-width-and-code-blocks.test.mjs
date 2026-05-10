@@ -19,7 +19,10 @@ test("markdown prose code blocks use the dracula card styling", async () => {
   assert.match(source, /\.markdown-prose pre \{/);
   assert.match(source, /background: linear-gradient\(180deg, #343746 0%, #282a36 18%\);/);
   assert.match(source, /\.markdown-prose pre::before \{/);
-  assert.match(source, /box-shadow: 1\.15rem 0 0 #ffbd2e, 2\.3rem 0 0 #27c93f;/);
+  assert.match(
+    source,
+    /box-shadow:\s*1\.15rem 0 0 #ffbd2e,\s*2\.3rem 0 0 #27c93f;/,
+  );
   assert.match(source, /\.markdown-prose pre code\.hljs \{/);
   assert.match(source, /color: #f8f8f2;/);
   assert.match(source, /\.markdown-prose \.hljs-keyword/);

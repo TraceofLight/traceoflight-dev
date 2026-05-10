@@ -18,16 +18,33 @@ interface Props {
   sizes?: string;
   fallbackSrc?: string;
   fit?: "cover" | "contain" | "inside";
+  mediaLoad?: boolean;
 }
 
-const { media, alt, className, width, height, loading = "lazy", sizes, fallbackSrc, fit = "cover" } = Astro.props;
+const {
+  media,
+  alt,
+  className,
+  width,
+  height,
+  loading = "lazy",
+  sizes,
+  fallbackSrc,
+  fit = "cover",
+  mediaLoad = true,
+} = Astro.props;
 const normalizedClassName = className?.trim() || undefined;
 const normalizedFallbackSrc = normalizeImageFallbackSrc(fallbackSrc);
+const mediaLoadAttr = mediaLoad ? "" : undefined;
 
 const browserSizedSrc =
-  media.kind === "native" ? toBrowserImageUrl(media.src, { width, height, fit }) : undefined;
+  media.kind === "native"
+    ? toBrowserImageUrl(media.src, { width, height, fit })
+    : undefined;
 const nativeSrcSet =
-  media.kind === "native" ? buildBrowserImageSrcSet(media.src, { width, height, fit }) : undefined;
+  media.kind === "native"
+    ? buildBrowserImageSrcSet(media.src, { width, height, fit })
+    : undefined;
 ---
 
 {
@@ -40,6 +57,7 @@ const nativeSrcSet =
       height={height ?? media.src.height}
       loading={loading}
       sizes={sizes}
+      data-media-load={mediaLoadAttr}
     />
   ) : (
     <img
@@ -53,6 +71,7 @@ const nativeSrcSet =
       decoding="async"
       sizes={sizes}
       data-fallback-src={normalizedFallbackSrc}
+      data-media-load={mediaLoadAttr}
     />
   )
 }

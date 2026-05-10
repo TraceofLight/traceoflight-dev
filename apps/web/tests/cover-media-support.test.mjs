@@ -7,7 +7,10 @@ const coverMediaComponentPath = new URL(
   "../src/components/CoverMediaImage.astro",
   import.meta.url,
 );
-const postCardPath = new URL("../src/components/PostCard.astro", import.meta.url);
+const postCardPath = new URL(
+  "../src/components/PostCard.astro",
+  import.meta.url,
+);
 const blogPostLayoutPath = new URL(
   "../src/layouts/BlogPost.astro",
   import.meta.url,
@@ -34,16 +37,25 @@ test("cover media support is centralized in a shared model and renderer", async 
   assert.match(componentSource, /fit\?: "cover" \| "contain" \| "inside";/);
   assert.match(componentSource, /const normalizedFallbackSrc =/);
   assert.match(componentSource, /data-fallback-src=\{normalizedFallbackSrc\}/);
-  assert.match(componentSource, /toBrowserImageUrl\(media\.src,\s*\{[\s\S]*fit[\s\S]*\}\)/);
+  assert.match(
+    componentSource,
+    /toBrowserImageUrl\(media\.src,\s*\{[\s\S]*fit[\s\S]*\}\)/,
+  );
 });
 
 test("post cards consume the shared cover media renderer instead of inline branching", async () => {
   const source = await readFile(postCardPath, "utf8");
 
-  assert.match(source, /import CoverMediaImage from "\.\/CoverMediaImage\.astro";/);
+  assert.match(
+    source,
+    /import CoverMediaImage from "\.\/CoverMediaImage\.astro";/,
+  );
   assert.match(source, /post\.coverMedia \?/);
   assert.match(source, /<CoverMediaImage/);
-  assert.doesNotMatch(source, /typeof post\.(coverImage|coverMedia) === 'string'/);
+  assert.doesNotMatch(
+    source,
+    /typeof post\.(coverImage|coverMedia) === 'string'/,
+  );
 });
 
 test("blog post layout reuses shared cover media helpers for top media rendering and og image fallback", async () => {
@@ -58,11 +70,17 @@ test("blog post layout reuses shared cover media helpers for top media rendering
     /import \{[\s\S]*getCoverMediaMetadata[\s\S]*normalizeCoverMedia[\s\S]*\} from ["']\.\.\/lib\/cover-media["'];/,
   );
   assert.match(source, /const coverMedia = normalizeCoverMedia\(coverImage\);/);
-  assert.match(source, /const topMediaImage = normalizeCoverMedia\(topMediaImageUrl \?\? coverImage\);/);
+  assert.match(
+    source,
+    /const topMediaImage = normalizeCoverMedia\(topMediaImageUrl \?\? coverImage\);/,
+  );
   assert.match(source, /const seoImageMetadata =/);
   assert.match(source, /image=\{seoImageMetadata\}/);
   assert.match(source, /imageUrl=\{seoImageUrl\}/);
-  assert.match(source, /<CoverMediaImage[\s\S]*media=\{topMediaImage\}[\s\S]*alt=\{title\}/);
+  assert.match(
+    source,
+    /<CoverMediaImage[\s\S]*media=\{topMediaImage\}[\s\S]*alt=\{title\}/,
+  );
   assert.match(
     source,
     /const detailCoverWidth = (?:1400|IMAGE_SIZES\.blogPostCover\.width);/,
@@ -75,26 +93,59 @@ test("blog post layout reuses shared cover media helpers for top media rendering
     source,
     /toBrowserImageUrl\((?:"\/images\/empty-article-image\.png"|DEFAULT_ARTICLE_IMAGE),\s*\{[\s\S]*width:\s*detailCoverWidth,[\s\S]*height:\s*detailCoverHeight,[\s\S]*fit:\s*"inside"/,
   );
-  assert.match(source, /className="mt-8 h-auto w-full rounded-3xl shadow-card"/);
+  assert.match(
+    source,
+    /class="media-load-frame mt-8 aspect-\[16\/9\] overflow-hidden rounded-3xl shadow-card"/,
+  );
+  assert.match(source, /data-media-shell/);
+  assert.match(source, /className="h-full w-full object-contain"/);
+  assert.match(source, /mediaLoad/);
   assert.match(source, /fit="inside"/);
-  assert.doesNotMatch(source, /className="mt-8 aspect-\[16\/9\] w-full rounded-3xl border/);
+  assert.doesNotMatch(
+    source,
+    /className="mt-8 aspect-\[16\/9\] w-full rounded-3xl border/,
+  );
   assert.match(source, /width=\{detailCoverWidth\}/);
   assert.match(source, /height=\{detailCoverHeight\}/);
-  assert.match(source, /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']strong["']/);
+  assert.match(
+    source,
+    /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']strong["']/,
+  );
   // The order indicator is sourced from the dictionary template so each
   // locale can express the count naturally.
-  assert.match(source, /t\.blogPost\.seriesProgress[\s\S]*?\.replace\(\s*"\{order\}"/);
-  assert.match(source, /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']soft["']/);
+  assert.match(
+    source,
+    /t\.blogPost\.seriesProgress[\s\S]*?\.replace\(\s*"\{order\}"/,
+  );
+  assert.match(
+    source,
+    /surface\(\{[^}]*kind:\s*["']panel["'][^}]*tone:\s*["']soft["']/,
+  );
   assert.doesNotMatch(source, /typeof coverImage === 'string'/);
 });
 
 test("db source exposes cover media through the shared type", async () => {
   const blogDbSource = await readFile(blogDbPath, "utf8");
 
-  assert.match(blogDbSource, /import \{[\s\S]*normalizeCoverMedia[\s\S]*normalizeOptionalImageUrl[\s\S]*type CoverMedia[\s\S]*\} from '\.\/cover-media';/);
-  assert.match(blogDbSource, /import \{[\s\S]*requestBackend[\s\S]*requestBackendPublic[\s\S]*resolveBackendAssetUrl[\s\S]*\} from '\.\/backend-api';/);
+  assert.match(
+    blogDbSource,
+    /import \{[\s\S]*normalizeCoverMedia[\s\S]*normalizeOptionalImageUrl[\s\S]*type CoverMedia[\s\S]*\} from '\.\/cover-media';/,
+  );
+  assert.match(
+    blogDbSource,
+    /import \{[\s\S]*requestBackend[\s\S]*requestBackendPublic[\s\S]*resolveBackendAssetUrl[\s\S]*\} from '\.\/backend-api';/,
+  );
   assert.match(blogDbSource, /coverMedia\?: CoverMedia;/);
-  assert.match(blogDbSource, /const normalizedCoverImageUrl = normalizeOptionalImageUrl\(post\.cover_image_url\)/);
-  assert.match(blogDbSource, /const resolvedCoverImageUrl = resolveBackendAssetUrl\(normalizedCoverImageUrl\)/);
-  assert.match(blogDbSource, /coverMedia:\s*normalizeCoverMedia\(resolvedCoverImageUrl\)/);
+  assert.match(
+    blogDbSource,
+    /const normalizedCoverImageUrl = normalizeOptionalImageUrl\(post\.cover_image_url\)/,
+  );
+  assert.match(
+    blogDbSource,
+    /const resolvedCoverImageUrl = resolveBackendAssetUrl\(normalizedCoverImageUrl\)/,
+  );
+  assert.match(
+    blogDbSource,
+    /coverMedia:\s*normalizeCoverMedia\(resolvedCoverImageUrl\)/,
+  );
 });

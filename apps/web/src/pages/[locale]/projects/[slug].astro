@@ -8,8 +8,14 @@ import {
 import PostAdminActions from "../../../components/public/PostAdminActions";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import PostCard from "../../../components/PostCard.astro";
-import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
-import { getPublishedDbProjectBySlug, resolveProjectSlugRedirect } from "../../../lib/projects";
+import {
+  ADMIN_ACCESS_COOKIE,
+  verifyAccessToken,
+} from "../../../lib/admin-auth";
+import {
+  getPublishedDbProjectBySlug,
+  resolveProjectSlugRedirect,
+} from "../../../lib/projects";
 import { normalizeCoverMedia } from "../../../lib/cover-media";
 import { action, chip, surface } from "../../../lib/ui";
 import { toYoutubeEmbedUrl } from "../../../lib/youtube";
@@ -33,7 +39,9 @@ const t = pickDictionary(locale);
 // ── Data fetching ──────────────────────────────────────────────────────────
 const slug = Astro.params.slug ?? "";
 const accessToken = Astro.cookies.get(ADMIN_ACCESS_COOKIE)?.value ?? "";
-const isAdminViewer = accessToken ? await verifyAccessToken(accessToken) : false;
+const isAdminViewer = accessToken
+  ? await verifyAccessToken(accessToken)
+  : false;
 const project = await getPublishedDbProjectBySlug(slug, { locale });
 const projectProfile = project
   ? {
@@ -47,7 +55,8 @@ const youtubeEmbedUrl =
   project && project.topMediaKind === "youtube"
     ? toYoutubeEmbedUrl(project.topMediaYoutubeUrl)
     : null;
-const shouldRenderProjectTopVideo = project?.topMediaKind === "video" && project.topMediaVideoUrl;
+const shouldRenderProjectTopVideo =
+  project?.topMediaKind === "video" && project.topMediaVideoUrl;
 
 if (!project) {
   const redirectTarget = await resolveProjectSlugRedirect(slug, locale);
@@ -64,7 +73,8 @@ const projectStructuredData = project
       summary: project.summary,
       stack: project.stack,
       locale,
-      coverImageUrl: project.coverImageUrl ?? project.topMediaImageUrl ?? undefined,
+      coverImageUrl:
+        project.coverImageUrl ?? project.topMediaImageUrl ?? undefined,
     })
   : undefined;
 
@@ -72,7 +82,10 @@ const projectStructuredData = project
 const alternates = project
   ? buildLocalizedAlternates(
       Object.fromEntries(
-        SUPPORTED_PUBLIC_LOCALES.map((l) => [l, `/${l}/projects/${project.slug}`]),
+        SUPPORTED_PUBLIC_LOCALES.map((l) => [
+          l,
+          `/${l}/projects/${project.slug}`,
+        ]),
       ) as Record<PublicLocale, string>,
       new URL(SITE_URL),
     )
@@ -92,26 +105,31 @@ const alternates = project
       structuredData={projectStructuredData}
     >
       <section class="mx-auto flex max-w-[1398px] flex-col gap-8 py-10 sm:py-12">
-        <nav class="flex flex-wrap items-center justify-between gap-3" aria-label="Project navigation">
+        <nav
+          class="flex flex-wrap items-center justify-between gap-3"
+          aria-label="Project navigation"
+        >
           <a
             class={action({ variant: "surface", size: "md" })}
             href={`/${locale}/projects`}
           >
             <span aria-hidden="true">‹</span>
-            <span>{t.blogPost.backToBlog.replace("블로그", t.nav.projects)}</span>
+            <span>
+              {t.blogPost.backToBlog.replace("블로그", t.nav.projects)}
+            </span>
           </a>
-          {
-            isAdminViewer && (
-              <PostAdminActions
-                client:load
-                adminPostSlug={project.slug}
-                locale={locale}
-              />
-            )
-          }
+          {isAdminViewer && (
+            <PostAdminActions
+              client:load
+              adminPostSlug={project.slug}
+              locale={locale}
+            />
+          )}
         </nav>
 
-        <header class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${surface({ kind: "section" })}`}>
+        <header
+          class={`grid gap-8 p-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:p-8 ${surface({ kind: "section" })}`}
+        >
           <div class="space-y-5">
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
@@ -120,20 +138,16 @@ const alternates = project
               <h1 class="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
                 {project.title}
               </h1>
-              {
-                project.summary && (
-                  <p class="max-w-2xl text-base leading-8 text-foreground/78">
-                    {project.summary}
-                  </p>
-                )
-              }
+              {project.summary && (
+                <p class="max-w-2xl text-base leading-8 text-foreground/78">
+                  {project.summary}
+                </p>
+              )}
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
               {project.stack.map((skill) => (
-                <span class={chip({ size: "lg" })}>
-                  {skill}
-                </span>
+                <span class={chip({ size: "lg" })}>{skill}</span>
               ))}
             </div>
           </div>
@@ -145,42 +159,52 @@ const alternates = project
             <p class="mt-4 text-base leading-8 text-foreground/85">
               {projectProfile?.role}
             </p>
-            <p class="mt-2 text-sm text-muted-foreground">{projectProfile?.period}</p>
+            <p class="mt-2 text-sm text-muted-foreground">
+              {projectProfile?.period}
+            </p>
           </div>
         </header>
 
-        <div class={`overflow-hidden ${surface({ kind: "section" })}`}>
-          {
-            shouldRenderProjectTopVideo ? (
-              <video
-                class="aspect-[16/9] h-full w-full object-cover"
-                controls
-                data-project-top-video
-                preload="metadata"
-              >
-                <source src={project.topMediaVideoUrl} type="video/mp4" />
-              </video>
-            ) : youtubeEmbedUrl ? (
-              <iframe
-                class="aspect-[16/9] h-full w-full"
-                src={youtubeEmbedUrl}
-                title={project.title}
-                loading="lazy"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allow="autoplay; encrypted-media"
-                allowfullscreen
-              />
-            ) : (
-              <img
-                alt={project.title}
-                class="aspect-[16/9] h-full w-full object-cover"
-                height={780}
-                loading="lazy"
-                src={project.topMediaImageUrl ?? project.coverImageUrl ?? DEFAULT_SERIES_IMAGE}
-                width={1400}
-              />
-            )
-          }
+        <div
+          class={`media-load-frame aspect-[16/9] overflow-hidden ${surface({ kind: "section" })}`}
+          data-media-shell
+        >
+          {shouldRenderProjectTopVideo ? (
+            <video
+              class="h-full w-full object-cover"
+              controls
+              data-project-top-video
+              data-media-load
+              preload="metadata"
+            >
+              <source src={project.topMediaVideoUrl} type="video/mp4" />
+            </video>
+          ) : youtubeEmbedUrl ? (
+            <iframe
+              class="h-full w-full"
+              src={youtubeEmbedUrl}
+              title={project.title}
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allow="autoplay; encrypted-media"
+              allowfullscreen
+              data-media-load
+            />
+          ) : (
+            <img
+              alt={project.title}
+              class="h-full w-full object-cover"
+              height={780}
+              loading="lazy"
+              data-media-load
+              src={
+                project.topMediaImageUrl ??
+                project.coverImageUrl ??
+                DEFAULT_SERIES_IMAGE
+              }
+              width={1400}
+            />
+          )}
         </div>
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
@@ -191,44 +215,40 @@ const alternates = project
             <p class="mt-4 text-base leading-8 text-foreground/85">
               {project.intro}
             </p>
-            {
-              projectProfile?.highlights.length ? (
-                <ul class="mt-5 grid gap-3 text-sm leading-7 text-muted-foreground">
-                  {projectProfile.highlights.map((item) => (
-                    <li>{item}</li>
-                  ))}
-                </ul>
-              ) : null
-            }
+            {projectProfile?.highlights.length ? (
+              <ul class="mt-5 grid gap-3 text-sm leading-7 text-muted-foreground">
+                {projectProfile.highlights.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            ) : null}
           </article>
 
           <article class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
             <h2 class="text-xl font-semibold tracking-tight text-foreground">
               {t.projectDetail.resources}
             </h2>
-            {
-              (projectProfile?.links.length ?? 0) > 0 ? (
-                <div class="mt-4 flex flex-col items-start gap-3">
-                  {projectProfile?.links.map((link) => {
-                    const isExternal = /^https?:\/\//.test(link.href);
-                    return (
-                      <a
-                        class={`w-full justify-start ${action({ variant: "surface", size: "md" })}`}
-                        href={link.href}
-                        rel={isExternal ? "noreferrer" : undefined}
-                        target={isExternal ? "_blank" : undefined}
-                      >
-                        {link.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p class="mt-4 text-sm leading-7 text-muted-foreground">
-                  {t.empty.noResults}
-                </p>
-              )
-            }
+            {(projectProfile?.links.length ?? 0) > 0 ? (
+              <div class="mt-4 flex flex-col items-start gap-3">
+                {projectProfile?.links.map((link) => {
+                  const isExternal = /^https?:\/\//.test(link.href);
+                  return (
+                    <a
+                      class={`w-full justify-start ${action({ variant: "surface", size: "md" })}`}
+                      href={link.href}
+                      rel={isExternal ? "noreferrer" : undefined}
+                      target={isExternal ? "_blank" : undefined}
+                    >
+                      {link.label}
+                    </a>
+                  );
+                })}
+              </div>
+            ) : (
+              <p class="mt-4 text-sm leading-7 text-muted-foreground">
+                {t.empty.noResults}
+              </p>
+            )}
           </article>
         </section>
 
@@ -238,40 +258,41 @@ const alternates = project
               {t.projectDetail.description}
             </h2>
           </div>
-          <div class="markdown-prose mt-5 text-base leading-8 text-foreground/85" set:html={project.description} />
+          <div
+            class="markdown-prose mt-5 text-base leading-8 text-foreground/85"
+            set:html={project.description}
+          />
         </section>
 
-        {
-          project.relatedSeriesPosts.length > 0 && (
-            <section class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
-              <div class="space-y-2">
-                <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
-                  RELATED SERIES
-                </p>
-                <h2 class="text-2xl font-semibold tracking-tight text-foreground">
-                  {t.blogPost.relatedSeries}
-                </h2>
-              </div>
-              <div class="mt-6 grid gap-6 md:grid-cols-2">
-                {project.relatedSeriesPosts.map((post) => (
-                  <PostCard
-                    post={{
-                      slug: post.slug,
-                      title: post.title,
-                      description: post.excerpt,
-                      pubDate: post.publishedAt ?? new Date(),
-                      coverMedia: normalizeCoverMedia(post.coverImageUrl),
-                      body: post.excerpt,
-                      tags: [],
-                      visibility: post.visibility,
-                    }}
-                    locale={locale}
-                  />
-                ))}
-              </div>
-            </section>
-          )
-        }
+        {project.relatedSeriesPosts.length > 0 && (
+          <section class={`rounded-3xl p-6 ${surface({ kind: "section" })}`}>
+            <div class="space-y-2">
+              <p class="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
+                RELATED SERIES
+              </p>
+              <h2 class="text-2xl font-semibold tracking-tight text-foreground">
+                {t.blogPost.relatedSeries}
+              </h2>
+            </div>
+            <div class="mt-6 grid gap-6 md:grid-cols-2">
+              {project.relatedSeriesPosts.map((post) => (
+                <PostCard
+                  post={{
+                    slug: post.slug,
+                    title: post.title,
+                    description: post.excerpt,
+                    pubDate: post.publishedAt ?? new Date(),
+                    coverMedia: normalizeCoverMedia(post.coverImageUrl),
+                    body: post.excerpt,
+                    tags: [],
+                    visibility: post.visibility,
+                  }}
+                  locale={locale}
+                />
+              ))}
+            </div>
+          </section>
+        )}
         <nav class="flex justify-center" aria-label="Projects archive">
           <a
             class={action({ variant: "surface", size: "md" })}
@@ -283,10 +304,9 @@ const alternates = project
         </nav>
       </section>
 
-      {
-        shouldRenderProjectTopVideo ? (
-          <script is:inline>
-            {`
+      {shouldRenderProjectTopVideo ? (
+        <script is:inline>
+          {`
               (() => {
                 const reloadProjectTopVideo = () => {
                   const video = document.querySelector("video[data-project-top-video]");
@@ -306,9 +326,8 @@ const alternates = project
                 document.addEventListener("astro:page-load", reloadProjectTopVideo);
               })();
             `}
-          </script>
-        ) : null
-      }
+        </script>
+      ) : null}
     </BaseLayout>
   ) : (
     <BaseLayout

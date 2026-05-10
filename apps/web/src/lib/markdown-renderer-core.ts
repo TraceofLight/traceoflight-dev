@@ -9,6 +9,7 @@ type HighlightJsLike = {
 const YOUTUBE_DIRECTIVE_MARKER = ":::youtube";
 const YOUTUBE_DIRECTIVE_CLOSE = ":::";
 const IMAGE_FALLBACK_TEXT = "이미지를 불러올 수 없습니다.";
+const MEDIA_FALLBACK_TEXT = "미디어를 불러올 수 없습니다.";
 
 function isPlaceholderImageAlt(value: string): boolean {
   const normalized = value.trim();
@@ -91,7 +92,8 @@ function installYoutubeDirective(markdown: MarkdownIt): void {
     const embedUrl = tokens[idx].meta?.embedUrl;
     if (typeof embedUrl !== "string" || embedUrl.length === 0) return "";
     const escapedUrl = markdown.utils.escapeHtml(embedUrl);
-    return `<div class="md-video-embed"><iframe src="${escapedUrl}" title="YouTube video player" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
+    const escapedFallbackText = markdown.utils.escapeHtml(MEDIA_FALLBACK_TEXT);
+    return `<div class="md-video-embed media-load-frame" data-media-shell><iframe src="${escapedUrl}" title="YouTube video player" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen data-media-load></iframe><span class="md-media-fallback" hidden>${escapedFallbackText}</span></div>`;
   };
 }
 
@@ -115,13 +117,7 @@ export function configureMarkdownRenderer(
   });
 
   type RenderImageRule = NonNullable<typeof markdown.renderer.rules.image>;
-  const renderImage: RenderImageRule = (
-    tokens,
-    idx,
-    _options,
-    _env,
-    _self,
-  ) => {
+  const renderImage: RenderImageRule = (tokens, idx, _options, _env, _self) => {
     const token = tokens[idx];
     const src = (token.attrGet("src") ?? "").trim();
     const titleAttrIndex = token.attrIndex("title");
@@ -135,11 +131,12 @@ export function configureMarkdownRenderer(
     const escapedTitle = markdown.utils.escapeHtml(caption);
     const escapedFallbackText = markdown.utils.escapeHtml(IMAGE_FALLBACK_TEXT);
     const titleAttribute = caption ? ` title="${escapedTitle}"` : "";
-    const fallbackHtml = `<span class="md-image-fallback" hidden>${escapedFallbackText}</span>`;
-    const imageHtml = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttribute} loading="lazy" data-md-fallback>`;
+    const fallbackHtml = `<span class="md-media-fallback md-image-fallback" hidden>${escapedFallbackText}</span>`;
+    const imageHtml = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttribute} loading="lazy" data-md-fallback data-media-load>`;
+    const mediaHtml = `<span class="md-media-frame media-load-frame" data-media-shell>${imageHtml}${fallbackHtml}</span>`;
 
-    if (!caption) return `${imageHtml}${fallbackHtml}`;
-    return `<figure class="md-figure">${imageHtml}${fallbackHtml}<figcaption>${escapedTitle}</figcaption></figure>`;
+    if (!caption) return mediaHtml;
+    return `<figure class="md-figure">${mediaHtml}<figcaption>${escapedTitle}</figcaption></figure>`;
   };
   markdown.renderer.rules.image = renderImage;
   installYoutubeDirective(markdown);

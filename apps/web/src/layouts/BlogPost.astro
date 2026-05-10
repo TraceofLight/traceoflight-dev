@@ -95,11 +95,14 @@ const shouldRenderAdminActions = Boolean(showAdminActions && adminPostSlug);
 const detailCoverWidth = IMAGE_SIZES.blogPostCover.width;
 const detailCoverHeight = IMAGE_SIZES.blogPostCover.height;
 const defaultSeriesPostCoverImage = DEFAULT_SERIES_IMAGE;
-const defaultSeriesPostCoverImageSrc = toBrowserImageUrl(defaultSeriesPostCoverImage, {
-  width: IMAGE_SIZES.seriesSidebarThumb.width,
-  height: IMAGE_SIZES.seriesSidebarThumb.height,
-  fit: "cover",
-});
+const defaultSeriesPostCoverImageSrc = toBrowserImageUrl(
+  defaultSeriesPostCoverImage,
+  {
+    width: IMAGE_SIZES.seriesSidebarThumb.width,
+    height: IMAGE_SIZES.seriesSidebarThumb.height,
+    fit: "cover",
+  },
+);
 const coverImageFallbackSrc = toBrowserImageUrl(DEFAULT_ARTICLE_IMAGE, {
   width: detailCoverWidth,
   height: detailCoverHeight,
@@ -109,7 +112,9 @@ const hasSeriesSidebar = Boolean(seriesContext && seriesPosts.length > 0);
 const coverMedia = normalizeCoverMedia(coverImage);
 const pubDateLabel = formatDateLabel(pubDate);
 const pubDateIso = toIsoDateTime(pubDate);
-const seriesPostFallbackSrc = normalizeImageFallbackSrc(defaultSeriesPostCoverImageSrc);
+const seriesPostFallbackSrc = normalizeImageFallbackSrc(
+  defaultSeriesPostCoverImageSrc,
+);
 const topMediaEmbedUrl =
   topMediaKind === "youtube" ? toYoutubeEmbedUrl(topMediaYoutubeUrl) : null;
 const topMediaImage = normalizeCoverMedia(topMediaImageUrl ?? coverImage);
@@ -183,34 +188,51 @@ const articleStructuredData = postSlug
       </nav>
       {
         topMediaKind === "video" && topMediaVideoUrl ? (
-          <video
-            class="mt-8 aspect-[16/9] h-auto w-full rounded-3xl object-cover shadow-card"
-            controls
-            preload="metadata"
-            src={topMediaVideoUrl}
+          <div
+            class="media-load-frame mt-8 aspect-[16/9] overflow-hidden rounded-3xl shadow-card"
+            data-media-shell
           >
-          </video>
+            <video
+              class="h-full w-full object-cover"
+              controls
+              preload="metadata"
+              src={topMediaVideoUrl}
+              data-media-load
+            ></video>
+          </div>
         ) : topMediaEmbedUrl ? (
-          <div class="mt-8 overflow-hidden rounded-3xl shadow-card">
+          <div
+            class="media-load-frame mt-8 aspect-[16/9] overflow-hidden rounded-3xl shadow-card"
+            data-media-shell
+          >
             <iframe
-              class="aspect-[16/9] h-full w-full"
+              class="h-full w-full"
               src={topMediaEmbedUrl}
               title={title}
               loading="lazy"
               referrerpolicy="strict-origin-when-cross-origin"
               allowfullscreen
+              data-media-load
             />
           </div>
-        ) : topMediaImage && (
-          <CoverMediaImage
-            className="mt-8 h-auto w-full rounded-3xl shadow-card"
-            media={topMediaImage}
-            alt={title}
-            width={detailCoverWidth}
-            height={detailCoverHeight}
-            fallbackSrc={coverImageFallbackSrc}
-            fit="inside"
-          />
+        ) : (
+          topMediaImage && (
+            <div
+              class="media-load-frame mt-8 aspect-[16/9] overflow-hidden rounded-3xl shadow-card"
+              data-media-shell
+            >
+              <CoverMediaImage
+                className="h-full w-full object-contain"
+                media={topMediaImage}
+                alt={title}
+                width={detailCoverWidth}
+                height={detailCoverHeight}
+                fallbackSrc={coverImageFallbackSrc}
+                fit="inside"
+                mediaLoad
+              />
+            </div>
+          )
         )
       }
 
@@ -282,7 +304,9 @@ const articleStructuredData = postSlug
               {seriesPosts.map((seriesPost) => {
                 const previewText = (seriesPost.excerpt ?? "").trim();
                 const relationLabel =
-                  seriesPost.relation === "prev" ? t.blogPost.prevPost : t.blogPost.nextPost;
+                  seriesPost.relation === "prev"
+                    ? t.blogPost.prevPost
+                    : t.blogPost.nextPost;
                 const resolvedSeriesPostCoverImageSrc = seriesPost.coverImageUrl
                   ? toBrowserImageUrl(seriesPost.coverImageUrl, {
                       width: IMAGE_SIZES.seriesSidebarThumb.width,
@@ -312,7 +336,9 @@ const articleStructuredData = postSlug
                           {seriesPost.title}
                         </strong>
                         <em class="line-clamp-2 text-sm not-italic text-muted-foreground">
-                          {previewText.length > 0 ? previewText : t.blogPost.noExcerpt}
+                          {previewText.length > 0
+                            ? previewText
+                            : t.blogPost.noExcerpt}
                         </em>
                       </span>
                     </a>

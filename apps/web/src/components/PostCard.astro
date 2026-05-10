@@ -31,7 +31,8 @@ const {
 } = Astro.props;
 const t = pickDictionary(locale as PublicLocale);
 const localizedPostHref = `/${locale}/blog/${post.slug}/`;
-const normalizedVisibility = post.visibility === "private" ? "private" : "public";
+const normalizedVisibility =
+  post.visibility === "private" ? "private" : "public";
 const descriptionText = post.description?.trim() ?? "";
 const hasDescription = descriptionText.length > 0;
 const postTags = (post.tags ?? [])
@@ -44,11 +45,14 @@ const fallbackCoverImageSrc = toBrowserImageUrl(fallbackCoverImage, {
   height: imageHeight,
   fit: "inside",
 });
-const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(fallbackCoverImageSrc);
+const normalizedFallbackCoverImageSrc = normalizeImageFallbackSrc(
+  fallbackCoverImageSrc,
+);
 const formattedPubDate = formatDateLabel(post.pubDate);
 const pubDateIso = toIsoDateTime(post.pubDate);
 const commentCount = post.commentCount ?? 0;
-const readingLabel = post.readingLabel ?? formatReadingTimeLabel(post.body ?? "");
+const readingLabel =
+  post.readingLabel ?? formatReadingTimeLabel(post.body ?? "");
 const mediaFrameClass = mediaFrame();
 const anchorClass = `flex h-full flex-col p-3 ${surface({ kind: "card", interactive: true })}`;
 const tagPillClass = chip({ size: "sm" });
@@ -77,6 +81,7 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
             fit="inside"
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
             fallbackSrc={fallbackCoverImageSrc}
+            mediaLoad
           />
         ) : (
           <img
@@ -85,6 +90,7 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
             alt={post.title}
             loading="lazy"
             data-fallback-src={normalizedFallbackCoverImageSrc}
+            data-media-load
           />
         )
       }
@@ -93,7 +99,11 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
       {
         variant === "archive" && showVisibility && (
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{normalizedVisibility === "private" ? t.archiveFilters.privatePost : t.archiveFilters.publicPost}</span>
+            <span>
+              {normalizedVisibility === "private"
+                ? t.archiveFilters.privatePost
+                : t.archiveFilters.publicPost}
+            </span>
           </div>
         )
       }
@@ -102,14 +112,15 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
           <p class="flex items-center gap-2 text-xs text-muted-foreground">
             <time datetime={pubDateIso}>{formattedPubDate}</time>
             <span aria-hidden="true">•</span>
-            <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
+            <span>
+              {t.comments.title} {commentCount}
+              {t.archiveFilters.commentCount}
+            </span>
             <span aria-hidden="true">•</span>
             <span>{readingLabel}</span>
-            {
-              showVisibility && post.visibility === 'private' && (
-                <span class={privatePillClass}>Private</span>
-              )
-            }
+            {showVisibility && post.visibility === "private" && (
+              <span class={privatePillClass}>Private</span>
+            )}
           </p>
         )
       }
@@ -121,7 +132,13 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
       </div>
       {
         hasTags && (
-          <div class={variant === "archive" ? "flex flex-wrap gap-2" : "mt-auto flex flex-wrap gap-2"}>
+          <div
+            class={
+              variant === "archive"
+                ? "flex flex-wrap gap-2"
+                : "mt-auto flex flex-wrap gap-2"
+            }
+          >
             {postTags.map((tag) => (
               <span class={tagPillClass}>{tag}</span>
             ))}
@@ -133,7 +150,10 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
           <p class="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
             <time datetime={pubDateIso}>{formattedPubDate}</time>
             <span aria-hidden="true">•</span>
-            <span>{t.comments.title} {commentCount}{t.archiveFilters.commentCount}</span>
+            <span>
+              {t.comments.title} {commentCount}
+              {t.archiveFilters.commentCount}
+            </span>
             <span aria-hidden="true">•</span>
             <span>{readingLabel}</span>
           </p>

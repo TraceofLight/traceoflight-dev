@@ -25,7 +25,9 @@ function buildMarkdownSnippet(
   mediaUrl: string,
 ): string {
   if (kind === "image") return `![](${mediaUrl})`;
-  if (kind === "video") return `<video controls src="${mediaUrl}"></video>`;
+  if (kind === "video") {
+    return `<div class="md-video-embed media-load-frame" data-media-shell><video controls preload="metadata" src="${mediaUrl}" data-media-load></video><span class="md-media-fallback" hidden>미디어를 불러올 수 없습니다.</span></div>`;
+  }
   return `[${fileName}](${mediaUrl})`;
 }
 
