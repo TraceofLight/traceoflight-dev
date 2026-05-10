@@ -108,12 +108,12 @@ impl PostFactory {
             .clone()
             .unwrap_or_else(|| slug_from_title(&self.title));
         let translation_status = if self.source_post_id.is_some() {
-            "translated"
+            "synced"
         } else {
             "source"
         };
         let translation_source_kind = if self.source_post_id.is_some() {
-            "auto"
+            "machine"
         } else {
             "manual"
         };

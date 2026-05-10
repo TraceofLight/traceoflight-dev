@@ -20,12 +20,8 @@ use crate::indexnow::IndexNowClient;
 
 const POP_TIMEOUT_SECONDS: f64 = 5.0;
 
-pub fn spawn<P>(
-    pool: PgPool,
-    queue: TranslationQueue,
-    provider: Arc<P>,
-    indexnow: IndexNowClient,
-) where
+pub fn spawn<P>(pool: PgPool, queue: TranslationQueue, provider: Arc<P>, indexnow: IndexNowClient)
+where
     P: TranslationProvider + 'static,
 {
     tokio::spawn(async move {
@@ -124,7 +120,11 @@ async fn handle_post_job<P: TranslationProvider>(
         return Ok(());
     }
 
-    let source_hash = hash_post(&source.title, source.excerpt.as_deref(), &source.body_markdown);
+    let source_hash = hash_post(
+        &source.title,
+        source.excerpt.as_deref(),
+        &source.body_markdown,
+    );
 
     let sibling = sqlx::query_as::<_, PostSiblingRow>(
         r#"
@@ -200,7 +200,7 @@ async fn handle_post_job<P: TranslationProvider>(
                 gen_random_uuid(), $1, $2, $3, $4, $5,
                 $6::post_top_media_kind, $7, $8, $9,
                 $10, $11::post_locale, $12, $13,
-                'translated'::post_translation_status, 'auto'::post_translation_source_kind, $14,
+                'synced'::post_translation_status, 'machine'::post_translation_source_kind, $14,
                 $15::post_content_kind, $16::post_status, $17::post_visibility, $18
             )
             "#,
@@ -242,8 +242,8 @@ async fn handle_post_job<P: TranslationProvider>(
                 status = $11::post_status,
                 visibility = $12::post_visibility,
                 published_at = $13,
-                translation_status = 'translated'::post_translation_status,
-                translation_source_kind = 'auto'::post_translation_source_kind,
+                translation_status = 'synced'::post_translation_status,
+                translation_source_kind = 'machine'::post_translation_source_kind,
                 translated_from_hash = $14,
                 updated_at = NOW()
             WHERE translation_group_id = $15 AND locale = $16::post_locale
@@ -370,7 +370,7 @@ async fn handle_series_job<P: TranslationProvider>(
             ) VALUES (
                 gen_random_uuid(), $1, $2, $3, $4, $5,
                 $6::post_locale, $7, $8,
-                'translated'::post_translation_status, 'auto'::post_translation_source_kind, $9
+                'synced'::post_translation_status, 'machine'::post_translation_source_kind, $9
             )
             "#,
         )
@@ -393,8 +393,8 @@ async fn handle_series_job<P: TranslationProvider>(
                 description = $2,
                 cover_image_url = $3,
                 list_order_index = $4,
-                translation_status = 'translated'::post_translation_status,
-                translation_source_kind = 'auto'::post_translation_source_kind,
+                translation_status = 'synced'::post_translation_status,
+                translation_source_kind = 'machine'::post_translation_source_kind,
                 translated_from_hash = $5,
                 updated_at = NOW()
             WHERE translation_group_id = $6 AND locale = $7::post_locale
