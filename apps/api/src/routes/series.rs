@@ -5,7 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::IntoParams;
 
 use crate::{
@@ -69,6 +69,15 @@ pub async fn list_series_handler(
 ) -> Result<Json<Vec<SeriesRead>>, AppError> {
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 50, 200)?;
     let include_private = resolve_include_private(params.include_private, trusted);
+    debug!(
+        event = "series.list_requested",
+        trusted,
+        limit,
+        offset,
+        include_private,
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        "series list requested"
+    );
     let series = list_series(
         &state.db,
         ListSeriesParams {
@@ -79,6 +88,14 @@ pub async fn list_series_handler(
         },
     )
     .await?;
+    debug!(
+        event = "series.list_returned",
+        trusted,
+        limit,
+        offset,
+        returned_count = series.len(),
+        "series list returned"
+    );
     Ok(Json(series))
 }
 
@@ -139,6 +156,13 @@ pub async fn resolve_series_redirect_handler(
     let target = resolve_series_redirect(&state.db, &old_slug, params.locale)
         .await?
         .ok_or(AppError::NotFound("no redirect for this slug"))?;
+    debug!(
+        event = "series.redirect_resolved",
+        old_slug = %old_slug,
+        locale = params.locale.as_str(),
+        target_slug = %target,
+        "series redirect resolved"
+    );
     Ok(Json(RedirectResolution {
         target_slug: target,
     }))
@@ -175,9 +199,26 @@ pub async fn get_series_by_slug_handler(
     Query(params): Query<GetSeriesQuery>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
     let include_private = resolve_include_private(params.include_private, trusted);
+    debug!(
+        event = "series.detail_requested",
+        trusted,
+        slug = %slug,
+        include_private,
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        "series detail requested"
+    );
     let series = get_series_by_slug(&state.db, &slug, include_private, params.locale)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
+    debug!(
+        event = "series.detail_returned",
+        trusted,
+        series_id = %series.id,
+        slug = %series.slug,
+        locale = series.locale.as_str(),
+        post_count = series.post_count,
+        "series detail returned"
+    );
     Ok(Json(series))
 }
 

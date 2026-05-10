@@ -4,7 +4,7 @@ use axum::{
     http::{StatusCode, header},
     response::{Json, Response},
 };
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     AppState,
@@ -20,16 +20,50 @@ async fn handle_pdf_status(
     state: &AppState,
     config: &PdfAssetConfig,
 ) -> Result<Json<PdfStatus>, AppError> {
-    Ok(Json(pdf_status(&state.minio, config).await?))
+    debug!(
+        event = "pdf.status_requested",
+        asset = config.validation_label,
+        object_key = config.object_key,
+        "pdf status requested"
+    );
+    let status = pdf_status(&state.minio, config).await?;
+    debug!(
+        event = "pdf.status_returned",
+        asset = config.validation_label,
+        available = status.available,
+        "pdf status returned"
+    );
+    Ok(Json(status))
 }
 
 async fn handle_pdf_download(
     state: &AppState,
     config: &PdfAssetConfig,
 ) -> Result<Response, AppError> {
-    let download = download_pdf(&state.minio, config)
-        .await?
-        .ok_or_else(|| AppError::NotFound(missing_detail(config)))?;
+    debug!(
+        event = "pdf.download_requested",
+        asset = config.validation_label,
+        object_key = config.object_key,
+        "pdf download requested"
+    );
+    let Some(download) = download_pdf(&state.minio, config).await? else {
+        debug!(
+            event = "pdf.download_missing",
+            asset = config.validation_label,
+            object_key = config.object_key,
+            "pdf download missing"
+        );
+        return Err(AppError::NotFound(missing_detail(config)));
+    };
+    let size_bytes = download.body.len();
+    debug!(
+        event = "pdf.download_ready",
+        asset = config.validation_label,
+        filename = %download.filename,
+        content_type = %download.content_type,
+        size_bytes,
+        "pdf download ready"
+    );
     let disposition = format!("inline; filename=\"{}\"", download.filename);
     Response::builder()
         .status(StatusCode::OK)
@@ -79,6 +113,14 @@ async fn handle_pdf_upload(
     let data =
         data.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
     let size_bytes = data.len();
+    debug!(
+        event = "pdf.upload_requested",
+        asset = config.validation_label,
+        filename = %filename,
+        content_type = content_type.as_deref().unwrap_or(""),
+        size_bytes,
+        "pdf upload requested"
+    );
     let status = upload_pdf(
         &state.minio,
         config,
@@ -173,7 +215,19 @@ pub async fn delete_portfolio_pdf_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Json<PdfStatus>, AppError> {
+    debug!(
+        event = "pdf.delete_requested",
+        asset = PORTFOLIO_PDF.validation_label,
+        object_key = PORTFOLIO_PDF.object_key,
+        "pdf delete requested"
+    );
     let status = delete_pdf(&state.minio, &PORTFOLIO_PDF).await?;
+    debug!(
+        event = "pdf.delete_returned",
+        asset = PORTFOLIO_PDF.validation_label,
+        available = status.available,
+        "pdf delete returned"
+    );
     info!(
         event = "pdf.deleted",
         asset = PORTFOLIO_PDF.validation_label,
@@ -256,7 +310,19 @@ pub async fn delete_resume_pdf_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Json<PdfStatus>, AppError> {
+    debug!(
+        event = "pdf.delete_requested",
+        asset = RESUME_PDF.validation_label,
+        object_key = RESUME_PDF.object_key,
+        "pdf delete requested"
+    );
     let status = delete_pdf(&state.minio, &RESUME_PDF).await?;
+    debug!(
+        event = "pdf.delete_returned",
+        asset = RESUME_PDF.validation_label,
+        available = status.available,
+        "pdf delete returned"
+    );
     info!(
         event = "pdf.deleted",
         asset = RESUME_PDF.validation_label,

@@ -5,7 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::IntoParams;
 
 use crate::{
@@ -50,7 +50,23 @@ pub async fn list_tags_handler(
     Query(params): Query<ListTagsQuery>,
 ) -> Result<Json<Vec<TagRead>>, AppError> {
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 50, 200)?;
+    let has_query = params
+        .query
+        .as_ref()
+        .map(|query| !query.trim().is_empty())
+        .unwrap_or(false);
+    debug!(
+        event = "tag.list_requested",
+        has_query, limit, offset, "tag list requested"
+    );
     let tags = list_tags(&state.db, params.query.as_deref(), limit, offset).await?;
+    debug!(
+        event = "tag.list_returned",
+        count = tags.len(),
+        limit,
+        offset,
+        "tag list returned"
+    );
     Ok(Json(tags))
 }
 

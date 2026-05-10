@@ -13,7 +13,7 @@ use sea_orm::{
 };
 use tokio::sync::Notify;
 use tokio::time::sleep;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::entities::{
@@ -38,7 +38,11 @@ impl SeriesProjector {
 
     /// Ask the background loop to rebuild on its next tick. Coalesces multiple
     /// concurrent calls into one rebuild.
-    pub fn request_refresh(&self, _reason: &'static str) {
+    pub fn request_refresh(&self, reason: &'static str) {
+        debug!(
+            event = "series_projection.refresh_requested",
+            reason, "series projection refresh requested"
+        );
         self.notify.notify_one();
     }
 
@@ -65,6 +69,10 @@ impl SeriesProjector {
 }
 
 async fn run_rebuild(pool: &DatabaseConnection) {
+    debug!(
+        event = "series_projection.rebuild_started",
+        "series projection rebuild started"
+    );
     match rebuild_series_projection_cache(pool).await {
         Ok(summary) => info!(
             series = summary.series_count,

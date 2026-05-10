@@ -1,5 +1,5 @@
 use axum::{extract::State, http::HeaderMap, response::Json};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     AppState,
@@ -179,7 +179,15 @@ pub async fn admin_get_revision_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Json<AdminCredentialRevisionResponse>, AppError> {
+    debug!(
+        event = "admin.revision_requested",
+        "admin credential revision requested"
+    );
     let credential_revision = get_active_credential_revision(&state.db).await?;
+    debug!(
+        event = "admin.revision_returned",
+        credential_revision, "admin credential revision returned"
+    );
     Ok(Json(AdminCredentialRevisionResponse {
         credential_revision,
     }))

@@ -1,5 +1,5 @@
 use axum::{extract::State, response::Json};
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     AppState,
@@ -23,7 +23,17 @@ use crate::{
 pub async fn get_site_profile_handler(
     State(state): State<AppState>,
 ) -> Result<Json<SiteProfileRead>, AppError> {
+    debug!(
+        event = "site_profile.get_requested",
+        "site profile requested"
+    );
     let profile = get_site_profile(&state.db).await?;
+    debug!(
+        event = "site_profile.get_returned",
+        has_email = !profile.email.trim().is_empty(),
+        has_github_url = !profile.github_url.trim().is_empty(),
+        "site profile returned"
+    );
     Ok(Json(profile))
 }
 

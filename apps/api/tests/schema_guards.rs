@@ -113,3 +113,94 @@ fn backend_write_routes_have_operational_info_log_events() {
         );
     }
 }
+
+#[test]
+fn backend_debug_logs_cover_read_paths_and_background_decisions() {
+    let source_files = [
+        "src/routes/admin.rs",
+        "src/routes/backup.rs",
+        "src/routes/comments.rs",
+        "src/routes/media.rs",
+        "src/routes/pdf.rs",
+        "src/routes/posts.rs",
+        "src/routes/projects.rs",
+        "src/routes/series.rs",
+        "src/routes/site_profile.rs",
+        "src/routes/tags.rs",
+        "src/translation/worker.rs",
+        "src/series_projection.rs",
+        "src/cleanup.rs",
+    ];
+    let combined = source_files
+        .iter()
+        .map(|path| read_repo_file(path))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    for event in [
+        "post.list_requested",
+        "post.list_returned",
+        "post.detail_requested",
+        "post.detail_returned",
+        "post.summary_requested",
+        "post.summary_returned",
+        "post.redirect_resolved",
+        "project.list_requested",
+        "project.list_returned",
+        "project.detail_requested",
+        "project.detail_returned",
+        "project.redirect_resolved",
+        "series.list_requested",
+        "series.list_returned",
+        "series.detail_requested",
+        "series.detail_returned",
+        "series.redirect_resolved",
+        "comment.thread_requested",
+        "comment.thread_returned",
+        "comment.admin_feed_requested",
+        "comment.admin_feed_returned",
+        "tag.list_requested",
+        "tag.list_returned",
+        "site_profile.get_requested",
+        "site_profile.get_returned",
+        "media.upload_url_requested",
+        "media.upload_url_returned",
+        "media.register_requested",
+        "media.register_returned",
+        "media.upload_proxy_requested",
+        "media.upload_proxy_returned",
+        "pdf.status_requested",
+        "pdf.status_returned",
+        "pdf.download_requested",
+        "pdf.download_ready",
+        "pdf.upload_requested",
+        "pdf.delete_requested",
+        "pdf.delete_returned",
+        "import.backup_download_requested",
+        "import.backup_download_ready",
+        "import.backup_load_requested",
+        "import.backup_load_returned",
+        "admin.revision_requested",
+        "admin.revision_returned",
+        "translation.job_received",
+        "translation.post_skipped",
+        "translation.post_upserted",
+        "translation.series_skipped",
+        "translation.series_upserted",
+        "series_projection.refresh_requested",
+        "series_projection.rebuild_started",
+        "cleanup.expired_drafts_purged",
+        "cleanup.orphan_media_scan_completed",
+        "cleanup.slug_redirect_scan_completed",
+    ] {
+        assert!(combined.contains(event), "missing debug log event: {event}");
+    }
+
+    for block in combined.split("debug!(").skip(1) {
+        let statement = block.split(");").next().unwrap_or(block);
+        assert!(
+            !statement.contains("body_markdown") && !statement.contains("password ="),
+            "debug logs should not include markdown bodies or passwords"
+        );
+    }
+}

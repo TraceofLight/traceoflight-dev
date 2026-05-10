@@ -9,7 +9,7 @@ use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc
 use rand::Rng;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 use tokio::time::sleep;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::config::MinioSettings;
 use crate::entities::{
@@ -171,7 +171,14 @@ pub async fn purge_expired_drafts(
         .filter(post::Column::UpdatedAt.lt(cutoff))
         .exec(pool)
         .await?;
-    Ok(result.rows_affected as i64)
+    let deleted = result.rows_affected as i64;
+    debug!(
+        event = "cleanup.expired_drafts_purged",
+        deleted_count = deleted,
+        retention_days = retention_days.max(1),
+        "expired drafts purge completed"
+    );
+    Ok(deleted)
 }
 
 pub async fn purge_orphan_media(
@@ -185,6 +192,7 @@ pub async fn purge_orphan_media(
         .filter(media_asset::Column::UpdatedAt.lt(cutoff))
         .all(pool)
         .await?;
+    let stale_count = stale.len();
 
     let mut deleted = 0i64;
     for row in stale {
@@ -197,6 +205,14 @@ pub async fn purge_orphan_media(
         media_asset::Entity::delete_by_id(row.id).exec(pool).await?;
         deleted += 1;
     }
+    debug!(
+        event = "cleanup.orphan_media_scan_completed",
+        referenced_count = referenced.len(),
+        stale_count,
+        deleted_count = deleted,
+        retention_days = retention_days.max(1),
+        "orphan media cleanup scan completed"
+    );
     Ok(deleted)
 }
 
@@ -287,6 +303,15 @@ async fn purge_expired_redirects(
         .exec(pool)
         .await?
         .rows_affected as i64;
+
+    debug!(
+        event = "cleanup.slug_redirect_scan_completed",
+        deleted_post_redirects = posts,
+        deleted_series_redirects = series,
+        min_age_days = settings.slug_redirect_min_age_days.max(1),
+        idle_days = settings.slug_redirect_idle_days.max(1),
+        "slug redirect cleanup scan completed"
+    );
 
     Ok((posts, series))
 }

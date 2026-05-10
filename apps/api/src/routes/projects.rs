@@ -4,7 +4,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::IntoParams;
 
 use crate::{
@@ -56,6 +56,15 @@ pub async fn list_projects_handler(
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 20, 100)?;
 
     let include_private = resolve_include_private(params.include_private, trusted);
+    debug!(
+        event = "project.list_requested",
+        trusted,
+        limit,
+        offset,
+        include_private,
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        "project list requested"
+    );
     let projects = list_projects(
         &state.db,
         ListProjectsParams {
@@ -66,6 +75,14 @@ pub async fn list_projects_handler(
         },
     )
     .await?;
+    debug!(
+        event = "project.list_returned",
+        trusted,
+        limit,
+        offset,
+        returned_count = projects.len(),
+        "project list returned"
+    );
     Ok(Json(projects))
 }
 
@@ -100,9 +117,28 @@ pub async fn get_project_by_slug_handler(
     Query(params): Query<GetProjectQuery>,
 ) -> Result<Json<ProjectRead>, AppError> {
     let include_private = resolve_include_private(params.include_private, trusted);
+    debug!(
+        event = "project.detail_requested",
+        trusted,
+        slug = %slug,
+        include_private,
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        "project detail requested"
+    );
     let project = get_project_by_slug(&state.db, &slug, include_private, params.locale)
         .await?
         .ok_or(AppError::NotFound("project not found"))?;
+    debug!(
+        event = "project.detail_returned",
+        trusted,
+        post_id = %project.id,
+        slug = %project.slug,
+        locale = project.locale.as_str(),
+        status = project.status.as_str(),
+        visibility = project.visibility.as_str(),
+        related_series_posts = project.related_series_posts.len(),
+        "project detail returned"
+    );
     Ok(Json(project))
 }
 
@@ -131,6 +167,13 @@ pub async fn resolve_project_redirect_handler(
     let target = resolve_project_redirect(&state.db, &old_slug, params.locale)
         .await?
         .ok_or(AppError::NotFound("no redirect for this slug"))?;
+    debug!(
+        event = "project.redirect_resolved",
+        old_slug = %old_slug,
+        locale = params.locale.as_str(),
+        target_slug = %target,
+        "project redirect resolved"
+    );
     Ok(Json(RedirectResolution {
         target_slug: target,
     }))

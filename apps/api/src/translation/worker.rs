@@ -11,7 +11,7 @@ use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use super::hash::{hash_post, hash_series};
@@ -40,6 +40,13 @@ pub fn spawn<P>(
         loop {
             match queue.blocking_pop(POP_TIMEOUT_SECONDS).await {
                 Ok(Some(job)) => {
+                    debug!(
+                        event = "translation.job_received",
+                        entity = ?job.entity,
+                        source_id = %job.source_id,
+                        target_locale = %job.target_locale,
+                        "translation job received"
+                    );
                     if let Err(err) = handle_job(&pool, provider.as_ref(), &indexnow, &job).await {
                         error!(
                             error = %err,
@@ -82,9 +89,23 @@ async fn handle_post_job<P: TranslationProvider>(
 
     let Some(source) = source else {
         // Source was deleted between enqueue and pickup — nothing to do.
+        debug!(
+            event = "translation.post_skipped",
+            source_id = %job.source_id,
+            target_locale = %job.target_locale,
+            reason = "source_missing",
+            "translation post skipped"
+        );
         return Ok(());
     };
     if !matches!(source.locale, DbPostLocale::Ko) {
+        debug!(
+            event = "translation.post_skipped",
+            source_id = %job.source_id,
+            target_locale = %job.target_locale,
+            reason = "source_not_ko",
+            "translation post skipped"
+        );
         return Ok(());
     }
 
@@ -105,9 +126,25 @@ async fn handle_post_job<P: TranslationProvider>(
         // Don't overwrite a manually-edited sibling. Only auto-generated
         // siblings carry source_post_id pointing back at the ko row.
         if sib.source_post_id != Some(source.id) {
+            debug!(
+                event = "translation.post_skipped",
+                source_id = %source.id,
+                sibling_id = %sib.id,
+                target_locale = %job.target_locale,
+                reason = "manual_sibling",
+                "translation post skipped"
+            );
             return Ok(());
         }
         if sib.translated_from_hash.as_deref() == Some(source_hash.as_str()) {
+            debug!(
+                event = "translation.post_skipped",
+                source_id = %source.id,
+                sibling_id = %sib.id,
+                target_locale = %job.target_locale,
+                reason = "hash_current",
+                "translation post skipped"
+            );
             return Ok(());
         }
     }
@@ -147,7 +184,7 @@ async fn handle_post_job<P: TranslationProvider>(
         _ => None,
     };
 
-    if sibling.is_none() {
+    let action = if sibling.is_none() {
         post::ActiveModel {
             id: Set(Uuid::new_v4()),
             slug: Set(source.slug.clone()),
@@ -174,6 +211,7 @@ async fn handle_post_job<P: TranslationProvider>(
         }
         .insert(pool)
         .await?;
+        "inserted"
     } else {
         let mut active: post::ActiveModel = sibling.expect("checked above").into();
         active.title = Set(translated_title);
@@ -194,9 +232,19 @@ async fn handle_post_job<P: TranslationProvider>(
         active.translated_from_hash = Set(Some(source_hash.clone()));
         active.updated_at = Set(Utc::now());
         active.update(pool).await?;
-    }
-
+        "updated"
+    };
     let content_kind = PostContentKind::from(source.content_kind);
+    debug!(
+        event = "translation.post_upserted",
+        source_id = %source.id,
+        target_locale = %job.target_locale,
+        action,
+        slug = %source.slug,
+        content_kind = content_kind.as_str(),
+        "translation post upserted"
+    );
+
     if let Some(url) = indexnow.post_url(&job.target_locale, content_kind.as_str(), &source.slug) {
         indexnow.submit_urls(vec![url]);
     }
@@ -213,9 +261,23 @@ async fn handle_series_job<P: TranslationProvider>(
     let source = series::Entity::find_by_id(job.source_id).one(pool).await?;
 
     let Some(source) = source else {
+        debug!(
+            event = "translation.series_skipped",
+            source_id = %job.source_id,
+            target_locale = %job.target_locale,
+            reason = "source_missing",
+            "translation series skipped"
+        );
         return Ok(());
     };
     if !matches!(source.locale, DbPostLocale::Ko) {
+        debug!(
+            event = "translation.series_skipped",
+            source_id = %job.source_id,
+            target_locale = %job.target_locale,
+            reason = "source_not_ko",
+            "translation series skipped"
+        );
         return Ok(());
     }
 
@@ -230,9 +292,25 @@ async fn handle_series_job<P: TranslationProvider>(
 
     if let Some(ref sib) = sibling {
         if sib.source_series_id != Some(source.id) {
+            debug!(
+                event = "translation.series_skipped",
+                source_id = %source.id,
+                sibling_id = %sib.id,
+                target_locale = %job.target_locale,
+                reason = "manual_sibling",
+                "translation series skipped"
+            );
             return Ok(());
         }
         if sib.translated_from_hash.as_deref() == Some(source_hash.as_str()) {
+            debug!(
+                event = "translation.series_skipped",
+                source_id = %source.id,
+                sibling_id = %sib.id,
+                target_locale = %job.target_locale,
+                reason = "hash_current",
+                "translation series skipped"
+            );
             return Ok(());
         }
     }
@@ -252,7 +330,7 @@ async fn handle_series_job<P: TranslationProvider>(
         unmask(&translated, &masked.segments)
     };
 
-    if sibling.is_none() {
+    let action = if sibling.is_none() {
         series::ActiveModel {
             id: Set(Uuid::new_v4()),
             slug: Set(source.slug.clone()),
@@ -270,6 +348,7 @@ async fn handle_series_job<P: TranslationProvider>(
         }
         .insert(pool)
         .await?;
+        "inserted"
     } else {
         let mut active: series::ActiveModel = sibling.expect("checked above").into();
         active.title = Set(translated_title);
@@ -281,7 +360,16 @@ async fn handle_series_job<P: TranslationProvider>(
         active.translated_from_hash = Set(Some(source_hash.clone()));
         active.updated_at = Set(Utc::now());
         active.update(pool).await?;
-    }
+        "updated"
+    };
+    debug!(
+        event = "translation.series_upserted",
+        source_id = %source.id,
+        target_locale = %job.target_locale,
+        action,
+        slug = %source.slug,
+        "translation series upserted"
+    );
 
     if let Some(url) = indexnow.series_url(&job.target_locale, &source.slug) {
         indexnow.submit_urls(vec![url]);

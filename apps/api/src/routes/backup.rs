@@ -4,7 +4,7 @@ use axum::{
     http::{StatusCode, header},
     response::{Json, Response},
 };
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     AppState,
@@ -31,8 +31,18 @@ pub async fn download_posts_backup_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Response, AppError> {
+    debug!(
+        event = "import.backup_download_requested",
+        "posts backup download requested"
+    );
     let (filename, bytes) = download_posts_backup(&state.db, &state.minio).await?;
     let size_bytes = bytes.len();
+    debug!(
+        event = "import.backup_download_ready",
+        filename = %filename,
+        size_bytes,
+        "posts backup download ready"
+    );
     info!(
         event = "import.backup_downloaded",
         filename = %filename,
@@ -97,7 +107,21 @@ pub async fn load_posts_backup_handler(
     let file_bytes =
         file_bytes.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
     let size_bytes = file_bytes.len();
+    debug!(
+        event = "import.backup_load_requested",
+        filename = %file_name,
+        size_bytes,
+        "posts backup load requested"
+    );
     let result = load_posts_backup(&state.db, &state.minio, &file_name, &file_bytes).await?;
+    debug!(
+        event = "import.backup_load_returned",
+        filename = %file_name,
+        restored_posts = result.restored_posts,
+        restored_media = result.restored_media,
+        restored_series_overrides = result.restored_series_overrides,
+        "posts backup load returned"
+    );
     info!(
         event = "import.backup_loaded",
         filename = %file_name,

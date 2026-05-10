@@ -4,7 +4,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::IntoParams;
 use uuid::Uuid;
 
@@ -39,9 +39,23 @@ pub async fn list_post_comments_handler(
     OptionalInternalSecret(trusted): OptionalInternalSecret,
     Path(slug): Path<String>,
 ) -> Result<Json<PostCommentThreadList>, AppError> {
+    debug!(
+        event = "comment.thread_requested",
+        trusted,
+        post_slug = %slug,
+        "comment thread requested"
+    );
     let thread = list_post_comments(&state.db, &slug, trusted)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
+    debug!(
+        event = "comment.thread_returned",
+        trusted,
+        post_slug = %slug,
+        comment_count = thread.comment_count,
+        root_count = thread.items.len(),
+        "comment thread returned"
+    );
     Ok(Json(thread))
 }
 
@@ -188,6 +202,22 @@ pub async fn list_admin_comments_handler(
     Query(params): Query<AdminCommentsQuery>,
 ) -> Result<Json<AdminCommentFeed>, AppError> {
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 100, 200)?;
+    let post_slug_present = params
+        .post_slug
+        .as_ref()
+        .is_some_and(|value| !value.trim().is_empty());
+    debug!(
+        event = "comment.admin_feed_requested",
+        limit, offset, post_slug_present, "admin comment feed requested"
+    );
     let feed = list_admin_comments(&state.db, limit, offset, params.post_slug.as_deref()).await?;
+    debug!(
+        event = "comment.admin_feed_returned",
+        limit,
+        offset,
+        returned_count = feed.items.len(),
+        total_count = feed.total_count,
+        "admin comment feed returned"
+    );
     Ok(Json(feed))
 }

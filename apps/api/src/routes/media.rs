@@ -1,6 +1,6 @@
 use axum::{body::Bytes, extract::State, http::HeaderMap, response::Json};
 use serde::Serialize;
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::ToSchema;
 
 use crate::{
@@ -29,8 +29,23 @@ pub async fn create_upload_url_handler(
     State(state): State<AppState>,
     Json(payload): Json<MediaUploadRequest>,
 ) -> Result<Json<MediaUploadResponse>, AppError> {
+    debug!(
+        event = "media.upload_url_requested",
+        kind = ?payload.kind,
+        filename_len = payload.filename.len(),
+        mime_type = %payload.mime_type,
+        "media upload url requested"
+    );
     let object_key = build_object_key(payload.kind, &payload.filename);
     let upload_url = presigned_put_url(&state.minio, &object_key, &payload.mime_type)?;
+    debug!(
+        event = "media.upload_url_returned",
+        kind = ?payload.kind,
+        object_key = %object_key,
+        bucket = %state.minio.bucket,
+        expires_in_seconds = state.minio.presigned_expire_seconds,
+        "media upload url returned"
+    );
     info!(
         event = "media.upload_url_issued",
         kind = ?payload.kind,
@@ -64,7 +79,24 @@ pub async fn register_media_handler(
     State(state): State<AppState>,
     Json(payload): Json<MediaCreate>,
 ) -> Result<Json<MediaRead>, AppError> {
+    debug!(
+        event = "media.register_requested",
+        kind = ?payload.kind,
+        object_key = %payload.object_key,
+        filename_len = payload.original_filename.len(),
+        mime_type = %payload.mime_type,
+        size_bytes = payload.size_bytes,
+        "media register requested"
+    );
     let media = register_media(&state.db, payload, &state.minio.bucket).await?;
+    debug!(
+        event = "media.register_returned",
+        media_id = %media.id,
+        kind = ?media.kind,
+        object_key = %media.object_key,
+        size_bytes = media.size_bytes,
+        "media register returned"
+    );
     info!(
         event = "media.registered",
         media_id = %media.id,
@@ -119,7 +151,20 @@ pub async fn upload_media_proxy_handler(
         .unwrap_or("application/octet-stream");
 
     let size_bytes = body.len();
+    debug!(
+        event = "media.upload_proxy_requested",
+        content_type = %content_type,
+        size_bytes,
+        has_upload_url = true,
+        "media upload proxy requested"
+    );
     proxy_upload(upload_url, content_type, body).await?;
+    debug!(
+        event = "media.upload_proxy_returned",
+        content_type = %content_type,
+        size_bytes,
+        "media upload proxy returned"
+    );
     info!(
         event = "media.upload_proxy_completed",
         content_type = %content_type,

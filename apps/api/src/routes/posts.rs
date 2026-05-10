@@ -5,7 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::{
@@ -71,6 +71,24 @@ pub async fn list_posts_handler(
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 20, 100)?;
 
     let (status, visibility) = effective_visibility(trusted, params.status, params.visibility);
+    let tag_count = params.tag.len();
+    let tag_match = params.tag_match.unwrap_or_default();
+    debug!(
+        event = "post.list_requested",
+        trusted,
+        limit,
+        offset,
+        status = status.map(|value| value.as_str()).unwrap_or("any"),
+        visibility = visibility.map(|value| value.as_str()).unwrap_or("any"),
+        content_kind = params
+            .content_kind
+            .map(|value| value.as_str())
+            .unwrap_or("any"),
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        tag_count,
+        tag_match = ?tag_match,
+        "post list requested"
+    );
 
     let req = ListPostsParams {
         limit,
@@ -80,10 +98,18 @@ pub async fn list_posts_handler(
         content_kind: params.content_kind,
         locale: params.locale,
         tags: params.tag,
-        tag_match: params.tag_match.unwrap_or_default(),
+        tag_match,
     };
 
     let posts = list_posts(&state.db, &req).await?;
+    debug!(
+        event = "post.list_returned",
+        trusted,
+        limit,
+        offset,
+        returned_count = posts.len(),
+        "post list returned"
+    );
     Ok(Json(posts))
 }
 
@@ -112,6 +138,19 @@ pub async fn get_post_by_slug_handler(
     Query(params): Query<PostQuery>,
 ) -> Result<Json<PostRead>, AppError> {
     let (status, visibility) = effective_visibility(trusted, params.status, params.visibility);
+    debug!(
+        event = "post.detail_requested",
+        trusted,
+        slug = %slug,
+        status = status.map(|value| value.as_str()).unwrap_or("any"),
+        visibility = visibility.map(|value| value.as_str()).unwrap_or("any"),
+        content_kind = params
+            .content_kind
+            .map(|value| value.as_str())
+            .unwrap_or("any"),
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        "post detail requested"
+    );
     let filter = PostFilter {
         status,
         visibility,
@@ -122,6 +161,17 @@ pub async fn get_post_by_slug_handler(
     let post = get_post_by_slug(&state.db, &slug, filter)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
+    debug!(
+        event = "post.detail_returned",
+        trusted,
+        post_id = %post.id,
+        slug = %post.slug,
+        locale = post.locale.as_str(),
+        status = post.status.as_str(),
+        visibility = post.visibility.as_str(),
+        content_kind = post.content_kind.as_str(),
+        "post detail returned"
+    );
     Ok(Json(post))
 }
 
@@ -169,6 +219,31 @@ pub async fn list_post_summaries_handler(
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 20, 100)?;
 
     let (status, visibility) = effective_visibility(trusted, params.status, params.visibility);
+    let tag_count = params.tag.len();
+    let tag_match = params.tag_match.unwrap_or_default();
+    let sort = params.sort.unwrap_or_default();
+    let query_present = params
+        .query
+        .as_ref()
+        .is_some_and(|value| !value.trim().is_empty());
+    debug!(
+        event = "post.summary_requested",
+        trusted,
+        limit,
+        offset,
+        status = status.map(|value| value.as_str()).unwrap_or("any"),
+        visibility = visibility.map(|value| value.as_str()).unwrap_or("any"),
+        content_kind = params
+            .content_kind
+            .map(|value| value.as_str())
+            .unwrap_or("any"),
+        locale = params.locale.map(|value| value.as_str()).unwrap_or("any"),
+        tag_count,
+        tag_match = ?tag_match,
+        query_present,
+        sort = ?sort,
+        "post summary requested"
+    );
 
     let req = ListSummariesParams {
         limit,
@@ -178,13 +253,27 @@ pub async fn list_post_summaries_handler(
         content_kind: params.content_kind,
         locale: params.locale,
         tags: params.tag,
-        tag_match: params.tag_match.unwrap_or_default(),
+        tag_match,
         query: params.query,
-        sort: params.sort.unwrap_or_default(),
+        sort,
         include_private_visibility_counts: trusted,
     };
 
     let summaries = list_post_summaries(&state.db, &req, state.reading_words_per_minute).await?;
+    debug!(
+        event = "post.summary_returned",
+        trusted,
+        limit,
+        offset,
+        returned_count = summaries.items.len(),
+        total_count = summaries.total_count,
+        has_more = summaries.has_more,
+        tag_filter_count = summaries.tag_filters.len(),
+        visibility_all = summaries.visibility_counts.all,
+        visibility_public = summaries.visibility_counts.public,
+        visibility_private = summaries.visibility_counts.private,
+        "post summary returned"
+    );
     Ok(Json(summaries))
 }
 
@@ -225,6 +314,13 @@ pub async fn resolve_post_redirect_handler(
     let target = resolve_post_redirect(&state.db, &old_slug, params.locale)
         .await?
         .ok_or(AppError::NotFound("no redirect for this slug"))?;
+    debug!(
+        event = "post.redirect_resolved",
+        old_slug = %old_slug,
+        locale = params.locale.as_str(),
+        target_slug = %target,
+        "post redirect resolved"
+    );
     Ok(Json(RedirectResolution {
         target_slug: target,
     }))
