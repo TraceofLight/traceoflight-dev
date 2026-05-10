@@ -38,7 +38,7 @@ pub async fn list_post_comments_handler(
     OptionalInternalSecret(trusted): OptionalInternalSecret,
     Path(slug): Path<String>,
 ) -> Result<Json<PostCommentThreadList>, AppError> {
-    let thread = list_post_comments(&state.pool, &slug, trusted)
+    let thread = list_post_comments(&state.db, &slug, trusted)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
     Ok(Json(thread))
@@ -67,7 +67,7 @@ pub async fn create_post_comment_handler(
     Path(slug): Path<String>,
     Json(payload): Json<PostCommentCreate>,
 ) -> Result<Json<PostCommentRead>, AppError> {
-    let comment = create_comment(&state.pool, &slug, payload, trusted)
+    let comment = create_comment(&state.db, &slug, payload, trusted)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
     Ok(Json(comment))
@@ -96,7 +96,7 @@ pub async fn update_comment_handler(
     Path(comment_id): Path<Uuid>,
     Json(payload): Json<PostCommentUpdate>,
 ) -> Result<Json<PostCommentRead>, AppError> {
-    let comment = update_comment(&state.pool, comment_id, payload, trusted)
+    let comment = update_comment(&state.db, comment_id, payload, trusted)
         .await?
         .ok_or(AppError::NotFound("comment not found"))?;
     Ok(Json(comment))
@@ -124,7 +124,7 @@ pub async fn delete_comment_handler(
     Path(comment_id): Path<Uuid>,
     Json(payload): Json<PostCommentDelete>,
 ) -> Result<Json<PostCommentRead>, AppError> {
-    let comment = delete_comment(&state.pool, comment_id, payload, trusted)
+    let comment = delete_comment(&state.db, comment_id, payload, trusted)
         .await?
         .ok_or(AppError::NotFound("comment not found"))?;
     Ok(Json(comment))
@@ -163,6 +163,6 @@ pub async fn list_admin_comments_handler(
     Query(params): Query<AdminCommentsQuery>,
 ) -> Result<Json<AdminCommentFeed>, AppError> {
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 100, 200)?;
-    let feed = list_admin_comments(&state.pool, limit, offset, params.post_slug.as_deref()).await?;
+    let feed = list_admin_comments(&state.db, limit, offset, params.post_slug.as_deref()).await?;
     Ok(Json(feed))
 }

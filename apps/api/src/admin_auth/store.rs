@@ -37,7 +37,10 @@ impl RefreshStore {
         format!("{}admin:refresh:{jti}", self.key_prefix)
     }
     fn family_key(&self, family_id: &str) -> String {
-        format!("{}admin:refresh:family:{family_id}:revoked", self.key_prefix)
+        format!(
+            "{}admin:refresh:family:{family_id}:revoked",
+            self.key_prefix
+        )
     }
 
     pub async fn get_state(&self, jti: &str) -> Result<Option<RefreshState>, AppError> {
@@ -105,11 +108,7 @@ impl RefreshStore {
     /// Atomic INCR; on first increment, sets the window TTL. Subsequent
     /// increments preserve the existing TTL so a burst shares one window and
     /// slides out together rather than each attempt extending the lockout.
-    pub async fn incr_login_failure(
-        &self,
-        ip: &str,
-        window_seconds: u64,
-    ) -> Result<u64, AppError> {
+    pub async fn incr_login_failure(&self, ip: &str, window_seconds: u64) -> Result<u64, AppError> {
         let mut conn = self.conn.clone();
         let key = self.login_failure_key(ip);
         let count: u64 = conn.incr(&key, 1u64).await.map_err(redis_to_app)?;

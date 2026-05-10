@@ -1,9 +1,7 @@
 # Idempotent: ensures the test admin DB exists, EMPTY.
 #
-# Migrations are NOT applied here — #[sqlx::test(migrations = "./migrations")]
-# creates a fresh per-test DB from template1 and applies migrations there
-# (with its internal _sqlx_migrations tracking table). Pre-applying via psql
-# would leave the tracking table missing and break the sqlx test runner.
+# Migrations are NOT applied here. #[sqlx::test(migrations = false)]
+# creates a fresh per-test DB from template1; test bootstrap applies SeaORM migrations.
 #
 # This script's only job is to make sure the DB pointed to by
 # TEST_DATABASE_URL exists so sqlx-postgres has somewhere to connect.
@@ -27,4 +25,4 @@ Write-Host "Resetting database $TestDb..."
 & psql $AdminBase -c "CREATE DATABASE `"$TestDb`""
 
 Write-Host "Test DB ready (empty): $TestUrl"
-Write-Host "Migrations will be applied per-test by sqlx::test."
+Write-Host "Migrations will be applied per-test by the SeaORM test bootstrap."

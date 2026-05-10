@@ -1,11 +1,20 @@
 //! Tag taxonomy CRUD (admin-only). Slugs are normalized via
 //! `posts::normalize_tag_slug` to keep URL keys consistent across surfaces.
 
+use chrono::Utc;
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::Set,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect, TransactionTrait,
+    sea_query::{Expr, extension::postgres::PgExpr},
+};
 use serde::Deserialize;
-use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::db;
+use crate::entities::{post_tag, tag};
 use crate::error::AppError;
 use crate::posts::{TagRead, normalize_tag_slug};
 
@@ -29,34 +38,38 @@ pub struct TagUpdate {
 }
 
 pub async fn list_tags(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     query: Option<&str>,
     limit: i64,
     offset: i64,
-) -> Result<Vec<TagRead>, sqlx::Error> {
+) -> Result<Vec<TagRead>, DbErr> {
     let pattern: Option<String> = query
         .map(|q| q.trim().to_lowercase())
         .filter(|q| !q.is_empty())
         .map(|q| format!("%{q}%"));
 
-    sqlx::query_as::<_, TagRead>(
-        r#"
-        SELECT slug, label FROM tags
-        WHERE ($1::text IS NULL
-            OR LOWER(slug)  LIKE $1
-            OR LOWER(label) LIKE $1)
-        ORDER BY slug ASC
-        LIMIT $2 OFFSET $3
-        "#,
-    )
-    .bind(&pattern)
-    .bind(limit)
-    .bind(offset)
-    .fetch_all(pool)
-    .await
+    let mut query = tag::Entity::find();
+    if let Some(pattern) = pattern {
+        query = query.filter(
+            Condition::any()
+                .add(Expr::col(tag::Column::Slug).ilike(pattern.clone()))
+                .add(Expr::col(tag::Column::Label).ilike(pattern)),
+        );
+    }
+
+    query
+        .order_by_asc(tag::Column::Slug)
+        .limit(limit as u64)
+        .offset(offset as u64)
+        .all(pool)
+        .await
+        .map(|models| models.into_iter().map(tag_read).collect())
 }
 
-pub async fn create_tag(pool: &PgPool, payload: TagCreate) -> Result<TagRead, AppError> {
+pub async fn create_tag(
+    pool: &DatabaseConnection,
+    payload: TagCreate,
+) -> Result<TagRead, AppError> {
     let slug = normalize_tag_slug(&payload.slug);
     let label = payload.label.trim().to_string();
     if slug.is_empty() {
@@ -66,22 +79,21 @@ pub async fn create_tag(pool: &PgPool, payload: TagCreate) -> Result<TagRead, Ap
         return Err(AppError::BadRequest("tag label is required".into()));
     }
 
-    sqlx::query_as::<_, TagRead>(
-        r#"
-        INSERT INTO tags (id, slug, label)
-        VALUES (gen_random_uuid(), $1, $2)
-        RETURNING slug, label
-        "#,
-    )
-    .bind(&slug)
-    .bind(&label)
-    .fetch_one(pool)
+    let model = tag::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        slug: Set(slug),
+        label: Set(label),
+        ..Default::default()
+    }
+    .insert(pool)
     .await
-    .map_err(unique_violation_to_conflict)
+    .map_err(unique_violation_to_conflict)?;
+
+    Ok(tag_read(model))
 }
 
 pub async fn update_tag(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     current_slug: &str,
     payload: TagUpdate,
 ) -> Result<Option<TagRead>, AppError> {
@@ -95,9 +107,9 @@ pub async fn update_tag(
         return Ok(None);
     }
 
-    let existing = sqlx::query_as::<_, TagRead>("SELECT slug, label FROM tags WHERE slug = $1")
-        .bind(&normalized_current)
-        .fetch_optional(pool)
+    let existing = tag::Entity::find()
+        .filter(tag::Column::Slug.eq(&normalized_current))
+        .one(pool)
         .await?;
     let Some(existing) = existing else {
         return Ok(None);
@@ -124,46 +136,45 @@ pub async fn update_tag(
         None => existing.label.clone(),
     };
 
-    let updated = sqlx::query_as::<_, TagRead>(
-        r#"
-        UPDATE tags
-        SET slug = $1, label = $2, updated_at = NOW()
-        WHERE slug = $3
-        RETURNING slug, label
-        "#,
-    )
-    .bind(&next_slug)
-    .bind(&next_label)
-    .bind(&normalized_current)
-    .fetch_one(pool)
-    .await
-    .map_err(unique_violation_to_conflict)?;
-    Ok(Some(updated))
+    let mut active: tag::ActiveModel = existing.into();
+    active.slug = Set(next_slug);
+    active.label = Set(next_label);
+    active.updated_at = Set(Utc::now());
+    let updated = active
+        .update(pool)
+        .await
+        .map_err(unique_violation_to_conflict)?;
+    Ok(Some(tag_read(updated)))
 }
 
 /// Returns `Ok(true)` when the row was deleted, `Ok(false)` when no row
 /// matched the slug. Returns `AppError::Conflict` if the tag has post links
 /// and `force` is false; with `force = true` the post_tags links are removed
 /// in the same transaction.
-pub async fn delete_tag(pool: &PgPool, slug: &str, force: bool) -> Result<bool, AppError> {
+pub async fn delete_tag(
+    pool: &DatabaseConnection,
+    slug: &str,
+    force: bool,
+) -> Result<bool, AppError> {
     let normalized = normalize_tag_slug(slug);
     if normalized.is_empty() {
         return Ok(false);
     }
 
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
 
-    let tag_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM tags WHERE slug = $1")
-        .bind(&normalized)
-        .fetch_optional(&mut *tx)
+    let tag_id = tag::Entity::find()
+        .filter(tag::Column::Slug.eq(&normalized))
+        .one(&tx)
         .await?;
-    let Some(tag_id) = tag_id else {
+    let Some(tag_model) = tag_id else {
         return Ok(false);
     };
+    let tag_id = tag_model.id;
 
-    let link_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM post_tags WHERE tag_id = $1")
-        .bind(tag_id)
-        .fetch_one(&mut *tx)
+    let link_count = post_tag::Entity::find()
+        .filter(post_tag::Column::TagId.eq(tag_id))
+        .count(&tx)
         .await?;
 
     if link_count > 0 {
@@ -172,26 +183,28 @@ pub async fn delete_tag(pool: &PgPool, slug: &str, force: bool) -> Result<bool, 
                 "tag is linked to one or more posts".into(),
             ));
         }
-        sqlx::query("DELETE FROM post_tags WHERE tag_id = $1")
-            .bind(tag_id)
-            .execute(&mut *tx)
+        post_tag::Entity::delete_many()
+            .filter(post_tag::Column::TagId.eq(tag_id))
+            .exec(&tx)
             .await?;
     }
 
-    sqlx::query("DELETE FROM tags WHERE id = $1")
-        .bind(tag_id)
-        .execute(&mut *tx)
-        .await?;
+    tag::Entity::delete_by_id(tag_id).exec(&tx).await?;
 
     tx.commit().await?;
     Ok(true)
 }
 
-fn unique_violation_to_conflict(err: sqlx::Error) -> AppError {
-    if let Some(db_err) = err.as_database_error() {
-        if db_err.code().as_deref() == Some("23505") {
-            return AppError::Conflict("tag slug already exists".into());
-        }
+fn tag_read(model: tag::Model) -> TagRead {
+    TagRead {
+        slug: model.slug,
+        label: model.label,
+    }
+}
+
+fn unique_violation_to_conflict(err: DbErr) -> AppError {
+    if db::unique_violation(&err) {
+        return AppError::Conflict("tag slug already exists".into());
     }
     AppError::Database(err)
 }

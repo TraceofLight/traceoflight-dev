@@ -49,7 +49,7 @@ pub async fn list_tags_handler(
     Query(params): Query<ListTagsQuery>,
 ) -> Result<Json<Vec<TagRead>>, AppError> {
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 50, 200)?;
-    let tags = list_tags(&state.pool, params.query.as_deref(), limit, offset).await?;
+    let tags = list_tags(&state.db, params.query.as_deref(), limit, offset).await?;
     Ok(Json(tags))
 }
 
@@ -75,7 +75,7 @@ pub async fn create_tag_handler(
     State(state): State<AppState>,
     Json(payload): Json<TagCreate>,
 ) -> Result<Json<TagRead>, AppError> {
-    let tag = create_tag(&state.pool, payload).await?;
+    let tag = create_tag(&state.db, payload).await?;
     Ok(Json(tag))
 }
 
@@ -106,7 +106,7 @@ pub async fn update_tag_handler(
     Path(slug): Path<String>,
     Json(payload): Json<TagUpdate>,
 ) -> Result<Json<TagRead>, AppError> {
-    let tag = update_tag(&state.pool, &slug, payload)
+    let tag = update_tag(&state.db, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("tag not found"))?;
     Ok(Json(tag))
@@ -147,7 +147,7 @@ pub async fn delete_tag_handler(
     Path(slug): Path<String>,
     Query(params): Query<DeleteTagQuery>,
 ) -> Result<StatusCode, AppError> {
-    let deleted = delete_tag(&state.pool, &slug, params.force).await?;
+    let deleted = delete_tag(&state.db, &slug, params.force).await?;
     if !deleted {
         return Err(AppError::NotFound("tag not found"));
     }

@@ -56,7 +56,7 @@ pub async fn list_projects_handler(
 
     let include_private = resolve_include_private(params.include_private, trusted);
     let projects = list_projects(
-        &state.pool,
+        &state.db,
         ListProjectsParams {
             limit,
             offset,
@@ -99,7 +99,7 @@ pub async fn get_project_by_slug_handler(
     Query(params): Query<GetProjectQuery>,
 ) -> Result<Json<ProjectRead>, AppError> {
     let include_private = resolve_include_private(params.include_private, trusted);
-    let project = get_project_by_slug(&state.pool, &slug, include_private, params.locale)
+    let project = get_project_by_slug(&state.db, &slug, include_private, params.locale)
         .await?
         .ok_or(AppError::NotFound("project not found"))?;
     Ok(Json(project))
@@ -127,7 +127,7 @@ pub async fn resolve_project_redirect_handler(
     Path(old_slug): Path<String>,
     Query(params): Query<RedirectQuery>,
 ) -> Result<Json<RedirectResolution>, AppError> {
-    let target = resolve_project_redirect(&state.pool, &old_slug, params.locale)
+    let target = resolve_project_redirect(&state.db, &old_slug, params.locale)
         .await?
         .ok_or(AppError::NotFound("no redirect for this slug"))?;
     Ok(Json(RedirectResolution {
@@ -156,6 +156,6 @@ pub async fn replace_project_order_handler(
     State(state): State<AppState>,
     Json(payload): Json<ProjectsOrderReplace>,
 ) -> Result<Json<Vec<ProjectRead>>, AppError> {
-    let projects = replace_project_order(&state.pool, payload.project_slugs).await?;
+    let projects = replace_project_order(&state.db, payload.project_slugs).await?;
     Ok(Json(projects))
 }

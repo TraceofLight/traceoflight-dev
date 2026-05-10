@@ -47,7 +47,10 @@ pub enum AppError {
     BadGateway(String),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    SqlxDatabase(#[from] sqlx::Error),
+
+    #[error(transparent)]
+    Database(#[from] sea_orm::DbErr),
 
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
@@ -80,6 +83,10 @@ impl IntoResponse for AppError {
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::Throttled { .. } => unreachable!("handled above"),
             AppError::BadGateway(msg) => (StatusCode::BAD_GATEWAY, msg.clone()),
+            AppError::SqlxDatabase(err) => {
+                error!(error = %err, "database error");
+                (StatusCode::INTERNAL_SERVER_ERROR, "internal error".into())
+            }
             AppError::Database(err) => {
                 error!(error = %err, "database error");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal error".into())

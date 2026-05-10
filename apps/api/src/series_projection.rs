@@ -7,12 +7,21 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgPool};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
+    QueryFilter, TransactionTrait,
+};
 use tokio::sync::Notify;
 use tokio::time::sleep;
 use tracing::{info, warn};
 use uuid::Uuid;
 
+use crate::entities::{
+    enums::{
+        DbPostContentKind, DbPostLocale, DbPostTranslationSourceKind, DbPostTranslationStatus,
+    },
+    post, series, series_post,
+};
 use crate::posts::slugify_series_title;
 
 #[derive(Clone)]
@@ -36,7 +45,11 @@ impl SeriesProjector {
     /// Spawn the background loop. Runs an initial rebuild on boot, then waits
     /// for `request_refresh` calls and rebuilds after a short debounce so a
     /// burst of post writes coalesces into a single rebuild.
-    pub fn spawn_loop(&self, pool: PgPool, debounce_seconds: f32) -> tokio::task::JoinHandle<()> {
+    pub fn spawn_loop(
+        &self,
+        pool: DatabaseConnection,
+        debounce_seconds: f32,
+    ) -> tokio::task::JoinHandle<()> {
         let notify = self.notify.clone();
         tokio::spawn(async move {
             // Initial rebuild — bring projections current with whatever the
@@ -51,7 +64,7 @@ impl SeriesProjector {
     }
 }
 
-async fn run_rebuild(pool: &PgPool) {
+async fn run_rebuild(pool: &DatabaseConnection) {
     match rebuild_series_projection_cache(pool).await {
         Ok(summary) => info!(
             series = summary.series_count,
@@ -74,7 +87,7 @@ pub struct RebuildSummary {
     pub deleted_series_count: i64,
 }
 
-#[derive(Debug, FromRow, Clone)]
+#[derive(Debug, Clone)]
 struct PostRow {
     id: Uuid,
     slug: String,
@@ -84,54 +97,47 @@ struct PostRow {
     updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, FromRow)]
-struct ExistingSeriesRow {
-    id: Uuid,
-    slug: String,
-    description: String,
-}
-
-#[derive(Debug, FromRow)]
-struct ExistingSeriesPostRow {
-    series_id: Uuid,
-    post_id: Uuid,
-    order_index: i32,
-}
-
 /// Rebuild ko-source series + series_posts from posts.series_title content.
 /// Sibling-locale series (translations) are owned by the translation
 /// pipeline and are not touched here.
-pub async fn rebuild_series_projection_cache(pool: &PgPool) -> Result<RebuildSummary, sqlx::Error> {
-    let posts: Vec<PostRow> = sqlx::query_as(
-        r#"
-        SELECT id, slug, series_title, published_at, created_at, updated_at
-        FROM posts
-        WHERE series_title IS NOT NULL
-          AND locale = 'ko'::post_locale
-          AND content_kind = 'blog'::post_content_kind
-        "#,
-    )
-    .fetch_all(pool)
-    .await?;
+pub async fn rebuild_series_projection_cache(
+    pool: &DatabaseConnection,
+) -> Result<RebuildSummary, DbErr> {
+    let posts: Vec<PostRow> = post::Entity::find()
+        .filter(post::Column::SeriesTitle.is_not_null())
+        .filter(post::Column::Locale.eq(DbPostLocale::Ko))
+        .filter(post::Column::ContentKind.eq(DbPostContentKind::Blog))
+        .all(pool)
+        .await?
+        .into_iter()
+        .filter_map(|post| {
+            Some(PostRow {
+                id: post.id,
+                slug: post.slug,
+                series_title: post.series_title?,
+                published_at: post.published_at,
+                created_at: post.created_at,
+                updated_at: post.updated_at,
+            })
+        })
+        .collect();
 
-    let existing_rows: Vec<ExistingSeriesRow> =
-        sqlx::query_as("SELECT id, slug, description FROM series WHERE locale = 'ko'::post_locale")
-            .fetch_all(pool)
-            .await?;
+    let existing_rows = series::Entity::find()
+        .filter(series::Column::Locale.eq(DbPostLocale::Ko))
+        .all(pool)
+        .await?;
     let series_ids: Vec<Uuid> = existing_rows.iter().map(|r| r.id).collect();
 
-    let existing_mappings: Vec<ExistingSeriesPostRow> = if series_ids.is_empty() {
+    let existing_mappings = if series_ids.is_empty() {
         Vec::new()
     } else {
-        sqlx::query_as(
-            "SELECT series_id, post_id, order_index FROM series_posts WHERE series_id = ANY($1)",
-        )
-        .bind(&series_ids)
-        .fetch_all(pool)
-        .await?
+        series_post::Entity::find()
+            .filter(series_post::Column::SeriesId.is_in(series_ids.iter().copied()))
+            .all(pool)
+            .await?
     };
 
-    let existing_by_slug: HashMap<String, &ExistingSeriesRow> =
+    let existing_by_slug: HashMap<String, &series::Model> =
         existing_rows.iter().map(|r| (r.slug.clone(), r)).collect();
 
     let mut existing_order_by_slug: HashMap<String, HashMap<Uuid, i32>> = HashMap::new();
@@ -172,12 +178,12 @@ pub async fn rebuild_series_projection_cache(pool: &PgPool) -> Result<RebuildSum
         }
     }
 
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
 
     if !series_ids.is_empty() {
-        sqlx::query("DELETE FROM series_posts WHERE series_id = ANY($1)")
-            .bind(&series_ids)
-            .execute(&mut *tx)
+        series_post::Entity::delete_many()
+            .filter(series_post::Column::SeriesId.is_in(series_ids.iter().copied()))
+            .exec(&tx)
             .await?;
     }
 
@@ -212,62 +218,46 @@ pub async fn rebuild_series_projection_cache(pool: &PgPool) -> Result<RebuildSum
                 } else {
                     None
                 };
+                let mut active: series::ActiveModel = (*row).clone().into();
+                active.title = Set(title.clone());
                 if let Some(desc) = new_description {
-                    sqlx::query(
-                        "UPDATE series SET title = $1, description = $2, updated_at = NOW() WHERE id = $3",
-                    )
-                    .bind(&title)
-                    .bind(desc)
-                    .bind(row.id)
-                    .execute(&mut *tx)
-                    .await?;
-                } else {
-                    sqlx::query("UPDATE series SET title = $1, updated_at = NOW() WHERE id = $2")
-                        .bind(&title)
-                        .bind(row.id)
-                        .execute(&mut *tx)
-                        .await?;
+                    active.description = Set(desc);
                 }
+                active.updated_at = Set(Utc::now());
+                active.update(&tx).await?;
                 row.id
             }
             None => {
                 created += 1;
                 let new_id = Uuid::new_v4();
-                sqlx::query(
-                    r#"
-                    INSERT INTO series (
-                        id, slug, title, description, cover_image_url,
-                        locale, translation_group_id, source_series_id,
-                        translation_status, translation_source_kind
-                    ) VALUES (
-                        $1, $2, $3, $4, NULL,
-                        'ko'::post_locale, $5, NULL,
-                        'source'::post_translation_status, 'manual'::post_translation_source_kind
-                    )
-                    "#,
-                )
-                .bind(new_id)
-                .bind(&slug)
-                .bind(&title)
-                .bind(format!("{title} series"))
-                .bind(Uuid::new_v4())
-                .execute(&mut *tx)
+                series::ActiveModel {
+                    id: Set(new_id),
+                    slug: Set(slug.clone()),
+                    title: Set(title.clone()),
+                    description: Set(format!("{title} series")),
+                    cover_image_url: Set(None),
+                    locale: Set(DbPostLocale::Ko),
+                    translation_group_id: Set(Uuid::new_v4()),
+                    source_series_id: Set(None),
+                    translation_status: Set(DbPostTranslationStatus::Source),
+                    translation_source_kind: Set(DbPostTranslationSourceKind::Manual),
+                    ..Default::default()
+                }
+                .insert(&tx)
                 .await?;
                 new_id
             }
         };
 
         for (idx, post) in posts_in_group.iter().enumerate() {
-            sqlx::query(
-                r#"
-                INSERT INTO series_posts (id, series_id, post_id, order_index)
-                VALUES (gen_random_uuid(), $1, $2, $3)
-                "#,
-            )
-            .bind(series_id)
-            .bind(post.id)
-            .bind((idx + 1) as i32)
-            .execute(&mut *tx)
+            series_post::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                series_id: Set(series_id),
+                post_id: Set(post.id),
+                order_index: Set((idx + 1) as i32),
+                ..Default::default()
+            }
+            .insert(&tx)
             .await?;
             mapped += 1;
         }
@@ -278,10 +268,7 @@ pub async fn rebuild_series_projection_cache(pool: &PgPool) -> Result<RebuildSum
         if target_slugs.contains(&row.slug) {
             continue;
         }
-        sqlx::query("DELETE FROM series WHERE id = $1")
-            .bind(row.id)
-            .execute(&mut *tx)
-            .await?;
+        series::Entity::delete_by_id(row.id).exec(&tx).await?;
         deleted += 1;
     }
 

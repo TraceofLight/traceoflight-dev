@@ -2,11 +2,18 @@
 //! plus the `project_profile` sidecar (period, role, highlights, links).
 
 use chrono::{DateTime, Utc};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
+    QueryFilter, QueryOrder, TransactionTrait,
+};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::entities::{
+    enums::{DbPostContentKind, DbPostLocale, DbPostStatus, DbPostVisibility},
+    post, post_slug_redirect, series, series_post,
+};
 use crate::error::AppError;
 use crate::posts::{
     ListPostsParams, PostContentKind, PostFilter, PostLocale, PostRead, PostSeriesContext,
@@ -69,7 +76,7 @@ pub struct ListProjectsParams {
 }
 
 pub async fn list_projects(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     params: ListProjectsParams,
 ) -> Result<Vec<ProjectRead>, AppError> {
     let (status, visibility) = visibility_for(params.include_private);
@@ -95,7 +102,7 @@ pub async fn list_projects(
 }
 
 pub async fn get_project_by_slug(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     slug: &str,
     include_private: bool,
     locale: Option<PostLocale>,
@@ -127,43 +134,37 @@ pub async fn get_project_by_slug(
 }
 
 pub async fn resolve_project_redirect(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     old_slug: &str,
     locale: PostLocale,
-) -> Result<Option<String>, sqlx::Error> {
-    let row: Option<(Uuid, String)> = sqlx::query_as(
-        r#"
-        SELECT psr.id, p.slug
-        FROM post_slug_redirects psr
-        JOIN posts p ON p.id = psr.target_post_id
-        WHERE psr.locale = $1
-          AND psr.old_slug = $2
-          AND p.content_kind = 'project'::post_content_kind
-          AND p.status      = 'published'::post_status
-          AND p.visibility  = 'public'::post_visibility
-        "#,
-    )
-    .bind(locale)
-    .bind(old_slug)
-    .fetch_optional(pool)
-    .await?;
+) -> Result<Option<String>, DbErr> {
+    let redirect = post_slug_redirect::Entity::find()
+        .filter(post_slug_redirect::Column::Locale.eq(DbPostLocale::from(locale)))
+        .filter(post_slug_redirect::Column::OldSlug.eq(old_slug))
+        .one(pool)
+        .await?;
 
-    let Some((redirect_id, target_slug)) = row else {
+    let Some(redirect) = redirect else {
         return Ok(None);
     };
 
-    sqlx::query(
-        r#"
-        UPDATE post_slug_redirects
-        SET hit_count = hit_count + 1, last_hit_at = NOW()
-        WHERE id = $1
-        "#,
-    )
-    .bind(redirect_id)
-    .execute(pool)
-    .await?;
+    let target = post::Entity::find_by_id(redirect.target_post_id)
+        .filter(post::Column::ContentKind.eq(DbPostContentKind::Project))
+        .filter(post::Column::Status.eq(DbPostStatus::Published))
+        .filter(post::Column::Visibility.eq(DbPostVisibility::Public))
+        .one(pool)
+        .await?;
+    let Some(target) = target else {
+        return Ok(None);
+    };
 
-    Ok(Some(target_slug))
+    let next_hit_count = redirect.hit_count + 1;
+    let mut active: post_slug_redirect::ActiveModel = redirect.into();
+    active.hit_count = Set(next_hit_count);
+    active.last_hit_at = Set(Some(Utc::now()));
+    active.update(pool).await?;
+
+    Ok(Some(target.slug))
 }
 
 /// Apply the supplied slug order as `project_order_index` (1-based) to every
@@ -171,7 +172,7 @@ pub async fn resolve_project_redirect(
 /// Returns `AppError::BadRequest` when any slug doesn't resolve to a project,
 /// keeping the index unchanged in that case (transactional).
 pub async fn replace_project_order(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     raw_slugs: Vec<String>,
 ) -> Result<Vec<ProjectRead>, AppError> {
     let normalized = normalize_slug_list(&raw_slugs);
@@ -179,21 +180,13 @@ pub async fn replace_project_order(
         return Ok(Vec::new());
     }
 
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
 
-    #[derive(FromRow)]
-    struct ExistingRow {
-        slug: String,
-    }
-    let existing: Vec<ExistingRow> = sqlx::query_as(
-        r#"
-        SELECT slug FROM posts
-        WHERE slug = ANY($1::text[]) AND content_kind = 'project'::post_content_kind
-        "#,
-    )
-    .bind(&normalized)
-    .fetch_all(&mut *tx)
-    .await?;
+    let existing = post::Entity::find()
+        .filter(post::Column::Slug.is_in(normalized.iter().cloned()))
+        .filter(post::Column::ContentKind.eq(DbPostContentKind::Project))
+        .all(&tx)
+        .await?;
     let known: std::collections::HashSet<String> = existing.into_iter().map(|r| r.slug).collect();
     let missing: Vec<String> = normalized
         .iter()
@@ -208,24 +201,25 @@ pub async fn replace_project_order(
     }
 
     for (index, slug) in normalized.iter().enumerate() {
-        sqlx::query(
-            r#"
-            UPDATE posts
-               SET project_order_index = $1,
-                   updated_at = NOW()
-             WHERE content_kind = 'project'::post_content_kind
-               AND translation_group_id = (
-                   SELECT translation_group_id FROM posts
-                    WHERE slug = $2
-                      AND content_kind = 'project'::post_content_kind
-                    LIMIT 1
-               )
-            "#,
-        )
-        .bind((index as i64) + 1)
-        .bind(slug)
-        .execute(&mut *tx)
-        .await?;
+        let Some(anchor) = post::Entity::find()
+            .filter(post::Column::Slug.eq(slug))
+            .filter(post::Column::ContentKind.eq(DbPostContentKind::Project))
+            .one(&tx)
+            .await?
+        else {
+            continue;
+        };
+        let models = post::Entity::find()
+            .filter(post::Column::ContentKind.eq(DbPostContentKind::Project))
+            .filter(post::Column::TranslationGroupId.eq(anchor.translation_group_id))
+            .all(&tx)
+            .await?;
+        for model in models {
+            let mut active: post::ActiveModel = model.into();
+            active.project_order_index = Set(Some((index as i32) + 1));
+            active.updated_at = Set(Utc::now());
+            active.update(&tx).await?;
+        }
     }
 
     tx.commit().await?;
@@ -307,39 +301,62 @@ fn normalize_slug_list(raw: &[String]) -> Vec<String> {
 }
 
 async fn fetch_related_series_posts(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     series_slug: &str,
     locale: PostLocale,
     exclude_post_id: Uuid,
     include_private: bool,
-) -> Result<Vec<SeriesPostRead>, sqlx::Error> {
-    sqlx::query_as::<_, SeriesPostRead>(
-        r#"
-        SELECT
-            p.slug,
-            p.title,
-            p.excerpt,
-            p.cover_image_url,
-            sp.order_index,
-            p.published_at,
-            p.visibility
-        FROM series_posts sp
-        JOIN series s ON s.id = sp.series_id
-        JOIN posts  p ON p.id = sp.post_id
-        WHERE s.slug = $1
-          AND s.locale = $2
-          AND p.id <> $3
-          AND ($4::boolean OR (
-              p.status = 'published'::post_status
-              AND p.visibility = 'public'::post_visibility
-          ))
-        ORDER BY sp.order_index ASC
-        "#,
-    )
-    .bind(series_slug)
-    .bind(locale)
-    .bind(exclude_post_id)
-    .bind(include_private)
-    .fetch_all(pool)
-    .await
+) -> Result<Vec<SeriesPostRead>, DbErr> {
+    let series = series::Entity::find()
+        .filter(series::Column::Slug.eq(series_slug))
+        .filter(series::Column::Locale.eq(DbPostLocale::from(locale)))
+        .one(pool)
+        .await?;
+    let Some(series) = series else {
+        return Ok(Vec::new());
+    };
+
+    let links = series_post::Entity::find()
+        .filter(series_post::Column::SeriesId.eq(series.id))
+        .order_by_asc(series_post::Column::OrderIndex)
+        .all(pool)
+        .await?;
+    let post_ids: Vec<Uuid> = links
+        .iter()
+        .map(|link| link.post_id)
+        .filter(|post_id| *post_id != exclude_post_id)
+        .collect();
+    if post_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut post_query = post::Entity::find().filter(post::Column::Id.is_in(post_ids));
+    if !include_private {
+        post_query = post_query
+            .filter(post::Column::Status.eq(DbPostStatus::Published))
+            .filter(post::Column::Visibility.eq(DbPostVisibility::Public));
+    }
+    let posts_by_id: std::collections::HashMap<Uuid, post::Model> = post_query
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(|post| (post.id, post))
+        .collect();
+
+    Ok(links
+        .into_iter()
+        .filter(|link| link.post_id != exclude_post_id)
+        .filter_map(|link| {
+            let post = posts_by_id.get(&link.post_id)?;
+            Some(SeriesPostRead {
+                slug: post.slug.clone(),
+                title: post.title.clone(),
+                excerpt: post.excerpt.clone(),
+                cover_image_url: post.cover_image_url.clone(),
+                order_index: link.order_index,
+                published_at: post.published_at,
+                visibility: PostVisibility::from(post.visibility),
+            })
+        })
+        .collect())
 }

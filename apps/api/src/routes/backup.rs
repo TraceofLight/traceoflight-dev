@@ -30,7 +30,7 @@ pub async fn download_posts_backup_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Response, AppError> {
-    let (filename, bytes) = download_posts_backup(&state.pool, &state.minio).await?;
+    let (filename, bytes) = download_posts_backup(&state.db, &state.minio).await?;
     let disposition = format!("attachment; filename=\"{filename}\"");
     let response = Response::builder()
         .status(StatusCode::OK)
@@ -88,6 +88,6 @@ pub async fn load_posts_backup_handler(
         .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
     let file_bytes =
         file_bytes.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
-    let result = load_posts_backup(&state.pool, &state.minio, &file_name, &file_bytes).await?;
+    let result = load_posts_backup(&state.db, &state.minio, &file_name, &file_bytes).await?;
     Ok(Json(result))
 }

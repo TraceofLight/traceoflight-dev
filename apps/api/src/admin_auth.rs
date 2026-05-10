@@ -7,12 +7,14 @@ mod store;
 use std::sync::Arc;
 
 use argon2::{Argon2, PasswordHasher, PasswordVerifier, password_hash::PasswordHash};
+use chrono::Utc;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, EntityTrait};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;
 
 use crate::config::AdminSettings;
+use crate::entities::admin_credential;
 use crate::error::AppError;
 
 pub use codec::{TokenCodec, TokenPair};
@@ -115,7 +117,7 @@ impl AdminAuthContext {
     }
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct AdminCredentialRow {
     login_id: String,
     password_hash: String,
@@ -123,40 +125,54 @@ struct AdminCredentialRow {
 }
 
 async fn get_operational_credential(
-    pool: &PgPool,
-) -> Result<Option<AdminCredentialRow>, sqlx::Error> {
-    sqlx::query_as::<_, AdminCredentialRow>(
-        "SELECT login_id, password_hash, credential_revision FROM admin_credentials WHERE key = $1",
+    pool: &DatabaseConnection,
+) -> Result<Option<AdminCredentialRow>, DbErr> {
+    Ok(
+        admin_credential::Entity::find_by_id(OPERATIONAL_KEY.to_owned())
+            .one(pool)
+            .await?
+            .map(admin_credential_row),
     )
-    .bind(OPERATIONAL_KEY)
-    .fetch_optional(pool)
-    .await
 }
 
 async fn save_operational_credential(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     login_id: &str,
     password_hash: &str,
     credential_revision: i32,
-) -> Result<AdminCredentialRow, sqlx::Error> {
-    sqlx::query_as::<_, AdminCredentialRow>(
-        r#"
-        INSERT INTO admin_credentials (key, login_id, password_hash, credential_revision)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (key) DO UPDATE SET
-            login_id = EXCLUDED.login_id,
-            password_hash = EXCLUDED.password_hash,
-            credential_revision = EXCLUDED.credential_revision,
-            updated_at = NOW()
-        RETURNING login_id, password_hash, credential_revision
-        "#,
-    )
-    .bind(OPERATIONAL_KEY)
-    .bind(login_id)
-    .bind(password_hash)
-    .bind(credential_revision)
-    .fetch_one(pool)
-    .await
+) -> Result<AdminCredentialRow, DbErr> {
+    let existing = admin_credential::Entity::find_by_id(OPERATIONAL_KEY.to_owned())
+        .one(pool)
+        .await?;
+
+    let model = if let Some(existing) = existing {
+        let mut active: admin_credential::ActiveModel = existing.into();
+        active.login_id = Set(login_id.to_owned());
+        active.password_hash = Set(password_hash.to_owned());
+        active.credential_revision = Set(credential_revision);
+        active.updated_at = Set(Utc::now());
+        active.update(pool).await?
+    } else {
+        admin_credential::ActiveModel {
+            key: Set(OPERATIONAL_KEY.to_owned()),
+            login_id: Set(login_id.to_owned()),
+            password_hash: Set(password_hash.to_owned()),
+            credential_revision: Set(credential_revision),
+            ..Default::default()
+        }
+        .insert(pool)
+        .await?
+    };
+
+    Ok(admin_credential_row(model))
+}
+
+fn admin_credential_row(model: admin_credential::Model) -> AdminCredentialRow {
+    AdminCredentialRow {
+        login_id: model.login_id,
+        password_hash: model.password_hash,
+        credential_revision: model.credential_revision,
+    }
 }
 
 #[derive(Debug)]
@@ -166,7 +182,7 @@ struct VerifyResult {
 }
 
 async fn verify_credentials(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     settings: &AdminSettings,
     login_id: &str,
     password: &str,
@@ -249,7 +265,7 @@ fn verify_hash(stored: &str, password: &str) -> bool {
 }
 
 pub async fn login(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     ctx: &AdminAuthContext,
     client_ip: Option<&str>,
     payload: AdminAuthLoginRequest,
@@ -339,7 +355,7 @@ pub enum RefreshOutcome {
 }
 
 pub async fn rotate_refresh_token(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     ctx: &AdminAuthContext,
     refresh_token: &str,
 ) -> Result<RefreshOutcome, AppError> {
@@ -507,7 +523,7 @@ async fn revoke_family_for(store: &RefreshStore, state: &RefreshState) -> Result
     store.revoke_family(&state.family_id, ttl).await
 }
 
-pub async fn get_active_credential_revision(pool: &PgPool) -> Result<i32, sqlx::Error> {
+pub async fn get_active_credential_revision(pool: &DatabaseConnection) -> Result<i32, DbErr> {
     Ok(get_operational_credential(pool)
         .await?
         .map(|op| op.credential_revision)
@@ -515,7 +531,7 @@ pub async fn get_active_credential_revision(pool: &PgPool) -> Result<i32, sqlx::
 }
 
 pub async fn update_operational_credentials(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     payload: AdminCredentialUpdateRequest,
 ) -> Result<AdminCredentialUpdateResponse, AppError> {
     let login_id = payload.login_id.trim();

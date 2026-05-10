@@ -7,12 +7,15 @@ pub mod auth;
 pub mod cleanup;
 pub mod comments;
 pub mod config;
+pub mod db;
+pub mod entities;
 pub mod error;
 pub mod imports;
 pub mod indexnow;
 pub mod list_params;
 pub mod media;
 pub mod media_refs;
+pub mod migration;
 pub mod observability;
 pub mod pdf_assets;
 pub mod posts;
@@ -35,12 +38,8 @@ pub use crate::series_projection::SeriesProjector;
 
 use std::sync::Arc;
 
-use axum::{
-    Router,
-    extract::FromRef,
-    http::HeaderValue,
-};
-use sqlx::PgPool;
+use axum::{Router, extract::FromRef, http::HeaderValue};
+use sea_orm::DatabaseConnection;
 use tower_http::{
     cors::{AllowHeaders, AllowMethods, CorsLayer},
     request_id::{PropagateRequestIdLayer, SetRequestIdLayer},
@@ -59,13 +58,13 @@ use crate::{
 // so the `routes!()` macro below can resolve handler names as bare
 // identifiers.
 use crate::routes::{
-    admin::*, backup::*, comments::*, infra::*, media::*, pdf::*, posts::*, projects::*,
-    series::*, site_profile::*, tags::*,
+    admin::*, backup::*, comments::*, infra::*, media::*, pdf::*, posts::*, projects::*, series::*,
+    site_profile::*, tags::*,
 };
 
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: PgPool,
+    pub db: DatabaseConnection,
     pub auth: AuthContext,
     pub reading_words_per_minute: u32,
     pub minio: Arc<MinioSettings>,

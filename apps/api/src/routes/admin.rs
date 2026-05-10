@@ -56,7 +56,7 @@ pub async fn admin_login_handler(
     Json(payload): Json<AdminAuthLoginRequest>,
 ) -> Result<Json<AdminAuthLoginResponse>, AppError> {
     let client_ip = extract_client_ip(&headers);
-    let response = admin_login(&state.pool, &state.admin, client_ip.as_deref(), payload).await?;
+    let response = admin_login(&state.db, &state.admin, client_ip.as_deref(), payload).await?;
     Ok(Json(response))
 }
 
@@ -79,7 +79,7 @@ pub async fn admin_refresh_handler(
     State(state): State<AppState>,
     Json(payload): Json<AdminRefreshRequest>,
 ) -> Result<Json<AdminRefreshResponse>, AppError> {
-    let outcome = rotate_refresh_token(&state.pool, &state.admin, &payload.refresh_token).await?;
+    let outcome = rotate_refresh_token(&state.db, &state.admin, &payload.refresh_token).await?;
     match outcome {
         RefreshOutcome::Rotated { revision, pair } => Ok(Json(AdminRefreshResponse {
             ok: true,
@@ -138,7 +138,7 @@ pub async fn admin_get_revision_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Json<AdminCredentialRevisionResponse>, AppError> {
-    let credential_revision = get_active_credential_revision(&state.pool).await?;
+    let credential_revision = get_active_credential_revision(&state.db).await?;
     Ok(Json(AdminCredentialRevisionResponse {
         credential_revision,
     }))
@@ -165,6 +165,6 @@ pub async fn admin_update_credentials_handler(
     State(state): State<AppState>,
     Json(payload): Json<AdminCredentialUpdateRequest>,
 ) -> Result<Json<AdminCredentialUpdateResponse>, AppError> {
-    let response = update_operational_credentials(&state.pool, payload).await?;
+    let response = update_operational_credentials(&state.db, payload).await?;
     Ok(Json(response))
 }

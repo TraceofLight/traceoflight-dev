@@ -8,16 +8,26 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Cursor, Read, Write};
 
 use chrono::{DateTime, Utc};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::config::MinioSettings;
+use crate::entities::{
+    enums::{
+        DbAssetKind, DbCommentAuthorType, DbCommentStatus, DbCommentVisibility,
+        DbPostTranslationSourceKind, DbPostTranslationStatus,
+    },
+    media_asset, post, post_comment, post_tag, project_profile, series, series_post, site_profile,
+    tag,
+};
 use crate::error::AppError;
 use crate::media as media_helpers;
 use crate::media_refs::{extract_markdown_keys, extract_object_key};
-use crate::posts::slugify_series_title;
+use crate::posts::{
+    PostContentKind, PostLocale, PostStatus, PostTopMediaKind, PostVisibility, slugify_series_title,
+};
 
 use super::Bundle;
 
@@ -36,7 +46,7 @@ const DB_MEDIA_ASSETS_PATH: &str = "db/media_assets.json";
 
 // ── DB row shapes for serialization ────────────────────────────────────────
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct PostBackupRow {
     id: Uuid,
     slug: String,
@@ -62,7 +72,7 @@ struct PostBackupRow {
     published_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct ProjectProfileRow {
     id: Uuid,
     post_id: Uuid,
@@ -74,7 +84,7 @@ struct ProjectProfileRow {
     resource_links_json: Value,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct SeriesBackupRow {
     id: Uuid,
     slug: String,
@@ -90,7 +100,7 @@ struct SeriesBackupRow {
     translated_from_hash: Option<String>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct SeriesPostBackupRow {
     id: Uuid,
     series_id: Uuid,
@@ -98,20 +108,20 @@ struct SeriesPostBackupRow {
     order_index: i32,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct TagBackupRow {
     id: Uuid,
     slug: String,
     label: String,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct PostTagBackupRow {
     post_id: Uuid,
     tag_id: Uuid,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct CommentBackupRow {
     id: Uuid,
     post_id: Uuid,
@@ -129,7 +139,7 @@ struct CommentBackupRow {
     user_agent_hash: Option<String>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct MediaAssetBackupRow {
     id: Uuid,
     kind: String,
@@ -144,7 +154,7 @@ struct MediaAssetBackupRow {
     owner_post_id: Option<Uuid>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct SiteProfileBackupRow {
     key: String,
     email: String,
@@ -165,6 +175,179 @@ fn iso_utc_z_opt(dt: Option<DateTime<Utc>>) -> Value {
     match dt {
         Some(t) => Value::String(iso_utc_z(t)),
         None => Value::Null,
+    }
+}
+
+fn translation_status_str(value: DbPostTranslationStatus) -> &'static str {
+    match value {
+        DbPostTranslationStatus::Source => "source",
+        DbPostTranslationStatus::Synced => "synced",
+        DbPostTranslationStatus::Stale => "stale",
+        DbPostTranslationStatus::Failed => "failed",
+    }
+}
+
+fn translation_source_kind_str(value: DbPostTranslationSourceKind) -> &'static str {
+    match value {
+        DbPostTranslationSourceKind::Manual => "manual",
+        DbPostTranslationSourceKind::Machine => "machine",
+    }
+}
+
+fn asset_kind_str(value: DbAssetKind) -> &'static str {
+    match value {
+        DbAssetKind::Image => "image",
+        DbAssetKind::Video => "video",
+        DbAssetKind::File => "file",
+    }
+}
+
+fn comment_author_type_str(value: DbCommentAuthorType) -> &'static str {
+    match value {
+        DbCommentAuthorType::Guest => "guest",
+        DbCommentAuthorType::Admin => "admin",
+    }
+}
+
+fn comment_visibility_str(value: DbCommentVisibility) -> &'static str {
+    match value {
+        DbCommentVisibility::Public => "public",
+        DbCommentVisibility::Private => "private",
+    }
+}
+
+fn comment_status_str(value: DbCommentStatus) -> &'static str {
+    match value {
+        DbCommentStatus::Active => "active",
+        DbCommentStatus::Deleted => "deleted",
+    }
+}
+
+fn post_backup_row(row: post::Model) -> PostBackupRow {
+    PostBackupRow {
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        excerpt: row.excerpt,
+        body_markdown: row.body_markdown,
+        cover_image_url: row.cover_image_url,
+        top_media_kind: PostTopMediaKind::from(row.top_media_kind)
+            .as_str()
+            .to_owned(),
+        top_media_image_url: row.top_media_image_url,
+        top_media_youtube_url: row.top_media_youtube_url,
+        top_media_video_url: row.top_media_video_url,
+        project_order_index: row.project_order_index,
+        series_title: row.series_title,
+        locale: PostLocale::from(row.locale).as_str().to_owned(),
+        translation_group_id: row.translation_group_id,
+        source_post_id: row.source_post_id,
+        translation_status: translation_status_str(row.translation_status).to_owned(),
+        translation_source_kind: translation_source_kind_str(row.translation_source_kind)
+            .to_owned(),
+        translated_from_hash: row.translated_from_hash,
+        content_kind: PostContentKind::from(row.content_kind).as_str().to_owned(),
+        status: PostStatus::from(row.status).as_str().to_owned(),
+        visibility: PostVisibility::from(row.visibility).as_str().to_owned(),
+        published_at: row.published_at,
+    }
+}
+
+fn project_profile_row(row: project_profile::Model) -> ProjectProfileRow {
+    ProjectProfileRow {
+        id: row.id,
+        post_id: row.post_id,
+        period_label: row.period_label,
+        role_summary: row.role_summary,
+        project_intro: row.project_intro,
+        card_image_url: row.card_image_url.unwrap_or_default(),
+        highlights_json: row.highlights_json,
+        resource_links_json: row.resource_links_json,
+    }
+}
+
+fn series_backup_row(row: series::Model) -> SeriesBackupRow {
+    SeriesBackupRow {
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        description: row.description,
+        cover_image_url: row.cover_image_url,
+        list_order_index: row.list_order_index,
+        locale: PostLocale::from(row.locale).as_str().to_owned(),
+        translation_group_id: row.translation_group_id,
+        source_series_id: row.source_series_id,
+        translation_status: translation_status_str(row.translation_status).to_owned(),
+        translation_source_kind: translation_source_kind_str(row.translation_source_kind)
+            .to_owned(),
+        translated_from_hash: row.translated_from_hash,
+    }
+}
+
+fn series_post_backup_row(row: series_post::Model) -> SeriesPostBackupRow {
+    SeriesPostBackupRow {
+        id: row.id,
+        series_id: row.series_id,
+        post_id: row.post_id,
+        order_index: row.order_index,
+    }
+}
+
+fn tag_backup_row(row: tag::Model) -> TagBackupRow {
+    TagBackupRow {
+        id: row.id,
+        slug: row.slug,
+        label: row.label,
+    }
+}
+
+fn post_tag_backup_row(row: post_tag::Model) -> PostTagBackupRow {
+    PostTagBackupRow {
+        post_id: row.post_id,
+        tag_id: row.tag_id,
+    }
+}
+
+fn comment_backup_row(row: post_comment::Model) -> CommentBackupRow {
+    CommentBackupRow {
+        id: row.id,
+        post_id: row.post_id,
+        root_comment_id: row.root_comment_id,
+        reply_to_comment_id: row.reply_to_comment_id,
+        author_name: row.author_name,
+        author_type: comment_author_type_str(row.author_type).to_owned(),
+        password_hash: row.password_hash,
+        visibility: comment_visibility_str(row.visibility).to_owned(),
+        status: comment_status_str(row.status).to_owned(),
+        body: row.body,
+        deleted_at: row.deleted_at,
+        last_edited_at: row.last_edited_at,
+        request_ip_hash: row.request_ip_hash,
+        user_agent_hash: row.user_agent_hash,
+    }
+}
+
+fn media_asset_backup_row(row: media_asset::Model) -> MediaAssetBackupRow {
+    MediaAssetBackupRow {
+        id: row.id,
+        kind: asset_kind_str(row.kind).to_owned(),
+        bucket: row.bucket,
+        object_key: row.object_key,
+        original_filename: row.original_filename,
+        mime_type: row.mime_type,
+        size_bytes: row.size_bytes,
+        width: row.width,
+        height: row.height,
+        duration_seconds: row.duration_seconds,
+        owner_post_id: row.owner_post_id,
+    }
+}
+
+fn site_profile_backup_row(row: site_profile::Model) -> SiteProfileBackupRow {
+    SiteProfileBackupRow {
+        key: row.key,
+        email: row.email,
+        github_url: row.github_url,
     }
 }
 
@@ -333,103 +516,76 @@ fn serialize_post(row: &PostBackupRow, profile: Option<&ProjectProfileRow>) -> (
 // ── Collect bundle from DB + MinIO ─────────────────────────────────────────
 
 pub(super) async fn collect_bundle(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     minio: &MinioSettings,
 ) -> Result<Bundle, AppError> {
-    let posts: Vec<PostBackupRow> = sqlx::query_as(
-        r#"
-        SELECT
-            id, slug, title, excerpt, body_markdown,
-            cover_image_url,
-            top_media_kind::text AS top_media_kind,
-            top_media_image_url, top_media_youtube_url, top_media_video_url,
-            project_order_index, series_title,
-            locale::text AS locale,
-            translation_group_id, source_post_id,
-            translation_status::text AS translation_status,
-            translation_source_kind::text AS translation_source_kind,
-            translated_from_hash,
-            content_kind::text AS content_kind,
-            status::text AS status,
-            visibility::text AS visibility,
-            published_at
-        FROM posts
-        ORDER BY created_at ASC, slug ASC
-        "#,
-    )
-    .fetch_all(pool)
-    .await?;
+    let posts: Vec<PostBackupRow> = post::Entity::find()
+        .order_by_asc(post::Column::CreatedAt)
+        .order_by_asc(post::Column::Slug)
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(post_backup_row)
+        .collect();
 
     let post_ids: Vec<Uuid> = posts.iter().map(|p| p.id).collect();
     let project_profiles: Vec<ProjectProfileRow> = if post_ids.is_empty() {
         Vec::new()
     } else {
-        sqlx::query_as(
-            r#"
-            SELECT id, post_id, period_label, role_summary, project_intro,
-                   card_image_url, highlights_json, resource_links_json
-            FROM project_profiles
-            WHERE post_id = ANY($1)
-            "#,
-        )
-        .bind(&post_ids)
-        .fetch_all(pool)
-        .await?
+        project_profile::Entity::find()
+            .filter(project_profile::Column::PostId.is_in(post_ids.clone()))
+            .all(pool)
+            .await?
+            .into_iter()
+            .map(project_profile_row)
+            .collect()
     };
     let profiles_by_post: HashMap<Uuid, &ProjectProfileRow> =
         project_profiles.iter().map(|p| (p.post_id, p)).collect();
 
-    let series_rows: Vec<SeriesBackupRow> = sqlx::query_as(
-        r#"
-        SELECT
-            id, slug, title, description, cover_image_url, list_order_index,
-            locale::text AS locale,
-            translation_group_id, source_series_id,
-            translation_status::text AS translation_status,
-            translation_source_kind::text AS translation_source_kind,
-            translated_from_hash
-        FROM series
-        ORDER BY created_at ASC
-        "#,
-    )
-    .fetch_all(pool)
-    .await?;
+    let series_rows: Vec<SeriesBackupRow> = series::Entity::find()
+        .order_by_asc(series::Column::CreatedAt)
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(series_backup_row)
+        .collect();
 
-    let series_posts: Vec<SeriesPostBackupRow> = sqlx::query_as(
-        "SELECT id, series_id, post_id, order_index FROM series_posts ORDER BY series_id, order_index",
-    )
-    .fetch_all(pool)
-    .await?;
+    let series_posts: Vec<SeriesPostBackupRow> = series_post::Entity::find()
+        .order_by_asc(series_post::Column::SeriesId)
+        .order_by_asc(series_post::Column::OrderIndex)
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(series_post_backup_row)
+        .collect();
 
-    let tags: Vec<TagBackupRow> = sqlx::query_as("SELECT id, slug, label FROM tags ORDER BY slug")
-        .fetch_all(pool)
-        .await?;
-    let post_tag_links: Vec<PostTagBackupRow> =
-        sqlx::query_as("SELECT post_id, tag_id FROM post_tags")
-            .fetch_all(pool)
-            .await?;
+    let tags: Vec<TagBackupRow> = tag::Entity::find()
+        .order_by_asc(tag::Column::Slug)
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(tag_backup_row)
+        .collect();
+    let post_tag_links: Vec<PostTagBackupRow> = post_tag::Entity::find()
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(post_tag_backup_row)
+        .collect();
 
-    let comments: Vec<CommentBackupRow> = sqlx::query_as(
-        r#"
-        SELECT id, post_id, root_comment_id, reply_to_comment_id,
-               author_name,
-               author_type::text AS author_type,
-               password_hash,
-               visibility::text AS visibility,
-               status::text AS status,
-               body, deleted_at, last_edited_at,
-               request_ip_hash, user_agent_hash
-        FROM post_comments
-        ORDER BY created_at
-        "#,
-    )
-    .fetch_all(pool)
-    .await?;
+    let comments: Vec<CommentBackupRow> = post_comment::Entity::find()
+        .order_by_asc(post_comment::Column::CreatedAt)
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(comment_backup_row)
+        .collect();
 
-    let site_profile: Option<SiteProfileBackupRow> =
-        sqlx::query_as("SELECT key, email, github_url FROM site_profiles LIMIT 1")
-            .fetch_optional(pool)
-            .await?;
+    let site_profile: Option<SiteProfileBackupRow> = site_profile::Entity::find()
+        .one(pool)
+        .await?
+        .map(site_profile_backup_row);
 
     // Collect referenced media keys from post fields, markdown, and series cover
     let mut referenced: HashSet<String> = HashSet::new();
@@ -464,19 +620,13 @@ pub(super) async fn collect_bundle(
     let media_rows: Vec<MediaAssetBackupRow> = if sorted_keys.is_empty() {
         Vec::new()
     } else {
-        sqlx::query_as(
-            r#"
-            SELECT id,
-                   kind::text AS kind,
-                   bucket, object_key, original_filename, mime_type, size_bytes,
-                   width, height, duration_seconds, owner_post_id
-            FROM media_assets
-            WHERE object_key = ANY($1)
-            "#,
-        )
-        .bind(&sorted_keys)
-        .fetch_all(pool)
-        .await?
+        media_asset::Entity::find()
+            .filter(media_asset::Column::ObjectKey.is_in(sorted_keys.clone()))
+            .all(pool)
+            .await?
+            .into_iter()
+            .map(media_asset_backup_row)
+            .collect()
     };
     let media_by_key: HashMap<String, &MediaAssetBackupRow> = media_rows
         .iter()

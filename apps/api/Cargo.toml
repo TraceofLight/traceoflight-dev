@@ -19,7 +19,11 @@ mime_guess = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+# `#[sqlx::test(migrations = false)]` still requires sqlx's migrate feature;
+# runtime schema setup is handled by `migration::Migrator`.
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "chrono", "uuid", "json", "migrate"] }
+sea-orm = { version = "2.0.0-rc.38", default-features = false, features = ["macros", "sqlx-postgres", "runtime-tokio-rustls", "with-chrono", "with-json", "with-uuid", "postgres-array"] }
+sea-orm-migration = { version = "2.0.0-rc.38", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls"] }
 dotenvy = "0.15"
 anyhow = "1"
 thiserror = "2"

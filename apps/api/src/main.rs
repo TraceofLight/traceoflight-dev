@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use sea_orm_migration::MigratorTrait;
 use sqlx::postgres::PgPoolOptions;
 use tracing::{info, warn};
 
@@ -22,7 +23,8 @@ async fn main() -> anyhow::Result<()> {
         .max_connections(settings.database_max_connections)
         .connect_lazy(&settings.database_url)?;
 
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    let db = traceoflight_api::db::from_sqlx_pool(&pool);
+    traceoflight_api::migration::Migrator::up(&db, None).await?;
 
     // Two ConnectionManagers from the same client: a shared one for
     // non-blocking commands and a dedicated one for blocking commands
@@ -73,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
         let provider = Arc::new(GoogleTranslateProvider::new(
             settings.translation.google_api_key.clone(),
         ));
-        translation_worker::spawn(pool.clone(), queue, provider, indexnow.clone());
+        translation_worker::spawn(db.clone(), queue, provider, indexnow.clone());
     } else if translation_queue.is_some() {
         warn!("translation worker not started: GOOGLE_TRANSLATE_API_KEY missing");
     } else {
@@ -81,15 +83,15 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let series_projector = SeriesProjector::new();
-    series_projector.spawn_loop(pool.clone(), settings.series_projection_debounce_seconds);
+    series_projector.spawn_loop(db.clone(), settings.series_projection_debounce_seconds);
 
     let cleanup_settings = Arc::new(CleanupSettings::from_env());
     let minio_arc = Arc::new(settings.minio.clone());
-    spawn_draft_cleanup(pool.clone(), minio_arc.clone(), cleanup_settings.clone());
-    spawn_slug_redirect_cleanup(pool.clone(), cleanup_settings.clone());
+    spawn_draft_cleanup(db.clone(), minio_arc.clone(), cleanup_settings.clone());
+    spawn_slug_redirect_cleanup(db.clone(), cleanup_settings.clone());
 
     let state = AppState {
-        pool,
+        db,
         auth: AuthContext::new(settings.internal_api_secret.clone()),
         reading_words_per_minute: settings.reading_words_per_minute,
         minio: minio_arc.clone(),

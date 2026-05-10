@@ -1,9 +1,4 @@
-use axum::{
-    body::Bytes,
-    extract::State,
-    http::HeaderMap,
-    response::Json,
-};
+use axum::{body::Bytes, extract::State, http::HeaderMap, response::Json};
 use serde::Serialize;
 use utoipa::ToSchema;
 
@@ -60,7 +55,7 @@ pub async fn register_media_handler(
     State(state): State<AppState>,
     Json(payload): Json<MediaCreate>,
 ) -> Result<Json<MediaRead>, AppError> {
-    let media = register_media(&state.pool, payload, &state.minio.bucket).await?;
+    let media = register_media(&state.db, payload, &state.minio.bucket).await?;
     Ok(Json(media))
 }
 

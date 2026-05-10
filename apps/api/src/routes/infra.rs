@@ -22,19 +22,15 @@ pub async fn health() -> &'static str {
     tag = "infra",
     operation_id = "ready",
     summary = "Readiness probe",
-    description = "Returns 200 only after a successful Postgres `SELECT 1`. 503 while the pool cannot reach the database.",
+    description = "Returns 200 only after a successful database ping. 503 while the pool cannot reach the database.",
     responses(
         (status = 200, description = "Database reachable", body = String),
         (status = 503, description = "Database unreachable"),
     ),
 )]
 pub async fn ready(State(state): State<AppState>) -> Result<&'static str, StatusCode> {
-    sqlx::query_scalar::<_, i32>("SELECT 1")
-        .fetch_one(&state.pool)
-        .await
-        .map(|_| "ok")
-        .map_err(|err| {
-            error!(error = %err, "ready db ping failed");
-            StatusCode::SERVICE_UNAVAILABLE
-        })
+    state.db.ping().await.map(|_| "ok").map_err(|err| {
+        error!(error = %err, "ready db ping failed");
+        StatusCode::SERVICE_UNAVAILABLE
+    })
 }

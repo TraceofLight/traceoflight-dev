@@ -74,10 +74,7 @@ mod tests {
     fn hash_post_treats_none_excerpt_same_as_empty_excerpt() {
         // Documents the convention so future refactors don't break the
         // skip-if-unchanged contract for posts that lose their excerpt.
-        assert_eq!(
-            hash_post("t", None, "b"),
-            hash_post("t", Some(""), "b"),
-        );
+        assert_eq!(hash_post("t", None, "b"), hash_post("t", Some(""), "b"),);
     }
 
     #[test]

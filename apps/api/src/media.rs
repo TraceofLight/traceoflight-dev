@@ -7,12 +7,13 @@ use std::time::Duration;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use rusty_s3::{Bucket, Credentials, S3Action, UrlStyle};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::config::MinioSettings;
+use crate::entities::{enums::DbAssetKind, media_asset};
 use crate::error::AppError;
 use crate::serializers::serialize_dt_us;
 
@@ -23,6 +24,26 @@ pub enum AssetKind {
     Image,
     Video,
     File,
+}
+
+impl From<AssetKind> for DbAssetKind {
+    fn from(value: AssetKind) -> Self {
+        match value {
+            AssetKind::Image => Self::Image,
+            AssetKind::Video => Self::Video,
+            AssetKind::File => Self::File,
+        }
+    }
+}
+
+impl From<DbAssetKind> for AssetKind {
+    fn from(value: DbAssetKind) -> Self {
+        match value {
+            DbAssetKind::Image => Self::Image,
+            DbAssetKind::Video => Self::Video,
+            DbAssetKind::File => Self::File,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -50,7 +71,7 @@ pub struct MediaCreate {
     pub size_bytes: i64,
 }
 
-#[derive(Debug, Serialize, FromRow, ToSchema)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct MediaRead {
     pub id: Uuid,
     pub kind: AssetKind,
@@ -106,31 +127,42 @@ pub fn presigned_put_url(
 }
 
 pub async fn register_media(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     payload: MediaCreate,
     bucket: &str,
-) -> Result<MediaRead, sqlx::Error> {
-    let row = sqlx::query_as::<_, MediaRead>(
-        r#"
-        INSERT INTO media_assets (
-            id, kind, bucket, object_key, original_filename, mime_type, size_bytes
-        ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, $5, $6
-        )
-        RETURNING id, kind, bucket, object_key, original_filename, mime_type,
-                  size_bytes, width, height, duration_seconds, owner_post_id,
-                  created_at, updated_at
-        "#,
-    )
-    .bind(payload.kind)
-    .bind(bucket)
-    .bind(&payload.object_key)
-    .bind(&payload.original_filename)
-    .bind(&payload.mime_type)
-    .bind(payload.size_bytes)
-    .fetch_one(pool)
+) -> Result<MediaRead, DbErr> {
+    let model = media_asset::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        kind: Set(payload.kind.into()),
+        bucket: Set(bucket.to_owned()),
+        object_key: Set(payload.object_key),
+        original_filename: Set(payload.original_filename),
+        mime_type: Set(payload.mime_type),
+        size_bytes: Set(payload.size_bytes),
+        ..Default::default()
+    }
+    .insert(pool)
     .await?;
-    Ok(row)
+
+    Ok(media_read(model))
+}
+
+fn media_read(model: media_asset::Model) -> MediaRead {
+    MediaRead {
+        id: model.id,
+        kind: model.kind.into(),
+        bucket: model.bucket,
+        object_key: model.object_key,
+        original_filename: model.original_filename,
+        mime_type: model.mime_type,
+        size_bytes: model.size_bytes,
+        width: model.width,
+        height: model.height,
+        duration_seconds: model.duration_seconds,
+        owner_post_id: model.owner_post_id,
+        created_at: model.created_at,
+        updated_at: model.updated_at,
+    }
 }
 
 fn build_bucket(settings: &MinioSettings) -> Result<(Bucket, Credentials), AppError> {

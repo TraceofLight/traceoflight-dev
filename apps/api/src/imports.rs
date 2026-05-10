@@ -11,9 +11,9 @@ mod restore;
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use sea_orm::DatabaseConnection;
 use serde::Serialize;
 use serde_json::Value;
-use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -44,7 +44,7 @@ pub(crate) struct Bundle {
 }
 
 pub async fn download_posts_backup(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     minio: &MinioSettings,
 ) -> Result<(String, Vec<u8>), AppError> {
     let bundle = codec::collect_bundle(pool, minio).await?;
@@ -55,7 +55,7 @@ pub async fn download_posts_backup(
 }
 
 pub async fn load_posts_backup(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     minio: &MinioSettings,
     filename: &str,
     payload: &[u8],

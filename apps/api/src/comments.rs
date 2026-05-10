@@ -9,11 +9,18 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, SaltString, rand_core::OsRng},
 };
 use chrono::{DateTime, Utc};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::entities::{
+    enums::{DbCommentAuthorType, DbCommentStatus, DbCommentVisibility},
+    post, post_comment,
+};
 use crate::error::AppError;
 use crate::serializers::serialize_dt_us;
 
@@ -163,7 +170,7 @@ pub struct AdminCommentFeed {
 
 // ── Internal row + helpers ──────────────────────────────────────────────────
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone)]
 struct CommentRow {
     id: Uuid,
     post_id: Uuid,
@@ -177,6 +184,58 @@ struct CommentRow {
     body: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+}
+
+fn comment_author_type_from_db(value: DbCommentAuthorType) -> CommentAuthorType {
+    match value {
+        DbCommentAuthorType::Guest => CommentAuthorType::Guest,
+        DbCommentAuthorType::Admin => CommentAuthorType::Admin,
+    }
+}
+
+fn comment_visibility_from_db(value: DbCommentVisibility) -> CommentVisibility {
+    match value {
+        DbCommentVisibility::Public => CommentVisibility::Public,
+        DbCommentVisibility::Private => CommentVisibility::Private,
+    }
+}
+
+fn comment_status_from_db(value: DbCommentStatus) -> CommentStatus {
+    match value {
+        DbCommentStatus::Active => CommentStatus::Active,
+        DbCommentStatus::Deleted => CommentStatus::Deleted,
+    }
+}
+
+fn db_comment_author_type(value: CommentAuthorType) -> DbCommentAuthorType {
+    match value {
+        CommentAuthorType::Guest => DbCommentAuthorType::Guest,
+        CommentAuthorType::Admin => DbCommentAuthorType::Admin,
+    }
+}
+
+fn db_comment_visibility(value: CommentVisibility) -> DbCommentVisibility {
+    match value {
+        CommentVisibility::Public => DbCommentVisibility::Public,
+        CommentVisibility::Private => DbCommentVisibility::Private,
+    }
+}
+
+fn comment_row(model: post_comment::Model) -> CommentRow {
+    CommentRow {
+        id: model.id,
+        post_id: model.post_id,
+        root_comment_id: model.root_comment_id,
+        reply_to_comment_id: model.reply_to_comment_id,
+        author_name: model.author_name,
+        author_type: comment_author_type_from_db(model.author_type),
+        password_hash: model.password_hash,
+        visibility: comment_visibility_from_db(model.visibility),
+        status: comment_status_from_db(model.status),
+        body: model.body,
+        created_at: model.created_at,
+        updated_at: model.updated_at,
+    }
 }
 
 fn normalize_author_name(name: &str, author_type: CommentAuthorType) -> String {
@@ -279,38 +338,39 @@ fn verify_password(hash: &str, password: &str) -> bool {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 pub async fn list_post_comments(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     post_slug: &str,
     include_private: bool,
-) -> Result<Option<PostCommentThreadList>, sqlx::Error> {
+) -> Result<Option<PostCommentThreadList>, DbErr> {
     // Comments are unified across all locale siblings: a comment written
     // on the ko row is visible from /en, /ja, /zh too. Resolve slug →
     // translation_group_id, fetch comments tied to any locale row in the
     // group. Comments stay in their original language.
-    let translation_group_id: Option<Uuid> =
-        sqlx::query_scalar("SELECT translation_group_id FROM posts WHERE slug = $1 LIMIT 1")
-            .bind(post_slug)
-            .fetch_optional(pool)
-            .await?;
-    let Some(translation_group_id) = translation_group_id else {
+    let post = post::Entity::find()
+        .filter(post::Column::Slug.eq(post_slug))
+        .one(pool)
+        .await?;
+    let Some(post) = post else {
         return Ok(None);
     };
 
-    let comments: Vec<CommentRow> = sqlx::query_as(
-        r#"
-        SELECT id, post_id, root_comment_id, reply_to_comment_id,
-               author_name, author_type, password_hash, visibility, status, body,
-               created_at, updated_at
-        FROM post_comments
-        WHERE post_id IN (
-            SELECT id FROM posts WHERE translation_group_id = $1
-        )
-        ORDER BY created_at ASC, id ASC
-        "#,
-    )
-    .bind(translation_group_id)
-    .fetch_all(pool)
-    .await?;
+    let sibling_ids: Vec<Uuid> = post::Entity::find()
+        .filter(post::Column::TranslationGroupId.eq(post.translation_group_id))
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(|p| p.id)
+        .collect();
+
+    let comments: Vec<CommentRow> = post_comment::Entity::find()
+        .filter(post_comment::Column::PostId.is_in(sibling_ids))
+        .order_by_asc(post_comment::Column::CreatedAt)
+        .order_by_asc(post_comment::Column::Id)
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(comment_row)
+        .collect();
 
     let by_id: HashMap<Uuid, CommentRow> = comments.iter().cloned().map(|c| (c.id, c)).collect();
 
@@ -352,7 +412,7 @@ pub async fn list_post_comments(
 }
 
 pub async fn create_comment(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     post_slug: &str,
     payload: PostCommentCreate,
     is_admin: bool,
@@ -364,13 +424,14 @@ pub async fn create_comment(
         )));
     }
 
-    let post_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM posts WHERE slug = $1")
-        .bind(post_slug)
-        .fetch_optional(pool)
+    let post = post::Entity::find()
+        .filter(post::Column::Slug.eq(post_slug))
+        .one(pool)
         .await?;
-    let Some(post_id) = post_id else {
+    let Some(post) = post else {
         return Ok(None);
     };
+    let post_id = post.id;
 
     let (root_comment_id, reply_to_comment_id) =
         resolve_reply_target(pool, post_id, payload.reply_to_comment_id).await?;
@@ -402,29 +463,20 @@ pub async fn create_comment(
     };
 
     let comment_id = Uuid::new_v4();
-    sqlx::query(
-        r#"
-        INSERT INTO post_comments (
-            id, post_id, root_comment_id, reply_to_comment_id,
-            author_name, author_type, password_hash,
-            visibility, status, body
-        ) VALUES (
-            $1, $2, $3, $4,
-            $5, $6, $7,
-            $8, 'active'::post_comment_status, $9
-        )
-        "#,
-    )
-    .bind(comment_id)
-    .bind(post_id)
-    .bind(root_comment_id)
-    .bind(reply_to_comment_id)
-    .bind(&author_name)
-    .bind(author_type)
-    .bind(&password_hash)
-    .bind(payload.visibility)
-    .bind(body)
-    .execute(pool)
+    post_comment::ActiveModel {
+        id: Set(comment_id),
+        post_id: Set(post_id),
+        root_comment_id: Set(root_comment_id),
+        reply_to_comment_id: Set(reply_to_comment_id),
+        author_name: Set(author_name),
+        author_type: Set(db_comment_author_type(author_type)),
+        password_hash: Set(password_hash),
+        visibility: Set(db_comment_visibility(payload.visibility)),
+        status: Set(DbCommentStatus::Active),
+        body: Set(body.to_string()),
+        ..Default::default()
+    }
+    .insert(pool)
     .await?;
 
     let row = fetch_comment_row(pool, comment_id)
@@ -438,7 +490,7 @@ pub async fn create_comment(
 }
 
 pub async fn update_comment(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     comment_id: Uuid,
     payload: PostCommentUpdate,
     is_admin: bool,
@@ -468,22 +520,21 @@ pub async fn update_comment(
     };
     let new_visibility = payload.visibility;
 
-    sqlx::query(
-        r#"
-        UPDATE post_comments
-        SET
-            body = COALESCE($1, body),
-            visibility = COALESCE($2, visibility),
-            last_edited_at = NOW(),
-            updated_at = NOW()
-        WHERE id = $3
-        "#,
-    )
-    .bind(&new_body)
-    .bind(new_visibility)
-    .bind(comment_id)
-    .execute(pool)
-    .await?;
+    let mut active: post_comment::ActiveModel = post_comment::Entity::find_by_id(comment_id)
+        .one(pool)
+        .await?
+        .ok_or(AppError::NotFound("comment not found"))?
+        .into();
+    if let Some(body) = new_body {
+        active.body = Set(body);
+    }
+    if let Some(visibility) = new_visibility {
+        active.visibility = Set(db_comment_visibility(visibility));
+    }
+    let now = Utc::now();
+    active.last_edited_at = Set(Some(now));
+    active.updated_at = Set(now);
+    active.update(pool).await?;
 
     let refreshed = fetch_comment_row(pool, comment_id)
         .await?
@@ -496,7 +547,7 @@ pub async fn update_comment(
 }
 
 pub async fn delete_comment(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     comment_id: Uuid,
     payload: PostCommentDelete,
     is_admin: bool,
@@ -507,21 +558,18 @@ pub async fn delete_comment(
     };
     authorize_owner(&row, payload.password.as_deref(), is_admin)?;
 
-    sqlx::query(
-        r#"
-        UPDATE post_comments
-        SET status = 'deleted'::post_comment_status,
-            body = $1,
-            deleted_at = NOW(),
-            last_edited_at = NOW(),
-            updated_at = NOW()
-        WHERE id = $2
-        "#,
-    )
-    .bind(DELETED_PLACEHOLDER)
-    .bind(comment_id)
-    .execute(pool)
-    .await?;
+    let mut active: post_comment::ActiveModel = post_comment::Entity::find_by_id(comment_id)
+        .one(pool)
+        .await?
+        .ok_or(AppError::NotFound("comment not found"))?
+        .into();
+    let now = Utc::now();
+    active.status = Set(DbCommentStatus::Deleted);
+    active.body = Set(DELETED_PLACEHOLDER.to_string());
+    active.deleted_at = Set(Some(now));
+    active.last_edited_at = Set(Some(now));
+    active.updated_at = Set(now);
+    active.update(pool).await?;
 
     let refreshed = fetch_comment_row(pool, comment_id)
         .await?
@@ -534,64 +582,54 @@ pub async fn delete_comment(
 }
 
 pub async fn list_admin_comments(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     limit: i64,
     offset: i64,
     post_slug: Option<&str>,
-) -> Result<AdminCommentFeed, sqlx::Error> {
+) -> Result<AdminCommentFeed, DbErr> {
     let normalized_slug: Option<String> = post_slug
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
 
-    let total_count: i64 = sqlx::query_scalar(
-        r#"
-        SELECT COUNT(*)::int8
-        FROM post_comments c
-        JOIN posts p ON p.id = c.post_id
-        WHERE ($1::text IS NULL OR p.slug = $1)
-        "#,
-    )
-    .bind(&normalized_slug)
-    .fetch_one(pool)
-    .await?;
+    let post_filter = match normalized_slug.as_deref() {
+        Some(slug) => {
+            let post = post::Entity::find()
+                .filter(post::Column::Slug.eq(slug))
+                .one(pool)
+                .await?;
+            match post {
+                Some(post) => Some(post.id),
+                None => {
+                    return Ok(AdminCommentFeed {
+                        total_count: 0,
+                        items: Vec::new(),
+                    });
+                }
+            }
+        }
+        None => None,
+    };
 
-    #[derive(FromRow)]
-    struct AdminRow {
-        id: Uuid,
-        post_id: Uuid,
-        root_comment_id: Option<Uuid>,
-        reply_to_comment_id: Option<Uuid>,
-        author_name: String,
-        author_type: CommentAuthorType,
-        password_hash: Option<String>,
-        visibility: CommentVisibility,
-        status: CommentStatus,
-        body: String,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        post_slug: String,
-        post_title: String,
+    let mut count_query = post_comment::Entity::find();
+    if let Some(post_id) = post_filter {
+        count_query = count_query.filter(post_comment::Column::PostId.eq(post_id));
     }
+    let total_count = count_query.count(pool).await? as i64;
 
-    let rows: Vec<AdminRow> = sqlx::query_as(
-        r#"
-        SELECT
-            c.id, c.post_id, c.root_comment_id, c.reply_to_comment_id,
-            c.author_name, c.author_type, c.password_hash,
-            c.visibility, c.status, c.body, c.created_at, c.updated_at,
-            p.slug AS post_slug, p.title AS post_title
-        FROM post_comments c
-        JOIN posts p ON p.id = c.post_id
-        WHERE ($1::text IS NULL OR p.slug = $1)
-        ORDER BY c.created_at DESC, c.id DESC
-        LIMIT $2 OFFSET $3
-        "#,
-    )
-    .bind(&normalized_slug)
-    .bind(limit)
-    .bind(offset)
-    .fetch_all(pool)
-    .await?;
+    let mut row_query = post_comment::Entity::find()
+        .order_by_desc(post_comment::Column::CreatedAt)
+        .order_by_desc(post_comment::Column::Id)
+        .limit(limit as u64)
+        .offset(offset as u64);
+    if let Some(post_id) = post_filter {
+        row_query = row_query.filter(post_comment::Column::PostId.eq(post_id));
+    }
+    let rows: Vec<CommentRow> = row_query
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(comment_row)
+        .collect();
 
     // Fetch reply targets for the items in this page so reply_to_author_name
     // can be filled without an N+1 round-trip.
@@ -599,46 +637,43 @@ pub async fn list_admin_comments(
     let reply_targets: HashMap<Uuid, CommentRow> = if reply_target_ids.is_empty() {
         HashMap::new()
     } else {
-        let target_rows: Vec<CommentRow> = sqlx::query_as(
-            r#"
-            SELECT id, post_id, root_comment_id, reply_to_comment_id,
-                   author_name, author_type, password_hash,
-                   visibility, status, body, created_at, updated_at
-            FROM post_comments
-            WHERE id = ANY($1::uuid[])
-            "#,
-        )
-        .bind(&reply_target_ids)
-        .fetch_all(pool)
-        .await?;
-        target_rows.into_iter().map(|r| (r.id, r)).collect()
+        post_comment::Entity::find()
+            .filter(post_comment::Column::Id.is_in(reply_target_ids))
+            .all(pool)
+            .await?
+            .into_iter()
+            .map(comment_row)
+            .map(|r| (r.id, r))
+            .collect()
+    };
+
+    let post_ids: Vec<Uuid> = rows.iter().map(|r| r.post_id).collect();
+    let posts_by_id: HashMap<Uuid, post::Model> = if post_ids.is_empty() {
+        HashMap::new()
+    } else {
+        post::Entity::find()
+            .filter(post::Column::Id.is_in(post_ids))
+            .all(pool)
+            .await?
+            .into_iter()
+            .map(|p| (p.id, p))
+            .collect()
     };
 
     let items: Vec<AdminCommentFeedItem> = rows
         .into_iter()
-        .map(|r| {
-            let reply_to = r.reply_to_comment_id.and_then(|id| reply_targets.get(&id));
-            let comment = CommentRow {
-                id: r.id,
-                post_id: r.post_id,
-                root_comment_id: r.root_comment_id,
-                reply_to_comment_id: r.reply_to_comment_id,
-                author_name: r.author_name,
-                author_type: r.author_type,
-                password_hash: r.password_hash,
-                visibility: r.visibility,
-                status: r.status,
-                body: r.body,
-                created_at: r.created_at,
-                updated_at: r.updated_at,
-            };
+        .filter_map(|comment| {
+            let post = posts_by_id.get(&comment.post_id)?;
+            let reply_to = comment
+                .reply_to_comment_id
+                .and_then(|id| reply_targets.get(&id));
             let read = to_read(&comment, reply_to, true);
-            to_admin_item(
+            Some(to_admin_item(
                 read,
-                r.post_slug,
-                r.post_title,
+                post.slug.clone(),
+                post.title.clone(),
                 comment.root_comment_id.is_some(),
-            )
+            ))
         })
         .collect();
 
@@ -648,25 +683,17 @@ pub async fn list_admin_comments(
 // ── helpers ─────────────────────────────────────────────────────────────────
 
 async fn fetch_comment_row(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     comment_id: Uuid,
-) -> Result<Option<CommentRow>, sqlx::Error> {
-    sqlx::query_as::<_, CommentRow>(
-        r#"
-        SELECT id, post_id, root_comment_id, reply_to_comment_id,
-               author_name, author_type, password_hash,
-               visibility, status, body, created_at, updated_at
-        FROM post_comments
-        WHERE id = $1
-        "#,
-    )
-    .bind(comment_id)
-    .fetch_optional(pool)
-    .await
+) -> Result<Option<CommentRow>, DbErr> {
+    Ok(post_comment::Entity::find_by_id(comment_id)
+        .one(pool)
+        .await?
+        .map(comment_row))
 }
 
 async fn resolve_reply_target(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     post_id: Uuid,
     reply_to_comment_id: Option<Uuid>,
 ) -> Result<(Option<Uuid>, Option<Uuid>), AppError> {

@@ -68,8 +68,7 @@ impl TranslationQueue {
         timeout_seconds: f64,
     ) -> Result<Option<TranslationJob>, redis::RedisError> {
         let mut conn = self.blocking_conn.clone();
-        let result: Option<(String, String)> =
-            conn.blpop(&self.queue_key, timeout_seconds).await?;
+        let result: Option<(String, String)> = conn.blpop(&self.queue_key, timeout_seconds).await?;
         let Some((_key, payload)) = result else {
             return Ok(None);
         };

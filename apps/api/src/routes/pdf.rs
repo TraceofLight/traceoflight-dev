@@ -117,7 +117,9 @@ pub async fn get_portfolio_status_handler(
         (status = 500, description = "Internal error", body = ErrorDetail),
     ),
 )]
-pub async fn get_portfolio_pdf_handler(State(state): State<AppState>) -> Result<Response, AppError> {
+pub async fn get_portfolio_pdf_handler(
+    State(state): State<AppState>,
+) -> Result<Response, AppError> {
     handle_pdf_download(&state, &PORTFOLIO_PDF).await
 }
 

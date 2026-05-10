@@ -79,7 +79,11 @@ impl IndexNowClient {
         if host.is_empty() || slug.is_empty() {
             return None;
         }
-        let segment = if content_kind == "project" { "projects" } else { "blog" };
+        let segment = if content_kind == "project" {
+            "projects"
+        } else {
+            "blog"
+        };
         Some(format!("https://{host}/{locale}/{segment}/{slug}/"))
     }
 

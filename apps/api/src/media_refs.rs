@@ -90,7 +90,10 @@ mod tests {
 
     #[test]
     fn extract_object_key_returns_none_for_non_media_url() {
-        assert_eq!(extract_object_key(Some("https://example.com/foo.jpg")), None);
+        assert_eq!(
+            extract_object_key(Some("https://example.com/foo.jpg")),
+            None
+        );
         assert_eq!(extract_object_key(Some("/posts/abc")), None);
     }
 

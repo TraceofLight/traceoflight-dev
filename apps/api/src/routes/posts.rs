@@ -82,7 +82,7 @@ pub async fn list_posts_handler(
         tag_match: params.tag_match.unwrap_or_default(),
     };
 
-    let posts = list_posts(&state.pool, &req).await?;
+    let posts = list_posts(&state.db, &req).await?;
     Ok(Json(posts))
 }
 
@@ -118,7 +118,7 @@ pub async fn get_post_by_slug_handler(
         locale: params.locale,
     };
 
-    let post = get_post_by_slug(&state.pool, &slug, filter)
+    let post = get_post_by_slug(&state.db, &slug, filter)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
     Ok(Json(post))
@@ -183,7 +183,7 @@ pub async fn list_post_summaries_handler(
         include_private_visibility_counts: trusted,
     };
 
-    let summaries = list_post_summaries(&state.pool, &req, state.reading_words_per_minute).await?;
+    let summaries = list_post_summaries(&state.db, &req, state.reading_words_per_minute).await?;
     Ok(Json(summaries))
 }
 
@@ -221,7 +221,7 @@ pub async fn resolve_post_redirect_handler(
     Path(old_slug): Path<String>,
     Query(params): Query<RedirectQuery>,
 ) -> Result<Json<RedirectResolution>, AppError> {
-    let target = resolve_post_redirect(&state.pool, &old_slug, params.locale)
+    let target = resolve_post_redirect(&state.db, &old_slug, params.locale)
         .await?
         .ok_or(AppError::NotFound("no redirect for this slug"))?;
     Ok(Json(RedirectResolution {
@@ -250,7 +250,7 @@ pub async fn create_post_handler(
     State(state): State<AppState>,
     Json(payload): Json<PostCreate>,
 ) -> Result<Json<PostRead>, AppError> {
-    let post = create_post(&state.pool, payload).await?;
+    let post = create_post(&state.db, payload).await?;
     fire_post_write_effects(&state, &post);
     Ok(Json(post))
 }
@@ -311,7 +311,7 @@ pub async fn update_post_by_slug_handler(
     Path(slug): Path<String>,
     Json(payload): Json<PostCreate>,
 ) -> Result<Json<PostRead>, AppError> {
-    let post = update_post_by_slug(&state.pool, &slug, payload)
+    let post = update_post_by_slug(&state.db, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
     fire_post_write_effects(&state, &post);
@@ -354,7 +354,7 @@ pub async fn retranslate_post_by_slug_handler(
     Path(slug): Path<String>,
     Json(payload): Json<RetranslatePostRequest>,
 ) -> Result<(StatusCode, Json<RetranslatePostResponse>), AppError> {
-    let source_id = prepare_post_retranslation(&state.pool, &slug, payload.locale).await?;
+    let source_id = prepare_post_retranslation(&state.db, &slug, payload.locale).await?;
     let queue = state.translation_queue.clone();
     let target_locale = payload.locale.as_str().to_string();
     tokio::spawn(async move {
@@ -406,7 +406,7 @@ pub async fn delete_post_by_slug_handler(
     Path(slug): Path<String>,
     Query(params): Query<DeletePostQuery>,
 ) -> Result<StatusCode, AppError> {
-    let deleted = delete_post_by_slug(&state.pool, &slug, params.status, params.visibility).await?;
+    let deleted = delete_post_by_slug(&state.db, &slug, params.status, params.visibility).await?;
     if !deleted {
         return Err(AppError::NotFound("post not found"));
     }

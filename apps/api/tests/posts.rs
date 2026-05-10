@@ -1,5 +1,6 @@
 mod common;
 
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use sqlx::PgPool;
 
 use common::{
@@ -8,7 +9,7 @@ use common::{
     http::{body_bytes, body_json},
 };
 
-use traceoflight_api::posts::PostLocale;
+use traceoflight_api::{entities::post, posts::PostLocale};
 
 #[sqlx::test(migrations = false)]
 async fn list_posts_returns_empty_when_db_is_empty(pool: PgPool) {
@@ -26,7 +27,7 @@ async fn get_post_by_slug_returns_seeded_row(pool: PgPool) {
     let seeded = PostFactory::new()
         .title("Hello World")
         .slug("hello-world")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     let res = app.get(&format!("/posts/{}", seeded.slug)).await;
@@ -42,7 +43,7 @@ async fn create_post_with_existing_slug_returns_409(pool: PgPool) {
     PostFactory::new()
         .title("Original")
         .slug("collision")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     // create_post is internal-secret-gated, so we use the helper that injects
@@ -63,13 +64,13 @@ async fn list_posts_hides_drafts_from_public_callers(pool: PgPool) {
     PostFactory::new()
         .title("Public Post")
         .slug("public-post")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
     PostFactory::new()
         .title("Hidden Draft")
         .slug("hidden-draft")
         .draft()
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     // Public caller — no internal secret header.
@@ -95,7 +96,7 @@ async fn update_translated_post_returns_403(pool: PgPool) {
     let source = PostFactory::new()
         .title("Korean Source")
         .slug("ko-source")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
     PostFactory::new()
         .title("English Translation")
@@ -103,7 +104,7 @@ async fn update_translated_post_returns_403(pool: PgPool) {
         .locale(PostLocale::En)
         .translation_group_id(source.translation_group_id)
         .source_post_id(source.id)
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     let payload = serde_json::json!({
@@ -133,7 +134,7 @@ async fn delete_translated_post_returns_403_and_keeps_translation_group(pool: Pg
     let source = PostFactory::new()
         .title("Korean Source")
         .slug("ko-delete-source")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
     PostFactory::new()
         .title("English Translation")
@@ -141,7 +142,7 @@ async fn delete_translated_post_returns_403_and_keeps_translation_group(pool: Pg
         .locale(PostLocale::En)
         .translation_group_id(source.translation_group_id)
         .source_post_id(source.id)
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     let res = app
@@ -169,7 +170,7 @@ async fn retranslate_translated_post_clears_cached_source_hash(pool: PgPool) {
     let source = PostFactory::new()
         .title("Korean Source")
         .slug("ko-retranslate-source")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
     PostFactory::new()
         .title("English Translation")
@@ -178,7 +179,7 @@ async fn retranslate_translated_post_clears_cached_source_hash(pool: PgPool) {
         .translation_group_id(source.translation_group_id)
         .source_post_id(source.id)
         .translated_from_hash("already-current")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     let payload = serde_json::json!({ "locale": "en" });
@@ -189,13 +190,13 @@ async fn retranslate_translated_post_clears_cached_source_hash(pool: PgPool) {
 
     assert_eq!(status, 202);
 
-    let hash: Option<String> =
-        sqlx::query_scalar("SELECT translated_from_hash FROM posts WHERE slug = $1")
-            .bind("en-retranslate-source")
-            .fetch_one(&app.pool)
-            .await
-            .expect("query translated hash");
-    assert_eq!(hash, None);
+    let translated = post::Entity::find()
+        .filter(post::Column::Slug.eq("en-retranslate-source"))
+        .one(&app.db)
+        .await
+        .expect("query translated post")
+        .expect("translated post exists");
+    assert_eq!(translated.translated_from_hash, None);
 }
 
 #[sqlx::test(migrations = false)]
@@ -204,7 +205,7 @@ async fn retranslate_ko_source_post_returns_403(pool: PgPool) {
     PostFactory::new()
         .title("Korean Source")
         .slug("ko-retranslate-blocked")
-        .create(&app.pool)
+        .create(&app.db)
         .await;
 
     let payload = serde_json::json!({ "locale": "ko" });

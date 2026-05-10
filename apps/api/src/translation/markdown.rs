@@ -108,7 +108,11 @@ fn next_placeholder(segments: &mut Vec<String>, segment: String) -> String {
 }
 
 fn format_placeholder(idx: usize) -> String {
-    format!("{PLACEHOLDER_PREFIX}{:0width$}", idx, width = PLACEHOLDER_DIGITS)
+    format!(
+        "{PLACEHOLDER_PREFIX}{:0width$}",
+        idx,
+        width = PLACEHOLDER_DIGITS
+    )
 }
 
 #[cfg(test)]

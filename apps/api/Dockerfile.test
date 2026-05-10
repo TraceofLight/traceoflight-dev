@@ -25,8 +25,7 @@ COPY . .
 # Pre-compile every test target and pack them into one archive. The archive
 # carries the binaries plus the metadata nextest needs to dispatch them, so
 # the test stage invokes `cargo nextest run --archive-file` and never has to
-# touch the cargo registry. sqlx migrations are baked into the test binaries
-# by the `#[sqlx::test(migrations = ...)]` macro at this compile step.
+# touch the cargo registry.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     cargo nextest archive --locked --archive-file /work/tests.tar.zst

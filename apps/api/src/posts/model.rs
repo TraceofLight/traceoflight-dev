@@ -1,6 +1,7 @@
 //! Public DTOs and enums for the post content surface.
 
 use chrono::{DateTime, Utc};
+use sea_orm::{ColIdx, DbErr, FromQueryResult, QueryResult, TryGetError, TryGetable};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
@@ -17,6 +18,16 @@ pub enum PostStatus {
     Archived,
 }
 
+impl PostStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostStatus::Draft => "draft",
+            PostStatus::Published => "published",
+            PostStatus::Archived => "archived",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, ToSchema, PartialEq, Eq)]
 #[sqlx(type_name = "post_visibility", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -25,12 +36,30 @@ pub enum PostVisibility {
     Private,
 }
 
+impl PostVisibility {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostVisibility::Public => "public",
+            PostVisibility::Private => "private",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, ToSchema, PartialEq, Eq)]
 #[sqlx(type_name = "post_content_kind", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum PostContentKind {
     Blog,
     Project,
+}
+
+impl PostContentKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostContentKind::Blog => "blog",
+            PostContentKind::Project => "project",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, ToSchema, PartialEq, Eq)]
@@ -63,7 +92,66 @@ pub enum PostTopMediaKind {
     Video,
 }
 
-#[derive(Debug, Clone, Serialize, FromRow, ToSchema)]
+impl PostTopMediaKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostTopMediaKind::Image => "image",
+            PostTopMediaKind::Youtube => "youtube",
+            PostTopMediaKind::Video => "video",
+        }
+    }
+}
+
+macro_rules! impl_try_getable_enum {
+    ($ty:ty, {$($value:literal => $variant:path),+ $(,)?}) => {
+        impl TryGetable for $ty {
+            fn try_get_by<I: ColIdx>(
+                res: &QueryResult,
+                index: I,
+            ) -> Result<Self, TryGetError> {
+                let value = <String as TryGetable>::try_get_by(res, index)?;
+                match value.as_str() {
+                    $($value => Ok($variant),)+
+                    other => Err(TryGetError::DbErr(DbErr::Type(format!(
+                        "unexpected database enum value `{other}` for {}",
+                        stringify!($ty)
+                    )))),
+                }
+            }
+        }
+    };
+}
+
+impl_try_getable_enum!(PostStatus, {
+    "draft" => PostStatus::Draft,
+    "published" => PostStatus::Published,
+    "archived" => PostStatus::Archived,
+});
+
+impl_try_getable_enum!(PostVisibility, {
+    "public" => PostVisibility::Public,
+    "private" => PostVisibility::Private,
+});
+
+impl_try_getable_enum!(PostContentKind, {
+    "blog" => PostContentKind::Blog,
+    "project" => PostContentKind::Project,
+});
+
+impl_try_getable_enum!(PostLocale, {
+    "ko" => PostLocale::Ko,
+    "en" => PostLocale::En,
+    "ja" => PostLocale::Ja,
+    "zh" => PostLocale::Zh,
+});
+
+impl_try_getable_enum!(PostTopMediaKind, {
+    "image" => PostTopMediaKind::Image,
+    "youtube" => PostTopMediaKind::Youtube,
+    "video" => PostTopMediaKind::Video,
+});
+
+#[derive(Debug, Clone, Serialize, FromRow, FromQueryResult, ToSchema)]
 pub struct TagRead {
     pub slug: String,
     pub label: String,
@@ -242,7 +330,7 @@ impl Default for ListPostsParams {
     }
 }
 
-#[derive(Debug, Serialize, FromRow, ToSchema)]
+#[derive(Debug, Serialize, FromRow, FromQueryResult, ToSchema)]
 pub struct PostTagFilterRead {
     pub slug: String,
     pub count: i64,

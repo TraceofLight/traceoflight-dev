@@ -1,61 +1,74 @@
 //! Footer profile (email + GitHub URL) shown across the public site. A single
 //! row keyed by `default`; missing rows fall back to compile-time defaults.
 
+use chrono::Utc;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, EntityTrait};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;
 
+use crate::entities::site_profile;
 use crate::error::AppError;
 
 const DEFAULT_KEY: &str = "default";
 const DEFAULT_EMAIL: &str = "rickyjun96@gmail.com";
 const DEFAULT_GITHUB_URL: &str = "https://github.com/TraceofLight";
 
-#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SiteProfileRead {
     pub email: String,
     pub github_url: String,
 }
 
-pub async fn get_site_profile(pool: &PgPool) -> Result<SiteProfileRead, sqlx::Error> {
-    let row = sqlx::query_as::<_, SiteProfileRead>(
-        "SELECT email, github_url FROM site_profiles WHERE key = $1",
-    )
-    .bind(DEFAULT_KEY)
-    .fetch_optional(pool)
-    .await?;
+pub async fn get_site_profile(pool: &DatabaseConnection) -> Result<SiteProfileRead, DbErr> {
+    let row = site_profile::Entity::find_by_id(DEFAULT_KEY.to_owned())
+        .one(pool)
+        .await?;
 
-    Ok(row.unwrap_or_else(|| SiteProfileRead {
-        email: DEFAULT_EMAIL.into(),
-        github_url: DEFAULT_GITHUB_URL.into(),
-    }))
+    Ok(row
+        .map(site_profile_read)
+        .unwrap_or_else(|| SiteProfileRead {
+            email: DEFAULT_EMAIL.into(),
+            github_url: DEFAULT_GITHUB_URL.into(),
+        }))
 }
 
 pub async fn update_site_profile(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     payload: SiteProfileRead,
 ) -> Result<SiteProfileRead, AppError> {
     let email = normalize_email(&payload.email).map_err(|m| AppError::BadRequest(m.into()))?;
     let github_url =
         normalize_github_url(&payload.github_url).map_err(|m| AppError::BadRequest(m.into()))?;
 
-    let saved = sqlx::query_as::<_, SiteProfileRead>(
-        r#"
-        INSERT INTO site_profiles (key, email, github_url)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (key) DO UPDATE SET
-            email      = EXCLUDED.email,
-            github_url = EXCLUDED.github_url,
-            updated_at = NOW()
-        RETURNING email, github_url
-        "#,
-    )
-    .bind(DEFAULT_KEY)
-    .bind(&email)
-    .bind(&github_url)
-    .fetch_one(pool)
-    .await?;
-    Ok(saved)
+    let existing = site_profile::Entity::find_by_id(DEFAULT_KEY.to_owned())
+        .one(pool)
+        .await?;
+
+    let saved = if let Some(existing) = existing {
+        let mut active: site_profile::ActiveModel = existing.into();
+        active.email = Set(email);
+        active.github_url = Set(github_url);
+        active.updated_at = Set(Utc::now());
+        active.update(pool).await?
+    } else {
+        site_profile::ActiveModel {
+            key: Set(DEFAULT_KEY.to_owned()),
+            email: Set(email),
+            github_url: Set(github_url),
+            ..Default::default()
+        }
+        .insert(pool)
+        .await?
+    };
+
+    Ok(site_profile_read(saved))
+}
+
+fn site_profile_read(model: site_profile::Model) -> SiteProfileRead {
+    SiteProfileRead {
+        email: model.email,
+        github_url: model.github_url,
+    }
 }
 
 fn normalize_email(value: &str) -> Result<String, &'static str> {

@@ -22,7 +22,7 @@ use crate::{
 pub async fn get_site_profile_handler(
     State(state): State<AppState>,
 ) -> Result<Json<SiteProfileRead>, AppError> {
-    let profile = get_site_profile(&state.pool).await?;
+    let profile = get_site_profile(&state.db).await?;
     Ok(Json(profile))
 }
 
@@ -47,6 +47,6 @@ pub async fn update_site_profile_handler(
     State(state): State<AppState>,
     Json(payload): Json<SiteProfileRead>,
 ) -> Result<Json<SiteProfileRead>, AppError> {
-    let profile = update_site_profile(&state.pool, payload).await?;
+    let profile = update_site_profile(&state.db, payload).await?;
     Ok(Json(profile))
 }

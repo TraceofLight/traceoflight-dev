@@ -16,11 +16,7 @@ impl TestApp {
 
     /// Send a request through the router via `oneshot` (no listener).
     pub async fn send(&self, req: Request<Body>) -> Response<Body> {
-        self.router
-            .clone()
-            .oneshot(req)
-            .await
-            .expect("oneshot")
+        self.router.clone().oneshot(req).await.expect("oneshot")
     }
 
     pub async fn get(&self, path: &str) -> Response<Body> {
@@ -119,7 +115,7 @@ pub async fn body_bytes(res: Response<Body>) -> (StatusCode, Bytes) {
 /// Drain a response body and parse as JSON.
 pub async fn body_json(res: Response<Body>) -> (StatusCode, Value) {
     let (status, bytes) = body_bytes(res).await;
-    let value: Value =
-        serde_json::from_slice(&bytes).unwrap_or_else(|err| panic!("body not JSON: {err}; raw={:?}", bytes));
+    let value: Value = serde_json::from_slice(&bytes)
+        .unwrap_or_else(|err| panic!("body not JSON: {err}; raw={:?}", bytes));
     (status, value)
 }

@@ -151,8 +151,11 @@ mod tests {
     fn effective_visibility_anonymous_ignores_caller_choices() {
         // Even if an anonymous caller supplies status=draft, it's clamped to
         // published — drafts must never leak to public lists.
-        let (status, visibility) =
-            effective_visibility(false, Some(PostStatus::Draft), Some(PostVisibility::Private));
+        let (status, visibility) = effective_visibility(
+            false,
+            Some(PostStatus::Draft),
+            Some(PostVisibility::Private),
+        );
         assert_eq!(status, Some(PostStatus::Published));
         assert_eq!(visibility, Some(PostVisibility::Public));
     }

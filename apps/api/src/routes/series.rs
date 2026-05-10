@@ -69,7 +69,7 @@ pub async fn list_series_handler(
     let (limit, offset) = validate_limit_offset(params.limit, params.offset, 50, 200)?;
     let include_private = resolve_include_private(params.include_private, trusted);
     let series = list_series(
-        &state.pool,
+        &state.db,
         ListSeriesParams {
             limit,
             offset,
@@ -102,7 +102,7 @@ pub async fn replace_series_order_handler(
     State(state): State<AppState>,
     Json(payload): Json<SeriesOrderReplace>,
 ) -> Result<Json<Vec<SeriesRead>>, AppError> {
-    let series = replace_series_order(&state.pool, payload.series_slugs).await?;
+    let series = replace_series_order(&state.db, payload.series_slugs).await?;
     Ok(Json(series))
 }
 
@@ -128,7 +128,7 @@ pub async fn resolve_series_redirect_handler(
     Path(old_slug): Path<String>,
     Query(params): Query<RedirectQuery>,
 ) -> Result<Json<RedirectResolution>, AppError> {
-    let target = resolve_series_redirect(&state.pool, &old_slug, params.locale)
+    let target = resolve_series_redirect(&state.db, &old_slug, params.locale)
         .await?
         .ok_or(AppError::NotFound("no redirect for this slug"))?;
     Ok(Json(RedirectResolution {
@@ -167,7 +167,7 @@ pub async fn get_series_by_slug_handler(
     Query(params): Query<GetSeriesQuery>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
     let include_private = resolve_include_private(params.include_private, trusted);
-    let series = get_series_by_slug(&state.pool, &slug, include_private, params.locale)
+    let series = get_series_by_slug(&state.db, &slug, include_private, params.locale)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
     Ok(Json(series))
@@ -194,7 +194,7 @@ pub async fn create_series_handler(
     State(state): State<AppState>,
     Json(payload): Json<SeriesUpsert>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
-    let series = create_series(&state.pool, payload).await?;
+    let series = create_series(&state.db, payload).await?;
     fire_series_write_effects(&state, &series);
     Ok(Json(series))
 }
@@ -225,7 +225,7 @@ pub async fn update_series_by_slug_handler(
     Path(slug): Path<String>,
     Json(payload): Json<SeriesUpsert>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
-    let series = update_series_by_slug(&state.pool, &slug, payload)
+    let series = update_series_by_slug(&state.db, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
     fire_series_write_effects(&state, &series);
@@ -255,7 +255,7 @@ pub async fn delete_series_by_slug_handler(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<StatusCode, AppError> {
-    let deleted = delete_series_by_slug(&state.pool, &slug).await?;
+    let deleted = delete_series_by_slug(&state.db, &slug).await?;
     if !deleted {
         return Err(AppError::NotFound("series not found"));
     }
@@ -289,7 +289,7 @@ pub async fn replace_series_posts_handler(
     Path(slug): Path<String>,
     Json(payload): Json<SeriesPostsReplace>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
-    let replaced = replace_series_posts_by_slug(&state.pool, &slug, payload.post_slugs)
+    let replaced = replace_series_posts_by_slug(&state.db, &slug, payload.post_slugs)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
     Ok(Json(replaced))

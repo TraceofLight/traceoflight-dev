@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use axum::Router;
+use sea_orm_migration::MigratorTrait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use traceoflight_api::{
     AdminAuthContext, AppState, AuthContext, IndexNowClient, RefreshStore, SeriesProjector,
-    Settings, build_router,
+    Settings, build_router, db::Db,
 };
 
 /// A test-scoped axum app. Holds references to the per-test isolation knobs
@@ -14,6 +15,7 @@ use traceoflight_api::{
 /// into MinIO bucket-creation helpers later.
 pub struct TestApp {
     pub router: Router,
+    pub db: Db,
     pub pool: PgPool,
     pub redis_prefix: String,
     pub s3_bucket: String,
@@ -29,35 +31,11 @@ pub struct TestApp {
 pub async fn spawn_test_app(pool: PgPool) -> TestApp {
     // Load .env.test (no-op if file is missing — env may be set by CI directly)
     let _ = dotenvy::from_filename(".env.test");
+    let db = traceoflight_api::db::from_sqlx_pool(&pool);
 
-    // Apply migrations via raw SQL by iterating sqlx::migrate!()'s baked-in
-    // Migrator. We don't call Migrator::run / Migrator::run_direct because that
-    // path is broken in sqlx-core 0.8.6's testing setup (`dirty_version`'s
-    // SELECT on `_sqlx_migrations` fails 42P01 even though
-    // `ensure_migrations_table` returned Ok — repro both via #[sqlx::test
-    // (migrations = ...)] and direct sqlx::migrate!().run(&pool)). Tests don't
-    // need migration tracking — each `#[sqlx::test(migrations = false)]` gets a
-    // fresh DB anyway — so we just pour each migration's raw SQL through.
-    //
-    // The migrations are pg_dump output containing
-    //     SELECT pg_catalog.set_config('search_path', '', false);
-    // which sets search_path to empty for the connection session. After the
-    // dump finishes, subsequent unqualified queries (`FROM posts`) and enum
-    // binds (`post_status`) fail with "does not exist". Strip that line.
-    let migrator = sqlx::migrate!("./migrations");
-    for migration in migrator.iter() {
-        if migration.migration_type.is_down_migration() {
-            continue;
-        }
-        let sql = migration.sql.replace(
-            "SELECT pg_catalog.set_config('search_path', '', false);",
-            "-- (test-infra) skipped pg_dump search_path reset",
-        );
-        sqlx::raw_sql(&sql)
-            .execute(&pool)
-            .await
-            .unwrap_or_else(|err| panic!("apply migration {}: {err}", migration.version));
-    }
+    traceoflight_api::migration::Migrator::up(&db, None)
+        .await
+        .expect("apply SeaORM migrations");
 
     let mut settings = Settings::from_env().expect("Settings::from_env (test)");
     let redis_prefix = format!("test:{}:", Uuid::new_v4());
@@ -91,7 +69,7 @@ pub async fn spawn_test_app(pool: PgPool) -> TestApp {
     // If a future test passes for the wrong reason, check this list first.
 
     let state = AppState {
-        pool: pool.clone(),
+        db: db.clone(),
         auth: AuthContext::new(settings.internal_api_secret.clone()),
         reading_words_per_minute: settings.reading_words_per_minute,
         minio: Arc::new(settings.minio.clone()),
@@ -105,6 +83,7 @@ pub async fn spawn_test_app(pool: PgPool) -> TestApp {
 
     TestApp {
         router,
+        db,
         pool,
         redis_prefix,
         s3_bucket,

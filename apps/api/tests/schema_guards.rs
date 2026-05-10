@@ -1,5 +1,10 @@
 use std::{fs, path::Path};
 
+use sea_orm::ActiveEnum;
+use sea_orm_migration::MigratorTrait;
+use traceoflight_api::entities::enums::{DbPostTranslationSourceKind, DbPostTranslationStatus};
+use traceoflight_api::migration::Migrator;
+
 fn read_repo_file(relative: &str) -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
     fs::read_to_string(&path).unwrap_or_else(|err| panic!("read {}: {err}", path.display()))
@@ -19,28 +24,19 @@ fn translation_writer_literals_match_database_enum_values() {
         !combined.contains("'auto'::post_translation_source_kind"),
         "post_translation_source_kind enum has no auto value; use machine"
     );
-    assert!(combined.contains("'synced'::post_translation_status"));
-    assert!(combined.contains("'machine'::post_translation_source_kind"));
+    assert_eq!(DbPostTranslationStatus::Synced.to_value(), "synced");
+    assert_eq!(DbPostTranslationSourceKind::Machine.to_value(), "machine");
 }
 
 #[test]
-fn migrations_drop_legacy_alembic_table_and_duplicate_project_profile_index() {
-    let migrations_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations");
-    let mut combined = String::new();
-    for entry in fs::read_dir(&migrations_dir)
-        .unwrap_or_else(|err| panic!("read {}: {err}", migrations_dir.display()))
-    {
-        let path = entry.expect("migration entry").path();
-        if path.extension().and_then(|ext| ext.to_str()) == Some("sql") {
-            combined.push_str(
-                &fs::read_to_string(&path)
-                    .unwrap_or_else(|err| panic!("read {}: {err}", path.display())),
-            );
-            combined.push('\n');
-        }
-    }
-
-    let normalized = combined.to_lowercase();
-    assert!(normalized.contains("drop table if exists public.alembic_version"));
-    assert!(normalized.contains("drop index if exists public.ix_project_profiles_post_id"));
+fn schema_is_managed_by_seaorm_migrations() {
+    assert!(
+        !Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("migrations")
+            .exists(),
+        "SQL migration directory should be removed after moving schema management to SeaORM"
+    );
+    let migrations = Migrator::migrations();
+    assert_eq!(migrations.len(), 1);
+    assert_eq!(migrations[0].name(), "m20260507000000_initial_schema");
 }

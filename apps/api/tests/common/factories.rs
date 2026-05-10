@@ -1,8 +1,16 @@
-use sqlx::PgPool;
+use chrono::Utc;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 use uuid::Uuid;
 
-use traceoflight_api::posts::{
-    PostContentKind, PostLocale, PostStatus, PostTopMediaKind, PostVisibility,
+use traceoflight_api::{
+    entities::{
+        enums::{
+            DbPostContentKind, DbPostLocale, DbPostStatus, DbPostTopMediaKind,
+            DbPostTranslationSourceKind, DbPostTranslationStatus, DbPostVisibility,
+        },
+        post,
+    },
+    posts::{PostContentKind, PostLocale, PostStatus, PostTopMediaKind, PostVisibility},
 };
 
 /// Minimal post identity returned by `PostFactory::create`.
@@ -100,7 +108,7 @@ impl PostFactory {
     /// Insert directly into `posts`. Skips business-logic hooks
     /// (reading-time, slug-redirect bookkeeping); callers needing those
     /// must drive the production endpoint instead.
-    pub async fn create(self, pool: &PgPool) -> CreatedPost {
+    pub async fn create(self, db: &DatabaseConnection) -> CreatedPost {
         let id = Uuid::new_v4();
         let translation_group_id = self.translation_group_id.unwrap_or_else(Uuid::new_v4);
         let derived_slug = self
@@ -108,48 +116,38 @@ impl PostFactory {
             .clone()
             .unwrap_or_else(|| slug_from_title(&self.title));
         let translation_status = if self.source_post_id.is_some() {
-            "synced"
+            DbPostTranslationStatus::Synced
         } else {
-            "source"
+            DbPostTranslationStatus::Source
         };
         let translation_source_kind = if self.source_post_id.is_some() {
-            "machine"
+            DbPostTranslationSourceKind::Machine
         } else {
-            "manual"
+            DbPostTranslationSourceKind::Manual
         };
+        let now = Utc::now();
 
-        sqlx::query(
-            r#"
-            INSERT INTO posts (
-                id, slug, title, body_markdown,
-                status, visibility, content_kind, top_media_kind, locale,
-                translation_group_id, source_post_id, translation_status, translation_source_kind,
-                translated_from_hash,
-                published_at, created_at, updated_at
-            ) VALUES (
-                $1, $2, $3, $4,
-                $5, $6, $7, $8, $9,
-                $10, $11, $12::public.post_translation_status,
-                $13::public.post_translation_source_kind,
-                $14, NOW(), NOW(), NOW()
-            )
-            "#,
-        )
-        .bind(id)
-        .bind(&derived_slug)
-        .bind(&self.title)
-        .bind(&self.body_markdown)
-        .bind(self.status)
-        .bind(self.visibility)
-        .bind(self.content_kind)
-        .bind(self.top_media_kind)
-        .bind(self.locale)
-        .bind(translation_group_id)
-        .bind(self.source_post_id)
-        .bind(translation_status)
-        .bind(translation_source_kind)
-        .bind(&self.translated_from_hash)
-        .execute(pool)
+        post::ActiveModel {
+            id: Set(id),
+            slug: Set(derived_slug.clone()),
+            title: Set(self.title.clone()),
+            body_markdown: Set(self.body_markdown),
+            status: Set(DbPostStatus::from(self.status)),
+            visibility: Set(DbPostVisibility::from(self.visibility)),
+            content_kind: Set(DbPostContentKind::from(self.content_kind)),
+            top_media_kind: Set(DbPostTopMediaKind::from(self.top_media_kind)),
+            locale: Set(DbPostLocale::from(self.locale)),
+            translation_group_id: Set(translation_group_id),
+            source_post_id: Set(self.source_post_id),
+            translation_status: Set(translation_status),
+            translation_source_kind: Set(translation_source_kind),
+            translated_from_hash: Set(self.translated_from_hash),
+            published_at: Set(Some(now)),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(db)
         .await
         .expect("PostFactory::create insert");
 

@@ -2,14 +2,29 @@
 //! list of posts; the order is materialised by the background series
 //! projector (`series_projection.rs`).
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::Set,
+    ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, TransactionTrait,
+    sea_query::{NullOrdering, Order},
+};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Postgres, Transaction};
+use sqlx::FromRow;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::db;
+use crate::entities::{
+    enums::{
+        DbPostLocale, DbPostStatus, DbPostTranslationSourceKind, DbPostTranslationStatus,
+        DbPostVisibility,
+    },
+    post, series, series_post, series_slug_redirect,
+};
 use crate::error::AppError;
 use crate::posts::{PostLocale, PostVisibility};
 use crate::serializers::{serialize_dt_us, serialize_dt_us_opt};
@@ -90,7 +105,7 @@ pub struct ListSeriesParams {
     pub locale: Option<PostLocale>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct SeriesRow {
     id: Uuid,
     slug: String,
@@ -104,7 +119,7 @@ struct SeriesRow {
     updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 struct SeriesListRow {
     id: Uuid,
     slug: String,
@@ -120,36 +135,31 @@ struct SeriesListRow {
 }
 
 pub async fn list_series(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     params: ListSeriesParams,
-) -> Result<Vec<SeriesRead>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, SeriesListRow>(
-        r#"
-        SELECT
-            s.id, s.slug, s.title, s.description, s.cover_image_url,
-            s.locale, s.translation_group_id, s.source_series_id,
-            s.created_at, s.updated_at,
-            COALESCE((
-                SELECT COUNT(*)::int8
-                FROM series_posts sp
-                JOIN posts p ON p.id = sp.post_id
-                WHERE sp.series_id = s.id
-                  AND ($1::boolean
-                       OR (p.status = 'published'::post_status
-                           AND p.visibility = 'public'::post_visibility))
-            ), 0) AS post_count
-        FROM series s
-        WHERE ($2::post_locale IS NULL OR s.locale = $2)
-        ORDER BY s.list_order_index ASC NULLS LAST, s.updated_at DESC
-        LIMIT $3 OFFSET $4
-        "#,
-    )
-    .bind(params.include_private)
-    .bind(params.locale)
-    .bind(params.limit)
-    .bind(params.offset)
-    .fetch_all(pool)
-    .await?;
+) -> Result<Vec<SeriesRead>, DbErr> {
+    let mut query = series::Entity::find()
+        .order_by_with_nulls(
+            series::Column::ListOrderIndex,
+            Order::Asc,
+            NullOrdering::Last,
+        )
+        .order_by_desc(series::Column::UpdatedAt)
+        .limit(params.limit as u64)
+        .offset(params.offset as u64);
+    if let Some(locale) = params.locale {
+        query = query.filter(series::Column::Locale.eq(DbPostLocale::from(locale)));
+    }
+
+    let models = query.all(pool).await?;
+    let post_counts = count_visible_posts_by_series(pool, &models, params.include_private).await?;
+    let rows: Vec<SeriesListRow> = models
+        .into_iter()
+        .map(|model| {
+            let post_count = *post_counts.get(&model.id).unwrap_or(&0);
+            series_list_row(model, post_count)
+        })
+        .collect();
 
     let drop_empty = params.locale.is_none();
     Ok(rows
@@ -172,11 +182,11 @@ pub async fn list_series(
 }
 
 pub async fn get_series_by_slug(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     slug: &str,
     include_private: bool,
     locale: Option<PostLocale>,
-) -> Result<Option<SeriesDetailRead>, sqlx::Error> {
+) -> Result<Option<SeriesDetailRead>, DbErr> {
     let series = fetch_series_row(pool, slug, locale).await?;
     let Some(series) = series else {
         return Ok(None);
@@ -189,42 +199,31 @@ pub async fn get_series_by_slug(
 }
 
 pub async fn create_series(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     payload: SeriesUpsert,
 ) -> Result<SeriesDetailRead, AppError> {
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
     let series_id = Uuid::new_v4();
     let translation_group_id = Uuid::new_v4();
 
-    sqlx::query(
-        r#"
-        INSERT INTO series (
-            id, slug, title, description, cover_image_url,
-            locale, translation_group_id, source_series_id,
-            translation_status, translation_source_kind
-        ) VALUES (
-            $1, $2, $3, $4, $5,
-            'ko'::post_locale, $6, NULL,
-            'source'::post_translation_status, 'manual'::post_translation_source_kind
-        )
-        "#,
-    )
-    .bind(series_id)
-    .bind(&payload.slug)
-    .bind(&payload.title)
-    .bind(&payload.description)
-    .bind(&payload.cover_image_url)
-    .bind(translation_group_id)
-    .execute(&mut *tx)
+    series::ActiveModel {
+        id: Set(series_id),
+        slug: Set(payload.slug.clone()),
+        title: Set(payload.title.clone()),
+        description: Set(payload.description.clone()),
+        cover_image_url: Set(payload.cover_image_url.clone()),
+        locale: Set(DbPostLocale::Ko),
+        translation_group_id: Set(translation_group_id),
+        source_series_id: Set(None),
+        translation_status: Set(DbPostTranslationStatus::Source),
+        translation_source_kind: Set(DbPostTranslationSourceKind::Manual),
+        ..Default::default()
+    }
+    .insert(&tx)
     .await
     .map_err(map_series_conflict)?;
 
-    sqlx::query(
-        "DELETE FROM series_slug_redirects WHERE locale = 'ko'::post_locale AND old_slug = $1",
-    )
-    .bind(&payload.slug)
-    .execute(&mut *tx)
-    .await?;
+    delete_series_redirect(&tx, PostLocale::Ko, &payload.slug).await?;
 
     tx.commit().await?;
 
@@ -235,7 +234,7 @@ pub async fn create_series(
 }
 
 pub async fn update_series_by_slug(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     current_slug: &str,
     payload: SeriesUpsert,
 ) -> Result<Option<SeriesDetailRead>, AppError> {
@@ -244,28 +243,23 @@ pub async fn update_series_by_slug(
         return Ok(None);
     };
 
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
 
-    sqlx::query(
-        r#"
-        UPDATE series
-        SET slug = $1, title = $2, description = $3, cover_image_url = $4,
-            updated_at = NOW()
-        WHERE id = $5
-        "#,
-    )
-    .bind(&payload.slug)
-    .bind(&payload.title)
-    .bind(&payload.description)
-    .bind(&payload.cover_image_url)
-    .bind(existing.id)
-    .execute(&mut *tx)
-    .await
-    .map_err(map_series_conflict)?;
+    let mut active: series::ActiveModel = series::Entity::find_by_id(existing.id)
+        .one(&tx)
+        .await?
+        .ok_or_else(|| AppError::Internal(anyhow::anyhow!("series disappeared before update")))?
+        .into();
+    active.slug = Set(payload.slug.clone());
+    active.title = Set(payload.title.clone());
+    active.description = Set(payload.description.clone());
+    active.cover_image_url = Set(payload.cover_image_url.clone());
+    active.updated_at = Set(Utc::now());
+    active.update(&tx).await.map_err(map_series_conflict)?;
 
     if existing.slug != payload.slug {
         record_series_rename(
-            &mut tx,
+            &tx,
             &existing.slug,
             &payload.slug,
             existing.locale,
@@ -283,16 +277,16 @@ pub async fn update_series_by_slug(
     Ok(Some(detail_from(updated, posts)))
 }
 
-pub async fn delete_series_by_slug(pool: &PgPool, slug: &str) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query("DELETE FROM series WHERE slug = $1")
-        .bind(slug)
-        .execute(pool)
+pub async fn delete_series_by_slug(pool: &DatabaseConnection, slug: &str) -> Result<bool, DbErr> {
+    let result = series::Entity::delete_many()
+        .filter(series::Column::Slug.eq(slug))
+        .exec(pool)
         .await?;
-    Ok(result.rows_affected() > 0)
+    Ok(result.rows_affected > 0)
 }
 
 pub async fn replace_series_posts_by_slug(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     slug: &str,
     raw_post_slugs: Vec<String>,
 ) -> Result<Option<SeriesDetailRead>, AppError> {
@@ -303,27 +297,21 @@ pub async fn replace_series_posts_by_slug(
 
     let post_slugs = normalize_slug_list(&raw_post_slugs, true);
 
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
 
     if post_slugs.is_empty() {
-        sqlx::query("DELETE FROM series_posts WHERE series_id = $1")
-            .bind(series.id)
-            .execute(&mut *tx)
+        series_post::Entity::delete_many()
+            .filter(series_post::Column::SeriesId.eq(series.id))
+            .exec(&tx)
             .await?;
         tx.commit().await?;
         return Ok(Some(detail_from(series, Vec::new())));
     }
 
-    #[derive(FromRow)]
-    struct PostLookup {
-        id: Uuid,
-        slug: String,
-    }
-    let posts: Vec<PostLookup> =
-        sqlx::query_as("SELECT id, slug FROM posts WHERE slug = ANY($1::text[])")
-            .bind(&post_slugs)
-            .fetch_all(&mut *tx)
-            .await?;
+    let posts = post::Entity::find()
+        .filter(post::Column::Slug.is_in(post_slugs.iter().cloned()))
+        .all(&tx)
+        .await?;
 
     let mut by_slug: std::collections::HashMap<String, Uuid> =
         posts.into_iter().map(|p| (p.slug, p.id)).collect();
@@ -344,40 +332,31 @@ pub async fn replace_series_posts_by_slug(
         .map(|s| by_slug.remove(s).expect("verified existence"))
         .collect();
 
-    let conflict_count: i64 = sqlx::query_scalar(
-        r#"
-        SELECT COUNT(*)::int8
-        FROM series_posts
-        WHERE post_id = ANY($1::uuid[])
-          AND series_id <> $2
-        "#,
-    )
-    .bind(&post_ids)
-    .bind(series.id)
-    .fetch_one(&mut *tx)
-    .await?;
+    let conflict_count = series_post::Entity::find()
+        .filter(series_post::Column::PostId.is_in(post_ids.iter().copied()))
+        .filter(series_post::Column::SeriesId.ne(series.id))
+        .count(&tx)
+        .await?;
     if conflict_count > 0 {
         return Err(AppError::Conflict(
             "one or more posts already belong to another series".into(),
         ));
     }
 
-    sqlx::query("DELETE FROM series_posts WHERE series_id = $1")
-        .bind(series.id)
-        .execute(&mut *tx)
+    series_post::Entity::delete_many()
+        .filter(series_post::Column::SeriesId.eq(series.id))
+        .exec(&tx)
         .await?;
 
     for (idx, post_id) in post_ids.iter().enumerate() {
-        sqlx::query(
-            r#"
-            INSERT INTO series_posts (id, series_id, post_id, order_index)
-            VALUES (gen_random_uuid(), $1, $2, $3)
-            "#,
-        )
-        .bind(series.id)
-        .bind(post_id)
-        .bind((idx as i64) + 1)
-        .execute(&mut *tx)
+        series_post::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            series_id: Set(series.id),
+            post_id: Set(*post_id),
+            order_index: Set((idx as i32) + 1),
+            ..Default::default()
+        }
+        .insert(&tx)
         .await
         .map_err(map_series_conflict)?;
     }
@@ -389,7 +368,7 @@ pub async fn replace_series_posts_by_slug(
 }
 
 pub async fn replace_series_order(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     raw_slugs: Vec<String>,
 ) -> Result<Vec<SeriesRead>, AppError> {
     let normalized = normalize_slug_list(&raw_slugs, false);
@@ -397,17 +376,12 @@ pub async fn replace_series_order(
         return Ok(Vec::new());
     }
 
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
 
-    #[derive(FromRow)]
-    struct ExistingRow {
-        slug: String,
-    }
-    let existing: Vec<ExistingRow> =
-        sqlx::query_as("SELECT slug FROM series WHERE slug = ANY($1::text[])")
-            .bind(&normalized)
-            .fetch_all(&mut *tx)
-            .await?;
+    let existing = series::Entity::find()
+        .filter(series::Column::Slug.is_in(normalized.iter().cloned()))
+        .all(&tx)
+        .await?;
     let known: HashSet<String> = existing.into_iter().map(|r| r.slug).collect();
     let missing: Vec<String> = normalized
         .iter()
@@ -422,35 +396,40 @@ pub async fn replace_series_order(
     }
 
     for (idx, slug) in normalized.iter().enumerate() {
-        sqlx::query("UPDATE series SET list_order_index = $1, updated_at = NOW() WHERE slug = $2")
-            .bind((idx as i64) + 1)
-            .bind(slug)
-            .execute(&mut *tx)
+        let models = series::Entity::find()
+            .filter(series::Column::Slug.eq(slug))
+            .all(&tx)
             .await?;
+        for model in models {
+            let mut active: series::ActiveModel = model.into();
+            active.list_order_index = Set(Some((idx as i32) + 1));
+            active.updated_at = Set(Utc::now());
+            active.update(&tx).await?;
+        }
     }
 
     tx.commit().await?;
 
     // Admin reorder result: only Korean source rows, ordered by list_order_index.
-    let rows = sqlx::query_as::<_, SeriesListRow>(
-        r#"
-        SELECT
-            s.id, s.slug, s.title, s.description, s.cover_image_url,
-            s.locale, s.translation_group_id, s.source_series_id,
-            s.created_at, s.updated_at,
-            COALESCE((
-                SELECT COUNT(*)::int8
-                FROM series_posts sp
-                JOIN posts p ON p.id = sp.post_id
-                WHERE sp.series_id = s.id
-            ), 0) AS post_count
-        FROM series s
-        WHERE s.locale = 'ko'::post_locale AND s.source_series_id IS NULL
-        ORDER BY s.list_order_index ASC NULLS LAST, s.created_at DESC
-        "#,
-    )
-    .fetch_all(pool)
-    .await?;
+    let models = series::Entity::find()
+        .filter(series::Column::Locale.eq(DbPostLocale::Ko))
+        .filter(series::Column::SourceSeriesId.is_null())
+        .order_by_with_nulls(
+            series::Column::ListOrderIndex,
+            Order::Asc,
+            NullOrdering::Last,
+        )
+        .order_by_desc(series::Column::CreatedAt)
+        .all(pool)
+        .await?;
+    let post_counts = count_visible_posts_by_series(pool, &models, true).await?;
+    let rows: Vec<SeriesListRow> = models
+        .into_iter()
+        .map(|model| {
+            let post_count = *post_counts.get(&model.id).unwrap_or(&0);
+            series_list_row(model, post_count)
+        })
+        .collect();
 
     Ok(rows
         .into_iter()
@@ -471,92 +450,163 @@ pub async fn replace_series_order(
 }
 
 pub async fn resolve_series_redirect(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     old_slug: &str,
     locale: PostLocale,
-) -> Result<Option<String>, sqlx::Error> {
-    let row: Option<(Uuid, String)> = sqlx::query_as(
-        r#"
-        SELECT ssr.id, s.slug
-        FROM series_slug_redirects ssr
-        JOIN series s ON s.id = ssr.target_series_id
-        WHERE ssr.locale = $1
-          AND ssr.old_slug = $2
-        "#,
-    )
-    .bind(locale)
-    .bind(old_slug)
-    .fetch_optional(pool)
-    .await?;
+) -> Result<Option<String>, DbErr> {
+    let redirect = series_slug_redirect::Entity::find()
+        .filter(series_slug_redirect::Column::Locale.eq(DbPostLocale::from(locale)))
+        .filter(series_slug_redirect::Column::OldSlug.eq(old_slug))
+        .one(pool)
+        .await?;
 
-    let Some((redirect_id, target_slug)) = row else {
+    let Some(redirect) = redirect else {
         return Ok(None);
     };
-    sqlx::query(
-        r#"
-        UPDATE series_slug_redirects
-        SET hit_count = hit_count + 1, last_hit_at = NOW()
-        WHERE id = $1
-        "#,
-    )
-    .bind(redirect_id)
-    .execute(pool)
-    .await?;
-    Ok(Some(target_slug))
+    let target = series::Entity::find_by_id(redirect.target_series_id)
+        .one(pool)
+        .await?;
+    let Some(target) = target else {
+        return Ok(None);
+    };
+
+    let next_hit_count = redirect.hit_count + 1;
+    let mut active: series_slug_redirect::ActiveModel = redirect.into();
+    active.hit_count = Set(next_hit_count);
+    active.last_hit_at = Set(Some(Utc::now()));
+    active.update(pool).await?;
+    Ok(Some(target.slug))
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
 async fn fetch_series_row(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     slug: &str,
     locale: Option<PostLocale>,
-) -> Result<Option<SeriesRow>, sqlx::Error> {
-    sqlx::query_as::<_, SeriesRow>(
-        r#"
-        SELECT id, slug, title, description, cover_image_url,
-               locale, translation_group_id, source_series_id,
-               created_at, updated_at
-        FROM series
-        WHERE slug = $1
-          AND ($2::post_locale IS NULL OR locale = $2)
-        LIMIT 1
-        "#,
-    )
-    .bind(slug)
-    .bind(locale)
-    .fetch_optional(pool)
-    .await
+) -> Result<Option<SeriesRow>, DbErr> {
+    let mut query = series::Entity::find().filter(series::Column::Slug.eq(slug));
+    if let Some(locale) = locale {
+        query = query.filter(series::Column::Locale.eq(DbPostLocale::from(locale)));
+    }
+    Ok(query.one(pool).await?.map(series_row))
 }
 
 async fn fetch_series_posts(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     series_id: Uuid,
     include_private: bool,
-) -> Result<Vec<SeriesPostRead>, sqlx::Error> {
-    sqlx::query_as::<_, SeriesPostRead>(
-        r#"
-        SELECT
-            p.slug,
-            p.title,
-            p.excerpt,
-            p.cover_image_url,
-            sp.order_index,
-            p.published_at,
-            p.visibility
-        FROM series_posts sp
-        JOIN posts p ON p.id = sp.post_id
-        WHERE sp.series_id = $1
-          AND ($2::boolean
-               OR (p.status = 'published'::post_status
-                   AND p.visibility = 'public'::post_visibility))
-        ORDER BY sp.order_index ASC
-        "#,
-    )
-    .bind(series_id)
-    .bind(include_private)
-    .fetch_all(pool)
-    .await
+) -> Result<Vec<SeriesPostRead>, DbErr> {
+    let links = series_post::Entity::find()
+        .filter(series_post::Column::SeriesId.eq(series_id))
+        .order_by_asc(series_post::Column::OrderIndex)
+        .all(pool)
+        .await?;
+    let post_ids: Vec<Uuid> = links.iter().map(|link| link.post_id).collect();
+    if post_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut post_query = post::Entity::find().filter(post::Column::Id.is_in(post_ids));
+    if !include_private {
+        post_query = post_query
+            .filter(post::Column::Status.eq(DbPostStatus::Published))
+            .filter(post::Column::Visibility.eq(DbPostVisibility::Public));
+    }
+    let posts_by_id: HashMap<Uuid, post::Model> = post_query
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(|post| (post.id, post))
+        .collect();
+
+    Ok(links
+        .into_iter()
+        .filter_map(|link| {
+            let post = posts_by_id.get(&link.post_id)?;
+            Some(SeriesPostRead {
+                slug: post.slug.clone(),
+                title: post.title.clone(),
+                excerpt: post.excerpt.clone(),
+                cover_image_url: post.cover_image_url.clone(),
+                order_index: link.order_index,
+                published_at: post.published_at,
+                visibility: PostVisibility::from(post.visibility),
+            })
+        })
+        .collect())
+}
+
+fn series_row(model: series::Model) -> SeriesRow {
+    SeriesRow {
+        id: model.id,
+        slug: model.slug,
+        title: model.title,
+        description: model.description,
+        cover_image_url: model.cover_image_url,
+        locale: PostLocale::from(model.locale),
+        translation_group_id: Some(model.translation_group_id),
+        source_series_id: model.source_series_id,
+        created_at: model.created_at,
+        updated_at: model.updated_at,
+    }
+}
+
+fn series_list_row(model: series::Model, post_count: i64) -> SeriesListRow {
+    SeriesListRow {
+        id: model.id,
+        slug: model.slug,
+        title: model.title,
+        description: model.description,
+        cover_image_url: model.cover_image_url,
+        locale: PostLocale::from(model.locale),
+        translation_group_id: Some(model.translation_group_id),
+        source_series_id: model.source_series_id,
+        created_at: model.created_at,
+        updated_at: model.updated_at,
+        post_count,
+    }
+}
+
+async fn count_visible_posts_by_series(
+    pool: &DatabaseConnection,
+    series_models: &[series::Model],
+    include_private: bool,
+) -> Result<HashMap<Uuid, i64>, DbErr> {
+    let series_ids: Vec<Uuid> = series_models.iter().map(|series| series.id).collect();
+    if series_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let links = series_post::Entity::find()
+        .filter(series_post::Column::SeriesId.is_in(series_ids))
+        .all(pool)
+        .await?;
+    let post_ids: Vec<Uuid> = links.iter().map(|link| link.post_id).collect();
+    if post_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let mut post_query = post::Entity::find().filter(post::Column::Id.is_in(post_ids));
+    if !include_private {
+        post_query = post_query
+            .filter(post::Column::Status.eq(DbPostStatus::Published))
+            .filter(post::Column::Visibility.eq(DbPostVisibility::Public));
+    }
+    let visible_post_ids: HashSet<Uuid> = post_query
+        .all(pool)
+        .await?
+        .into_iter()
+        .map(|post| post.id)
+        .collect();
+
+    let mut counts = HashMap::new();
+    for link in links {
+        if visible_post_ids.contains(&link.post_id) {
+            *counts.entry(link.series_id).or_insert(0) += 1;
+        }
+    }
+    Ok(counts)
 }
 
 fn detail_from(series: SeriesRow, posts: Vec<SeriesPostRead>) -> SeriesDetailRead {
@@ -577,32 +627,36 @@ fn detail_from(series: SeriesRow, posts: Vec<SeriesPostRead>) -> SeriesDetailRea
 }
 
 async fn record_series_rename(
-    tx: &mut Transaction<'_, Postgres>,
+    tx: &DatabaseTransaction,
     old_slug: &str,
     new_slug: &str,
     locale: PostLocale,
     target_series_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM series_slug_redirects WHERE locale = $1 AND old_slug = $2")
-        .bind(locale)
-        .bind(old_slug)
-        .execute(&mut **tx)
-        .await?;
-    sqlx::query(
-        r#"
-        INSERT INTO series_slug_redirects (id, locale, old_slug, target_series_id, hit_count)
-        VALUES (gen_random_uuid(), $1, $2, $3, 0)
-        "#,
-    )
-    .bind(locale)
-    .bind(old_slug)
-    .bind(target_series_id)
-    .execute(&mut **tx)
+) -> Result<(), DbErr> {
+    delete_series_redirect(tx, locale, old_slug).await?;
+    series_slug_redirect::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        locale: Set(DbPostLocale::from(locale)),
+        old_slug: Set(old_slug.to_string()),
+        target_series_id: Set(target_series_id),
+        hit_count: Set(0),
+        ..Default::default()
+    }
+    .insert(tx)
     .await?;
-    sqlx::query("DELETE FROM series_slug_redirects WHERE locale = $1 AND old_slug = $2")
-        .bind(locale)
-        .bind(new_slug)
-        .execute(&mut **tx)
+    delete_series_redirect(tx, locale, new_slug).await?;
+    Ok(())
+}
+
+async fn delete_series_redirect(
+    tx: &DatabaseTransaction,
+    locale: PostLocale,
+    old_slug: &str,
+) -> Result<(), DbErr> {
+    series_slug_redirect::Entity::delete_many()
+        .filter(series_slug_redirect::Column::Locale.eq(DbPostLocale::from(locale)))
+        .filter(series_slug_redirect::Column::OldSlug.eq(old_slug))
+        .exec(tx)
         .await?;
     Ok(())
 }
@@ -628,18 +682,16 @@ fn normalize_slug_list(raw: &[String], lowercase: bool) -> Vec<String> {
 /// - duplicate series.slug
 /// - a post is already linked to another series
 /// - a (series_id, order_index) pair collides
-fn map_series_conflict(err: sqlx::Error) -> AppError {
-    if let Some(db_err) = err.as_database_error() {
-        if db_err.code().as_deref() == Some("23505") {
-            let constraint = db_err.constraint().unwrap_or("");
-            let detail = match constraint {
-                "uq_series_posts_post_id" => "post already belongs to another series",
-                "uq_series_posts_series_order" => "series order index conflict",
-                "ix_series_slug" | "uq_series_slug_locale" => "series slug already exists",
-                _ => "series integrity conflict",
-            };
-            return AppError::Conflict(detail.into());
-        }
+fn map_series_conflict(err: DbErr) -> AppError {
+    if db::unique_violation(&err) {
+        let constraint = db::pg_constraint(&err).unwrap_or_default();
+        let detail = match constraint.as_str() {
+            "uq_series_posts_post_id" => "post already belongs to another series",
+            "uq_series_posts_series_order" => "series order index conflict",
+            "ix_series_slug" | "uq_series_slug_locale" => "series slug already exists",
+            _ => "series integrity conflict",
+        };
+        return AppError::Conflict(detail.into());
     }
     AppError::Database(err)
 }

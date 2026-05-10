@@ -7,8 +7,10 @@
 
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgPool};
+use chrono::Utc;
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -16,12 +18,21 @@ use super::hash::{hash_post, hash_series};
 use super::markdown::{mask, unmask};
 use super::provider::{TranslationError, TranslationProvider};
 use super::queue::{EntityKind, TranslationJob, TranslationQueue};
+use crate::entities::{
+    enums::{DbPostLocale, DbPostTranslationSourceKind, DbPostTranslationStatus},
+    post, series,
+};
 use crate::indexnow::IndexNowClient;
+use crate::posts::PostContentKind;
 
 const POP_TIMEOUT_SECONDS: f64 = 5.0;
 
-pub fn spawn<P>(pool: PgPool, queue: TranslationQueue, provider: Arc<P>, indexnow: IndexNowClient)
-where
+pub fn spawn<P>(
+    pool: DatabaseConnection,
+    queue: TranslationQueue,
+    provider: Arc<P>,
+    indexnow: IndexNowClient,
+) where
     P: TranslationProvider + 'static,
 {
     tokio::spawn(async move {
@@ -50,7 +61,7 @@ where
 }
 
 async fn handle_job<P: TranslationProvider>(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     provider: &P,
     indexnow: &IndexNowClient,
     job: &TranslationJob,
@@ -61,62 +72,19 @@ async fn handle_job<P: TranslationProvider>(
     }
 }
 
-#[derive(Debug, FromRow)]
-struct PostSourceRow {
-    id: Uuid,
-    slug: String,
-    title: String,
-    excerpt: Option<String>,
-    body_markdown: String,
-    cover_image_url: Option<String>,
-    top_media_kind: String,
-    top_media_image_url: Option<String>,
-    top_media_youtube_url: Option<String>,
-    top_media_video_url: Option<String>,
-    series_title: Option<String>,
-    translation_group_id: Uuid,
-    content_kind: String,
-    status: String,
-    visibility: String,
-    published_at: Option<DateTime<Utc>>,
-    locale: String,
-}
-
-#[derive(Debug, FromRow)]
-struct PostSiblingRow {
-    translated_from_hash: Option<String>,
-    source_post_id: Option<Uuid>,
-}
-
 async fn handle_post_job<P: TranslationProvider>(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     provider: &P,
     indexnow: &IndexNowClient,
     job: &TranslationJob,
 ) -> anyhow::Result<()> {
-    let source = sqlx::query_as::<_, PostSourceRow>(
-        r#"
-        SELECT id, slug, title, excerpt, body_markdown, cover_image_url,
-               top_media_kind::text AS top_media_kind,
-               top_media_image_url, top_media_youtube_url, top_media_video_url,
-               series_title, translation_group_id,
-               content_kind::text AS content_kind,
-               status::text AS status,
-               visibility::text AS visibility,
-               published_at,
-               locale::text AS locale
-        FROM posts WHERE id = $1
-        "#,
-    )
-    .bind(job.source_id)
-    .fetch_optional(pool)
-    .await?;
+    let source = post::Entity::find_by_id(job.source_id).one(pool).await?;
 
     let Some(source) = source else {
         // Source was deleted between enqueue and pickup — nothing to do.
         return Ok(());
     };
-    if source.locale != "ko" {
+    if !matches!(source.locale, DbPostLocale::Ko) {
         return Ok(());
     }
 
@@ -126,19 +94,12 @@ async fn handle_post_job<P: TranslationProvider>(
         &source.body_markdown,
     );
 
-    let sibling = sqlx::query_as::<_, PostSiblingRow>(
-        r#"
-        SELECT translated_from_hash, source_post_id
-        FROM posts
-        WHERE translation_group_id = $1
-          AND locale = $2::post_locale
-        LIMIT 1
-        "#,
-    )
-    .bind(source.translation_group_id)
-    .bind(&job.target_locale)
-    .fetch_optional(pool)
-    .await?;
+    let target_locale = parse_target_locale(&job.target_locale)?;
+    let sibling = post::Entity::find()
+        .filter(post::Column::TranslationGroupId.eq(source.translation_group_id))
+        .filter(post::Column::Locale.eq(target_locale))
+        .one(pool)
+        .await?;
 
     if let Some(ref sib) = sibling {
         // Don't overwrite a manually-edited sibling. Only auto-generated
@@ -186,154 +147,86 @@ async fn handle_post_job<P: TranslationProvider>(
         _ => None,
     };
 
-    let mut tx = pool.begin().await?;
     if sibling.is_none() {
-        sqlx::query(
-            r#"
-            INSERT INTO posts (
-                id, slug, title, excerpt, body_markdown, cover_image_url,
-                top_media_kind, top_media_image_url, top_media_youtube_url, top_media_video_url,
-                series_title, locale, translation_group_id, source_post_id,
-                translation_status, translation_source_kind, translated_from_hash,
-                content_kind, status, visibility, published_at
-            ) VALUES (
-                gen_random_uuid(), $1, $2, $3, $4, $5,
-                $6::post_top_media_kind, $7, $8, $9,
-                $10, $11::post_locale, $12, $13,
-                'synced'::post_translation_status, 'machine'::post_translation_source_kind, $14,
-                $15::post_content_kind, $16::post_status, $17::post_visibility, $18
-            )
-            "#,
-        )
-        .bind(&source.slug)
-        .bind(&translated_title)
-        .bind(&translated_excerpt)
-        .bind(&translated_body)
-        .bind(&source.cover_image_url)
-        .bind(&source.top_media_kind)
-        .bind(&source.top_media_image_url)
-        .bind(&source.top_media_youtube_url)
-        .bind(&source.top_media_video_url)
-        .bind(&translated_series_title)
-        .bind(&job.target_locale)
-        .bind(source.translation_group_id)
-        .bind(source.id)
-        .bind(&source_hash)
-        .bind(&source.content_kind)
-        .bind(&source.status)
-        .bind(&source.visibility)
-        .bind(source.published_at)
-        .execute(&mut *tx)
+        post::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            slug: Set(source.slug.clone()),
+            title: Set(translated_title),
+            excerpt: Set(translated_excerpt),
+            body_markdown: Set(translated_body),
+            cover_image_url: Set(source.cover_image_url.clone()),
+            top_media_kind: Set(source.top_media_kind),
+            top_media_image_url: Set(source.top_media_image_url.clone()),
+            top_media_youtube_url: Set(source.top_media_youtube_url.clone()),
+            top_media_video_url: Set(source.top_media_video_url.clone()),
+            series_title: Set(translated_series_title),
+            locale: Set(target_locale),
+            translation_group_id: Set(source.translation_group_id),
+            source_post_id: Set(Some(source.id)),
+            translation_status: Set(DbPostTranslationStatus::Synced),
+            translation_source_kind: Set(DbPostTranslationSourceKind::Machine),
+            translated_from_hash: Set(Some(source_hash.clone())),
+            content_kind: Set(source.content_kind),
+            status: Set(source.status),
+            visibility: Set(source.visibility),
+            published_at: Set(source.published_at),
+            ..Default::default()
+        }
+        .insert(pool)
         .await?;
     } else {
-        sqlx::query(
-            r#"
-            UPDATE posts SET
-                title = $1,
-                excerpt = $2,
-                body_markdown = $3,
-                series_title = $4,
-                cover_image_url = $5,
-                top_media_kind = $6::post_top_media_kind,
-                top_media_image_url = $7,
-                top_media_youtube_url = $8,
-                top_media_video_url = $9,
-                content_kind = $10::post_content_kind,
-                status = $11::post_status,
-                visibility = $12::post_visibility,
-                published_at = $13,
-                translation_status = 'synced'::post_translation_status,
-                translation_source_kind = 'machine'::post_translation_source_kind,
-                translated_from_hash = $14,
-                updated_at = NOW()
-            WHERE translation_group_id = $15 AND locale = $16::post_locale
-            "#,
-        )
-        .bind(&translated_title)
-        .bind(&translated_excerpt)
-        .bind(&translated_body)
-        .bind(&translated_series_title)
-        .bind(&source.cover_image_url)
-        .bind(&source.top_media_kind)
-        .bind(&source.top_media_image_url)
-        .bind(&source.top_media_youtube_url)
-        .bind(&source.top_media_video_url)
-        .bind(&source.content_kind)
-        .bind(&source.status)
-        .bind(&source.visibility)
-        .bind(source.published_at)
-        .bind(&source_hash)
-        .bind(source.translation_group_id)
-        .bind(&job.target_locale)
-        .execute(&mut *tx)
-        .await?;
+        let mut active: post::ActiveModel = sibling.expect("checked above").into();
+        active.title = Set(translated_title);
+        active.excerpt = Set(translated_excerpt);
+        active.body_markdown = Set(translated_body);
+        active.series_title = Set(translated_series_title);
+        active.cover_image_url = Set(source.cover_image_url.clone());
+        active.top_media_kind = Set(source.top_media_kind);
+        active.top_media_image_url = Set(source.top_media_image_url.clone());
+        active.top_media_youtube_url = Set(source.top_media_youtube_url.clone());
+        active.top_media_video_url = Set(source.top_media_video_url.clone());
+        active.content_kind = Set(source.content_kind);
+        active.status = Set(source.status);
+        active.visibility = Set(source.visibility);
+        active.published_at = Set(source.published_at);
+        active.translation_status = Set(DbPostTranslationStatus::Synced);
+        active.translation_source_kind = Set(DbPostTranslationSourceKind::Machine);
+        active.translated_from_hash = Set(Some(source_hash.clone()));
+        active.updated_at = Set(Utc::now());
+        active.update(pool).await?;
     }
-    tx.commit().await?;
 
-    if let Some(url) = indexnow.post_url(&job.target_locale, &source.content_kind, &source.slug) {
+    let content_kind = PostContentKind::from(source.content_kind);
+    if let Some(url) = indexnow.post_url(&job.target_locale, content_kind.as_str(), &source.slug) {
         indexnow.submit_urls(vec![url]);
     }
 
     Ok(())
 }
 
-#[derive(Debug, FromRow)]
-struct SeriesSourceRow {
-    id: Uuid,
-    slug: String,
-    title: String,
-    description: String,
-    cover_image_url: Option<String>,
-    list_order_index: Option<i32>,
-    translation_group_id: Uuid,
-    locale: String,
-}
-
-#[derive(Debug, FromRow)]
-struct SeriesSiblingRow {
-    translated_from_hash: Option<String>,
-    source_series_id: Option<Uuid>,
-}
-
 async fn handle_series_job<P: TranslationProvider>(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     provider: &P,
     indexnow: &IndexNowClient,
     job: &TranslationJob,
 ) -> anyhow::Result<()> {
-    let source = sqlx::query_as::<_, SeriesSourceRow>(
-        r#"
-        SELECT id, slug, title, description, cover_image_url, list_order_index,
-               translation_group_id, locale::text AS locale
-        FROM series WHERE id = $1
-        "#,
-    )
-    .bind(job.source_id)
-    .fetch_optional(pool)
-    .await?;
+    let source = series::Entity::find_by_id(job.source_id).one(pool).await?;
 
     let Some(source) = source else {
         return Ok(());
     };
-    if source.locale != "ko" {
+    if !matches!(source.locale, DbPostLocale::Ko) {
         return Ok(());
     }
 
     let source_hash = hash_series(&source.title, &source.description);
 
-    let sibling = sqlx::query_as::<_, SeriesSiblingRow>(
-        r#"
-        SELECT translated_from_hash, source_series_id
-        FROM series
-        WHERE translation_group_id = $1
-          AND locale = $2::post_locale
-        LIMIT 1
-        "#,
-    )
-    .bind(source.translation_group_id)
-    .bind(&job.target_locale)
-    .fetch_optional(pool)
-    .await?;
+    let target_locale = parse_target_locale(&job.target_locale)?;
+    let sibling = series::Entity::find()
+        .filter(series::Column::TranslationGroupId.eq(source.translation_group_id))
+        .filter(series::Column::Locale.eq(target_locale))
+        .one(pool)
+        .await?;
 
     if let Some(ref sib) = sibling {
         if sib.source_series_id != Some(source.id) {
@@ -359,58 +252,36 @@ async fn handle_series_job<P: TranslationProvider>(
         unmask(&translated, &masked.segments)
     };
 
-    let mut tx = pool.begin().await?;
     if sibling.is_none() {
-        sqlx::query(
-            r#"
-            INSERT INTO series (
-                id, slug, title, description, cover_image_url, list_order_index,
-                locale, translation_group_id, source_series_id,
-                translation_status, translation_source_kind, translated_from_hash
-            ) VALUES (
-                gen_random_uuid(), $1, $2, $3, $4, $5,
-                $6::post_locale, $7, $8,
-                'synced'::post_translation_status, 'machine'::post_translation_source_kind, $9
-            )
-            "#,
-        )
-        .bind(&source.slug)
-        .bind(&translated_title)
-        .bind(&translated_description)
-        .bind(&source.cover_image_url)
-        .bind(source.list_order_index)
-        .bind(&job.target_locale)
-        .bind(source.translation_group_id)
-        .bind(source.id)
-        .bind(&source_hash)
-        .execute(&mut *tx)
+        series::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            slug: Set(source.slug.clone()),
+            title: Set(translated_title),
+            description: Set(translated_description),
+            cover_image_url: Set(source.cover_image_url.clone()),
+            list_order_index: Set(source.list_order_index),
+            locale: Set(target_locale),
+            translation_group_id: Set(source.translation_group_id),
+            source_series_id: Set(Some(source.id)),
+            translation_status: Set(DbPostTranslationStatus::Synced),
+            translation_source_kind: Set(DbPostTranslationSourceKind::Machine),
+            translated_from_hash: Set(Some(source_hash.clone())),
+            ..Default::default()
+        }
+        .insert(pool)
         .await?;
     } else {
-        sqlx::query(
-            r#"
-            UPDATE series SET
-                title = $1,
-                description = $2,
-                cover_image_url = $3,
-                list_order_index = $4,
-                translation_status = 'synced'::post_translation_status,
-                translation_source_kind = 'machine'::post_translation_source_kind,
-                translated_from_hash = $5,
-                updated_at = NOW()
-            WHERE translation_group_id = $6 AND locale = $7::post_locale
-            "#,
-        )
-        .bind(&translated_title)
-        .bind(&translated_description)
-        .bind(&source.cover_image_url)
-        .bind(source.list_order_index)
-        .bind(&source_hash)
-        .bind(source.translation_group_id)
-        .bind(&job.target_locale)
-        .execute(&mut *tx)
-        .await?;
+        let mut active: series::ActiveModel = sibling.expect("checked above").into();
+        active.title = Set(translated_title);
+        active.description = Set(translated_description);
+        active.cover_image_url = Set(source.cover_image_url.clone());
+        active.list_order_index = Set(source.list_order_index);
+        active.translation_status = Set(DbPostTranslationStatus::Synced);
+        active.translation_source_kind = Set(DbPostTranslationSourceKind::Machine);
+        active.translated_from_hash = Set(Some(source_hash.clone()));
+        active.updated_at = Set(Utc::now());
+        active.update(pool).await?;
     }
-    tx.commit().await?;
 
     if let Some(url) = indexnow.series_url(&job.target_locale, &source.slug) {
         indexnow.submit_urls(vec![url]);
@@ -421,4 +292,14 @@ async fn handle_series_job<P: TranslationProvider>(
 
 fn map_provider_err(err: TranslationError) -> anyhow::Error {
     anyhow::anyhow!("translation provider: {err}")
+}
+
+fn parse_target_locale(value: &str) -> anyhow::Result<DbPostLocale> {
+    match value {
+        "ko" => Ok(DbPostLocale::Ko),
+        "en" => Ok(DbPostLocale::En),
+        "ja" => Ok(DbPostLocale::Ja),
+        "zh" => Ok(DbPostLocale::Zh),
+        _ => Err(anyhow::anyhow!("unsupported target locale: {value}")),
+    }
 }

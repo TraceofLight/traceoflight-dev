@@ -7,12 +7,15 @@ use std::time::Duration;
 
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use rand::Rng;
-use sqlx::{FromRow, PgPool};
+use sea_orm::{ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 use tokio::time::sleep;
 use tracing::{info, warn};
-use uuid::Uuid;
 
 use crate::config::MinioSettings;
+use crate::entities::{
+    enums::DbPostStatus, media_asset, post, post_slug_redirect, project_profile, series,
+    series_slug_redirect,
+};
 use crate::error::AppError;
 use crate::media as media_helpers;
 use crate::media_refs::{extract_markdown_keys, extract_object_key};
@@ -125,7 +128,7 @@ async fn sleep_until(when: DateTime<Local>) {
 // ── Draft + orphan media cleanup ────────────────────────────────────────────
 
 pub fn spawn_draft_cleanup(
-    pool: PgPool,
+    pool: DatabaseConnection,
     minio: Arc<MinioSettings>,
     settings: Arc<CleanupSettings>,
 ) -> tokio::task::JoinHandle<()> {
@@ -149,7 +152,7 @@ pub fn spawn_draft_cleanup(
 }
 
 async fn purge_maintenance(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     minio: &MinioSettings,
     settings: &CleanupSettings,
 ) -> Result<(i64, i64), AppError> {
@@ -158,57 +161,30 @@ async fn purge_maintenance(
     Ok((drafts, media))
 }
 
-pub async fn purge_expired_drafts(pool: &PgPool, retention_days: i64) -> Result<i64, sqlx::Error> {
+pub async fn purge_expired_drafts(
+    pool: &DatabaseConnection,
+    retention_days: i64,
+) -> Result<i64, DbErr> {
     let cutoff = Utc::now() - chrono::Duration::days(retention_days.max(1));
-    let result = sqlx::query(
-        r#"
-        DELETE FROM posts
-        WHERE status = 'draft'::post_status
-          AND updated_at < $1
-        "#,
-    )
-    .bind(cutoff)
-    .execute(pool)
-    .await?;
-    Ok(result.rows_affected() as i64)
-}
-
-#[derive(FromRow)]
-struct ReferenceRow {
-    cover_image_url: Option<String>,
-    top_media_image_url: Option<String>,
-    top_media_video_url: Option<String>,
-    body_markdown: String,
-}
-
-#[derive(FromRow)]
-struct ProfileImageRow {
-    card_image_url: String,
-}
-
-#[derive(FromRow)]
-struct SeriesCoverRow {
-    cover_image_url: Option<String>,
-}
-
-#[derive(FromRow)]
-struct StaleMediaRow {
-    id: Uuid,
-    object_key: String,
+    let result = post::Entity::delete_many()
+        .filter(post::Column::Status.eq(DbPostStatus::Draft))
+        .filter(post::Column::UpdatedAt.lt(cutoff))
+        .exec(pool)
+        .await?;
+    Ok(result.rows_affected as i64)
 }
 
 pub async fn purge_orphan_media(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     minio: &MinioSettings,
     retention_days: i64,
 ) -> Result<i64, AppError> {
     let referenced = collect_referenced_keys(pool).await?;
     let cutoff = Utc::now() - chrono::Duration::days(retention_days.max(1));
-    let stale: Vec<StaleMediaRow> =
-        sqlx::query_as("SELECT id, object_key FROM media_assets WHERE updated_at < $1")
-            .bind(cutoff)
-            .fetch_all(pool)
-            .await?;
+    let stale = media_asset::Entity::find()
+        .filter(media_asset::Column::UpdatedAt.lt(cutoff))
+        .all(pool)
+        .await?;
 
     let mut deleted = 0i64;
     for row in stale {
@@ -218,23 +194,16 @@ pub async fn purge_orphan_media(
         if media_helpers::object_exists(minio, &row.object_key).await? {
             media_helpers::delete_object(minio, &row.object_key).await?;
         }
-        sqlx::query("DELETE FROM media_assets WHERE id = $1")
-            .bind(row.id)
-            .execute(pool)
-            .await?;
+        media_asset::Entity::delete_by_id(row.id).exec(pool).await?;
         deleted += 1;
     }
     Ok(deleted)
 }
 
-async fn collect_referenced_keys(pool: &PgPool) -> Result<HashSet<String>, sqlx::Error> {
+async fn collect_referenced_keys(pool: &DatabaseConnection) -> Result<HashSet<String>, DbErr> {
     let mut keys: HashSet<String> = HashSet::new();
 
-    let posts: Vec<ReferenceRow> = sqlx::query_as(
-        "SELECT cover_image_url, top_media_image_url, top_media_video_url, body_markdown FROM posts",
-    )
-    .fetch_all(pool)
-    .await?;
+    let posts = post::Entity::find().all(pool).await?;
     for post in &posts {
         for url in [
             post.cover_image_url.as_deref(),
@@ -250,19 +219,14 @@ async fn collect_referenced_keys(pool: &PgPool) -> Result<HashSet<String>, sqlx:
         }
     }
 
-    let profiles: Vec<ProfileImageRow> =
-        sqlx::query_as("SELECT card_image_url FROM project_profiles")
-            .fetch_all(pool)
-            .await?;
+    let profiles = project_profile::Entity::find().all(pool).await?;
     for p in &profiles {
-        if let Some(key) = extract_object_key(Some(&p.card_image_url)) {
+        if let Some(key) = extract_object_key(p.card_image_url.as_deref()) {
             keys.insert(key);
         }
     }
 
-    let series_rows: Vec<SeriesCoverRow> = sqlx::query_as("SELECT cover_image_url FROM series")
-        .fetch_all(pool)
-        .await?;
+    let series_rows = series::Entity::find().all(pool).await?;
     for s in &series_rows {
         if let Some(key) = extract_object_key(s.cover_image_url.as_deref()) {
             keys.insert(key);
@@ -274,7 +238,7 @@ async fn collect_referenced_keys(pool: &PgPool) -> Result<HashSet<String>, sqlx:
 // ── Slug redirect cleanup ──────────────────────────────────────────────────
 
 pub fn spawn_slug_redirect_cleanup(
-    pool: PgPool,
+    pool: DatabaseConnection,
     settings: Arc<CleanupSettings>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
@@ -297,38 +261,32 @@ pub fn spawn_slug_redirect_cleanup(
 }
 
 async fn purge_expired_redirects(
-    pool: &PgPool,
+    pool: &DatabaseConnection,
     settings: &CleanupSettings,
-) -> Result<(i64, i64), sqlx::Error> {
+) -> Result<(i64, i64), DbErr> {
     let now = Utc::now();
     let age_cutoff = now - chrono::Duration::days(settings.slug_redirect_min_age_days.max(1));
     let idle_cutoff = now - chrono::Duration::days(settings.slug_redirect_idle_days.max(1));
 
-    let posts = sqlx::query(
-        r#"
-        DELETE FROM post_slug_redirects
-        WHERE created_at < $1
-          AND (last_hit_at IS NULL OR last_hit_at < $2)
-        "#,
-    )
-    .bind(age_cutoff)
-    .bind(idle_cutoff)
-    .execute(pool)
-    .await?
-    .rows_affected() as i64;
+    let idle_condition = Condition::any()
+        .add(post_slug_redirect::Column::LastHitAt.is_null())
+        .add(post_slug_redirect::Column::LastHitAt.lt(idle_cutoff));
+    let posts = post_slug_redirect::Entity::delete_many()
+        .filter(post_slug_redirect::Column::CreatedAt.lt(age_cutoff))
+        .filter(idle_condition)
+        .exec(pool)
+        .await?
+        .rows_affected as i64;
 
-    let series = sqlx::query(
-        r#"
-        DELETE FROM series_slug_redirects
-        WHERE created_at < $1
-          AND (last_hit_at IS NULL OR last_hit_at < $2)
-        "#,
-    )
-    .bind(age_cutoff)
-    .bind(idle_cutoff)
-    .execute(pool)
-    .await?
-    .rows_affected() as i64;
+    let idle_condition = Condition::any()
+        .add(series_slug_redirect::Column::LastHitAt.is_null())
+        .add(series_slug_redirect::Column::LastHitAt.lt(idle_cutoff));
+    let series = series_slug_redirect::Entity::delete_many()
+        .filter(series_slug_redirect::Column::CreatedAt.lt(age_cutoff))
+        .filter(idle_condition)
+        .exec(pool)
+        .await?
+        .rows_affected as i64;
 
     Ok((posts, series))
 }
