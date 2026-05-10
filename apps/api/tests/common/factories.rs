@@ -10,6 +10,7 @@ pub struct CreatedPost {
     pub id: Uuid,
     pub slug: String,
     pub title: String,
+    pub translation_group_id: Uuid,
 }
 
 /// Builder for inserting a post directly into the database, bypassing the
@@ -23,6 +24,9 @@ pub struct PostFactory {
     content_kind: PostContentKind,
     top_media_kind: PostTopMediaKind,
     body_markdown: String,
+    translation_group_id: Option<Uuid>,
+    source_post_id: Option<Uuid>,
+    translated_from_hash: Option<String>,
 }
 
 impl Default for PostFactory {
@@ -36,6 +40,9 @@ impl Default for PostFactory {
             content_kind: PostContentKind::Blog,
             top_media_kind: PostTopMediaKind::Image,
             body_markdown: String::new(),
+            translation_group_id: None,
+            source_post_id: None,
+            translated_from_hash: None,
         }
     }
 }
@@ -75,30 +82,56 @@ impl PostFactory {
         self
     }
 
+    pub fn translation_group_id(mut self, v: Uuid) -> Self {
+        self.translation_group_id = Some(v);
+        self
+    }
+
+    pub fn source_post_id(mut self, v: Uuid) -> Self {
+        self.source_post_id = Some(v);
+        self
+    }
+
+    pub fn translated_from_hash(mut self, v: impl Into<String>) -> Self {
+        self.translated_from_hash = Some(v.into());
+        self
+    }
+
     /// Insert directly into `posts`. Skips business-logic hooks
     /// (reading-time, slug-redirect bookkeeping); callers needing those
     /// must drive the production endpoint instead.
     pub async fn create(self, pool: &PgPool) -> CreatedPost {
         let id = Uuid::new_v4();
-        let translation_group_id = Uuid::new_v4();
+        let translation_group_id = self.translation_group_id.unwrap_or_else(Uuid::new_v4);
         let derived_slug = self
             .slug
             .clone()
             .unwrap_or_else(|| slug_from_title(&self.title));
+        let translation_status = if self.source_post_id.is_some() {
+            "translated"
+        } else {
+            "source"
+        };
+        let translation_source_kind = if self.source_post_id.is_some() {
+            "auto"
+        } else {
+            "manual"
+        };
 
         sqlx::query(
             r#"
             INSERT INTO posts (
                 id, slug, title, body_markdown,
                 status, visibility, content_kind, top_media_kind, locale,
-                translation_group_id, translation_status, translation_source_kind,
+                translation_group_id, source_post_id, translation_status, translation_source_kind,
+                translated_from_hash,
                 published_at, created_at, updated_at
             ) VALUES (
                 $1, $2, $3, $4,
                 $5, $6, $7, $8, $9,
-                $10, 'source'::public.post_translation_status,
-                'manual'::public.post_translation_source_kind,
-                NOW(), NOW(), NOW()
+                $10, $11, $12::public.post_translation_status,
+                $13::public.post_translation_source_kind,
+                $14, NOW(), NOW(), NOW()
             )
             "#,
         )
@@ -112,6 +145,10 @@ impl PostFactory {
         .bind(self.top_media_kind)
         .bind(self.locale)
         .bind(translation_group_id)
+        .bind(self.source_post_id)
+        .bind(translation_status)
+        .bind(translation_source_kind)
+        .bind(&self.translated_from_hash)
         .execute(pool)
         .await
         .expect("PostFactory::create insert");
@@ -120,6 +157,7 @@ impl PostFactory {
             id,
             slug: derived_slug,
             title: self.title,
+            translation_group_id,
         }
     }
 }

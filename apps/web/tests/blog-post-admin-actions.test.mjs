@@ -27,9 +27,13 @@ test("blog post layout mounts a React admin actions island instead of an inline 
   assert.match(layoutSource, /showAdminActions/);
   assert.match(
     layoutSource,
+    /const shouldRenderAdminActions = Boolean\(showAdminActions && adminPostSlug\)/,
+  );
+  assert.match(
+    layoutSource,
     /import PostAdminActions from ["']\.\.\/components\/public\/PostAdminActions["']/,
   );
-  assert.match(layoutSource, /<PostAdminActions[\s\S]*client:load[\s\S]*adminPostSlug=\{adminPostSlug\}/);
+  assert.match(layoutSource, /<PostAdminActions[\s\S]*client:load[\s\S]*adminPostSlug=\{adminPostSlug\}[\s\S]*locale=\{locale\}/);
   assert.doesNotMatch(layoutSource, /initializePostAdminDeleteModal/);
   assert.doesNotMatch(layoutSource, /id=["']post-admin-delete-modal["']/);
 
@@ -40,6 +44,9 @@ test("blog post layout mounts a React admin actions island instead of an inline 
   assert.match(actionSource, /response\.status\s*===\s*403/);
   assert.match(actionSource, /method:\s*["']POST["']/);
   assert.match(actionSource, /action:\s*["']delete["']/);
+  assert.match(actionSource, /locale\?: string/);
+  assert.match(actionSource, /isSourceLocale/);
+  assert.match(actionSource, /\/retranslate`/);
   assert.match(actionSource, /response\.status\s*===\s*404/);
   assert.match(actionSource, /window\.location\.assign\(["']\/blog\/["']\)/);
 });

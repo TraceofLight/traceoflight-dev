@@ -62,10 +62,42 @@ impl TestApp {
         self.send(req).await
     }
 
+    pub async fn put_json_with_internal_secret(
+        &self,
+        path: &str,
+        body: impl Serialize,
+    ) -> Response<Body> {
+        let json = serde_json::to_vec(&body).expect("serialize json");
+        let req = Request::builder()
+            .uri(self.url(path))
+            .method("PUT")
+            .header("content-type", "application/json")
+            .header(
+                traceoflight_api::auth::INTERNAL_SECRET_HEADER,
+                &self.internal_api_secret,
+            )
+            .body(Body::from(json))
+            .expect("build request");
+        self.send(req).await
+    }
+
     pub async fn delete(&self, path: &str) -> Response<Body> {
         let req = Request::builder()
             .uri(self.url(path))
             .method("DELETE")
+            .body(Body::empty())
+            .expect("build request");
+        self.send(req).await
+    }
+
+    pub async fn delete_with_internal_secret(&self, path: &str) -> Response<Body> {
+        let req = Request::builder()
+            .uri(self.url(path))
+            .method("DELETE")
+            .header(
+                traceoflight_api::auth::INTERNAL_SECRET_HEADER,
+                &self.internal_api_secret,
+            )
             .body(Body::empty())
             .expect("build request");
         self.send(req).await

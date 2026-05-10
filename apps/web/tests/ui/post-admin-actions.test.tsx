@@ -80,4 +80,31 @@ describe("PostAdminActions", () => {
       },
     );
   });
+
+  it("replaces edit and delete controls with retranslation for translated locales", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 202 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<PostAdminActions adminPostSlug="translated-post" locale="en" />);
+
+    expect(screen.queryByRole("link", { name: "수정" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+
+    const retranslateButton = screen.getByRole("button", { name: "재번역" });
+    fireEvent.click(retranslateButton);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/internal-api/posts/translated-post/retranslate",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale: "en" }),
+      },
+    );
+    expect(await screen.findByText("재번역 요청을 보냈습니다.")).toBeInTheDocument();
+  });
 });

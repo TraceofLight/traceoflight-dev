@@ -173,7 +173,11 @@ const articleStructuredData = postSlug
         </a>
         {
           shouldRenderAdminActions && (
-            <PostAdminActions client:load adminPostSlug={adminPostSlug} />
+            <PostAdminActions
+              client:load
+              adminPostSlug={adminPostSlug}
+              locale={locale}
+            />
           )
         }
       </nav>

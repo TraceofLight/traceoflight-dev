@@ -14,5 +14,8 @@ pub use model::{
     ProjectProfilePayload, ProjectProfileRead, ProjectResourceLink, TagMatch, TagRead,
 };
 pub use queries::{get_post_by_slug, list_post_summaries, list_posts};
-pub use service::{create_post, delete_post_by_slug, resolve_post_redirect, update_post_by_slug};
+pub use service::{
+    create_post, delete_post_by_slug, prepare_post_retranslation, resolve_post_redirect,
+    update_post_by_slug,
+};
 pub use utils::{format_reading_label, normalize_tag_slug, slugify_series_title};

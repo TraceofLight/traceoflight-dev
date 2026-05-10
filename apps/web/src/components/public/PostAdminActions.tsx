@@ -15,6 +15,7 @@ import { action } from "@/lib/ui";
 
 type PostAdminActionsProps = {
   adminPostSlug: string;
+  locale?: string;
   onDeleted?: () => void;
 };
 
@@ -22,6 +23,7 @@ type FeedbackState = "info" | "error";
 
 export function PostAdminActions({
   adminPostSlug,
+  locale = "ko",
   onDeleted,
 }: PostAdminActionsProps) {
   const [open, setOpen] = useState(false);
@@ -39,6 +41,63 @@ export function PostAdminActions({
       setFeedback({ message: "", state: "info" });
     }
   }, [open]);
+
+  const isSourceLocale = locale === "ko";
+
+  async function handleRetranslate() {
+    const postPath = `/internal-api/posts/${encodeURIComponent(adminPostSlug)}/retranslate`;
+
+    setBusy(true);
+    setFeedback({
+      message: "재번역 요청 중...",
+      state: "info",
+    });
+
+    try {
+      const response = await fetch(postPath, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale }),
+      });
+
+      if (response.ok) {
+        setFeedback({
+          message: "재번역 요청을 보냈습니다.",
+          state: "info",
+        });
+        return;
+      }
+
+      if (response.status === 401) {
+        setFeedback({
+          message: "관리자 세션이 만료되었습니다. 다시 로그인해 주세요.",
+          state: "error",
+        });
+        return;
+      }
+
+      if (response.status === 503) {
+        setFeedback({
+          message:
+            "백엔드 연결 상태가 불안정합니다. 잠시 후 다시 시도해 주세요.",
+          state: "error",
+        });
+        return;
+      }
+
+      setFeedback({
+        message: "재번역 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        state: "error",
+      });
+    } catch {
+      setFeedback({
+        message: "네트워크 오류로 재번역 요청에 실패했습니다.",
+        state: "error",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleDelete() {
     const postPath = `/internal-api/posts/${encodeURIComponent(adminPostSlug)}`;
@@ -101,6 +160,30 @@ export function PostAdminActions({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!isSourceLocale) {
+    return (
+      <div id="post-admin-actions" className="flex flex-wrap items-center gap-2">
+        <Button
+          className={action({ variant: "primaryOutline", size: "md" })}
+          disabled={busy}
+          onClick={handleRetranslate}
+          type="button"
+          variant="outline"
+        >
+          재번역
+        </Button>
+        {feedback.message && (
+          <p
+            className="text-sm text-muted-foreground"
+            data-state={feedback.state}
+          >
+            {feedback.message}
+          </p>
+        )}
+      </div>
+    );
   }
 
   return (

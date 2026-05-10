@@ -28,23 +28,34 @@ pub async fn enqueue_for_locales(
     entity: EntityKind,
     source_id: uuid::Uuid,
 ) {
+    for target in TARGET_LOCALES {
+        enqueue_for_locale(queue, entity, source_id, target).await;
+    }
+}
+
+/// Queue one target locale for explicit retranslation. This is used by admin
+/// controls on translated pages, where the source row is already known.
+pub async fn enqueue_for_locale(
+    queue: Option<&TranslationQueue>,
+    entity: EntityKind,
+    source_id: uuid::Uuid,
+    target_locale: &str,
+) {
     let Some(queue) = queue else {
         return;
     };
-    for target in TARGET_LOCALES {
-        let job = TranslationJob {
-            entity,
-            source_id,
-            target_locale: target.to_string(),
-        };
-        if let Err(err) = queue.push(&job).await {
-            tracing::warn!(
-                error = %err,
-                entity = ?entity,
-                source_id = %source_id,
-                target = target,
-                "translation queue: enqueue failed (save still committed)",
-            );
-        }
+    let job = TranslationJob {
+        entity,
+        source_id,
+        target_locale: target_locale.to_string(),
+    };
+    if let Err(err) = queue.push(&job).await {
+        tracing::warn!(
+            error = %err,
+            entity = ?entity,
+            source_id = %source_id,
+            target = target_locale,
+            "translation queue: enqueue failed (save still committed)",
+        );
     }
 }

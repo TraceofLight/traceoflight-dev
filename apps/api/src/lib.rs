@@ -163,7 +163,8 @@ pub fn build_router(state: AppState, api_prefix: &str, cors_origins: &[String]) 
         .routes(routes!(
             get_post_by_slug_handler,
             update_post_by_slug_handler,
-            delete_post_by_slug_handler
+            delete_post_by_slug_handler,
+            retranslate_post_by_slug_handler
         ))
         .routes(routes!(list_tags_handler, create_tag_handler))
         .routes(routes!(update_tag_handler, delete_tag_handler))

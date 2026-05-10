@@ -11,7 +11,7 @@ import PostCard from "../../../components/PostCard.astro";
 import { ADMIN_ACCESS_COOKIE, verifyAccessToken } from "../../../lib/admin-auth";
 import { getPublishedDbProjectBySlug, resolveProjectSlugRedirect } from "../../../lib/projects";
 import { normalizeCoverMedia } from "../../../lib/cover-media";
-import { action, chip, statusBadge, surface } from "../../../lib/ui";
+import { action, chip, surface } from "../../../lib/ui";
 import { toYoutubeEmbedUrl } from "../../../lib/youtube";
 import { buildProjectCreativeWorkSchema } from "../../../lib/seo/structured-data";
 import {
@@ -102,7 +102,11 @@ const alternates = project
           </a>
           {
             isAdminViewer && (
-              <PostAdminActions client:load adminPostSlug={project.slug} />
+              <PostAdminActions
+                client:load
+                adminPostSlug={project.slug}
+                locale={locale}
+              />
             )
           }
         </nav>

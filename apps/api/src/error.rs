@@ -34,6 +34,9 @@ pub enum AppError {
     #[error("unauthorized: {0}")]
     UnauthorizedDetail(String),
 
+    #[error("forbidden: {0}")]
+    Forbidden(String),
+
     #[error("conflict: {0}")]
     Conflict(String),
 
@@ -73,6 +76,7 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized".into()),
             AppError::UnauthorizedDetail(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
+            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg.clone()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::Throttled { .. } => unreachable!("handled above"),
             AppError::BadGateway(msg) => (StatusCode::BAD_GATEWAY, msg.clone()),

@@ -31,6 +31,20 @@ fn map_create_error(err: sqlx::Error) -> AppError {
     AppError::Database(err)
 }
 
+const TRANSLATED_POST_MUTATION_FORBIDDEN: &str = "translated posts cannot be modified directly";
+
+fn ensure_source_post_mutation(
+    locale: PostLocale,
+    source_post_id: Option<Uuid>,
+) -> Result<(), AppError> {
+    if !matches!(locale, PostLocale::Ko) || source_post_id.is_some() {
+        return Err(AppError::Forbidden(
+            TRANSLATED_POST_MUTATION_FORBIDDEN.into(),
+        ));
+    }
+    Ok(())
+}
+
 /// Create a post and its M2M / project-profile relations in a single
 /// transaction. Returns the freshly-rehydrated [`PostRead`] so the response
 /// shape matches `GET /posts/{slug}`.
@@ -195,34 +209,68 @@ pub async fn delete_post_by_slug(
     slug: &str,
     status: Option<PostStatus>,
     visibility: Option<PostVisibility>,
-) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query(
+) -> Result<bool, AppError> {
+    let target = sqlx::query_as::<_, DeleteTargetRow>(
         r#"
-        DELETE FROM posts
-        WHERE translation_group_id = (
-            SELECT translation_group_id FROM posts
-             WHERE slug = $1
-               AND ($2::post_status     IS NULL OR status     = $2)
-               AND ($3::post_visibility IS NULL OR visibility = $3)
-             LIMIT 1
-        )
+        SELECT translation_group_id, locale, source_post_id
+        FROM posts
+        WHERE slug = $1
+          AND ($2::post_status     IS NULL OR status     = $2)
+          AND ($3::post_visibility IS NULL OR visibility = $3)
+        LIMIT 1
         "#,
     )
     .bind(slug)
     .bind(status)
     .bind(visibility)
+    .fetch_optional(pool)
+    .await?;
+    let Some(target) = target else {
+        return Ok(false);
+    };
+
+    ensure_source_post_mutation(target.locale, target.source_post_id)?;
+
+    let result = sqlx::query(
+        r#"
+        DELETE FROM posts
+        WHERE translation_group_id = $1
+        "#,
+    )
+    .bind(target.translation_group_id)
     .execute(pool)
     .await?;
     Ok(result.rows_affected() > 0)
 }
 
 #[derive(Debug, FromRow)]
+struct DeleteTargetRow {
+    translation_group_id: Uuid,
+    locale: PostLocale,
+    source_post_id: Option<Uuid>,
+}
+
+#[derive(Debug, FromRow)]
 struct ExistingPostRow {
     id: Uuid,
     slug: String,
+    locale: PostLocale,
     status: PostStatus,
     published_at: Option<DateTime<Utc>>,
     translation_group_id: Uuid,
+    source_post_id: Option<Uuid>,
+}
+
+#[derive(Debug, FromRow)]
+struct TranslationTargetRow {
+    id: Uuid,
+    source_post_id: Option<Uuid>,
+}
+
+#[derive(Debug, FromRow)]
+struct TranslationSourceRow {
+    id: Uuid,
+    locale: PostLocale,
     source_post_id: Option<Uuid>,
 }
 
@@ -237,7 +285,7 @@ pub async fn update_post_by_slug(
 ) -> Result<Option<PostRead>, AppError> {
     let existing = sqlx::query_as::<_, ExistingPostRow>(
         r#"
-        SELECT id, slug, status, published_at, translation_group_id, source_post_id
+        SELECT id, slug, locale, status, published_at, translation_group_id, source_post_id
         FROM posts WHERE slug = $1 LIMIT 1
         "#,
     )
@@ -247,6 +295,8 @@ pub async fn update_post_by_slug(
     let Some(existing) = existing else {
         return Ok(None);
     };
+    ensure_source_post_mutation(existing.locale, existing.source_post_id)?;
+    ensure_source_post_mutation(payload.locale, payload.source_post_id)?;
 
     let series_title = normalize_optional_text(&payload.series_title);
     let translation_group_id = payload
@@ -358,6 +408,68 @@ pub async fn update_post_by_slug(
         .await?
         .ok_or_else(|| AppError::Internal(anyhow::anyhow!("post disappeared after update")))?;
     Ok(Some(post))
+}
+
+/// Prepare a single translated sibling for retranslation. Returns the source
+/// `ko` post id that should be queued for the requested target locale.
+pub async fn prepare_post_retranslation(
+    pool: &PgPool,
+    slug: &str,
+    target_locale: PostLocale,
+) -> Result<Uuid, AppError> {
+    if matches!(target_locale, PostLocale::Ko) {
+        return Err(AppError::Forbidden(
+            "source posts cannot be retranslated".into(),
+        ));
+    }
+
+    let target = sqlx::query_as::<_, TranslationTargetRow>(
+        r#"
+        SELECT id, source_post_id
+        FROM posts
+        WHERE slug = $1 AND locale = $2
+        LIMIT 1
+        "#,
+    )
+    .bind(slug)
+    .bind(target_locale)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(AppError::NotFound("post not found"))?;
+
+    let source_id = target.source_post_id.ok_or_else(|| {
+        AppError::Forbidden("only auto-translated posts can be retranslated".into())
+    })?;
+
+    let source = sqlx::query_as::<_, TranslationSourceRow>(
+        r#"
+        SELECT id, locale, source_post_id
+        FROM posts
+        WHERE id = $1
+        "#,
+    )
+    .bind(source_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(AppError::NotFound("source post not found"))?;
+
+    if !matches!(source.locale, PostLocale::Ko) || source.source_post_id.is_some() {
+        return Err(AppError::Forbidden("invalid translation source".into()));
+    }
+
+    sqlx::query(
+        r#"
+        UPDATE posts
+        SET translated_from_hash = NULL,
+            updated_at = NOW()
+        WHERE id = $1
+        "#,
+    )
+    .bind(target.id)
+    .execute(pool)
+    .await?;
+
+    Ok(source.id)
 }
 
 async fn record_post_rename(

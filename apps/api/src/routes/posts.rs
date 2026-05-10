@@ -16,7 +16,7 @@ use crate::{
         ListPostsParams, ListSummariesParams, PostContentKind, PostCreate, PostFilter, PostLocale,
         PostRead, PostSortMode, PostStatus, PostSummaryListRead, PostVisibility, TagMatch,
         create_post, delete_post_by_slug, get_post_by_slug, list_post_summaries, list_posts,
-        resolve_post_redirect, update_post_by_slug,
+        prepare_post_retranslation, resolve_post_redirect, update_post_by_slug,
     },
     translation::{self, EntityKind},
 };
@@ -267,7 +267,10 @@ fn fire_post_write_effects(state: &AppState, post: &PostRead) {
             PostContentKind::Project => "project",
             PostContentKind::Blog => "blog",
         };
-        if let Some(url) = state.indexnow.post_url(post.locale.as_str(), content_kind, &post.slug) {
+        if let Some(url) = state
+            .indexnow
+            .post_url(post.locale.as_str(), content_kind, &post.slug)
+        {
             state.indexnow.submit_urls(vec![url]);
         }
     }
@@ -313,6 +316,62 @@ pub async fn update_post_by_slug_handler(
         .ok_or(AppError::NotFound("post not found"))?;
     fire_post_write_effects(&state, &post);
     Ok(Json(post))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct RetranslatePostRequest {
+    locale: PostLocale,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct RetranslatePostResponse {
+    detail: &'static str,
+}
+
+#[utoipa::path(
+    post,
+    path = "/posts/{slug}/retranslate",
+    tag = "posts",
+    operation_id = "retranslate_post_by_slug",
+    summary = "Queue post retranslation",
+    description = "Queue a single non-ko translated post for retranslation from its ko source. Requires `x-internal-api-secret`.",
+    params(
+        ("slug" = String, Path, description = "Translated post slug"),
+    ),
+    request_body = RetranslatePostRequest,
+    responses(
+        (status = 202, description = "Retranslation queued", body = RetranslatePostResponse),
+        (status = 401, description = "Missing or invalid internal API secret", body = ErrorDetail),
+        (status = 403, description = "Post is not eligible for retranslation", body = ErrorDetail),
+        (status = 404, description = "Post not found", body = ErrorDetail),
+        (status = 500, description = "Internal error", body = ErrorDetail),
+    ),
+    security(("internal_api_secret" = [])),
+)]
+pub async fn retranslate_post_by_slug_handler(
+    _: RequireInternalSecret,
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Json(payload): Json<RetranslatePostRequest>,
+) -> Result<(StatusCode, Json<RetranslatePostResponse>), AppError> {
+    let source_id = prepare_post_retranslation(&state.pool, &slug, payload.locale).await?;
+    let queue = state.translation_queue.clone();
+    let target_locale = payload.locale.as_str().to_string();
+    tokio::spawn(async move {
+        translation::enqueue_for_locale(
+            queue.as_ref(),
+            EntityKind::Post,
+            source_id,
+            target_locale.as_str(),
+        )
+        .await;
+    });
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(RetranslatePostResponse {
+            detail: "retranslation queued",
+        }),
+    ))
 }
 
 #[derive(Debug, Deserialize, IntoParams, Default)]
