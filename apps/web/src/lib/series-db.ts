@@ -1,5 +1,6 @@
 import { normalizeOptionalImageUrl } from "./cover-media";
 import { requestBackend, resolveBackendAssetUrl } from "./backend-api";
+import { serverLogger } from "./server/logging";
 
 export interface DbSeriesSummary {
   id: string;
@@ -106,12 +107,24 @@ function buildSeriesQuery(options: SeriesQueryOptions = {}): string {
   return query ? `?${query}` : "";
 }
 
-export async function listSeries(options: SeriesQueryOptions = {}): Promise<SeriesSummary[]> {
+export async function listSeries(
+  options: SeriesQueryOptions = {},
+): Promise<SeriesSummary[]> {
+  serverLogger.debug("series.list_requested", {
+    include_private: Boolean(options.includePrivate),
+    locale: options.locale ?? "",
+    limit: options.limit ?? null,
+    offset: options.offset ?? null,
+  });
   const response = await requestBackend(`/series${buildSeriesQuery(options)}`);
   if (!response.ok) {
     throw new Error(`failed to fetch series list: ${response.status}`);
   }
   const payload = (await response.json()) as DbSeriesSummary[];
+  serverLogger.debug("series.list_returned", {
+    count: payload.length,
+    include_private: Boolean(options.includePrivate),
+  });
   return payload.map(toSeriesSummary);
 }
 
@@ -119,14 +132,32 @@ export async function getSeriesBySlug(
   slug: string,
   options: Omit<SeriesQueryOptions, "limit" | "offset"> = {},
 ): Promise<SeriesDetail | null> {
-  const response = await requestBackend(`/series/${encodeURIComponent(slug)}${buildSeriesQuery(options)}`);
+  serverLogger.debug("series.detail_requested", {
+    slug,
+    include_private: Boolean(options.includePrivate),
+    locale: options.locale ?? "",
+  });
+  const response = await requestBackend(
+    `/series/${encodeURIComponent(slug)}${buildSeriesQuery(options)}`,
+  );
   if (response.status === 404) {
+    serverLogger.debug("series.detail_returned", {
+      slug,
+      found: false,
+      status: response.status,
+    });
     return null;
   }
   if (!response.ok) {
     throw new Error(`failed to fetch series detail: ${response.status}`);
   }
   const payload = (await response.json()) as DbSeriesDetail;
+  serverLogger.debug("series.detail_returned", {
+    slug: payload.slug,
+    found: true,
+    status: response.status,
+    post_count: Array.isArray(payload.posts) ? payload.posts.length : 0,
+  });
   return {
     ...toSeriesSummary(payload),
     posts: Array.isArray(payload.posts) ? payload.posts.map(toSeriesPost) : [],
@@ -148,14 +179,29 @@ export async function resolveSeriesSlugRedirect(
   slug: string,
   locale: string,
 ): Promise<string | null> {
+  serverLogger.debug("series.redirect_requested", { slug, locale });
   const params = new URLSearchParams({ locale });
   const response = await requestBackend(
     `/series/redirects/${encodeURIComponent(slug)}?${params.toString()}`,
   );
-  if (response.status === 404) return null;
+  if (response.status === 404) {
+    serverLogger.debug("series.redirect_resolved", {
+      slug,
+      locale,
+      found: false,
+    });
+    return null;
+  }
   if (!response.ok) {
     throw new Error(`failed to resolve series redirect: ${response.status}`);
   }
   const body = (await response.json()) as { target_slug?: string };
-  return body.target_slug ?? null;
+  const targetSlug = body.target_slug ?? null;
+  serverLogger.debug("series.redirect_resolved", {
+    slug,
+    locale,
+    found: targetSlug !== null,
+    target_slug: targetSlug ?? "",
+  });
+  return targetSlug;
 }

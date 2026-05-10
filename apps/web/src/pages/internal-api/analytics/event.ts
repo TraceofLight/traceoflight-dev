@@ -1,5 +1,7 @@
 import type { APIRoute } from "astro";
 
+import { serverLogger } from "../../../lib/server/logging";
+
 export const prerender = false;
 
 const CLIENT_ID_COOKIE = "traceoflight_cid";
@@ -13,7 +15,10 @@ interface IncomingEvent {
 }
 
 function generateClientId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   // Fallback: timestamp + random suffix in GA4-compatible "1234567890.0987654321" form.
@@ -29,7 +34,9 @@ function readCleanString(value: unknown, max = 1024): string | undefined {
   return trimmed.slice(0, max);
 }
 
-function sanitizeEventParams(raw: Record<string, unknown> | undefined): Record<string, string | number> {
+function sanitizeEventParams(
+  raw: Record<string, unknown> | undefined,
+): Record<string, string | number> {
   if (!raw || typeof raw !== "object") return {};
   const out: Record<string, string | number> = {};
   for (const [key, value] of Object.entries(raw)) {
@@ -58,6 +65,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   if (!MEASUREMENT_ID_PATTERN.test(measurementId) || !apiSecret) {
     // Analytics is opt-in: missing config = silent no-op so dev/preview still works.
+    serverLogger.debug("analytics.event_skipped", {
+      reason: "not_configured",
+      has_measurement_id: MEASUREMENT_ID_PATTERN.test(measurementId),
+      collector_configured: Boolean(apiSecret),
+    });
     return new Response(null, { status: 204 });
   }
 
@@ -68,17 +80,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       payload = body as IncomingEvent;
     }
   } catch {
+    serverLogger.debug("analytics.event_skipped", { reason: "invalid_json" });
     return new Response(null, { status: 204 });
   }
 
   const eventName = readEventName(payload?.name);
   if (!eventName) {
+    serverLogger.debug("analytics.event_skipped", {
+      reason: "invalid_event_name",
+    });
     return new Response(null, { status: 204 });
   }
 
   const eventParams = sanitizeEventParams(payload?.params);
 
   let clientId = cookies.get(CLIENT_ID_COOKIE)?.value;
+  const hadReusableClientId = Boolean(clientId && clientId.length <= 64);
   if (!clientId || clientId.length > 64) {
     clientId = generateClientId();
     cookies.set(CLIENT_ID_COOKIE, clientId, {
@@ -89,6 +106,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       maxAge: CLIENT_ID_MAX_AGE_SECONDS,
     });
   }
+
+  serverLogger.debug("analytics.event_accepted", {
+    event_name: eventName,
+    param_count: Object.keys(eventParams).length,
+    created_client_id: !hadReusableClientId,
+  });
 
   const url = new URL(GA4_ENDPOINT);
   url.searchParams.set("measurement_id", measurementId);

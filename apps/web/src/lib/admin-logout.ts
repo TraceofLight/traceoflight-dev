@@ -24,6 +24,11 @@ export async function createAdminLogoutResponse(
   const accept = context.request.headers.get("accept") ?? "";
   const nextPath = buildNextPath(context);
   const hadRefresh = Boolean(refreshToken);
+  serverLogger.debug("admin.logout_requested", {
+    had_refresh: hadRefresh,
+    response_type: accept.includes("text/html") ? "redirect" : "json",
+    next_path: nextPath,
+  });
   serverLogger.info("admin.logout_completed", {
     had_refresh: hadRefresh,
     response_type: accept.includes("text/html") ? "redirect" : "json",

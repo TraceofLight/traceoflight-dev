@@ -12,6 +12,9 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const refreshToken = cookies.get(ADMIN_REFRESH_COOKIE)?.value ?? "";
+  serverLogger.debug("admin.refresh_requested", {
+    refresh_credential_present: Boolean(refreshToken),
+  });
   if (!refreshToken) {
     serverLogger.warn("admin.refresh_failed", { reason: "missing" });
     return new Response(

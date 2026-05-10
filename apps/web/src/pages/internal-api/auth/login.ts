@@ -44,6 +44,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const clientIp =
     (xff.split(",")[0] ?? "").trim() ||
     (request.headers.get("x-real-ip") ?? "").trim();
+  serverLogger.debug("admin.login_requested", {
+    username_present: Boolean(username),
+    username_length: username.length,
+    has_client_ip: Boolean(clientIp),
+  });
   const verification = await verifyOperationalAdminCredentials(
     username,
     password,

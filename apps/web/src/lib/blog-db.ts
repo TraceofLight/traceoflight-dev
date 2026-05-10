@@ -3,6 +3,7 @@ import {
   requestBackendPublic,
   resolveBackendAssetUrl,
 } from './backend-api';
+import { serverLogger } from './server/logging';
 import { createMarkdownRenderer } from './markdown-renderer';
 import {
   normalizeCoverMedia,
@@ -10,7 +11,7 @@ import {
   type CoverMedia,
 } from './cover-media';
 
-export type TranslationStatus = 'source' | 'synced' | 'stale' | 'failed';
+export type TranslationStatus = "source" | "synced" | "stale" | "failed";
 
 export interface DbPost {
   id: string;
@@ -23,8 +24,8 @@ export interface DbPost {
   top_media_image_url?: string | null;
   top_media_youtube_url?: string | null;
   top_media_video_url?: string | null;
-  status: 'draft' | 'published' | 'archived';
-  visibility?: 'public' | 'private';
+  status: "draft" | "published" | "archived";
+  visibility?: "public" | "private";
   locale?: string;
   translation_group_id?: string;
   translation_status?: TranslationStatus;
@@ -50,11 +51,11 @@ export interface DbBlogPost {
   commentCount: number;
   coverImageUrl?: string;
   coverMedia?: CoverMedia;
-  topMediaKind: 'image' | 'youtube' | 'video';
+  topMediaKind: "image" | "youtube" | "video";
   topMediaImageUrl?: string;
   topMediaYoutubeUrl?: string;
   topMediaVideoUrl?: string;
-  visibility: 'public' | 'private';
+  visibility: "public" | "private";
   locale?: string;
   translationGroupId?: string;
   translationStatus?: TranslationStatus;
@@ -75,8 +76,8 @@ export interface DbPostSummary {
   top_media_image_url?: string | null;
   top_media_youtube_url?: string | null;
   top_media_video_url?: string | null;
-  status: 'draft' | 'published' | 'archived';
-  visibility?: 'public' | 'private';
+  status: "draft" | "published" | "archived";
+  visibility?: "public" | "private";
   locale?: string;
   tags: DbTag[];
   comment_count?: number;
@@ -94,11 +95,11 @@ export interface DbBlogPostSummary {
   commentCount: number;
   coverImageUrl?: string;
   coverMedia?: CoverMedia;
-  topMediaKind: 'image' | 'youtube' | 'video';
+  topMediaKind: "image" | "youtube" | "video";
   topMediaImageUrl?: string;
   topMediaYoutubeUrl?: string;
   topMediaVideoUrl?: string;
-  visibility: 'public' | 'private';
+  visibility: "public" | "private";
   locale?: string;
   tags: DbTag[];
   readingLabel: string;
@@ -171,8 +172,8 @@ export interface PublishedPostSummaryQueryOptions extends PublishedQueryOptions 
   limit?: number;
   offset?: number;
   query?: string;
-  sort?: 'latest' | 'oldest' | 'title';
-  visibility?: 'all' | 'public' | 'private';
+  sort?: "latest" | "oldest" | "title";
+  visibility?: "all" | "public" | "private";
   tags?: string[];
   locale?: string;
 }
@@ -181,26 +182,31 @@ const POSTS_PAGE_SIZE = 100;
 
 type SharedDbPostFields = Pick<
   DbPost,
-  | 'id'
-  | 'slug'
-  | 'title'
-  | 'excerpt'
-  | 'cover_image_url'
-  | 'top_media_kind'
-  | 'top_media_image_url'
-  | 'top_media_youtube_url'
-  | 'top_media_video_url'
-  | 'visibility'
-  | 'tags'
-  | 'comment_count'
-  | 'published_at'
-  | 'created_at'
-  | 'updated_at'
+  | "id"
+  | "slug"
+  | "title"
+  | "excerpt"
+  | "cover_image_url"
+  | "top_media_kind"
+  | "top_media_image_url"
+  | "top_media_youtube_url"
+  | "top_media_video_url"
+  | "visibility"
+  | "tags"
+  | "comment_count"
+  | "published_at"
+  | "created_at"
+  | "updated_at"
 >;
 
-type SharedBlogPostConverted = Omit<DbBlogPost, 'bodyMarkdown' | 'seriesContext'>;
+type SharedBlogPostConverted = Omit<
+  DbBlogPost,
+  "bodyMarkdown" | "seriesContext"
+>;
 
-function toSharedBlogPostFields(post: SharedDbPostFields): SharedBlogPostConverted {
+function toSharedBlogPostFields(
+  post: SharedDbPostFields,
+): SharedBlogPostConverted {
   const normalizedCoverImageUrl = normalizeOptionalImageUrl(post.cover_image_url);
   const resolvedCoverImageUrl = resolveBackendAssetUrl(normalizedCoverImageUrl);
   const resolvedTopMediaImageUrl = resolveBackendAssetUrl(
@@ -210,20 +216,22 @@ function toSharedBlogPostFields(post: SharedDbPostFields): SharedBlogPostConvert
     id: post.id,
     slug: post.slug,
     title: post.title,
-    description: post.excerpt?.trim() ?? '',
+    description: post.excerpt?.trim() ?? "",
     commentCount: post.comment_count ?? 0,
     coverImageUrl: resolvedCoverImageUrl,
     coverMedia: normalizeCoverMedia(resolvedCoverImageUrl),
     topMediaKind:
-      post.top_media_kind === 'youtube'
-        ? 'youtube'
-        : post.top_media_kind === 'video'
-          ? 'video'
-          : 'image',
+      post.top_media_kind === "youtube"
+        ? "youtube"
+        : post.top_media_kind === "video"
+          ? "video"
+          : "image",
     topMediaImageUrl: resolvedTopMediaImageUrl,
     topMediaYoutubeUrl: post.top_media_youtube_url ?? undefined,
-    topMediaVideoUrl: resolveBackendAssetUrl(normalizeOptionalImageUrl(post.top_media_video_url)),
-    visibility: post.visibility === 'private' ? 'private' : 'public',
+    topMediaVideoUrl: resolveBackendAssetUrl(
+      normalizeOptionalImageUrl(post.top_media_video_url),
+    ),
+    visibility: post.visibility === "private" ? "private" : "public",
     tags: Array.isArray(post.tags) ? post.tags : [],
     createdAt: new Date(post.created_at),
     publishedAt: new Date(post.published_at ?? post.created_at),
@@ -251,7 +259,9 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     locale: post.locale,
     translationGroupId: post.translation_group_id,
     translationStatus: post.translation_status,
-    seriesContext: post.series_context ? toDbSeriesContext(post.series_context) : undefined,
+    seriesContext: post.series_context
+      ? toDbSeriesContext(post.series_context)
+      : undefined,
   };
 }
 
@@ -266,10 +276,10 @@ function appendBlogPostBaseParams(
   params: URLSearchParams,
   options: { limit: number; offset: number; includePrivate?: boolean },
 ): void {
-  params.set('status', 'published');
-  params.set('content_kind', 'blog');
-  params.set('limit', String(options.limit));
-  params.set('offset', String(options.offset));
+  params.set("status", "published");
+  params.set("content_kind", "blog");
+  params.set("limit", String(options.limit));
+  params.set("offset", String(options.offset));
   if (!options.includePrivate) {
     params.set('visibility', 'public');
   }
@@ -281,7 +291,11 @@ function buildPublishedPostsQuery(
   offset = 0,
 ): string {
   const params = new URLSearchParams();
-  appendBlogPostBaseParams(params, { limit, offset, includePrivate: options.includePrivate });
+  appendBlogPostBaseParams(params, {
+    limit,
+    offset,
+    includePrivate: options.includePrivate,
+  });
   return `/posts?${params.toString()}`;
 }
 
@@ -291,73 +305,112 @@ function buildPublishedPostSummaryQuery(
   const limit = options.limit ?? 24;
   const offset = options.offset ?? 0;
   const params = new URLSearchParams();
-  appendBlogPostBaseParams(params, { limit, offset, includePrivate: options.includePrivate });
-  params.set('sort', options.sort ?? 'latest');
+  appendBlogPostBaseParams(params, {
+    limit,
+    offset,
+    includePrivate: options.includePrivate,
+  });
+  params.set("sort", options.sort ?? "latest");
 
-  const normalizedQuery = options.query?.trim() ?? '';
+  const normalizedQuery = options.query?.trim() ?? "";
   if (normalizedQuery) {
-    params.set('query', normalizedQuery);
+    params.set("query", normalizedQuery);
   }
 
   if (options.includePrivate) {
-    params.delete('visibility');
-    if (options.visibility === 'public' || options.visibility === 'private') {
-      params.set('visibility', options.visibility);
+    params.delete("visibility");
+    if (options.visibility === "public" || options.visibility === "private") {
+      params.set("visibility", options.visibility);
     }
   }
 
   for (const tag of options.tags ?? []) {
     const normalizedTag = tag.trim().toLowerCase();
     if (normalizedTag) {
-      params.append('tag', normalizedTag);
+      params.append("tag", normalizedTag);
     }
   }
 
-  const normalizedLocale = options.locale?.trim().toLowerCase() ?? '';
+  const normalizedLocale = options.locale?.trim().toLowerCase() ?? "";
   if (normalizedLocale) {
-    params.set('locale', normalizedLocale);
+    params.set("locale", normalizedLocale);
   }
 
   return `/posts/summary?${params.toString()}`;
 }
 
-export async function listPublishedDbPosts(limit = 50, options: PublishedQueryOptions = {}): Promise<DbBlogPost[]> {
-  const response = await requestBackend(buildPublishedPostsQuery(limit, options));
+export async function listPublishedDbPosts(
+  limit = 50,
+  options: PublishedQueryOptions = {},
+): Promise<DbBlogPost[]> {
+  serverLogger.debug("blog.list_requested", {
+    limit,
+    include_private: Boolean(options.includePrivate),
+    locale: options.locale ?? "",
+  });
+  const response = await requestBackend(
+    buildPublishedPostsQuery(limit, options),
+  );
   if (!response.ok) {
     throw new Error(`failed to fetch posts: ${response.status}`);
   }
 
   const posts = (await response.json()) as DbPost[];
+  serverLogger.debug("blog.list_returned", {
+    count: posts.length,
+    limit,
+    include_private: Boolean(options.includePrivate),
+  });
   return posts.map(toDbBlogPost);
 }
 
 export async function listPublishedDbPostSummaryPage(
   options: PublishedPostSummaryQueryOptions = {},
 ): Promise<DbBlogPostSummaryPage> {
-  const request = options.includePrivate ? requestBackend : requestBackendPublic;
+  serverLogger.debug("blog.summary_page_requested", {
+    limit: options.limit ?? 24,
+    offset: options.offset ?? 0,
+    include_private: Boolean(options.includePrivate),
+    has_query: Boolean(options.query?.trim()),
+    tag_count: options.tags?.filter((tag) => tag.trim()).length ?? 0,
+    sort: options.sort ?? "latest",
+    visibility: options.visibility ?? "default",
+    locale: options.locale ?? "",
+  });
+  const request = options.includePrivate
+    ? requestBackend
+    : requestBackendPublic;
   const response = await request(buildPublishedPostSummaryQuery(options));
   if (!response.ok) {
     throw new Error(`failed to fetch post summaries: ${response.status}`);
   }
 
   const payload = (await response.json()) as DbPostSummaryListResponse;
+  serverLogger.debug("blog.summary_page_returned", {
+    count: Array.isArray(payload.items) ? payload.items.length : 0,
+    total_count: payload.total_count ?? 0,
+    next_offset: payload.next_offset ?? null,
+    has_more: Boolean(payload.has_more),
+  });
   return {
-    items: Array.isArray(payload.items) ? payload.items.map(toDbBlogPostSummary) : [],
+    items: Array.isArray(payload.items)
+      ? payload.items.map(toDbBlogPostSummary)
+      : [],
     totalCount: payload.total_count ?? 0,
     nextOffset: payload.next_offset ?? null,
     hasMore: Boolean(payload.has_more),
     tagFilters: Array.isArray(payload.tag_filters) ? payload.tag_filters : [],
     visibilityCounts: {
       all:
-        typeof payload.visibility_counts?.all === 'number'
+        typeof payload.visibility_counts?.all === "number"
           ? payload.visibility_counts.all
-          : payload.total_count ?? 0,
+          : (payload.total_count ?? 0),
       public:
-        typeof payload.visibility_counts?.public === 'number'
+        typeof payload.visibility_counts?.public === "number"
           ? payload.visibility_counts.public
           : 0,
       private:
-        typeof payload.visibility_counts?.private === 'number'
+        typeof payload.visibility_counts?.private === "number"
           ? payload.visibility_counts.private
           : 0,
     },
@@ -383,13 +436,22 @@ export async function listAllPublishedDbPosts(
   let offset = 0;
 
   while (true) {
-    const response = await requestBackend(buildPublishedPostsQuery(POSTS_PAGE_SIZE, options, offset));
+    const response = await requestBackend(
+      buildPublishedPostsQuery(POSTS_PAGE_SIZE, options, offset),
+    );
     if (!response.ok) {
       throw new Error(`failed to fetch posts: ${response.status}`);
     }
 
     const posts = (await response.json()) as DbPost[];
     allPosts.push(...posts.map(toDbBlogPost));
+    serverLogger.debug("blog.list_returned", {
+      count: posts.length,
+      accumulated_count: allPosts.length,
+      limit: POSTS_PAGE_SIZE,
+      offset,
+      include_private: Boolean(options.includePrivate),
+    });
 
     if (posts.length < POSTS_PAGE_SIZE) {
       break;
@@ -405,22 +467,44 @@ export async function getPublishedDbPostBySlug(
   slug: string,
   options: PublishedQueryOptions = {},
 ): Promise<DbBlogPost | null> {
+  serverLogger.debug("blog.detail_requested", {
+    slug,
+    include_private: Boolean(options.includePrivate),
+    locale: options.locale ?? "",
+  });
   const params = new URLSearchParams({ status: 'published', content_kind: 'blog' });
   if (!options.includePrivate) {
     params.set('visibility', 'public');
   }
-  const normalizedLocale = options.locale?.trim().toLowerCase() ?? '';
+  const normalizedLocale = options.locale?.trim().toLowerCase() ?? "";
   if (normalizedLocale) {
-    params.set('locale', normalizedLocale);
+    params.set("locale", normalizedLocale);
   }
 
-  const response = await requestBackend(`/posts/${encodeURIComponent(slug)}?${params.toString()}`);
-  if (response.status === 404) return null;
+  const response = await requestBackend(
+    `/posts/${encodeURIComponent(slug)}?${params.toString()}`,
+  );
+  if (response.status === 404) {
+    serverLogger.debug("blog.detail_returned", {
+      slug,
+      found: false,
+      status: response.status,
+    });
+    return null;
+  }
   if (!response.ok) {
     throw new Error(`failed to fetch post: ${response.status}`);
   }
 
   const post = (await response.json()) as DbPost;
+  serverLogger.debug("blog.detail_returned", {
+    slug: post.slug,
+    found: true,
+    status: response.status,
+    comment_count: post.comment_count ?? 0,
+    tag_count: Array.isArray(post.tags) ? post.tags.length : 0,
+    has_series_context: Boolean(post.series_context),
+  });
   return toDbBlogPost(post);
 }
 
@@ -432,14 +516,29 @@ export async function resolvePostSlugRedirect(
   slug: string,
   locale: string,
 ): Promise<string | null> {
+  serverLogger.debug("blog.redirect_requested", { slug, locale });
   const params = new URLSearchParams({ locale });
   const response = await requestBackend(
     `/posts/redirects/${encodeURIComponent(slug)}?${params.toString()}`,
   );
-  if (response.status === 404) return null;
+  if (response.status === 404) {
+    serverLogger.debug("blog.redirect_resolved", {
+      slug,
+      locale,
+      found: false,
+    });
+    return null;
+  }
   if (!response.ok) {
     throw new Error(`failed to resolve post redirect: ${response.status}`);
   }
   const body = (await response.json()) as { target_slug?: string };
-  return body.target_slug ?? null;
+  const targetSlug = body.target_slug ?? null;
+  serverLogger.debug("blog.redirect_resolved", {
+    slug,
+    locale,
+    found: targetSlug !== null,
+    target_slug: targetSlug ?? "",
+  });
+  return targetSlug;
 }

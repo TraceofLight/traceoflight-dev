@@ -1,15 +1,16 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from "node:crypto";
 
 import {
   createAdminAuthCore,
   type RotateKind,
   type TokenPair,
-} from './admin-auth-core';
-import { requestBackend, requestBackendPublic } from './backend-api';
-import { readJsonSafe } from './http';
+} from "./admin-auth-core";
+import { requestBackend, requestBackendPublic } from "./backend-api";
+import { readJsonSafe } from "./http";
+import { serverLogger } from "./server/logging";
 
-export const ADMIN_ACCESS_COOKIE = 'traceoflight_admin_access';
-export const ADMIN_REFRESH_COOKIE = 'traceoflight_admin_refresh';
+export const ADMIN_ACCESS_COOKIE = "traceoflight_admin_access";
+export const ADMIN_REFRESH_COOKIE = "traceoflight_admin_refresh";
 
 const DEFAULT_ACCESS_MAX_AGE_SECONDS = 60 * 15;
 const DEFAULT_REFRESH_MAX_AGE_SECONDS = 60 * 60 * 24 * 3;
@@ -33,7 +34,7 @@ interface CookieWriter {
     options: {
       path: string;
       httpOnly: boolean;
-      sameSite: 'lax';
+      sameSite: "lax";
       secure: boolean;
       maxAge: number;
     },
@@ -48,7 +49,7 @@ interface RotateResult {
 
 interface OperationalCredentialVerifyResult {
   ok: boolean;
-  credentialSource?: 'operational' | 'master';
+  credentialSource?: "operational" | "master";
   credentialRevision: number;
   tokenPair?: TokenPair;
   throttled?: boolean;
@@ -84,7 +85,7 @@ function parseMaxAge(rawValue: string | undefined, fallback: number): number {
 }
 
 function getSessionConfig(): AdminAuthConfig | null {
-  const sessionSecret = process.env.ADMIN_SESSION_SECRET?.trim() ?? '';
+  const sessionSecret = process.env.ADMIN_SESSION_SECRET?.trim() ?? "";
   if (!sessionSecret) return null;
 
   return {
@@ -101,9 +102,9 @@ function getSessionConfig(): AdminAuthConfig | null {
 }
 
 function getMasterCredentialConfig(): AdminCredentialConfig | null {
-  const loginId = process.env.ADMIN_LOGIN_ID?.trim() ?? '';
-  const loginPasswordHash = process.env.ADMIN_LOGIN_PASSWORD_HASH?.trim() ?? '';
-  const loginPassword = process.env.ADMIN_LOGIN_PASSWORD?.trim() ?? '';
+  const loginId = process.env.ADMIN_LOGIN_ID?.trim() ?? "";
+  const loginPasswordHash = process.env.ADMIN_LOGIN_PASSWORD_HASH?.trim() ?? "";
+  const loginPassword = process.env.ADMIN_LOGIN_PASSWORD?.trim() ?? "";
   const hasCredential = Boolean(loginPasswordHash || loginPassword);
   if (!loginId || !hasCredential) return null;
   return {
@@ -128,19 +129,22 @@ function getCore(config: AdminAuthConfig) {
   return cachedCore.core;
 }
 
-async function verifyHashPassword(hashValue: string, password: string): Promise<boolean> {
-  if (hashValue.startsWith('$argon2')) {
+async function verifyHashPassword(
+  hashValue: string,
+  password: string,
+): Promise<boolean> {
+  if (hashValue.startsWith("$argon2")) {
     try {
-      const { verify } = await import('@node-rs/argon2');
+      const { verify } = await import("@node-rs/argon2");
       return await verify(hashValue, password);
     } catch {
       return false;
     }
   }
 
-  if (hashValue.startsWith('sha256:')) {
-    const expectedHash = hashValue.slice('sha256:'.length);
-    const actualHash = createHash('sha256').update(password).digest('hex');
+  if (hashValue.startsWith("sha256:")) {
+    const expectedHash = hashValue.slice("sha256:".length);
+    const actualHash = createHash("sha256").update(password).digest("hex");
     return safeCompare(expectedHash, actualHash);
   }
 
@@ -151,7 +155,10 @@ export function isAdminAuthConfigured(): boolean {
   return getSessionConfig() !== null;
 }
 
-export async function verifyAdminCredentials(username: string, password: string): Promise<boolean> {
+export async function verifyAdminCredentials(
+  username: string,
+  password: string,
+): Promise<boolean> {
   const config = getMasterCredentialConfig();
   if (!config) return false;
   if (!safeCompare(username, config.loginId)) return false;
@@ -165,20 +172,18 @@ export async function verifyAdminCredentials(username: string, password: string)
 }
 
 function mapBackendTokenPair(
-  payload:
-    | {
-        access_token?: unknown;
-        refresh_token?: unknown;
-        access_max_age_seconds?: unknown;
-        refresh_max_age_seconds?: unknown;
-      }
-    | null,
+  payload: {
+    access_token?: unknown;
+    refresh_token?: unknown;
+    access_max_age_seconds?: unknown;
+    refresh_max_age_seconds?: unknown;
+  } | null,
 ): TokenPair | null {
   if (!payload) return null;
-  if (typeof payload.access_token !== 'string') return null;
-  if (typeof payload.refresh_token !== 'string') return null;
-  if (typeof payload.access_max_age_seconds !== 'number') return null;
-  if (typeof payload.refresh_max_age_seconds !== 'number') return null;
+  if (typeof payload.access_token !== "string") return null;
+  if (typeof payload.refresh_token !== "string") return null;
+  if (typeof payload.access_max_age_seconds !== "number") return null;
+  if (typeof payload.refresh_max_age_seconds !== "number") return null;
   return {
     accessToken: payload.access_token,
     refreshToken: payload.refresh_token,
@@ -187,7 +192,9 @@ function mapBackendTokenPair(
   };
 }
 
-function setActiveAdminCredentialRevisionCache(credentialRevision: number): void {
+function setActiveAdminCredentialRevisionCache(
+  credentialRevision: number,
+): void {
   activeCredentialRevisionCache = {
     credentialRevision,
     expiresAt: Date.now() + ACTIVE_CREDENTIAL_REVISION_TTL_MS,
@@ -200,20 +207,37 @@ function getCachedActiveAdminCredentialRevision(): number | null {
   return activeCredentialRevisionCache.credentialRevision;
 }
 
-export async function getActiveAdminCredentialRevision(forceRefresh = false): Promise<number | null> {
+export async function getActiveAdminCredentialRevision(
+  forceRefresh = false,
+): Promise<number | null> {
   if (!forceRefresh) {
     const cachedRevision = getCachedActiveAdminCredentialRevision();
-    if (cachedRevision !== null) return cachedRevision;
+    if (cachedRevision !== null) {
+      serverLogger.debug("admin.credential_revision_cache_hit", {
+        credential_revision: cachedRevision,
+      });
+      return cachedRevision;
+    }
   }
 
   try {
-    const response = await requestBackend('/admin/auth/revision', { method: 'GET' });
+    const response = await requestBackend("/admin/auth/revision", {
+      method: "GET",
+    });
     if (!response.ok) return null;
-    const payload = (await readJsonSafe(response)) as { credential_revision?: unknown } | null;
+    const payload = (await readJsonSafe(response)) as {
+      credential_revision?: unknown;
+    } | null;
     const credentialRevision =
-      typeof payload?.credential_revision === 'number' ? payload.credential_revision : null;
+      typeof payload?.credential_revision === "number"
+        ? payload.credential_revision
+        : null;
     if (credentialRevision === null) return null;
     setActiveAdminCredentialRevisionCache(credentialRevision);
+    serverLogger.debug("admin.credential_revision_loaded", {
+      credential_revision: credentialRevision,
+      force_refresh: forceRefresh,
+    });
     return credentialRevision;
   } catch {
     return getCachedActiveAdminCredentialRevision();
@@ -226,11 +250,18 @@ export async function verifyOperationalAdminCredentials(
   clientIp?: string,
 ): Promise<OperationalCredentialVerifyResult> {
   try {
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (clientIp) headers['x-forwarded-for'] = clientIp;
+    serverLogger.debug("admin.credentials_verify_requested", {
+      login_id_present: Boolean(loginId.trim()),
+      login_id_length: loginId.trim().length,
+      has_client_ip: Boolean(clientIp),
+    });
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+    if (clientIp) headers["x-forwarded-for"] = clientIp;
     const response = await requestBackendPublic('/admin/auth/login', {
-      method: 'POST',
-      cache: 'no-store',
+      method: "POST",
+      cache: "no-store",
       headers,
       body: JSON.stringify({
         login_id: loginId.trim(),
@@ -238,7 +269,7 @@ export async function verifyOperationalAdminCredentials(
       }),
     });
     if (response.status === 429) {
-      const retryAfterHeader = response.headers.get('retry-after');
+      const retryAfterHeader = response.headers.get("retry-after");
       const retryAfterSeconds = retryAfterHeader
         ? Number.parseInt(retryAfterHeader, 10)
         : undefined;
@@ -247,7 +278,8 @@ export async function verifyOperationalAdminCredentials(
         credentialRevision: 0,
         throttled: true,
         retryAfterSeconds:
-          Number.isFinite(retryAfterSeconds) && (retryAfterSeconds as number) > 0
+          Number.isFinite(retryAfterSeconds) &&
+          (retryAfterSeconds as number) > 0
             ? (retryAfterSeconds as number)
             : undefined,
       };
@@ -256,17 +288,18 @@ export async function verifyOperationalAdminCredentials(
       return { ok: false, credentialRevision: 0 };
     }
 
-    const payload = (await readJsonSafe(response)) as
-      | {
-          credential_source?: 'operational' | 'master';
-          credential_revision?: number;
-          access_token?: string;
-          refresh_token?: string;
-          access_max_age_seconds?: number;
-          refresh_max_age_seconds?: number;
-        }
-      | null;
-    const credentialRevision = typeof payload?.credential_revision === 'number' ? payload.credential_revision : 0;
+    const payload = (await readJsonSafe(response)) as {
+      credential_source?: "operational" | "master";
+      credential_revision?: number;
+      access_token?: string;
+      refresh_token?: string;
+      access_max_age_seconds?: number;
+      refresh_max_age_seconds?: number;
+    } | null;
+    const credentialRevision =
+      typeof payload?.credential_revision === "number"
+        ? payload.credential_revision
+        : 0;
     const tokenPair = mapBackendTokenPair(payload);
     if (credentialRevision >= 0) {
       setActiveAdminCredentialRevisionCache(credentialRevision);
@@ -284,63 +317,108 @@ export async function verifyOperationalAdminCredentials(
 
 export async function verifyAccessToken(token: string): Promise<boolean> {
   const config = getSessionConfig();
-  if (!config) return false;
+  if (!config) {
+    serverLogger.debug("admin.access_token_verified", {
+      configured: false,
+      active_revision_available: false,
+      verified: false,
+    });
+    return false;
+  }
   const activeCredentialRevision = await getActiveAdminCredentialRevision();
-  if (activeCredentialRevision === null) return false;
-  return getCore(config).verifyAccessToken(token, activeCredentialRevision);
+  if (activeCredentialRevision === null) {
+    serverLogger.debug("admin.access_token_verified", {
+      configured: true,
+      active_revision_available: false,
+      verified: false,
+    });
+    return false;
+  }
+  const verified = getCore(config).verifyAccessToken(
+    token,
+    activeCredentialRevision,
+  );
+  serverLogger.debug("admin.access_token_verified", {
+    configured: true,
+    active_revision_available: true,
+    credential_revision: activeCredentialRevision,
+    verified,
+  });
+  return verified;
 }
 
-export async function rotateRefreshToken(refreshToken: string): Promise<RotateResult> {
+export async function rotateRefreshToken(
+  refreshToken: string,
+): Promise<RotateResult> {
   try {
     const response = await requestBackendPublic('/admin/auth/refresh', {
-      method: 'POST',
-      cache: 'no-store',
-      headers: { 'content-type': 'application/json' },
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
         refresh_token: refreshToken,
       }),
     });
-    const payload = (await readJsonSafe(response)) as
-      | {
-          credential_revision?: unknown;
-          detail?: unknown;
-          access_token?: unknown;
-          refresh_token?: unknown;
-          access_max_age_seconds?: unknown;
-          refresh_max_age_seconds?: unknown;
-        }
-      | null;
+    const payload = (await readJsonSafe(response)) as {
+      credential_revision?: unknown;
+      detail?: unknown;
+      access_token?: unknown;
+      refresh_token?: unknown;
+      access_max_age_seconds?: unknown;
+      refresh_max_age_seconds?: unknown;
+    } | null;
     if (response.ok) {
       const tokenPair = mapBackendTokenPair(payload);
       const credentialRevision =
-        typeof payload?.credential_revision === 'number' ? payload.credential_revision : 0;
+        typeof payload?.credential_revision === "number"
+          ? payload.credential_revision
+          : 0;
       setActiveAdminCredentialRevisionCache(credentialRevision);
       if (tokenPair) {
-        return { kind: 'rotated', pair: tokenPair };
+        serverLogger.debug("admin.refresh_rotation_resolved", {
+          kind: "rotated",
+          credential_revision: credentialRevision,
+        });
+        return { kind: "rotated", pair: tokenPair };
       }
     }
-    const detail = typeof payload?.detail === 'string' ? payload.detail.toLowerCase() : '';
-    if (response.status === 409 || detail.includes('stale')) {
-      return { kind: 'stale' };
+    const detail =
+      typeof payload?.detail === "string" ? payload.detail.toLowerCase() : "";
+    if (response.status === 409 || detail.includes("stale")) {
+      serverLogger.debug("admin.refresh_rotation_resolved", { kind: "stale" });
+      return { kind: "stale" };
     }
-    if (detail.includes('expired')) {
-      return { kind: 'expired' };
+    if (detail.includes("expired")) {
+      serverLogger.debug("admin.refresh_rotation_resolved", {
+        kind: "expired",
+      });
+      return { kind: "expired" };
     }
-    if (detail.includes('reuse_detected') || detail.includes('reuse')) {
-      return { kind: 'reuse_detected' };
+    if (detail.includes("reuse_detected") || detail.includes("reuse")) {
+      serverLogger.debug("admin.refresh_rotation_resolved", {
+        kind: "reuse_detected",
+      });
+      return { kind: "reuse_detected" };
     }
-    return { kind: 'invalid' };
+    serverLogger.debug("admin.refresh_rotation_resolved", { kind: "invalid" });
+    return { kind: "invalid" };
   } catch {
-    return { kind: 'invalid' };
+    serverLogger.debug("admin.refresh_rotation_resolved", { kind: "invalid" });
+    return { kind: "invalid" };
   }
 }
 
-export async function revokeRefreshTokenFamily(refreshToken: string): Promise<void> {
+export async function revokeRefreshTokenFamily(
+  refreshToken: string,
+): Promise<void> {
   try {
+    serverLogger.debug("admin.logout_revocation_requested", {
+      refresh_credential_present: Boolean(refreshToken),
+    });
     await requestBackendPublic('/admin/auth/logout', {
-      method: 'POST',
-      cache: 'no-store',
-      headers: { 'content-type': 'application/json' },
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
         refresh_token: refreshToken,
       }),
@@ -350,27 +428,31 @@ export async function revokeRefreshTokenFamily(refreshToken: string): Promise<vo
   }
 }
 
-export function setAdminAuthCookies(cookies: CookieWriter, pair: TokenPair, secure: boolean): void {
+export function setAdminAuthCookies(
+  cookies: CookieWriter,
+  pair: TokenPair,
+  secure: boolean,
+): void {
   cookies.set(ADMIN_ACCESS_COOKIE, pair.accessToken, {
-    path: '/',
+    path: "/",
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: "lax",
     secure,
     maxAge: pair.accessMaxAgeSeconds,
   });
 
   cookies.set(ADMIN_REFRESH_COOKIE, pair.refreshToken, {
-    path: '/',
+    path: "/",
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: "lax",
     secure,
     maxAge: pair.refreshMaxAgeSeconds,
   });
 }
 
 export function clearAdminAuthCookies(cookies: CookieWriter): void {
-  cookies.delete(ADMIN_ACCESS_COOKIE, { path: '/' });
-  cookies.delete(ADMIN_REFRESH_COOKIE, { path: '/' });
+  cookies.delete(ADMIN_ACCESS_COOKIE, { path: "/" });
+  cookies.delete(ADMIN_REFRESH_COOKIE, { path: "/" });
 }
 
 export type { RotateKind };

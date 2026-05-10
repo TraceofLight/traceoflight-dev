@@ -9,10 +9,13 @@ import sharp from "sharp";
 import { SITE_URL } from "../../../consts";
 import { getBackendApiBaseUrl } from "../../../lib/backend-api";
 import { getSiteUrl } from "../../../lib/env";
+import { serverLogger } from "../../../lib/server/logging";
 
 export const prerender = false;
 
-const MODULE_ROOT = path.resolve(fileURLToPath(new URL("../../../../", import.meta.url)));
+const MODULE_ROOT = path.resolve(
+  fileURLToPath(new URL("../../../../", import.meta.url)),
+);
 const APP_ROOT_CANDIDATES = [MODULE_ROOT, path.dirname(MODULE_ROOT)];
 const MAX_IMAGE_WIDTH = 2200;
 const MAX_IMAGE_HEIGHT = 2200;
@@ -30,7 +33,10 @@ const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(
 );
 
 function normalizeComparableHostname(hostname: string): string {
-  return hostname.trim().toLowerCase().replace(/^www\./, "");
+  return hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "");
 }
 
 function addHostWithVariants(target: Set<string>, hostname: string): void {
@@ -52,7 +58,11 @@ function badRequest(detail: string, status = 400): Response {
   });
 }
 
-function clampInteger(value: string | null, fallback: number, max: number): number {
+function clampInteger(
+  value: string | null,
+  fallback: number,
+  max: number,
+): number {
   if (!value) {
     return fallback;
   }
@@ -114,7 +124,12 @@ function isBlockedIpAddress(address: string): boolean {
   }
 
   if (version === 6) {
-    return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:");
+    return (
+      normalized === "::1" ||
+      normalized.startsWith("fc") ||
+      normalized.startsWith("fd") ||
+      normalized.startsWith("fe80:")
+    );
   }
 
   return false;
@@ -157,7 +172,10 @@ function buildAllowedRemoteHosts(requestOrigin: string): Set<string> {
   return allowedHosts;
 }
 
-async function buildSourceUrlCandidates(request: Request, source: string): Promise<URL[]> {
+async function buildSourceUrlCandidates(
+  request: Request,
+  source: string,
+): Promise<URL[]> {
   const trimmedSource = source.trim();
   if (!trimmedSource) {
     return [];
@@ -176,20 +194,32 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
   if (!isRelativeSource) {
     const resolvedUrl = new URL(trimmedSource);
     const trustedInternalHosts = new Set<string>();
-    for (const origin of [requestOrigin, configuredSiteOrigin, backendAssetOrigin]) {
+    for (const origin of [
+      requestOrigin,
+      configuredSiteOrigin,
+      backendAssetOrigin,
+    ]) {
       if (!origin) continue;
       try {
-        addHostWithVariants(trustedInternalHosts, new URL(origin.trim()).hostname);
+        addHostWithVariants(
+          trustedInternalHosts,
+          new URL(origin.trim()).hostname,
+        );
       } catch {
         continue;
       }
     }
 
     if (
-      trustedInternalHosts.has(normalizeComparableHostname(resolvedUrl.hostname)) &&
+      trustedInternalHosts.has(
+        normalizeComparableHostname(resolvedUrl.hostname),
+      ) &&
       resolvedUrl.pathname.startsWith("/")
     ) {
-      return buildSourceUrlCandidates(request, `${resolvedUrl.pathname}${resolvedUrl.search}`);
+      return buildSourceUrlCandidates(
+        request,
+        `${resolvedUrl.pathname}${resolvedUrl.search}`,
+      );
     }
 
     const allowedRemoteHosts = buildAllowedRemoteHosts(requestOrigin);
@@ -202,7 +232,9 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
       return [];
     }
 
-    if (!allowedRemoteHosts.has(normalizeComparableHostname(resolvedUrl.hostname))) {
+    if (
+      !allowedRemoteHosts.has(normalizeComparableHostname(resolvedUrl.hostname))
+    ) {
       return [];
     }
 
@@ -216,7 +248,9 @@ async function buildSourceUrlCandidates(request: Request, source: string): Promi
   const originCandidates = trimmedSource.startsWith("/media/")
     ? [requestOrigin, backendAssetOrigin, configuredSiteOrigin]
     : [requestOrigin];
-  const uniqueOrigins = [...new Set(originCandidates.map((origin) => origin.trim()).filter(Boolean))];
+  const uniqueOrigins = [
+    ...new Set(originCandidates.map((origin) => origin.trim()).filter(Boolean)),
+  ];
   const resolvedCandidates: URL[] = [];
 
   for (const origin of uniqueOrigins) {
@@ -241,7 +275,11 @@ function toRelativeAssetPath(source: string): string | null {
   }
 
   const relativePath = normalizedSource.slice(1);
-  if (!relativePath || relativePath.startsWith("..") || relativePath.includes("/../")) {
+  if (
+    !relativePath ||
+    relativePath.startsWith("..") ||
+    relativePath.includes("/../")
+  ) {
     return null;
   }
 
@@ -277,7 +315,10 @@ async function readLimitedArrayBuffer(response: Response): Promise<Buffer> {
   const contentLength = response.headers.get("content-length");
   if (contentLength) {
     const parsedLength = Number.parseInt(contentLength, 10);
-    if (Number.isFinite(parsedLength) && parsedLength > MAX_CONTENT_LENGTH_BYTES) {
+    if (
+      Number.isFinite(parsedLength) &&
+      parsedLength > MAX_CONTENT_LENGTH_BYTES
+    ) {
       throw new Error("Source image is too large.");
     }
   }
@@ -310,20 +351,46 @@ async function readLimitedArrayBuffer(response: Response): Promise<Buffer> {
 export const GET: APIRoute = async ({ request }) => {
   const requestUrl = new URL(request.url);
   const sourceParam = requestUrl.searchParams.get("url");
-  const sourceCandidates = sourceParam ? await buildSourceUrlCandidates(request, sourceParam) : [];
+  const sourceCandidates = sourceParam
+    ? await buildSourceUrlCandidates(request, sourceParam)
+    : [];
+  const width = clampInteger(
+    requestUrl.searchParams.get("w"),
+    1200,
+    MAX_IMAGE_WIDTH,
+  );
+  const height = clampInteger(
+    requestUrl.searchParams.get("h"),
+    900,
+    MAX_IMAGE_HEIGHT,
+  );
+  const quality = clampInteger(
+    requestUrl.searchParams.get("q"),
+    DEFAULT_QUALITY,
+    100,
+  );
+  const fit = requestUrl.searchParams.get("fit");
+  const resizeFit = fit === "contain" || fit === "inside" ? fit : "cover";
+  serverLogger.debug("media.browser_image_requested", {
+    source_present: Boolean(sourceParam?.trim()),
+    width,
+    height,
+    quality,
+    fit: resizeFit,
+  });
+  serverLogger.debug("media.browser_image_candidates_resolved", {
+    candidate_count: sourceCandidates.length,
+    source_relative: Boolean(sourceParam?.trim().startsWith("/")),
+  });
 
   if (sourceCandidates.length === 0) {
     return badRequest("A valid image url is required.");
   }
 
-  const width = clampInteger(requestUrl.searchParams.get("w"), 1200, MAX_IMAGE_WIDTH);
-  const height = clampInteger(requestUrl.searchParams.get("h"), 900, MAX_IMAGE_HEIGHT);
-  const quality = clampInteger(requestUrl.searchParams.get("q"), DEFAULT_QUALITY, 100);
-  const fit = requestUrl.searchParams.get("fit");
-  const resizeFit = fit === "contain" || fit === "inside" ? fit : "cover";
-  const relativeAssetBuffer = sourceParam && sourceParam.trim().startsWith("/")
-    ? await loadRelativeAssetBuffer(sourceParam)
-    : null;
+  const relativeAssetBuffer =
+    sourceParam && sourceParam.trim().startsWith("/")
+      ? await loadRelativeAssetBuffer(sourceParam)
+      : null;
 
   let upstreamResponse: Response | null = null;
   if (!relativeAssetBuffer) {
@@ -348,7 +415,8 @@ export const GET: APIRoute = async ({ request }) => {
           continue;
         }
 
-        const sourceContentType = candidateResponse.headers.get("content-type") ?? "";
+        const sourceContentType =
+          candidateResponse.headers.get("content-type") ?? "";
         if (!sourceContentType.startsWith("image/")) {
           continue;
         }
@@ -366,7 +434,8 @@ export const GET: APIRoute = async ({ request }) => {
     }
   }
 
-  const arrayBuffer = relativeAssetBuffer ?? await readLimitedArrayBuffer(upstreamResponse!);
+  const arrayBuffer =
+    relativeAssetBuffer ?? (await readLimitedArrayBuffer(upstreamResponse!));
   let imagePipeline = sharp(Buffer.from(arrayBuffer), { limitInputPixels: MAX_INPUT_PIXELS });
   const metadata = await imagePipeline.metadata();
 
@@ -389,6 +458,15 @@ export const GET: APIRoute = async ({ request }) => {
       quality,
     })
     .toBuffer();
+  serverLogger.debug("media.browser_image_returned", {
+    width,
+    height,
+    quality,
+    fit: resizeFit,
+    source_kind: relativeAssetBuffer ? "relative_asset" : "remote",
+    input_bytes: arrayBuffer.byteLength,
+    output_bytes: transformed.byteLength,
+  });
 
   return new Response(new Uint8Array(transformed), {
     headers: {

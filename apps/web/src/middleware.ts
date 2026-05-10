@@ -173,8 +173,26 @@ function isAllowedInternalApiOrigin(origin: string | null): boolean {
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname, search } = context.url;
   const redirectUrl = buildPublicCanonicalUrl(context.url);
+  const method = context.request.method;
+  const protectedPath = isProtectedPath(pathname);
+  const publicPath = isPublicPath(pathname);
+
+  serverLogger.debug("middleware.request_started", {
+    method,
+    path: pathname,
+    search_present: Boolean(search),
+    protected_path: protectedPath,
+    public_path: publicPath,
+  });
 
   if (redirectUrl) {
+    serverLogger.debug("middleware.canonical_redirected", {
+      method,
+      path: pathname,
+      target_path: redirectUrl.pathname,
+      target_search_present: Boolean(redirectUrl.search),
+      status: 301,
+    });
     return context.redirect(redirectUrl.toString(), 301);
   }
 
@@ -193,6 +211,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const pathLocale = extractLocaleFromPathname(pathname);
   if (pathLocale && readLocaleCookie(context.cookies) !== pathLocale) {
     writeLocaleCookie(context.cookies, pathLocale, secureCookie);
+    serverLogger.debug("middleware.locale_cookie_synced", {
+      method,
+      path: pathname,
+      locale: pathLocale,
+      secure: secureCookie,
+    });
   }
 
   if (
@@ -202,7 +226,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     !isAllowedInternalApiOrigin(context.request.headers.get("origin"))
   ) {
     serverLogger.warn("security.csrf_blocked", {
-      method: context.request.method,
+      method,
       path: pathname,
       origin_present: Boolean(context.request.headers.get("origin")),
       content_type: context.request.headers.get("content-type") ?? "missing",
@@ -233,9 +257,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
         setAdminAuthCookies(context.cookies, rotation.pair, secureCookie);
         isAuthenticated = true;
         serverLogger.info("admin.session_refresh_rotated", {
-          method: context.request.method,
+          method,
           path: pathname,
-          protected_path: isProtectedPath(pathname),
+          protected_path: protectedPath,
         });
       } else if (
         rotation.kind === "reuse_detected" ||
@@ -244,30 +268,53 @@ export const onRequest = defineMiddleware(async (context, next) => {
       ) {
         clearAdminAuthCookies(context.cookies);
         serverLogger.warn("admin.session_refresh_failed", {
-          method: context.request.method,
+          method,
           path: pathname,
           reason: rotation.kind,
-          protected_path: isProtectedPath(pathname),
+          protected_path: protectedPath,
+        });
+      } else if (rotation.kind === "stale") {
+        serverLogger.debug("admin.session_refresh_stale", {
+          method,
+          path: pathname,
+          protected_path: protectedPath,
         });
       }
-      // "stale" → leave cookies; the still-valid sibling token will rotate
-      // on the next request.
     }
   }
 
-  if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
+  serverLogger.debug("middleware.auth_checked", {
+    method,
+    path: pathname,
+    protected_path: protectedPath,
+    public_path: publicPath,
+    authenticated: isAuthenticated,
+    access_credential_present: Boolean(accessToken),
+  });
+
+  if (!protectedPath || publicPath) {
+    serverLogger.debug("middleware.request_allowed", {
+      method,
+      path: pathname,
+      reason: publicPath ? "public_internal_api" : "public",
+    });
     const response = await next();
     return finalizeResponse(response, scriptNonce);
   }
 
   if (isAuthenticated) {
+    serverLogger.debug("middleware.request_allowed", {
+      method,
+      path: pathname,
+      reason: "authenticated",
+    });
     const response = await next();
     return finalizeResponse(response, scriptNonce);
   }
 
   if (pathname.startsWith("/internal-api")) {
     serverLogger.warn("admin.internal_api_unauthorized", {
-      method: context.request.method,
+      method,
       path: pathname,
     });
     return finalizeResponse(
@@ -280,7 +327,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   serverLogger.info("admin.login_redirected", {
-    method: context.request.method,
+    method,
     path: pathname,
   });
 

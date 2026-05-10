@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 
 import { requestBackend } from '../../../lib/backend-api';
+import { serverLogger } from '../../../lib/server/logging';
 
 export const prerender = false;
 
@@ -23,9 +24,19 @@ async function parseProxyUploadPayload(
   const binaryBody = await request.arrayBuffer();
 
   if (!uploadUrl) {
+    serverLogger.debug('media.upload_proxy_rejected', {
+      reason: 'missing_upload_url',
+      content_type: contentType || 'application/octet-stream',
+      payload_bytes: binaryBody.byteLength,
+    });
     return json('x-upload-url header is required', 400);
   }
   if (binaryBody.byteLength === 0) {
+    serverLogger.debug('media.upload_proxy_rejected', {
+      reason: 'empty_payload',
+      content_type: contentType || 'application/octet-stream',
+      payload_bytes: binaryBody.byteLength,
+    });
     return json('request body is empty', 400);
   }
 
@@ -42,6 +53,10 @@ export const POST: APIRoute = async ({ request }) => {
     return payload;
   }
 
+  serverLogger.debug('media.upload_proxy_forward_requested', {
+    content_type: payload.contentType || 'application/octet-stream',
+    payload_bytes: payload.body.byteLength,
+  });
   const upstreamResponse = await requestBackend('/media/upload-proxy', {
     method: 'POST',
     headers: {
@@ -52,6 +67,11 @@ export const POST: APIRoute = async ({ request }) => {
     body: payload.body,
   });
   const upstreamBody = await upstreamResponse.text();
+  serverLogger.debug('media.upload_proxy_forward_returned', {
+    status: upstreamResponse.status,
+    content_type: upstreamResponse.headers.get('content-type') ?? 'application/json',
+    payload_length: upstreamBody.length,
+  });
 
   return new Response(upstreamBody, {
     status: upstreamResponse.status,

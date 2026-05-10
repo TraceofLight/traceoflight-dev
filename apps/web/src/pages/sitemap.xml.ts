@@ -120,6 +120,11 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
     path: `/${s.locale ?? "ko"}/series/${s.slug}/`,
     lastmod: s.updatedAt.toISOString(),
   }));
+  serverLogger.debug("sitemap.entries_collected", {
+    post_count: postEntries.length,
+    project_count: projectEntries.length,
+    series_count: seriesDetailEntries.length,
+  });
 
   return [
     ...postEntries,
@@ -171,6 +176,11 @@ export const GET: APIRoute = async ({ site }) => {
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">` +
     entries.map((entry) => serializeEntry(entry, siteOrigin)).join("") +
     `</urlset>`;
+  serverLogger.debug("sitemap.generated", {
+    entry_count: entries.length,
+    site_origin: siteOrigin.origin,
+    payload_length: xml.length,
+  });
 
   return new Response(xml, {
     status: 200,

@@ -27,7 +27,11 @@ interface FetchAllPagedOptions {
  */
 export async function fetchAllPaged<TItem>(
   fetcher: PagedFetcher<TItem>,
-  { pageSize = 100, maxPages = 50, resource = "items" }: FetchAllPagedOptions = {},
+  {
+    pageSize = 100,
+    maxPages = 50,
+    resource = "items",
+  }: FetchAllPagedOptions = {},
 ): Promise<TItem[]> {
   const collected: TItem[] = [];
 
@@ -35,6 +39,12 @@ export async function fetchAllPaged<TItem>(
     const offset = page * pageSize;
     let batch: TItem[] | null = null;
     try {
+      serverLogger.debug("pagination.page_requested", {
+        resource,
+        page,
+        offset,
+        page_size: pageSize,
+      });
       batch = await fetcher(pageSize, offset);
     } catch (error) {
       serverLogger.warn("pagination.page_fetch_failed", {
@@ -58,5 +68,11 @@ export async function fetchAllPaged<TItem>(
     }
   }
 
+  serverLogger.debug("pagination.completed", {
+    resource,
+    count: collected.length,
+    page_size: pageSize,
+    max_pages: maxPages,
+  });
   return collected;
 }

@@ -20,6 +20,7 @@ export const GET: APIRoute = async (context) => {
     return new Response('not found', { status: 404 });
   }
   const locale = rawLocale;
+  serverLogger.debug("rss.feed_requested", { locale });
 
   let posts: Awaited<ReturnType<typeof listAllPublishedDbPosts>> = [];
   try {
@@ -37,6 +38,12 @@ export const GET: APIRoute = async (context) => {
     if (!acc || candidate.getTime() > acc.getTime()) return candidate;
     return acc;
   }, null);
+  serverLogger.debug("rss.feed_returned", {
+    locale,
+    post_count: posts.length,
+    item_count: filtered.length,
+    has_last_build: Boolean(lastBuild),
+  });
 
   return rss({
     title: FEED_TITLE_BY_LOCALE[locale] ?? SITE_TITLE,

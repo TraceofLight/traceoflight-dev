@@ -6,7 +6,19 @@ import { test } from "node:test";
 const webRoot = new URL("..", import.meta.url);
 const loggerPath = new URL("../src/lib/server/logging.ts", import.meta.url);
 const backendApiPath = new URL("../src/lib/backend-api.ts", import.meta.url);
+const adminAuthPath = new URL("../src/lib/admin-auth.ts", import.meta.url);
 const middlewarePath = new URL("../src/middleware.ts", import.meta.url);
+const blogDbPath = new URL("../src/lib/blog-db.ts", import.meta.url);
+const projectsPath = new URL("../src/lib/projects.ts", import.meta.url);
+const seriesDbPath = new URL("../src/lib/series-db.ts", import.meta.url);
+const postCommentsPath = new URL(
+  "../src/lib/post-comments.ts",
+  import.meta.url,
+);
+const proxyHelpersPath = new URL(
+  "../src/lib/server/proxy-helpers.ts",
+  import.meta.url,
+);
 const loginRoutePath = new URL(
   "../src/pages/internal-api/auth/login.ts",
   import.meta.url,
@@ -20,9 +32,35 @@ const localizedRssRoutePath = new URL(
   "../src/pages/[locale]/rss.xml.ts",
   import.meta.url,
 );
-const sitemapRoutePath = new URL("../src/pages/sitemap.xml.ts", import.meta.url);
+const sitemapRoutePath = new URL(
+  "../src/pages/sitemap.xml.ts",
+  import.meta.url,
+);
 const paginatePath = new URL("../src/lib/paginate.ts", import.meta.url);
-const ga4SummaryPath = new URL("../src/lib/server/ga4-summary.ts", import.meta.url);
+const ga4SummaryPath = new URL(
+  "../src/lib/server/ga4-summary.ts",
+  import.meta.url,
+);
+const analyticsEventPath = new URL(
+  "../src/pages/internal-api/analytics/event.ts",
+  import.meta.url,
+);
+const browserImagePath = new URL(
+  "../src/pages/internal-api/media/browser-image.ts",
+  import.meta.url,
+);
+const mediaUploadUrlPath = new URL(
+  "../src/pages/internal-api/media/upload-url.ts",
+  import.meta.url,
+);
+const mediaRegisterPath = new URL(
+  "../src/pages/internal-api/media/register.ts",
+  import.meta.url,
+);
+const mediaUploadProxyPath = new URL(
+  "../src/pages/internal-api/media/upload-proxy.ts",
+  import.meta.url,
+);
 
 test("server logger emits structured JSON at the info threshold without sensitive fields", () => {
   const script = `
@@ -217,5 +255,140 @@ test("frontend server boundaries declare operational log events", async () => {
     ga4SummarySource,
   ]) {
     assert.doesNotMatch(source, /console\.error/);
+  }
+});
+
+test("frontend server boundaries declare debug log events", async () => {
+  const sourceByName = {
+    backendApi: await readFile(backendApiPath, "utf8"),
+    adminAuth: await readFile(adminAuthPath, "utf8"),
+    middleware: await readFile(middlewarePath, "utf8"),
+    blogDb: await readFile(blogDbPath, "utf8"),
+    projects: await readFile(projectsPath, "utf8"),
+    seriesDb: await readFile(seriesDbPath, "utf8"),
+    postComments: await readFile(postCommentsPath, "utf8"),
+    proxyHelpers: await readFile(proxyHelpersPath, "utf8"),
+    loginRoute: await readFile(loginRoutePath, "utf8"),
+    refreshRoute: await readFile(refreshRoutePath, "utf8"),
+    logoutLib: await readFile(logoutLibPath, "utf8"),
+    localizedRssRoute: await readFile(localizedRssRoutePath, "utf8"),
+    sitemapRoute: await readFile(sitemapRoutePath, "utf8"),
+    paginate: await readFile(paginatePath, "utf8"),
+    ga4Summary: await readFile(ga4SummaryPath, "utf8"),
+    analyticsEvent: await readFile(analyticsEventPath, "utf8"),
+    browserImage: await readFile(browserImagePath, "utf8"),
+    mediaUploadUrl: await readFile(mediaUploadUrlPath, "utf8"),
+    mediaRegister: await readFile(mediaRegisterPath, "utf8"),
+    mediaUploadProxy: await readFile(mediaUploadProxyPath, "utf8"),
+  };
+
+  const expectedEvents = {
+    backendApi: ["backend.request_started", "backend.response_received"],
+    adminAuth: [
+      "admin.credential_revision_cache_hit",
+      "admin.credential_revision_loaded",
+      "admin.credentials_verify_requested",
+      "admin.access_token_verified",
+      "admin.refresh_rotation_resolved",
+      "admin.logout_revocation_requested",
+    ],
+    middleware: [
+      "middleware.request_started",
+      "middleware.canonical_redirected",
+      "middleware.locale_cookie_synced",
+      "middleware.auth_checked",
+      "middleware.request_allowed",
+      "admin.session_refresh_stale",
+    ],
+    blogDb: [
+      "blog.list_requested",
+      "blog.list_returned",
+      "blog.summary_page_requested",
+      "blog.summary_page_returned",
+      "blog.detail_requested",
+      "blog.detail_returned",
+      "blog.redirect_requested",
+      "blog.redirect_resolved",
+    ],
+    projects: [
+      "project.list_requested",
+      "project.list_returned",
+      "project.detail_requested",
+      "project.detail_returned",
+      "project.redirect_requested",
+      "project.redirect_resolved",
+    ],
+    seriesDb: [
+      "series.list_requested",
+      "series.list_returned",
+      "series.detail_requested",
+      "series.detail_returned",
+      "series.redirect_requested",
+      "series.redirect_resolved",
+    ],
+    postComments: [
+      "comment.thread_initial_requested",
+      "comment.thread_initial_returned",
+      "comment.thread_initial_failed",
+    ],
+    proxyHelpers: [
+      "proxy.backend_unavailable_returned",
+      "proxy.unauthorized_returned",
+      "proxy.text_response_returned",
+      "proxy.binary_response_returned",
+    ],
+    loginRoute: ["admin.login_requested"],
+    refreshRoute: ["admin.refresh_requested"],
+    logoutLib: ["admin.logout_requested"],
+    localizedRssRoute: ["rss.feed_requested", "rss.feed_returned"],
+    sitemapRoute: ["sitemap.entries_collected", "sitemap.generated"],
+    paginate: ["pagination.page_requested", "pagination.completed"],
+    ga4Summary: [
+      "ga4.visitor_summary_cache_hit",
+      "ga4.visitor_summary_skipped",
+      "ga4.visitor_summary_fetched",
+    ],
+    analyticsEvent: ["analytics.event_skipped", "analytics.event_accepted"],
+    browserImage: [
+      "media.browser_image_requested",
+      "media.browser_image_candidates_resolved",
+      "media.browser_image_returned",
+    ],
+    mediaUploadUrl: [
+      "media.upload_url_proxy_requested",
+      "media.upload_url_proxy_returned",
+    ],
+    mediaRegister: [
+      "media.register_proxy_requested",
+      "media.register_proxy_returned",
+    ],
+    mediaUploadProxy: [
+      "media.upload_proxy_rejected",
+      "media.upload_proxy_forward_requested",
+      "media.upload_proxy_forward_returned",
+    ],
+  };
+
+  for (const [name, events] of Object.entries(expectedEvents)) {
+    const source = sourceByName[name];
+    for (const event of events) {
+      assert.match(
+        source,
+        new RegExp(
+          `serverLogger\\.debug\\(['"]${event.replaceAll(".", "\\.")}['"]`,
+        ),
+        `${name} missing debug event ${event}`,
+      );
+    }
+  }
+
+  const combined = Object.values(sourceByName).join("\n");
+  for (const statement of combined.split("serverLogger.debug(").slice(1)) {
+    const call = statement.split(");")[0] ?? statement;
+    assert.doesNotMatch(
+      call,
+      /\b(password|authorization|cookie)\b|body\s*:/i,
+      "debug logs should not include credentials, cookies, authorization, or request bodies",
+    );
   }
 });

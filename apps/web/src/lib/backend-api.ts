@@ -85,6 +85,14 @@ export async function requestBackend(
   const cacheMode =
     init?.cache ?? (includeInternalSecret ? "no-store" : "force-cache");
   const startedAt = Date.now();
+  const requestFields = {
+    method,
+    path,
+    include_internal_secret: includeInternalSecret,
+    cache_mode: cacheMode,
+    payload_present: init?.body !== undefined,
+  };
+  serverLogger.debug("backend.request_started", requestFields);
 
   try {
     const response = await fetch(buildBackendApiUrl(path), {
@@ -100,6 +108,7 @@ export async function requestBackend(
       include_internal_secret: includeInternalSecret,
       cache_mode: cacheMode,
     };
+    serverLogger.debug("backend.response_received", fields);
     if (!response.ok && shouldLogBackendNonOk(method, response.status)) {
       serverLogger.warn("backend.response_non_ok", fields);
     } else if (response.ok && shouldLogBackendSuccess(method)) {

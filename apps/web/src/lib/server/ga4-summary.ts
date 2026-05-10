@@ -23,7 +23,12 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 }
 
 function getCacheTtlMilliseconds() {
-  return parsePositiveInt(process.env.GA4_VISITOR_CACHE_TTL_SECONDS, DEFAULT_CACHE_TTL_SECONDS) * 1000;
+  return (
+    parsePositiveInt(
+      process.env.GA4_VISITOR_CACHE_TTL_SECONDS,
+      DEFAULT_CACHE_TTL_SECONDS,
+    ) * 1000
+  );
 }
 
 function getPropertyId() {
@@ -31,7 +36,10 @@ function getPropertyId() {
 }
 
 function getTotalStartDate() {
-  return (process.env.GA4_VISITOR_TOTAL_START_DATE ?? "").trim() || DEFAULT_TOTAL_START_DATE;
+  return (
+    (process.env.GA4_VISITOR_TOTAL_START_DATE ?? "").trim() ||
+    DEFAULT_TOTAL_START_DATE
+  );
 }
 
 function getServiceAccountCredentials() {
@@ -63,30 +71,36 @@ function getServiceAccountCredentials() {
 
 async function getAnalyticsClient() {
   if (!analyticsClientPromise) {
-    analyticsClientPromise = import("@google-analytics/data").then(({ BetaAnalyticsDataClient }) => {
-      const credentials = getServiceAccountCredentials();
-      if (!credentials) {
-        throw new Error("missing ga4 service account credentials");
-      }
+    analyticsClientPromise = import("@google-analytics/data").then(
+      ({ BetaAnalyticsDataClient }) => {
+        const credentials = getServiceAccountCredentials();
+        if (!credentials) {
+          throw new Error("missing ga4 service account credentials");
+        }
 
-      return new BetaAnalyticsDataClient({
-        credentials,
-        scopes: [GA_SCOPE],
-      });
-    });
+        return new BetaAnalyticsDataClient({
+          credentials,
+          scopes: [GA_SCOPE],
+        });
+      },
+    );
   }
 
   return analyticsClientPromise;
 }
 
 function parseMetricValue(response: unknown) {
-  const row = (response as { rows?: Array<{ metricValues?: Array<{ value?: string }> }> })?.rows?.[0];
+  const row = (
+    response as { rows?: Array<{ metricValues?: Array<{ value?: string }> }> }
+  )?.rows?.[0];
   const value = row?.metricValues?.[0]?.value ?? "0";
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-async function runTotalUsersReport(dateRanges: Array<{ startDate: string; endDate: string }>) {
+async function runTotalUsersReport(
+  dateRanges: Array<{ startDate: string; endDate: string }>,
+) {
   const propertyId = getPropertyId();
   if (!propertyId) {
     throw new Error("missing ga4 property id");
@@ -108,6 +122,11 @@ export async function getGa4VisitorSummary(): Promise<VisitorSummary | null> {
   const now = Date.now();
   const ttl = getCacheTtlMilliseconds();
   if (cachedSummary && now - cachedSummary.fetchedAt < ttl) {
+    serverLogger.debug("ga4.visitor_summary_cache_hit", {
+      has_value: cachedSummary.value !== null,
+      age_ms: now - cachedSummary.fetchedAt,
+      ttl_ms: ttl,
+    });
     return cachedSummary.value;
   }
 
@@ -116,13 +135,19 @@ export async function getGa4VisitorSummary(): Promise<VisitorSummary | null> {
       fetchedAt: now,
       value: null,
     };
+    serverLogger.debug("ga4.visitor_summary_skipped", {
+      has_property_id: Boolean(getPropertyId()),
+      has_service_account: Boolean(getServiceAccountCredentials()),
+    });
     return null;
   }
 
   try {
     const [todayVisitors, totalVisitors] = await Promise.all([
       runTotalUsersReport([{ startDate: "today", endDate: "today" }]),
-      runTotalUsersReport([{ startDate: getTotalStartDate(), endDate: "today" }]),
+      runTotalUsersReport([
+        { startDate: getTotalStartDate(), endDate: "today" },
+      ]),
     ]);
 
     const value = {
@@ -133,6 +158,11 @@ export async function getGa4VisitorSummary(): Promise<VisitorSummary | null> {
       fetchedAt: now,
       value,
     };
+    serverLogger.debug("ga4.visitor_summary_fetched", {
+      today_visitors: todayVisitors,
+      total_visitors: totalVisitors,
+      ttl_ms: ttl,
+    });
     return value;
   } catch (error) {
     serverLogger.warn("ga4.visitor_summary_failed", { error });
