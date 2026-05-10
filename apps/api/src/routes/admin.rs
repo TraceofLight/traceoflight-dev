@@ -1,4 +1,5 @@
 use axum::{extract::State, http::HeaderMap, response::Json};
+use tracing::{info, warn};
 
 use crate::{
     AppState,
@@ -57,6 +58,13 @@ pub async fn admin_login_handler(
 ) -> Result<Json<AdminAuthLoginResponse>, AppError> {
     let client_ip = extract_client_ip(&headers);
     let response = admin_login(&state.db, &state.admin, client_ip.as_deref(), payload).await?;
+    info!(
+        event = "admin.login_succeeded",
+        credential_source = %response.credential_source,
+        credential_revision = response.credential_revision,
+        has_client_ip = client_ip.is_some(),
+        "admin login succeeded"
+    );
     Ok(Json(response))
 }
 
@@ -81,21 +89,50 @@ pub async fn admin_refresh_handler(
 ) -> Result<Json<AdminRefreshResponse>, AppError> {
     let outcome = rotate_refresh_token(&state.db, &state.admin, &payload.refresh_token).await?;
     match outcome {
-        RefreshOutcome::Rotated { revision, pair } => Ok(Json(AdminRefreshResponse {
-            ok: true,
-            credential_revision: revision,
-            access_token: pair.access_token,
-            refresh_token: pair.refresh_token,
-            access_max_age_seconds: pair.access_max_age_seconds,
-            refresh_max_age_seconds: pair.refresh_max_age_seconds,
-        })),
-        RefreshOutcome::Stale { .. } => Err(AppError::Conflict("refresh token is stale".into())),
-        RefreshOutcome::InvalidOrExpired { kind, .. } => Err(AppError::UnauthorizedDetail(
-            format!("refresh token {kind}"),
-        )),
-        RefreshOutcome::ReuseDetected { .. } => Err(AppError::UnauthorizedDetail(
-            "refresh token reuse_detected".into(),
-        )),
+        RefreshOutcome::Rotated { revision, pair } => {
+            info!(
+                event = "admin.token_rotated",
+                credential_revision = revision,
+                "admin refresh token rotated"
+            );
+            Ok(Json(AdminRefreshResponse {
+                ok: true,
+                credential_revision: revision,
+                access_token: pair.access_token,
+                refresh_token: pair.refresh_token,
+                access_max_age_seconds: pair.access_max_age_seconds,
+                refresh_max_age_seconds: pair.refresh_max_age_seconds,
+            }))
+        }
+        RefreshOutcome::Stale { revision } => {
+            warn!(
+                event = "admin.token_refresh_stale",
+                credential_revision = revision,
+                "admin refresh token stale"
+            );
+            Err(AppError::Conflict("refresh token is stale".into()))
+        }
+        RefreshOutcome::InvalidOrExpired { kind, revision } => {
+            warn!(
+                event = "admin.token_refresh_failed",
+                reason = kind,
+                credential_revision = revision,
+                "admin refresh token failed"
+            );
+            Err(AppError::UnauthorizedDetail(format!(
+                "refresh token {kind}"
+            )))
+        }
+        RefreshOutcome::ReuseDetected { revision } => {
+            warn!(
+                event = "admin.token_reuse_detected",
+                credential_revision = revision,
+                "admin refresh token reuse detected"
+            );
+            Err(AppError::UnauthorizedDetail(
+                "refresh token reuse_detected".into(),
+            ))
+        }
     }
 }
 
@@ -117,6 +154,10 @@ pub async fn admin_logout_handler(
     Json(payload): Json<AdminLogoutRequest>,
 ) -> Result<Json<AdminLogoutResponse>, AppError> {
     revoke_refresh_token_family(&state.admin, &payload.refresh_token).await?;
+    info!(
+        event = "admin.logout_acknowledged",
+        "admin logout acknowledged"
+    );
     Ok(Json(AdminLogoutResponse { ok: true }))
 }
 
@@ -166,5 +207,10 @@ pub async fn admin_update_credentials_handler(
     Json(payload): Json<AdminCredentialUpdateRequest>,
 ) -> Result<Json<AdminCredentialUpdateResponse>, AppError> {
     let response = update_operational_credentials(&state.db, payload).await?;
+    info!(
+        event = "admin.credentials_updated",
+        credential_revision = response.credential_revision,
+        "admin credentials updated"
+    );
     Ok(Json(response))
 }

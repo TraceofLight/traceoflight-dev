@@ -4,6 +4,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
+use tracing::info;
 use utoipa::IntoParams;
 use uuid::Uuid;
 
@@ -70,6 +71,15 @@ pub async fn create_post_comment_handler(
     let comment = create_comment(&state.db, &slug, payload, trusted)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
+    info!(
+        event = "comment.created",
+        comment_id = %comment.id,
+        post_slug = %slug,
+        trusted,
+        author_type = ?comment.author_type,
+        visibility = ?comment.visibility,
+        "comment created"
+    );
     Ok(Json(comment))
 }
 
@@ -99,6 +109,14 @@ pub async fn update_comment_handler(
     let comment = update_comment(&state.db, comment_id, payload, trusted)
         .await?
         .ok_or(AppError::NotFound("comment not found"))?;
+    info!(
+        event = "comment.updated",
+        comment_id = %comment.id,
+        trusted,
+        visibility = ?comment.visibility,
+        status = ?comment.status,
+        "comment updated"
+    );
     Ok(Json(comment))
 }
 
@@ -127,6 +145,13 @@ pub async fn delete_comment_handler(
     let comment = delete_comment(&state.db, comment_id, payload, trusted)
         .await?
         .ok_or(AppError::NotFound("comment not found"))?;
+    info!(
+        event = "comment.deleted",
+        comment_id = %comment.id,
+        trusted,
+        status = ?comment.status,
+        "comment deleted"
+    );
     Ok(Json(comment))
 }
 

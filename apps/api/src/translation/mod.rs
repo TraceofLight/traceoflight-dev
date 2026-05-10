@@ -42,6 +42,14 @@ pub async fn enqueue_for_locale(
     target_locale: &str,
 ) {
     let Some(queue) = queue else {
+        tracing::warn!(
+            event = "translation.enqueue_skipped",
+            entity = ?entity,
+            source_id = %source_id,
+            target = target_locale,
+            reason = "queue_not_configured",
+            "translation enqueue skipped"
+        );
         return;
     };
     let job = TranslationJob {
@@ -49,13 +57,26 @@ pub async fn enqueue_for_locale(
         source_id,
         target_locale: target_locale.to_string(),
     };
-    if let Err(err) = queue.push(&job).await {
-        tracing::warn!(
-            error = %err,
-            entity = ?entity,
-            source_id = %source_id,
-            target = target_locale,
-            "translation queue: enqueue failed (save still committed)",
-        );
+    match queue.push(&job).await {
+        Ok(queue_len) => {
+            tracing::info!(
+                event = "translation.enqueue_succeeded",
+                entity = ?entity,
+                source_id = %source_id,
+                target = target_locale,
+                queue_len,
+                "translation enqueue succeeded"
+            );
+        }
+        Err(err) => {
+            tracing::warn!(
+                event = "translation.enqueue_failed",
+                error = %err,
+                entity = ?entity,
+                source_id = %source_id,
+                target = target_locale,
+                "translation queue: enqueue failed (save still committed)",
+            );
+        }
     }
 }

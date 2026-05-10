@@ -11,6 +11,7 @@ use chrono::Utc;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, EntityTrait};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tracing::warn;
 use utoipa::ToSchema;
 
 use crate::config::AdminSettings;
@@ -284,6 +285,13 @@ pub async fn login(
         if current >= max_failures {
             let ttl = store.login_failure_ttl(rate_limit_key).await?;
             let retry_after = if ttl > 0 { ttl as u64 } else { window_seconds };
+            warn!(
+                event = "admin.login_throttled",
+                has_client_ip = client_ip.is_some(),
+                failures = current,
+                retry_after_seconds = retry_after,
+                "admin login throttled"
+            );
             return Err(AppError::Throttled {
                 retry_after,
                 detail: "too many login attempts".into(),
@@ -294,19 +302,33 @@ pub async fn login(
     let verify =
         verify_credentials(pool, &ctx.settings, &payload.login_id, &payload.password).await?;
     let Some(source) = verify.credential_source else {
+        let mut failure_count = 0_u64;
         if max_failures > 0 {
-            let count = store
+            failure_count = store
                 .incr_login_failure(rate_limit_key, window_seconds)
                 .await?;
-            if count >= max_failures {
+            if failure_count >= max_failures {
                 let ttl = store.login_failure_ttl(rate_limit_key).await?;
                 let retry_after = if ttl > 0 { ttl as u64 } else { window_seconds };
+                warn!(
+                    event = "admin.login_throttled",
+                    has_client_ip = client_ip.is_some(),
+                    failures = failure_count,
+                    retry_after_seconds = retry_after,
+                    "admin login throttled"
+                );
                 return Err(AppError::Throttled {
                     retry_after,
                     detail: "too many login attempts".into(),
                 });
             }
         }
+        warn!(
+            event = "admin.login_failed",
+            has_client_ip = client_ip.is_some(),
+            failures = failure_count,
+            "admin login failed"
+        );
         return Err(AppError::UnauthorizedDetail(
             "invalid admin credentials".into(),
         ));

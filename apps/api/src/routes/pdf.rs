@@ -4,6 +4,7 @@ use axum::{
     http::{StatusCode, header},
     response::{Json, Response},
 };
+use tracing::info;
 
 use crate::{
     AppState,
@@ -77,6 +78,7 @@ async fn handle_pdf_upload(
         .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
     let data =
         data.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
+    let size_bytes = data.len();
     let status = upload_pdf(
         &state.minio,
         config,
@@ -85,6 +87,14 @@ async fn handle_pdf_upload(
         content_type.as_deref(),
     )
     .await?;
+    info!(
+        event = "pdf.uploaded",
+        asset = config.validation_label,
+        filename = %filename,
+        size_bytes,
+        available = status.available,
+        "pdf uploaded"
+    );
     Ok(Json(status))
 }
 
@@ -163,7 +173,14 @@ pub async fn delete_portfolio_pdf_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Json<PdfStatus>, AppError> {
-    Ok(Json(delete_pdf(&state.minio, &PORTFOLIO_PDF).await?))
+    let status = delete_pdf(&state.minio, &PORTFOLIO_PDF).await?;
+    info!(
+        event = "pdf.deleted",
+        asset = PORTFOLIO_PDF.validation_label,
+        available = status.available,
+        "pdf deleted"
+    );
+    Ok(Json(status))
 }
 
 #[utoipa::path(
@@ -239,5 +256,12 @@ pub async fn delete_resume_pdf_handler(
     _: RequireInternalSecret,
     State(state): State<AppState>,
 ) -> Result<Json<PdfStatus>, AppError> {
-    Ok(Json(delete_pdf(&state.minio, &RESUME_PDF).await?))
+    let status = delete_pdf(&state.minio, &RESUME_PDF).await?;
+    info!(
+        event = "pdf.deleted",
+        asset = RESUME_PDF.validation_label,
+        available = status.available,
+        "pdf deleted"
+    );
+    Ok(Json(status))
 }

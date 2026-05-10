@@ -5,6 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
+use tracing::info;
 use utoipa::IntoParams;
 
 use crate::{
@@ -102,7 +103,14 @@ pub async fn replace_series_order_handler(
     State(state): State<AppState>,
     Json(payload): Json<SeriesOrderReplace>,
 ) -> Result<Json<Vec<SeriesRead>>, AppError> {
+    let requested_count = payload.series_slugs.len();
     let series = replace_series_order(&state.db, payload.series_slugs).await?;
+    info!(
+        event = "series.order_replaced",
+        requested_count,
+        returned_count = series.len(),
+        "series order replaced"
+    );
     Ok(Json(series))
 }
 
@@ -195,6 +203,14 @@ pub async fn create_series_handler(
     Json(payload): Json<SeriesUpsert>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
     let series = create_series(&state.db, payload).await?;
+    info!(
+        event = "series.created",
+        series_id = %series.id,
+        slug = %series.slug,
+        locale = series.locale.as_str(),
+        post_count = series.post_count,
+        "series created"
+    );
     fire_series_write_effects(&state, &series);
     Ok(Json(series))
 }
@@ -228,6 +244,15 @@ pub async fn update_series_by_slug_handler(
     let series = update_series_by_slug(&state.db, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
+    info!(
+        event = "series.updated",
+        series_id = %series.id,
+        previous_slug = %slug,
+        slug = %series.slug,
+        locale = series.locale.as_str(),
+        post_count = series.post_count,
+        "series updated"
+    );
     fire_series_write_effects(&state, &series);
     Ok(Json(series))
 }
@@ -259,6 +284,7 @@ pub async fn delete_series_by_slug_handler(
     if !deleted {
         return Err(AppError::NotFound("series not found"));
     }
+    info!(event = "series.deleted", slug = %slug, "series deleted");
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -289,8 +315,17 @@ pub async fn replace_series_posts_handler(
     Path(slug): Path<String>,
     Json(payload): Json<SeriesPostsReplace>,
 ) -> Result<Json<SeriesDetailRead>, AppError> {
+    let requested_count = payload.post_slugs.len();
     let replaced = replace_series_posts_by_slug(&state.db, &slug, payload.post_slugs)
         .await?
         .ok_or(AppError::NotFound("series not found"))?;
+    info!(
+        event = "series.posts_replaced",
+        series_id = %replaced.id,
+        slug = %replaced.slug,
+        requested_count,
+        post_count = replaced.post_count,
+        "series posts replaced"
+    );
     Ok(Json(replaced))
 }

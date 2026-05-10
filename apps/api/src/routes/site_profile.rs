@@ -1,4 +1,5 @@
 use axum::{extract::State, response::Json};
+use tracing::info;
 
 use crate::{
     AppState,
@@ -48,5 +49,11 @@ pub async fn update_site_profile_handler(
     Json(payload): Json<SiteProfileRead>,
 ) -> Result<Json<SiteProfileRead>, AppError> {
     let profile = update_site_profile(&state.db, payload).await?;
+    info!(
+        event = "site_profile.updated",
+        has_email = !profile.email.trim().is_empty(),
+        has_github_url = !profile.github_url.trim().is_empty(),
+        "site profile updated"
+    );
     Ok(Json(profile))
 }

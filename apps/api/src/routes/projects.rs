@@ -4,6 +4,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
+use tracing::info;
 use utoipa::IntoParams;
 
 use crate::{
@@ -156,6 +157,13 @@ pub async fn replace_project_order_handler(
     State(state): State<AppState>,
     Json(payload): Json<ProjectsOrderReplace>,
 ) -> Result<Json<Vec<ProjectRead>>, AppError> {
+    let requested_count = payload.project_slugs.len();
     let projects = replace_project_order(&state.db, payload.project_slugs).await?;
+    info!(
+        event = "project.order_replaced",
+        requested_count,
+        returned_count = projects.len(),
+        "project order replaced"
+    );
     Ok(Json(projects))
 }

@@ -5,6 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
+use tracing::info;
 use utoipa::IntoParams;
 
 use crate::{
@@ -76,6 +77,7 @@ pub async fn create_tag_handler(
     Json(payload): Json<TagCreate>,
 ) -> Result<Json<TagRead>, AppError> {
     let tag = create_tag(&state.db, payload).await?;
+    info!(event = "tag.created", slug = %tag.slug, "tag created");
     Ok(Json(tag))
 }
 
@@ -109,6 +111,12 @@ pub async fn update_tag_handler(
     let tag = update_tag(&state.db, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("tag not found"))?;
+    info!(
+        event = "tag.updated",
+        previous_slug = %slug,
+        slug = %tag.slug,
+        "tag updated"
+    );
     Ok(Json(tag))
 }
 
@@ -151,5 +159,6 @@ pub async fn delete_tag_handler(
     if !deleted {
         return Err(AppError::NotFound("tag not found"));
     }
+    info!(event = "tag.deleted", slug = %slug, force = params.force, "tag deleted");
     Ok(StatusCode::NO_CONTENT)
 }

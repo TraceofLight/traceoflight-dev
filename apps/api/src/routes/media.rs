@@ -1,5 +1,6 @@
 use axum::{body::Bytes, extract::State, http::HeaderMap, response::Json};
 use serde::Serialize;
+use tracing::info;
 use utoipa::ToSchema;
 
 use crate::{
@@ -30,6 +31,14 @@ pub async fn create_upload_url_handler(
 ) -> Result<Json<MediaUploadResponse>, AppError> {
     let object_key = build_object_key(payload.kind, &payload.filename);
     let upload_url = presigned_put_url(&state.minio, &object_key, &payload.mime_type)?;
+    info!(
+        event = "media.upload_url_issued",
+        kind = ?payload.kind,
+        object_key = %object_key,
+        mime_type = %payload.mime_type,
+        expires_in_seconds = state.minio.presigned_expire_seconds,
+        "media upload url issued"
+    );
     Ok(Json(MediaUploadResponse {
         object_key,
         bucket: state.minio.bucket.clone(),
@@ -56,6 +65,15 @@ pub async fn register_media_handler(
     Json(payload): Json<MediaCreate>,
 ) -> Result<Json<MediaRead>, AppError> {
     let media = register_media(&state.db, payload, &state.minio.bucket).await?;
+    info!(
+        event = "media.registered",
+        media_id = %media.id,
+        kind = ?media.kind,
+        object_key = %media.object_key,
+        mime_type = %media.mime_type,
+        size_bytes = media.size_bytes,
+        "media registered"
+    );
     Ok(Json(media))
 }
 
@@ -100,6 +118,13 @@ pub async fn upload_media_proxy_handler(
         .filter(|s| !s.is_empty())
         .unwrap_or("application/octet-stream");
 
+    let size_bytes = body.len();
     proxy_upload(upload_url, content_type, body).await?;
+    info!(
+        event = "media.upload_proxy_completed",
+        content_type = %content_type,
+        size_bytes,
+        "media upload proxy completed"
+    );
     Ok(Json(UploadProxyAck { ok: true }))
 }

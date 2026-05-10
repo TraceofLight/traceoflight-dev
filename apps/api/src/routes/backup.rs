@@ -4,6 +4,7 @@ use axum::{
     http::{StatusCode, header},
     response::{Json, Response},
 };
+use tracing::info;
 
 use crate::{
     AppState,
@@ -31,6 +32,13 @@ pub async fn download_posts_backup_handler(
     State(state): State<AppState>,
 ) -> Result<Response, AppError> {
     let (filename, bytes) = download_posts_backup(&state.db, &state.minio).await?;
+    let size_bytes = bytes.len();
+    info!(
+        event = "import.backup_downloaded",
+        filename = %filename,
+        size_bytes,
+        "posts backup downloaded"
+    );
     let disposition = format!("attachment; filename=\"{filename}\"");
     let response = Response::builder()
         .status(StatusCode::OK)
@@ -88,6 +96,16 @@ pub async fn load_posts_backup_handler(
         .ok_or_else(|| AppError::BadRequest("`file` multipart field is required".into()))?;
     let file_bytes =
         file_bytes.ok_or_else(|| AppError::BadRequest("`file` multipart field is empty".into()))?;
+    let size_bytes = file_bytes.len();
     let result = load_posts_backup(&state.db, &state.minio, &file_name, &file_bytes).await?;
+    info!(
+        event = "import.backup_loaded",
+        filename = %file_name,
+        size_bytes,
+        restored_posts = result.restored_posts,
+        restored_media = result.restored_media,
+        restored_series_overrides = result.restored_series_overrides,
+        "posts backup loaded"
+    );
     Ok(Json(result))
 }

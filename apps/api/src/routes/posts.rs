@@ -5,6 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use utoipa::{IntoParams, ToSchema};
 
 use crate::{
@@ -251,6 +252,16 @@ pub async fn create_post_handler(
     Json(payload): Json<PostCreate>,
 ) -> Result<Json<PostRead>, AppError> {
     let post = create_post(&state.db, payload).await?;
+    info!(
+        event = "post.created",
+        post_id = %post.id,
+        slug = %post.slug,
+        locale = post.locale.as_str(),
+        status = post.status.as_str(),
+        visibility = post.visibility.as_str(),
+        content_kind = post.content_kind.as_str(),
+        "post created"
+    );
     fire_post_write_effects(&state, &post);
     Ok(Json(post))
 }
@@ -314,6 +325,17 @@ pub async fn update_post_by_slug_handler(
     let post = update_post_by_slug(&state.db, &slug, payload)
         .await?
         .ok_or(AppError::NotFound("post not found"))?;
+    info!(
+        event = "post.updated",
+        post_id = %post.id,
+        previous_slug = %slug,
+        slug = %post.slug,
+        locale = post.locale.as_str(),
+        status = post.status.as_str(),
+        visibility = post.visibility.as_str(),
+        content_kind = post.content_kind.as_str(),
+        "post updated"
+    );
     fire_post_write_effects(&state, &post);
     Ok(Json(post))
 }
@@ -357,6 +379,13 @@ pub async fn retranslate_post_by_slug_handler(
     let source_id = prepare_post_retranslation(&state.db, &slug, payload.locale).await?;
     let queue = state.translation_queue.clone();
     let target_locale = payload.locale.as_str().to_string();
+    info!(
+        event = "post.retranslation_requested",
+        source_post_id = %source_id,
+        slug = %slug,
+        target_locale = %target_locale,
+        "post retranslation requested"
+    );
     tokio::spawn(async move {
         translation::enqueue_for_locale(
             queue.as_ref(),
@@ -410,6 +439,16 @@ pub async fn delete_post_by_slug_handler(
     if !deleted {
         return Err(AppError::NotFound("post not found"));
     }
+    info!(
+        event = "post.deleted",
+        slug = %slug,
+        status = params.status.map(|status| status.as_str()).unwrap_or("any"),
+        visibility = params
+            .visibility
+            .map(|visibility| visibility.as_str())
+            .unwrap_or("any"),
+        "post deleted"
+    );
     state.series_projector.request_refresh("post-deleted");
     Ok(StatusCode::NO_CONTENT)
 }
