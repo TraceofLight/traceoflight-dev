@@ -6,6 +6,7 @@ import {
   revokeRefreshTokenFamily,
 } from "./admin-auth";
 import { sanitizeNextPath } from "./admin-redirect";
+import { serverLogger } from "./server/logging";
 
 function buildNextPath(context: Pick<APIContext, "url">): string {
   return sanitizeNextPath(context.url.searchParams.get("next"));
@@ -22,6 +23,12 @@ export async function createAdminLogoutResponse(
 
   const accept = context.request.headers.get("accept") ?? "";
   const nextPath = buildNextPath(context);
+  const hadRefresh = Boolean(refreshToken);
+  serverLogger.info("admin.logout_completed", {
+    had_refresh: hadRefresh,
+    response_type: accept.includes("text/html") ? "redirect" : "json",
+  });
+
   if (accept.includes("text/html")) {
     return context.redirect(nextPath);
   }

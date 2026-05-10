@@ -5,6 +5,7 @@ import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '../../consts';
 import { listAllPublishedDbPosts, renderDbMarkdown } from '../../lib/blog-db';
 import { isSupportedPublicLocale } from '../../lib/i18n/locales';
 import { buildLocalizedBlogPostPath } from '../../lib/i18n/pathnames';
+import { serverLogger } from '../../lib/server/logging';
 
 const FEED_TITLE_BY_LOCALE: Record<string, string> = {
   ko: `${SITE_TITLE}`,
@@ -24,7 +25,7 @@ export const GET: APIRoute = async (context) => {
   try {
     posts = await listAllPublishedDbPosts({ locale });
   } catch (error) {
-    console.error('[rss] failed to fetch posts:', error);
+    serverLogger.warn("rss.posts_fetch_failed", { locale, error });
   }
   // Belt-and-suspenders: backend may not yet filter by locale on this endpoint.
   const filtered = posts.filter((post) => (post.locale ?? 'ko') === locale);

@@ -18,6 +18,7 @@ import {
   writeLocaleCookie,
 } from "./lib/i18n/cookie";
 import { buildPublicCanonicalUrl } from "./lib/public-url";
+import { serverLogger } from "./lib/server/logging";
 
 const STATIC_SECURITY_HEADERS = {
   "X-Frame-Options": "DENY",
@@ -49,7 +50,10 @@ function buildCspHeader(scriptNonce: string): string {
   ].join("; ");
 }
 
-function applySecurityHeaders(response: Response, scriptNonce: string): Response {
+function applySecurityHeaders(
+  response: Response,
+  scriptNonce: string,
+): Response {
   const headers = new Headers(response.headers);
   for (const [key, value] of Object.entries(STATIC_SECURITY_HEADERS)) {
     headers.set(key, value);
@@ -107,7 +111,8 @@ function isPublicPath(pathname: string): boolean {
   }
   if (pathname.startsWith("/internal-api/media/browser-image")) return true;
   if (pathname === "/internal-api/posts/summary") return true;
-  if (/^\/internal-api\/posts\/.+\/comments(?:\/|$)/.test(pathname)) return true;
+  if (/^\/internal-api\/posts\/.+\/comments(?:\/|$)/.test(pathname))
+    return true;
   if (/^\/internal-api\/comments\/.+$/.test(pathname)) return true;
   if (pathname === "/internal-api/analytics/event") return true;
   return false;
@@ -183,8 +188,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // localized public page so that root-level redirects and cross-page
   // navigation can honor it across sessions.
   const secureCookie =
-    process.env.NODE_ENV === "production" ||
-    context.url.protocol === "https:";
+    process.env.NODE_ENV === "production" || context.url.protocol === "https:";
 
   const pathLocale = extractLocaleFromPathname(pathname);
   if (pathLocale && readLocaleCookie(context.cookies) !== pathLocale) {
@@ -197,6 +201,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     isFormLikeRequest(context.request.headers.get("content-type")) &&
     !isAllowedInternalApiOrigin(context.request.headers.get("origin"))
   ) {
+    serverLogger.warn("security.csrf_blocked", {
+      method: context.request.method,
+      path: pathname,
+      origin_present: Boolean(context.request.headers.get("origin")),
+      content_type: context.request.headers.get("content-type") ?? "missing",
+    });
     return finalizeResponse(
       new Response("Cross-site form submissions are forbidden", {
         status: 403,
@@ -222,12 +232,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if (rotation.kind === "rotated" && rotation.pair) {
         setAdminAuthCookies(context.cookies, rotation.pair, secureCookie);
         isAuthenticated = true;
+        serverLogger.info("admin.session_refresh_rotated", {
+          method: context.request.method,
+          path: pathname,
+          protected_path: isProtectedPath(pathname),
+        });
       } else if (
         rotation.kind === "reuse_detected" ||
         rotation.kind === "invalid" ||
         rotation.kind === "expired"
       ) {
         clearAdminAuthCookies(context.cookies);
+        serverLogger.warn("admin.session_refresh_failed", {
+          method: context.request.method,
+          path: pathname,
+          reason: rotation.kind,
+          protected_path: isProtectedPath(pathname),
+        });
       }
       // "stale" → leave cookies; the still-valid sibling token will rotate
       // on the next request.
@@ -245,6 +266,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   if (pathname.startsWith("/internal-api")) {
+    serverLogger.warn("admin.internal_api_unauthorized", {
+      method: context.request.method,
+      path: pathname,
+    });
     return finalizeResponse(
       new Response(JSON.stringify({ detail: "Unauthorized" }), {
         status: 401,
@@ -253,6 +278,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
       scriptNonce,
     );
   }
+
+  serverLogger.info("admin.login_redirected", {
+    method: context.request.method,
+    path: pathname,
+  });
 
   return finalizeResponse(
     context.redirect(buildLoginRedirect(pathname, search)),

@@ -1,3 +1,5 @@
+import { serverLogger } from "./logging";
+
 export type VisitorSummary = {
   todayVisitors: number;
   totalVisitors: number;
@@ -133,7 +135,7 @@ export async function getGa4VisitorSummary(): Promise<VisitorSummary | null> {
     };
     return value;
   } catch (error) {
-    console.error("[ga4-summary] failed to load visitor summary", error);
+    serverLogger.warn("ga4.visitor_summary_failed", { error });
     cachedSummary = {
       fetchedAt: now,
       value: null,

@@ -6,6 +6,7 @@ import { buildLocalizedBlogIndexPath, buildLocalizedBlogPostPath } from "../lib/
 import { fetchAllPaged } from "../lib/paginate";
 import { resolvePublicSiteOrigin } from "../lib/public-url";
 import { listPublishedDbProjects } from "../lib/projects";
+import { serverLogger } from "../lib/server/logging";
 import { listSeries } from "../lib/series-db";
 
 interface LocalizedAlternate {
@@ -62,7 +63,7 @@ async function getDynamicEntries(): Promise<SitemapEntry[]> {
   // pagination helper because their backend endpoints cap `limit` (le=100/200).
   const [posts, projects, series] = await Promise.all([
     listAllPublishedDbPosts().catch((error: unknown) => {
-      console.error("[sitemap] failed to fetch posts:", error);
+      serverLogger.warn("sitemap.posts_fetch_failed", { error });
       return [];
     }),
     fetchAllPaged(

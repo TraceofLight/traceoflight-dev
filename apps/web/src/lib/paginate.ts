@@ -1,3 +1,5 @@
+import { serverLogger } from "./server/logging";
+
 type PagedFetcher<TItem> = (
   pageSize: number,
   offset: number,
@@ -20,7 +22,7 @@ interface FetchAllPagedOptions {
  *
  * Designed for sitemap-style "give me everything" workflows where the backend
  * still enforces a per-call `limit` cap. If a single page fails the helper
- * logs the error and returns whatever was collected so far rather than
+ * records the error and returns whatever was collected so far rather than
  * propagating — partial sitemap is better than empty sitemap.
  */
 export async function fetchAllPaged<TItem>(
@@ -35,10 +37,13 @@ export async function fetchAllPaged<TItem>(
     try {
       batch = await fetcher(pageSize, offset);
     } catch (error) {
-      console.error(
-        `[paginate] failed to fetch ${resource} page=${page} offset=${offset}:`,
+      serverLogger.warn("pagination.page_fetch_failed", {
+        resource,
+        page,
+        offset,
+        page_size: pageSize,
         error,
-      );
+      });
       break;
     }
 
