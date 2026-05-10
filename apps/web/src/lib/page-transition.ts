@@ -1,5 +1,7 @@
 export interface PageTransitionOptions {
   rootName?: string;
+  contentName?: string;
+  headerName?: string;
   durationMs?: number;
   distancePx?: number;
   easingIn?: string;
@@ -8,6 +10,8 @@ export interface PageTransitionOptions {
 
 const DEFAULT_OPTIONS: Required<PageTransitionOptions> = {
   rootName: 'root',
+  contentName: 'page-content',
+  headerName: 'site-header',
   durationMs: 240,
   distancePx: 10,
   easingIn: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -17,12 +21,38 @@ const DEFAULT_OPTIONS: Required<PageTransitionOptions> = {
 export function createPageTransitionStyles(
   options: PageTransitionOptions = {},
 ): string {
-  const { rootName, durationMs, distancePx, easingIn, easingOut } = {
+  const {
+    rootName,
+    contentName,
+    headerName,
+    durationMs,
+    distancePx,
+    easingIn,
+    easingOut,
+  } = {
     ...DEFAULT_OPTIONS,
     ...options,
   };
 
   return `
+::view-transition-group(${rootName}) {
+  z-index: 0;
+}
+
+::view-transition-group(${contentName}) {
+  z-index: 10;
+}
+
+::view-transition-group(${headerName}) {
+  z-index: 20;
+}
+
+::view-transition-old(${headerName}),
+::view-transition-new(${headerName}) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   @keyframes tol-fade-slide-in {
     from {
