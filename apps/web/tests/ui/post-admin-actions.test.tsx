@@ -107,4 +107,32 @@ describe("PostAdminActions", () => {
     );
     expect(await screen.findByText("재번역 요청을 보냈습니다.")).toBeInTheDocument();
   });
+
+  it("shows a disabled in-progress button while retranslation is pending", async () => {
+    let resolveFetch!: (value: { ok: boolean; status: number }) => void;
+    const fetchPromise = new Promise<{ ok: boolean; status: number }>(
+      (resolve) => {
+        resolveFetch = resolve;
+      },
+    );
+    const fetchMock = vi.fn().mockReturnValue(fetchPromise);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<PostAdminActions adminPostSlug="translated-post" locale="en" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "재번역" }));
+
+    const pendingButton = await screen.findByRole("button", {
+      name: "번역 중",
+    });
+    expect(pendingButton).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "재번역" }),
+    ).not.toBeInTheDocument();
+
+    resolveFetch({ ok: true, status: 202 });
+
+    expect(await screen.findByRole("button", { name: "재번역" })).toBeEnabled();
+    expect(await screen.findByText("재번역 요청을 보냈습니다.")).toBeInTheDocument();
+  });
 });

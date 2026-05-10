@@ -49,7 +49,7 @@ export function PostAdminActions({
 
     setBusy(true);
     setFeedback({
-      message: "재번역 요청 중...",
+      message: "번역 중...",
       state: "info",
     });
 
@@ -172,7 +172,7 @@ export function PostAdminActions({
           type="button"
           variant="outline"
         >
-          재번역
+          {busy ? "번역 중" : "재번역"}
         </Button>
         {feedback.message && (
           <p
