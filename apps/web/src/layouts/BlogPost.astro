@@ -58,6 +58,7 @@ interface SeriesPostItem {
 interface BlogPostAdminProps {
   postSlug?: string;
   adminPostSlug?: string;
+  translationStatus?: "source" | "synced" | "stale" | "failed";
   showAdminActions?: boolean;
   isAdminViewer?: boolean;
   seriesContext?: SeriesContext;
@@ -81,6 +82,7 @@ const {
   topMediaVideoUrl,
   postSlug = "",
   adminPostSlug = "",
+  translationStatus,
   showAdminActions = false,
   isAdminViewer = false,
   seriesContext,
@@ -181,6 +183,7 @@ const articleStructuredData = postSlug
             <PostAdminActions
               client:load
               adminPostSlug={adminPostSlug}
+              initialTranslationStatus={translationStatus}
               locale={locale}
             />
           )

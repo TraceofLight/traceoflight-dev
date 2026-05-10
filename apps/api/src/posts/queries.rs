@@ -21,8 +21,8 @@ use crate::entities::{
 use super::model::{
     ListPostsParams, ListSummariesParams, PostContentKind, PostFilter, PostLocale, PostRead,
     PostSeriesContext, PostSortMode, PostStatus, PostSummaryListRead, PostSummaryRead,
-    PostTagFilterRead, PostTopMediaKind, PostVisibility, PostVisibilityCountsRead,
-    ProjectProfileRead, ProjectResourceLink, TagMatch, TagRead,
+    PostTagFilterRead, PostTopMediaKind, PostTranslationStatus, PostVisibility,
+    PostVisibilityCountsRead, ProjectProfileRead, ProjectResourceLink, TagMatch, TagRead,
 };
 use super::utils::{format_reading_label, normalize_tag_slugs};
 
@@ -87,6 +87,7 @@ pub async fn get_post_by_slug(
         locale: row.locale,
         translation_group_id: row.translation_group_id,
         source_post_id: row.source_post_id,
+        translation_status: PostTranslationStatus::from(row.translation_status),
         series_context: series_by_post.remove(&row.id),
         project_profile: profiles_by_post.remove(&row.id),
     }))
@@ -508,6 +509,7 @@ pub async fn list_posts(
             locale: row.locale,
             translation_group_id: row.translation_group_id,
             source_post_id: row.source_post_id,
+            translation_status: PostTranslationStatus::from(row.translation_status),
             series_context: series_by_post.remove(&id),
             project_profile: profiles_by_post.remove(&id),
         });

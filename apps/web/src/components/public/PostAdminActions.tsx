@@ -15,19 +15,25 @@ import { action } from "@/lib/ui";
 
 type PostAdminActionsProps = {
   adminPostSlug: string;
+  initialTranslationStatus?: TranslationStatus;
   locale?: string;
   onDeleted?: () => void;
 };
 
 type FeedbackState = "info" | "error";
+type TranslationStatus = "source" | "synced" | "stale" | "failed";
 
 export function PostAdminActions({
   adminPostSlug,
+  initialTranslationStatus,
   locale = "ko",
   onDeleted,
 }: PostAdminActionsProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [retranslationQueued, setRetranslationQueued] = useState(
+    initialTranslationStatus === "stale",
+  );
   const [feedback, setFeedback] = useState<{
     message: string;
     state: FeedbackState;
@@ -42,16 +48,20 @@ export function PostAdminActions({
     }
   }, [open]);
 
+  useEffect(() => {
+    setRetranslationQueued(initialTranslationStatus === "stale");
+  }, [adminPostSlug, initialTranslationStatus]);
+
   const isSourceLocale = locale === "ko";
+  const isRetranslationInProgress = busy || retranslationQueued;
 
   async function handleRetranslate() {
+    if (isRetranslationInProgress) return;
+
     const postPath = `/internal-api/posts/${encodeURIComponent(adminPostSlug)}/retranslate`;
 
     setBusy(true);
-    setFeedback({
-      message: "번역 중...",
-      state: "info",
-    });
+    setFeedback({ message: "", state: "info" });
 
     try {
       const response = await fetch(postPath, {
@@ -61,10 +71,8 @@ export function PostAdminActions({
       });
 
       if (response.ok) {
-        setFeedback({
-          message: "재번역 요청을 보냈습니다.",
-          state: "info",
-        });
+        setRetranslationQueued(true);
+        setFeedback({ message: "", state: "info" });
         return;
       }
 
@@ -167,12 +175,12 @@ export function PostAdminActions({
       <div id="post-admin-actions" className="flex flex-wrap items-center gap-2">
         <Button
           className={action({ variant: "primaryOutline", size: "md" })}
-          disabled={busy}
+          disabled={isRetranslationInProgress}
           onClick={handleRetranslate}
           type="button"
           variant="outline"
         >
-          {busy ? "번역 중" : "재번역"}
+          {isRetranslationInProgress ? "번역 중" : "재번역"}
         </Button>
         {feedback.message && (
           <p

@@ -9,7 +9,10 @@ use common::{
     http::{body_bytes, body_json},
 };
 
-use traceoflight_api::{entities::post, posts::PostLocale};
+use traceoflight_api::{
+    entities::{enums::DbPostTranslationStatus, post},
+    posts::PostLocale,
+};
 
 #[sqlx::test(migrations = false)]
 async fn list_posts_returns_empty_when_db_is_empty(pool: PgPool) {
@@ -165,7 +168,7 @@ async fn delete_translated_post_returns_403_and_keeps_translation_group(pool: Pg
 }
 
 #[sqlx::test(migrations = false)]
-async fn retranslate_translated_post_clears_cached_source_hash(pool: PgPool) {
+async fn retranslate_translated_post_marks_translation_stale(pool: PgPool) {
     let app = spawn_test_app(pool).await;
     let source = PostFactory::new()
         .title("Korean Source")
@@ -197,6 +200,10 @@ async fn retranslate_translated_post_clears_cached_source_hash(pool: PgPool) {
         .expect("query translated post")
         .expect("translated post exists");
     assert_eq!(translated.translated_from_hash, None);
+    assert_eq!(
+        translated.translation_status,
+        DbPostTranslationStatus::Stale
+    );
 }
 
 #[sqlx::test(migrations = false)]

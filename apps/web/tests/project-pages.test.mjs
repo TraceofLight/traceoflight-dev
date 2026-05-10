@@ -162,7 +162,7 @@ test("project detail page keeps the original placeholder copy inside the new pub
   assert.match(source, /astro:page-load/);
   assert.match(source, /video\.load\(\)/);
   assert.match(source, /isAdminViewer && \(/);
-  assert.match(source, /<PostAdminActions[\s\S]*adminPostSlug=\{project\.slug\}[\s\S]*locale=\{locale\}/);
+  assert.match(source, /<PostAdminActions[\s\S]*adminPostSlug=\{project\.slug\}[\s\S]*initialTranslationStatus=\{project\.translationStatus\}[\s\S]*locale=\{locale\}/);
   // Not-found and back-to-list strings are sourced from the dictionary.
   assert.match(source, /\{t\.notFound\.title\}/);
   assert.match(source, /\{t\.notFound\.description\}/);

@@ -10,6 +10,8 @@ import {
   type CoverMedia,
 } from './cover-media';
 
+export type TranslationStatus = 'source' | 'synced' | 'stale' | 'failed';
+
 export interface DbPost {
   id: string;
   slug: string;
@@ -25,6 +27,7 @@ export interface DbPost {
   visibility?: 'public' | 'private';
   locale?: string;
   translation_group_id?: string;
+  translation_status?: TranslationStatus;
   tags: DbTag[];
   comment_count?: number;
   series_context?: DbSeriesContextRaw | null;
@@ -54,6 +57,7 @@ export interface DbBlogPost {
   visibility: 'public' | 'private';
   locale?: string;
   translationGroupId?: string;
+  translationStatus?: TranslationStatus;
   tags: DbTag[];
   seriesContext?: DbSeriesContext;
   createdAt: Date;
@@ -246,6 +250,7 @@ function toDbBlogPost(post: DbPost): DbBlogPost {
     bodyMarkdown: post.body_markdown,
     locale: post.locale,
     translationGroupId: post.translation_group_id,
+    translationStatus: post.translation_status,
     seriesContext: post.series_context ? toDbSeriesContext(post.series_context) : undefined,
   };
 }

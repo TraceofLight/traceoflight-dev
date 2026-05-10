@@ -105,10 +105,13 @@ describe("PostAdminActions", () => {
         body: JSON.stringify({ locale: "en" }),
       },
     );
-    expect(await screen.findByText("재번역 요청을 보냈습니다.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "번역 중" })).toBeDisabled();
+    });
+    expect(screen.queryByText("번역이 진행 중입니다.")).not.toBeInTheDocument();
   });
 
-  it("shows a disabled in-progress button while retranslation is pending", async () => {
+  it("keeps the in-progress button disabled after retranslation is queued", async () => {
     let resolveFetch!: (value: { ok: boolean; status: number }) => void;
     const fetchPromise = new Promise<{ ok: boolean; status: number }>(
       (resolve) => {
@@ -126,13 +129,63 @@ describe("PostAdminActions", () => {
       name: "번역 중",
     });
     expect(pendingButton).toBeDisabled();
+    expect(screen.queryByText("번역 중...")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "재번역" }),
     ).not.toBeInTheDocument();
 
     resolveFetch({ ok: true, status: 202 });
 
-    expect(await screen.findByRole("button", { name: "재번역" })).toBeEnabled();
-    expect(await screen.findByText("재번역 요청을 보냈습니다.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "번역 중" })).toBeDisabled();
+    });
+    expect(screen.queryByText("번역이 진행 중입니다.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "재번역" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows stale translated posts as in-progress on first render", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <PostAdminActions
+        adminPostSlug="translated-post"
+        initialTranslationStatus="stale"
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "번역 중" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "재번역" }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("syncs the in-progress state when a reused island receives a stale post", () => {
+    const { rerender } = render(
+      <PostAdminActions
+        adminPostSlug="synced-post"
+        initialTranslationStatus="synced"
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "재번역" })).toBeEnabled();
+
+    rerender(
+      <PostAdminActions
+        adminPostSlug="stale-post"
+        initialTranslationStatus="stale"
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "번역 중" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "재번역" }),
+    ).not.toBeInTheDocument();
   });
 });

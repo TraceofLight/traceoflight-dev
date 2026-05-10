@@ -30,47 +30,45 @@ class JenkinsTriggerPipelineTests(unittest.TestCase):
         self.assertNotIn("stage('Trigger Frontend')", source)
         self.assertNotIn("build job: 'traceoflight-frontend'", source)
 
-    def test_orchestrator_runs_test_then_build_then_deploys_sequentially(self) -> None:
-        # Top-level stages, in this order, so Blue Ocean renders them as
-        # distinct columns regardless of any sub-stage failures.
+    def test_orchestrator_runs_test_build_lanes_then_deploys_sequentially(self) -> None:
+        # Test and build are paired per backend/frontend lane, then deploys
+        # rejoin into the required backend-before-frontend order.
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
 
-        test_index = source.index("stage('Test')")
-        build_index = source.index("stage('Build')")
+        test_build_index = source.index("stage('Test → Build')")
         deploy_backend_index = source.index("stage('Deploy Backend')")
         deploy_frontend_index = source.index("stage('Deploy Frontend')")
 
-        self.assertLess(test_index, build_index)
-        self.assertLess(build_index, deploy_backend_index)
+        self.assertLess(test_build_index, deploy_backend_index)
         self.assertLess(deploy_backend_index, deploy_frontend_index)
 
-    def test_test_stage_runs_backend_and_frontend_in_parallel(self) -> None:
+    def test_test_build_stage_runs_backend_and_frontend_lanes_in_parallel(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
 
-        test_index = source.index("stage('Test')")
-        parallel_after_test = source.index("parallel", test_index)
-        backend_test = source.index("stage('Backend Test')", parallel_after_test)
-        frontend_test = source.index("stage('Frontend Test')", parallel_after_test)
-        build_index = source.index("stage('Build')")
-
-        self.assertLess(parallel_after_test, backend_test)
-        self.assertLess(parallel_after_test, frontend_test)
-        self.assertLess(backend_test, build_index)
-        self.assertLess(frontend_test, build_index)
-
-    def test_build_stage_runs_backend_and_frontend_in_parallel(self) -> None:
-        source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
-
-        build_index = source.index("stage('Build')")
-        parallel_after_build = source.index("parallel", build_index)
-        backend_build = source.index("stage('Backend Build')", parallel_after_build)
-        frontend_build = source.index("stage('Frontend Build')", parallel_after_build)
+        test_build_index = source.index("stage('Test → Build')")
+        parallel_after_test_build = source.index("parallel", test_build_index)
+        backend_lane = source.index("stage('Backend')", parallel_after_test_build)
+        frontend_lane = source.index("stage('Frontend')", parallel_after_test_build)
         deploy_backend_index = source.index("stage('Deploy Backend')")
 
-        self.assertLess(parallel_after_build, backend_build)
-        self.assertLess(parallel_after_build, frontend_build)
-        self.assertLess(backend_build, deploy_backend_index)
-        self.assertLess(frontend_build, deploy_backend_index)
+        self.assertLess(parallel_after_test_build, backend_lane)
+        self.assertLess(parallel_after_test_build, frontend_lane)
+        self.assertLess(backend_lane, deploy_backend_index)
+        self.assertLess(frontend_lane, deploy_backend_index)
+
+    def test_each_lane_runs_test_before_its_build(self) -> None:
+        source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
+
+        backend_lane = source.index("stage('Backend')")
+        backend_test = source.index("stage('Backend Test')", backend_lane)
+        backend_build = source.index("stage('Backend Build')", backend_test)
+
+        frontend_lane = source.index("stage('Frontend')")
+        frontend_test = source.index("stage('Frontend Test')", frontend_lane)
+        frontend_build = source.index("stage('Frontend Build')", frontend_test)
+
+        self.assertLess(backend_test, backend_build)
+        self.assertLess(frontend_test, frontend_build)
 
     def test_orchestrator_passes_mode_build_then_deploy(self) -> None:
         source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
@@ -109,6 +107,15 @@ class JenkinsTriggerPipelineTests(unittest.TestCase):
         self.assertIn("--profile ci", source)
         # Frontend test image is built and run by the orchestrator.
         self.assertIn("traceoflight-web-test", source)
+
+    def test_orchestrator_retries_frontend_test_image_build_after_snapshot_failures(self) -> None:
+        source = self.read("infra/jenkins/Jenkinsfile.orchestrator")
+
+        self.assertIn("build_frontend_test_image()", source)
+        self.assertIn("for attempt in 1 2 3", source)
+        self.assertIn("docker build -f Dockerfile.test -t traceoflight-web-test .", source)
+        self.assertIn("docker image rm -f traceoflight-web-test || true", source)
+        self.assertIn("docker builder prune -af || true", source)
 
     def test_orchestrator_uses_docker_create_pattern_for_junit_extraction(self) -> None:
         # `docker run --rm` would discard the container before we can `docker cp`

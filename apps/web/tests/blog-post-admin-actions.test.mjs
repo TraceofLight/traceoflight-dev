@@ -14,6 +14,7 @@ test("blog slug page passes admin flags and slug to post layout", async () => {
 
   assert.match(source, /isAdminViewer/);
   assert.match(source, /adminPostSlug=\{dbPost\.slug\}/);
+  assert.match(source, /translationStatus=\{dbPost\.translationStatus\}/);
   assert.match(source, /showAdminActions=\{isAdminViewer\}/);
 });
 
@@ -24,6 +25,7 @@ test("blog post layout mounts a React admin actions island instead of an inline 
   ]);
 
   assert.match(layoutSource, /adminPostSlug/);
+  assert.match(layoutSource, /translationStatus/);
   assert.match(layoutSource, /showAdminActions/);
   assert.match(
     layoutSource,
@@ -33,7 +35,7 @@ test("blog post layout mounts a React admin actions island instead of an inline 
     layoutSource,
     /import PostAdminActions from ["']\.\.\/components\/public\/PostAdminActions["']/,
   );
-  assert.match(layoutSource, /<PostAdminActions[\s\S]*client:load[\s\S]*adminPostSlug=\{adminPostSlug\}[\s\S]*locale=\{locale\}/);
+  assert.match(layoutSource, /<PostAdminActions[\s\S]*client:load[\s\S]*adminPostSlug=\{adminPostSlug\}[\s\S]*initialTranslationStatus=\{translationStatus\}[\s\S]*locale=\{locale\}/);
   assert.doesNotMatch(layoutSource, /initializePostAdminDeleteModal/);
   assert.doesNotMatch(layoutSource, /id=["']post-admin-delete-modal["']/);
 
@@ -45,6 +47,7 @@ test("blog post layout mounts a React admin actions island instead of an inline 
   assert.match(actionSource, /method:\s*["']POST["']/);
   assert.match(actionSource, /action:\s*["']delete["']/);
   assert.match(actionSource, /locale\?: string/);
+  assert.match(actionSource, /initialTranslationStatus\?: TranslationStatus/);
   assert.match(actionSource, /isSourceLocale/);
   assert.match(actionSource, /\/retranslate`/);
   assert.match(actionSource, /response\.status\s*===\s*404/);

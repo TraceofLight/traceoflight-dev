@@ -131,7 +131,31 @@ pipeline {
 
                     # Source baked into the image (no bind mount) — required for
                     # Docker-in-Docker where Jenkins paths don't align with the host.
-                    docker build -f Dockerfile.test -t traceoflight-web-test .
+                    build_frontend_test_image() {
+                      for attempt in 1 2 3; do
+                        if docker build -f Dockerfile.test -t traceoflight-web-test .; then
+                          return 0
+                        fi
+
+                        if [ "$attempt" = "1" ]; then
+                          echo "WARN: frontend test image build failed; retrying once before pruning Docker builder cache."
+                          sleep 2
+                          continue
+                        fi
+
+                        if [ "$attempt" = "2" ]; then
+                          echo "WARN: frontend test image build failed again; removing partial image and pruning Docker builder cache before final retry."
+                          docker image rm -f traceoflight-web-test || true
+                          docker builder prune -af || true
+                          sleep 2
+                          continue
+                        fi
+
+                        echo "ERROR: frontend test image build failed after 3 attempts."
+                        return 1
+                      done
+                    }
+                    build_frontend_test_image
 
                     # CMD runs `bun run test`: typecheck + node:test guards +
                     # vitest + node:test admin-auth. The package.json scripts emit

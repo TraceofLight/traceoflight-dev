@@ -102,6 +102,27 @@ impl PostTopMediaKind {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, ToSchema, PartialEq, Eq)]
+#[sqlx(type_name = "post_translation_status", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum PostTranslationStatus {
+    Source,
+    Synced,
+    Stale,
+    Failed,
+}
+
+impl PostTranslationStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostTranslationStatus::Source => "source",
+            PostTranslationStatus::Synced => "synced",
+            PostTranslationStatus::Stale => "stale",
+            PostTranslationStatus::Failed => "failed",
+        }
+    }
+}
+
 macro_rules! impl_try_getable_enum {
     ($ty:ty, {$($value:literal => $variant:path),+ $(,)?}) => {
         impl TryGetable for $ty {
@@ -149,6 +170,13 @@ impl_try_getable_enum!(PostTopMediaKind, {
     "image" => PostTopMediaKind::Image,
     "youtube" => PostTopMediaKind::Youtube,
     "video" => PostTopMediaKind::Video,
+});
+
+impl_try_getable_enum!(PostTranslationStatus, {
+    "source" => PostTranslationStatus::Source,
+    "synced" => PostTranslationStatus::Synced,
+    "stale" => PostTranslationStatus::Stale,
+    "failed" => PostTranslationStatus::Failed,
 });
 
 #[derive(Debug, Clone, Serialize, FromRow, FromQueryResult, ToSchema)]
@@ -212,6 +240,7 @@ pub struct PostRead {
     pub locale: PostLocale,
     pub translation_group_id: Uuid,
     pub source_post_id: Option<Uuid>,
+    pub translation_status: PostTranslationStatus,
     pub series_context: Option<PostSeriesContext>,
     pub project_profile: Option<ProjectProfileRead>,
 }

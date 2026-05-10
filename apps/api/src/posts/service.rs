@@ -338,6 +338,7 @@ pub async fn prepare_post_retranslation(
 
     let mut active: post::ActiveModel = target.into();
     active.translated_from_hash = Set(None);
+    active.translation_status = Set(DbPostTranslationStatus::Stale);
     active.updated_at = Set(Utc::now());
     active.update(pool).await?;
 

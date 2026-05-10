@@ -1,6 +1,8 @@
 import { requestBackend, resolveBackendAssetUrl } from "./backend-api";
 import { createMarkdownRenderer } from "./markdown-renderer";
 
+type TranslationStatus = "source" | "synced" | "stale" | "failed";
+
 export interface ProjectLink {
   label: string;
   href: string;
@@ -25,6 +27,7 @@ export interface ProjectItem {
   id: string;
   slug: string;
   locale?: string;
+  translationStatus?: TranslationStatus;
   title: string;
   summary: string;
   description: string;
@@ -76,6 +79,7 @@ interface DbProjectPost {
   id: string;
   slug: string;
   locale?: string;
+  translation_status?: TranslationStatus;
   title: string;
   excerpt: string | null;
   body_markdown: string;
@@ -99,6 +103,7 @@ function toProjectItem(project: DbProjectPost): ProjectItem {
     id: project.id,
     slug: project.slug,
     locale: project.locale,
+    translationStatus: project.translation_status,
     title: project.title,
     summary: project.excerpt?.trim() ?? "",
     intro: profile.project_intro?.trim() ?? "",

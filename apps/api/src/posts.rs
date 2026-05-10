@@ -10,8 +10,9 @@ mod utils;
 pub use model::{
     ListPostsParams, ListSummariesParams, PostContentKind, PostCreate, PostFilter, PostLocale,
     PostRead, PostSeriesContext, PostSortMode, PostStatus, PostSummaryListRead, PostSummaryRead,
-    PostTagFilterRead, PostTopMediaKind, PostVisibility, PostVisibilityCountsRead,
-    ProjectProfilePayload, ProjectProfileRead, ProjectResourceLink, TagMatch, TagRead,
+    PostTagFilterRead, PostTopMediaKind, PostTranslationStatus, PostVisibility,
+    PostVisibilityCountsRead, ProjectProfilePayload, ProjectProfileRead, ProjectResourceLink,
+    TagMatch, TagRead,
 };
 pub use queries::{get_post_by_slug, list_post_summaries, list_posts};
 pub use service::{

@@ -1,6 +1,9 @@
 use sea_orm::entity::prelude::*;
 
-use crate::posts::{PostContentKind, PostLocale, PostStatus, PostTopMediaKind, PostVisibility};
+use crate::posts::{
+    PostContentKind, PostLocale, PostStatus, PostTopMediaKind, PostTranslationStatus,
+    PostVisibility,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "asset_kind")]
@@ -233,6 +236,28 @@ impl From<DbPostTopMediaKind> for PostTopMediaKind {
             DbPostTopMediaKind::Image => Self::Image,
             DbPostTopMediaKind::Youtube => Self::Youtube,
             DbPostTopMediaKind::Video => Self::Video,
+        }
+    }
+}
+
+impl From<PostTranslationStatus> for DbPostTranslationStatus {
+    fn from(value: PostTranslationStatus) -> Self {
+        match value {
+            PostTranslationStatus::Source => Self::Source,
+            PostTranslationStatus::Synced => Self::Synced,
+            PostTranslationStatus::Stale => Self::Stale,
+            PostTranslationStatus::Failed => Self::Failed,
+        }
+    }
+}
+
+impl From<DbPostTranslationStatus> for PostTranslationStatus {
+    fn from(value: DbPostTranslationStatus) -> Self {
+        match value {
+            DbPostTranslationStatus::Source => Self::Source,
+            DbPostTranslationStatus::Synced => Self::Synced,
+            DbPostTranslationStatus::Stale => Self::Stale,
+            DbPostTranslationStatus::Failed => Self::Failed,
         }
     }
 }

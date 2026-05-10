@@ -17,8 +17,8 @@ use crate::entities::{
 use crate::error::AppError;
 use crate::posts::{
     ListPostsParams, PostContentKind, PostFilter, PostLocale, PostRead, PostSeriesContext,
-    PostStatus, PostTopMediaKind, PostVisibility, ProjectProfileRead, TagRead, get_post_by_slug,
-    list_posts, slugify_series_title,
+    PostStatus, PostTopMediaKind, PostTranslationStatus, PostVisibility, ProjectProfileRead,
+    TagRead, get_post_by_slug, list_posts, slugify_series_title,
 };
 use crate::serializers::{serialize_dt_us, serialize_dt_us_opt};
 use crate::series::SeriesPostRead;
@@ -54,6 +54,7 @@ pub struct ProjectRead {
     pub locale: PostLocale,
     pub translation_group_id: Uuid,
     pub source_post_id: Option<Uuid>,
+    pub translation_status: PostTranslationStatus,
     pub series_context: Option<PostSeriesContext>,
     pub project_profile: ProjectProfileRead,
     pub related_series_posts: Vec<SeriesPostRead>,
@@ -277,6 +278,7 @@ fn post_to_project(
         locale: post.locale,
         translation_group_id: post.translation_group_id,
         source_post_id: post.source_post_id,
+        translation_status: post.translation_status,
         series_context: post.series_context,
         project_profile,
         related_series_posts,
