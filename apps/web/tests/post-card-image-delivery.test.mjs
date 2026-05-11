@@ -209,9 +209,14 @@ test("browser image route prefers the current request origin for /media assets b
   }
 });
 
-test("browser image route falls back to the backend asset origin for /media assets when the site origin does not serve them", async () => {
+test("browser image route does not fetch /media assets from the backend API origin", async () => {
   const servedImageBuffer = await readFile(fallbackImageAssetPath);
-  const backendServer = createServer((request, response) => {
+  const requestServer = createServer((_request, response) => {
+    response.writeHead(404, { "content-type": "text/plain" });
+    response.end("not found");
+  });
+
+  const siteServer = createServer((request, response) => {
     if (request.url === "/media/test.png") {
       response.writeHead(200, { "content-type": "image/png" });
       response.end(servedImageBuffer);
@@ -222,21 +227,33 @@ test("browser image route falls back to the backend asset origin for /media asse
     response.end("not found");
   });
 
-  const siteServer = createServer((_request, response) => {
+  let backendHits = 0;
+  const backendServer = createServer((request, response) => {
+    backendHits += 1;
+    if (request.url === "/media/test.png") {
+      response.writeHead(200, { "content-type": "image/png" });
+      response.end(servedImageBuffer);
+      return;
+    }
+
     response.writeHead(404, { "content-type": "text/plain" });
     response.end("not found");
   });
 
   await Promise.all([
-    new Promise((resolve) => backendServer.listen(0, "127.0.0.1", resolve)),
+    new Promise((resolve) => requestServer.listen(0, "127.0.0.1", resolve)),
     new Promise((resolve) => siteServer.listen(0, "127.0.0.1", resolve)),
+    new Promise((resolve) => backendServer.listen(0, "127.0.0.1", resolve)),
   ]);
 
   try {
+    const requestAddress = requestServer.address();
     const backendAddress = backendServer.address();
     const siteAddress = siteServer.address();
+    assert.notEqual(requestAddress, null);
     assert.notEqual(backendAddress, null);
     assert.notEqual(siteAddress, null);
+    assert.equal(typeof requestAddress, "object");
     assert.equal(typeof backendAddress, "object");
     assert.equal(typeof siteAddress, "object");
 
@@ -262,7 +279,7 @@ test("browser image route falls back to the backend asset origin for /media asse
         cwd: appRootPath,
         env: {
           ...process.env,
-          REQUEST_URL: `http://127.0.0.1:${siteAddress.port}/internal-api/media/browser-image?url=%2Fmedia%2Ftest.png&w=64&h=64`,
+          REQUEST_URL: `http://127.0.0.1:${requestAddress.port}/internal-api/media/browser-image?url=%2Fmedia%2Ftest.png&w=64&h=64`,
           ROUTE_MODULE_URL: routeModuleUrl,
           SITE_URL: `http://127.0.0.1:${siteAddress.port}`,
           API_BASE_URL: `http://127.0.0.1:${backendAddress.port}/api/v1/web-service`,
@@ -274,7 +291,9 @@ test("browser image route falls back to the backend asset origin for /media asse
     assert.equal(response.status, 200);
     assert.equal(response.contentType, "image/webp");
     assert.ok(response.bodyLength > 0);
+    assert.equal(backendHits, 0);
   } finally {
+    requestServer.close();
     backendServer.close();
     siteServer.close();
   }

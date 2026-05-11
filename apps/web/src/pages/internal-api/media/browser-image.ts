@@ -246,7 +246,7 @@ async function buildSourceUrlCandidates(
   }
 
   const originCandidates = trimmedSource.startsWith("/media/")
-    ? [requestOrigin, backendAssetOrigin, configuredSiteOrigin]
+    ? [requestOrigin, configuredSiteOrigin]
     : [requestOrigin];
   const uniqueOrigins = [
     ...new Set(originCandidates.map((origin) => origin.trim()).filter(Boolean)),
