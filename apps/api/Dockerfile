@@ -17,6 +17,7 @@ WORKDIR /app
 COPY --from=builder /build/target/release/traceoflight-api /app/traceoflight-api
 
 ENV RUST_LOG=info
+ENV LOG_FORMAT=json
 ENV API_PORT=6101
 EXPOSE 6101
 

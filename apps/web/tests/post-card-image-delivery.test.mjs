@@ -175,6 +175,47 @@ test("browser image route limits remote hosts to an allowlist and blocks wider i
   assert.match(source, /startsWith\("fe80:"\)/);
 });
 
+test("browser image route logs an operational event when source candidates are invalid", async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [
+      "--import",
+      tsxLoaderPath,
+      "--input-type=module",
+      "-e",
+      `
+        const logs = [];
+        console.info = (line) => logs.push(JSON.parse(line));
+        const { GET } = await import(process.env.ROUTE_MODULE_URL);
+        const response = await GET({ request: new Request(process.env.REQUEST_URL) });
+        await response.arrayBuffer();
+        console.log(JSON.stringify({ status: response.status, logs }));
+      `,
+    ],
+    {
+      cwd: appRootPath,
+      env: {
+        ...process.env,
+        REQUEST_URL:
+          "http://127.0.0.1:4321/internal-api/media/browser-image?url=ftp%3A%2F%2Fexample.com%2Fimage.png&w=64&h=64",
+        ROUTE_MODULE_URL: routeModuleUrl,
+        WEB_LOG_LEVEL: "info",
+      },
+    },
+  );
+
+  const { status, logs } = JSON.parse(stdout.trim());
+  assert.equal(status, 400);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].level, "info");
+  assert.equal(logs[0].event, "media.browser_image_failed");
+  assert.equal(logs[0].reason, "invalid_source");
+  assert.equal(logs[0].status, 400);
+  assert.equal(logs[0].candidate_count, 0);
+  assert.equal(logs[0].source_present, true);
+  assert.equal(logs[0].source_relative, false);
+});
+
 test("browser image route prefers the current request origin for /media assets before SITE_URL fallback", async () => {
   const servedImageBuffer = await readFile(fallbackImageAssetPath);
   const server = createServer((request, response) => {

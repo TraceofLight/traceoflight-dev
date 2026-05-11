@@ -134,6 +134,7 @@ test("frontend server boundaries declare operational log events", async () => {
     sitemapRouteSource,
     paginateSource,
     ga4SummarySource,
+    browserImageSource,
   ] = await Promise.all([
     readFile(backendApiPath, "utf8"),
     readFile(middlewarePath, "utf8"),
@@ -144,6 +145,7 @@ test("frontend server boundaries declare operational log events", async () => {
     readFile(sitemapRoutePath, "utf8"),
     readFile(paginatePath, "utf8"),
     readFile(ga4SummaryPath, "utf8"),
+    readFile(browserImagePath, "utf8"),
   ]);
 
   assert.match(
@@ -230,6 +232,10 @@ test("frontend server boundaries declare operational log events", async () => {
     ga4SummarySource,
     /serverLogger\.warn\("ga4\.visitor_summary_failed"/,
   );
+  assert.match(
+    browserImageSource,
+    /serverLogger\.info\("media\.browser_image_failed"/,
+  );
 
   for (const source of [
     backendApiSource,
@@ -241,6 +247,7 @@ test("frontend server boundaries declare operational log events", async () => {
     sitemapRouteSource,
     paginateSource,
     ga4SummarySource,
+    browserImageSource,
   ]) {
     assert.doesNotMatch(
       source,

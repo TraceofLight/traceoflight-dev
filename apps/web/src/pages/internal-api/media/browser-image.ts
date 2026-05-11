@@ -371,8 +371,18 @@ export const GET: APIRoute = async ({ request }) => {
   );
   const fit = requestUrl.searchParams.get("fit");
   const resizeFit = fit === "contain" || fit === "inside" ? fit : "cover";
+  const sourcePresent = Boolean(sourceParam?.trim());
+  const sourceRelative = Boolean(sourceParam?.trim().startsWith("/"));
+  const requestLogFields = {
+    source_present: sourcePresent,
+    source_relative: sourceRelative,
+    width,
+    height,
+    quality,
+    fit: resizeFit,
+  };
   serverLogger.debug("media.browser_image_requested", {
-    source_present: Boolean(sourceParam?.trim()),
+    source_present: sourcePresent,
     width,
     height,
     quality,
@@ -380,10 +390,16 @@ export const GET: APIRoute = async ({ request }) => {
   });
   serverLogger.debug("media.browser_image_candidates_resolved", {
     candidate_count: sourceCandidates.length,
-    source_relative: Boolean(sourceParam?.trim().startsWith("/")),
+    source_relative: sourceRelative,
   });
 
   if (sourceCandidates.length === 0) {
+    serverLogger.info("media.browser_image_failed", {
+      ...requestLogFields,
+      reason: "invalid_source",
+      status: 400,
+      candidate_count: sourceCandidates.length,
+    });
     return badRequest("A valid image url is required.");
   }
 
@@ -393,10 +409,15 @@ export const GET: APIRoute = async ({ request }) => {
       : null;
 
   let upstreamResponse: Response | null = null;
+  let attemptedCandidateCount = 0;
+  let lastUpstreamStatus: number | undefined;
+  let lastUpstreamContentType: string | undefined;
+  let fetchErrorCount = 0;
   if (!relativeAssetBuffer) {
     for (const sourceUrl of sourceCandidates) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      attemptedCandidateCount += 1;
       try {
         const candidateResponse = await fetch(sourceUrl, {
           redirect: "manual",
@@ -406,18 +427,23 @@ export const GET: APIRoute = async ({ request }) => {
           },
         });
         clearTimeout(timeoutId);
+        const responseStatus = candidateResponse.status;
 
-        if (!candidateResponse.ok) {
+        if (responseStatus >= 300 && responseStatus < 400) {
+          lastUpstreamStatus = responseStatus;
           continue;
         }
 
-        if (candidateResponse.status >= 300 && candidateResponse.status < 400) {
+        if (!candidateResponse.ok) {
+          lastUpstreamStatus = responseStatus;
           continue;
         }
 
         const sourceContentType =
           candidateResponse.headers.get("content-type") ?? "";
         if (!sourceContentType.startsWith("image/")) {
+          lastUpstreamStatus = responseStatus;
+          lastUpstreamContentType = sourceContentType || undefined;
           continue;
         }
 
@@ -425,11 +451,22 @@ export const GET: APIRoute = async ({ request }) => {
         break;
       } catch {
         clearTimeout(timeoutId);
+        fetchErrorCount += 1;
         continue;
       }
     }
 
     if (!upstreamResponse) {
+      serverLogger.info("media.browser_image_failed", {
+        ...requestLogFields,
+        reason: "source_fetch_failed",
+        status: 502,
+        candidate_count: sourceCandidates.length,
+        attempted_candidate_count: attemptedCandidateCount,
+        upstream_status: lastUpstreamStatus,
+        upstream_content_type: lastUpstreamContentType,
+        fetch_error_count: fetchErrorCount,
+      });
       return badRequest("Failed to fetch source image.", 502);
     }
   }

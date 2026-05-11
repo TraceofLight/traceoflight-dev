@@ -115,6 +115,25 @@ fn backend_write_routes_have_operational_info_log_events() {
 }
 
 #[test]
+fn backend_production_runtime_defaults_emit_json_logs() {
+    let env_example = read_repo_file(".env.api.example");
+    let dockerfile = read_repo_file("Dockerfile");
+
+    assert!(
+        env_example.contains("APP_ENV=production"),
+        "api env example should document the production runtime profile"
+    );
+    assert!(
+        env_example.contains("LOG_FORMAT=json"),
+        "production api env example should emit machine-parseable JSON logs"
+    );
+    assert!(
+        dockerfile.contains("ENV LOG_FORMAT=json"),
+        "api container should default to JSON logs when no env file is mounted"
+    );
+}
+
+#[test]
 fn backend_debug_logs_cover_read_paths_and_background_decisions() {
     let source_files = [
         "src/routes/admin.rs",
