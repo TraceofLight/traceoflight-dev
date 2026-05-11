@@ -618,7 +618,7 @@ export function BlogArchiveFilters({
                   <div className={mediaFrameClass}>
                     <img
                       alt={getCoverImageAlt(post.title, labels.coverImageAlt)}
-                      className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-300 group-hover:scale-[1.06]"
+                      className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center media-card-zoom"
                       loading="lazy"
                       onError={(event) => {
                         if (event.currentTarget.src !== fallbackCoverImageSrc) {

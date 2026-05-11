@@ -56,6 +56,10 @@ test("project card and list page use the new public card shell", async () => {
   assert.match(cardSource, /fit:\s*"inside"/);
   assert.match(cardSource, /data-fallback-src=\{normalizedFallbackCoverImageSrc\}/);
   assert.match(cardSource, /!h-full !w-full !max-w-none object-cover object-center/);
+  assert.match(
+    cardSource,
+    /class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center media-card-zoom"/,
+  );
   assert.match(cardSource, /object-cover object-center/);
   // The card builds the href from an optional `locale` prop, with `/projects/<slug>`
   // as a graceful fallback when no locale is provided.

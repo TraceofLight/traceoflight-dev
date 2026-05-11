@@ -52,7 +52,7 @@ test("series index page renders archive list and links to detail route", async (
   assert.match(cardSource, /imageWidth = (960|IMAGE_SIZES\.postCard\.width)/);
   assert.match(cardSource, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(cardSource, /toBrowserImageUrl\(series\.coverImageUrl,\s*\{[\s\S]*fit:\s*"inside"/);
-  assert.match(cardSource, /<img[\s\S]*class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center/);
+  assert.match(cardSource, /<img[\s\S]*class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center media-card-zoom/);
   assert.match(cardSource, /data-fallback-src=\{normalizedFallbackCoverImageSrc\}/);
   assert.match(cardSource, /object-cover object-center/);
   assert.match(cardSource, /FormattedDate/);

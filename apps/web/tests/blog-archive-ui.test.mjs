@@ -88,6 +88,14 @@ test("blog archive filter island provides search, sort, and admin visibility con
   assert.match(source, /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/);
   assert.match(source, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
+  assert.match(
+    source,
+    /className="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center media-card-zoom"/,
+  );
+  assert.match(
+    baseCssSource,
+    /\.media-load-frame > \.media-card-zoom \{[\s\S]*transition:[\s\S]*opacity 180ms ease,[\s\S]*transform 500ms cubic-bezier\(0, 0, 0\.2, 1\);[\s\S]*\}/,
+  );
   assert.match(source, /object-cover object-center/);
   assert.match(source, /const fallbackCoverImageSrc = toBrowserImageUrl\([\s\S]*fit:\s*"inside"/);
   assert.match(source, /onError=\{\(event\) => \{/);

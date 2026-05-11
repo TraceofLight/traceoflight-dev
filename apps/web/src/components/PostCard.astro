@@ -73,7 +73,7 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
       {
         post.coverMedia ? (
           <CoverMediaImage
-            className="absolute inset-0 !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
+            className="absolute inset-0 !h-full !w-full !max-w-none object-cover object-center media-card-zoom"
             media={post.coverMedia}
             alt={post.title}
             width={imageWidth}
@@ -85,7 +85,7 @@ const privatePillClass = `${statusBadge({ tone: "warning", size: "sm" })} text-[
           />
         ) : (
           <img
-            class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center transition duration-500 group-hover:scale-[1.06]"
+            class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center media-card-zoom"
             src={fallbackCoverImageSrc}
             alt={post.title}
             loading="lazy"

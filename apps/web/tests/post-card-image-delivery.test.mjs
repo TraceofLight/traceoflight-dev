@@ -17,6 +17,7 @@ const mediaRoutePath = new URL(
   import.meta.url,
 );
 const postCardPath = new URL("../src/components/PostCard.astro", import.meta.url);
+const baseCssPath = new URL("../src/styles/base.css", import.meta.url);
 const repoRootPath = fileURLToPath(new URL("../../..", import.meta.url));
 const appRootPath = fileURLToPath(new URL("..", import.meta.url));
 const routeModuleUrl = new URL(
@@ -382,13 +383,33 @@ test("browser image route accepts absolute same-origin /media urls by normalizin
 });
 
 test("post card uses a toss-team-like wide media block and fully filled imagery", async () => {
-  const source = await readFile(postCardPath, "utf8");
+  const [source, baseCssSource] = await Promise.all([
+    readFile(postCardPath, "utf8"),
+    readFile(baseCssPath, "utf8"),
+  ]);
 
   assert.match(source, /surface\(\{[^}]*kind:\s*["']card["'][^}]*interactive:\s*true/);
   assert.match(source, /const mediaFrameClass = mediaFrame\(\)/);
   assert.match(source, /imageHeight = (640|IMAGE_SIZES\.postCard\.height)/);
   assert.match(source, /sizes="\(max-width: 768px\) 100vw, \(max-width: 1280px\) 50vw, 33vw"/);
   assert.match(source, /!h-full !w-full !max-w-none object-cover object-center/);
+  assert.match(
+    source,
+    /className="absolute inset-0 !h-full !w-full !max-w-none object-cover object-center media-card-zoom"/,
+  );
+  assert.match(
+    source,
+    /class="absolute inset-0 block !h-full !w-full !max-w-none object-cover object-center media-card-zoom"/,
+  );
+  assert.doesNotMatch(source, /group-hover:scale-\[1\.06\]/);
+  assert.match(
+    baseCssSource,
+    /\.media-load-frame > \.media-card-zoom \{[\s\S]*transition:[\s\S]*opacity 180ms ease,[\s\S]*transform 500ms cubic-bezier\(0, 0, 0\.2, 1\);[\s\S]*\}/,
+  );
+  assert.match(
+    baseCssSource,
+    /\.group:hover \.media-load-frame > \.media-card-zoom \{[\s\S]*transform: scale\(1\.06\);[\s\S]*\}/,
+  );
   assert.match(source, /object-cover object-center/);
   assert.match(source, /mediaFrame\(\)/);
   assert.doesNotMatch(source, /const imagePosition = "top";/);

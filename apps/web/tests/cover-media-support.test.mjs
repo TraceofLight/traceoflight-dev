@@ -98,7 +98,13 @@ test("blog post layout reuses shared cover media helpers for top media rendering
     /class="media-load-frame mt-8 aspect-\[16\/9\] overflow-hidden rounded-3xl shadow-card"/,
   );
   assert.match(source, /data-media-shell/);
-  assert.match(source, /className="h-full w-full object-contain"/);
+  assert.match(
+    source,
+    /className="!h-full !w-full !max-w-none object-cover object-center"/,
+  );
+  assert.doesNotMatch(source, /hover:scale-\[1\.04\]/);
+  assert.doesNotMatch(source, /className="h-full w-full object-contain"/);
+  assert.doesNotMatch(source, /object-contain object-center/);
   assert.match(source, /mediaLoad/);
   assert.match(source, /fit="inside"/);
   assert.doesNotMatch(
